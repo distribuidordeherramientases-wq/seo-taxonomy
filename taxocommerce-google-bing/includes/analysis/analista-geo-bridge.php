@@ -280,7 +280,13 @@ function taxocommerce_insights_analysis_ajax() {
     ob_start();
     try {
         // Original commercial and specialist reports, without changing SEO.
-        seo_analista_lazy_render_partial( $report, $days );
+        // The old SEO monolith defines the same global lazy renderer. Never
+        // dispatch Competition through it: Insights owns the market report.
+        if ( 'competencia' === $report ) {
+            taxocommerce_insights_competitive_render_panel( $days );
+        } else {
+            seo_analista_lazy_render_partial( $report, $days );
+        }
 
         if ( 'directrices' === $report ) {
             // Market view: external demand, commercial outcomes and GA4 assistant

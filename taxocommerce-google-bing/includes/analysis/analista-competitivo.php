@@ -10,11 +10,13 @@
 
 defined( 'ABSPATH' ) || exit;
 
-if ( ! defined( 'SEO_ANALISTA_COMPETITIVE_REPORT_OPTION' ) ) {
-    define( 'SEO_ANALISTA_COMPETITIVE_REPORT_OPTION', 'seo_analista_competitive_report_v1' );
+// Do not reuse the monolith's option keys: it must not overwrite an
+// Insights-generated report when both products are installed.
+if ( ! defined( 'TAXOCOMMERCE_INSIGHTS_COMPETITIVE_REPORT_OPTION' ) ) {
+    define( 'TAXOCOMMERCE_INSIGHTS_COMPETITIVE_REPORT_OPTION', 'taxocommerce_insights_competitive_report_v2' );
 }
-if ( ! defined( 'SEO_ANALISTA_COMPETITIVE_REPORT_HISTORY_OPTION' ) ) {
-    define( 'SEO_ANALISTA_COMPETITIVE_REPORT_HISTORY_OPTION', 'seo_analista_competitive_report_history_v1' );
+if ( ! defined( 'TAXOCOMMERCE_INSIGHTS_COMPETITIVE_HISTORY_OPTION' ) ) {
+    define( 'TAXOCOMMERCE_INSIGHTS_COMPETITIVE_HISTORY_OPTION', 'taxocommerce_insights_competitive_report_history_v2' );
 }
 
 /**
@@ -191,15 +193,15 @@ function taxocommerce_insights_competitive_save_report( $report ) {
     if ( ! is_array( $report ) ) {
         return false;
     }
-    update_option( SEO_ANALISTA_COMPETITIVE_REPORT_OPTION, $report, false );
-    $history = get_option( SEO_ANALISTA_COMPETITIVE_REPORT_HISTORY_OPTION, array() );
+    update_option( TAXOCOMMERCE_INSIGHTS_COMPETITIVE_REPORT_OPTION, $report, false );
+    $history = get_option( TAXOCOMMERCE_INSIGHTS_COMPETITIVE_HISTORY_OPTION, array() );
     $history = is_array( $history ) ? $history : array();
     $history[] = array(
         'generated_at' => (string) ( $report['generated_at'] ?? '' ),
         'summary' => (array) ( $report['summary'] ?? array() ),
         'competitors' => (array) ( $report['competitors'] ?? array() ),
     );
-    update_option( SEO_ANALISTA_COMPETITIVE_REPORT_HISTORY_OPTION, array_slice( $history, -8 ), false );
+    update_option( TAXOCOMMERCE_INSIGHTS_COMPETITIVE_HISTORY_OPTION, array_slice( $history, -8 ), false );
     return true;
 }
 
@@ -208,16 +210,22 @@ function taxocommerce_insights_competitive_generate_handler() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'No tienes permisos para generar el informe competitivo.', 'taxocommerce-google-bing' ) );
     }
-    check_admin_referer( 'seo_analista_generate_competitive_report', 'seo_analista_competitive_nonce' );
+    check_admin_referer( 'taxocommerce_insights_competition_generate', 'taxocommerce_insights_competition_nonce' );
     $days = isset( $_POST['analista_days'] ) ? absint( wp_unslash( $_POST['analista_days'] ) ) : 28;
     $days = in_array( $days, array( 28, 90 ), true ) ? $days : 28;
     $report = taxocommerce_insights_competitive_build_report( $days );
     taxocommerce_insights_competitive_save_report( $report );
-    wp_safe_redirect( seo_analista_admin_url( array(
-        'analista_view' => 'comparacion',
-        'analista_days' => $days,
-        'analista_notice' => 'competitive_generated',
-    ) ) );
+    // Redirect to the real Insights screen, not the old Analista helper
+    // (which can be supplied by the monolith and point at a different tab).
+    wp_safe_redirect( add_query_arg(
+        array(
+            'page' => 'taxocommerce-google-bing',
+            'tgb_tab' => 'analysis',
+            'analista_days' => $days,
+            'analista_notice' => 'competitive_generated',
+        ),
+        admin_url( 'admin.php' )
+    ) );
     exit;
 }
 add_action( 'admin_post_taxocommerce_insights_competition_generate', 'taxocommerce_insights_competitive_generate_handler' );
@@ -227,8 +235,8 @@ function taxocommerce_insights_competitive_export_handler() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'No tienes permisos para exportar el informe competitivo.', 'taxocommerce-google-bing' ) );
     }
-    check_admin_referer( 'seo_analista_export_competitive_report' );
-    $report = get_option( SEO_ANALISTA_COMPETITIVE_REPORT_OPTION, array() );
+    check_admin_referer( 'taxocommerce_insights_competition_export' );
+    $report = get_option( TAXOCOMMERCE_INSIGHTS_COMPETITIVE_REPORT_OPTION, array() );
     if ( ! is_array( $report ) || ! $report ) {
         wp_die( esc_html__( 'Todavía no existe un informe competitivo guardado.', 'taxocommerce-google-bing' ) );
     }
@@ -250,7 +258,7 @@ add_action( 'admin_post_taxocommerce_insights_competition_export', 'taxocommerce
  */
 function taxocommerce_insights_competitive_render_panel( $days = 28 ) {
     $days = in_array( absint( $days ), array( 28, 90 ), true ) ? absint( $days ) : 28;
-    $report = get_option( SEO_ANALISTA_COMPETITIVE_REPORT_OPTION, array() );
+    $report = get_option( TAXOCOMMERCE_INSIGHTS_COMPETITIVE_REPORT_OPTION, array() );
     $report = is_array( $report ) ? $report : array();
     echo '<section class="seo-analista-section seo-analista-forms">';
     echo '<h2>' . esc_html__( 'Inteligencia competitiva · fuentes oficiales', 'taxocommerce-google-bing' ) . '</h2>';
@@ -258,18 +266,26 @@ function taxocommerce_insights_competitive_render_panel( $days = 28 ) {
     echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
     echo '<input type="hidden" name="action" value="taxocommerce_insights_competition_generate">';
     echo '<input type="hidden" name="analista_days" value="' . esc_attr( (string) $days ) . '">';
-    wp_nonce_field( 'seo_analista_generate_competitive_report', 'seo_analista_competitive_nonce' );
+    wp_nonce_field( 'taxocommerce_insights_competition_generate', 'taxocommerce_insights_competition_nonce' );
     submit_button( __( 'Generar informe competitivo', 'taxocommerce-google-bing' ), 'primary', 'submit', false );
     echo '</form>';
     if ( $report ) {
         $export_url = wp_nonce_url(
             admin_url( 'admin-post.php?action=taxocommerce_insights_competition_export' ),
-            'seo_analista_export_competitive_report'
+            'taxocommerce_insights_competition_export'
         );
         echo ' <a class="button button-secondary" href="' . esc_url( $export_url ) . '">' . esc_html__( 'Exportar JSON', 'taxocommerce-google-bing' ) . '</a>';
     }
     if ( ! $report ) {
-        echo '<p>' . esc_html__( 'Todavía no hay un informe generado.', 'taxocommerce-google-bing' ) . '</p></section>';
+        // The former crawler saved under the monolith's option. Preserve it
+        // untouched and never present it as current Merchant intelligence.
+        $legacy = get_option( 'seo_analista_competitive_report_v1', array() );
+        if ( is_array( $legacy ) && ! empty( $legacy ) ) {
+            echo '<p class="notice notice-info inline">' . esc_html__( 'Existe un informe histórico del antiguo Analista. Se conserva sin cambios, pero no es evidencia vigente. Genera el informe nuevo con fuentes oficiales.', 'taxocommerce-google-bing' ) . '</p>';
+        } else {
+            echo '<p>' . esc_html__( 'Todavía no hay un informe generado.', 'taxocommerce-google-bing' ) . '</p>';
+        }
+        echo '</section>';
         return;
     }
     if ( (int) ( $report['schema']['version'] ?? 1 ) < 2 ) {

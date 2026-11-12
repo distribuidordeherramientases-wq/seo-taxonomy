@@ -1,3 +1,10 @@
+## [1.1.53] — 2026-11-12 — Competencia: aislar Analista heredado y enlaces seguros (#2594)
+
+- Corrige la convivencia con el antiguo TaxoCommerce SEO: el AJAX de Insights ejecuta el renderizador competitivo propio, no la función global heredada que seguía mostrando SerpApi/ScraperAPI y puntuaciones sin evidencia.
+- Los informes Merchant/Trends se guardan en una opción independiente de Insights; se conserva intacto el informe histórico del monolítico y se advierte de su antigüedad.
+- Generar y exportar usan acciones y nonces propios, así como redirección directa a Insights > Analysis, sin depender de rutas o formularios del Analista anterior.
+- Pruebas de coexistencia, aislamiento de opciones y contratos de autenticación; no se modifican otros informes, Scrappers ni datos del catálogo.
+
 ## [1.1.52] — 2026-11-12 — Competencia sin scrapers, mercado y Merchant (#2576)
 
 - Sustituye el informe competitivo profundo que utilizaba SerpApi/ScraperAPI y rastreo HTML de otros dominios por un informe manual sobre Merchant Center, Google Trends, aceleraciones de Search Console, Bing y GA4 propios.
