@@ -1,3 +1,10 @@
+## [0.2.34] — 2026-11-12 — Traducciones de diagnóstico, registros y MySQL (#2062)
+
+- Traduce 67 textos administrativos adicionales en cada uno de los cinco idiomas ES/EN/FR/DE/NL (335 entradas gettext), incluidos controles de servidor, configuración SQL, recursos, registros PHP, estados e informes.
+- Reconstruye los cinco archivos MO respetando los índices y la cabecera GNU gettext, omitiendo cadenas vacías para conservar el fallback de WordPress.
+- Mantiene intactos los chequeos, servicios, datos, permisos, operaciones de red y lógica del plugin. Amplía la comprobación offline de textos de interfaz en Auto Test.
+- Todavía quedan 61/110/62/62/61 entradas PO vacías en ES/EN/FR/DE/NL; no se declara completada la internacionalización ni validado cada literal PHP/JS.
+
 ## [0.2.33] — 2026-11-12 — Traducciones parciales y sincronización gettext (#2062)
 
 - Completa 45 etiquetas y mensajes adicionales en cada idioma ES/EN/FR/DE/NL: estados, informes, servidor, MySQL, seguridad y ejecución de comprobaciones (225 traducciones).
