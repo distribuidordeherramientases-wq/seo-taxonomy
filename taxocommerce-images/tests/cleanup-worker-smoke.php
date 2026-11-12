@@ -7,6 +7,7 @@ class WP_Error {
     public function get_error_code() { return $this->code; }
 }
 function __( $text, $domain = '' ) { return $text; }
+function is_wp_error( $value ) { return $value instanceof WP_Error; }
 function absint( $value ) { return abs( (int) $value ); }
 function sanitize_key( $value ) { return strtolower( preg_replace( '/[^a-zA-Z0-9_\-]/', '', (string) $value ) ); }
 function sanitize_text_field( $value ) { return (string) $value; }
