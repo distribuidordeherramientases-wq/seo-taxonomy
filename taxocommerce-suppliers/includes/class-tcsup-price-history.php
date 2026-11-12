@@ -49,7 +49,7 @@ final class TCSUP_Price_History {
 		$table = TCSUP_Schema::history_table();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Latest persisted snapshot must not be cached.
 		$previous = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE catalog_id=%d ORDER BY id DESC LIMIT 1', $table, $catalog_id ),
+			$wpdb->prepare( 'SELECT * FROM %i WHERE catalog_id=%d ORDER BY fecha DESC, id DESC LIMIT 1', $table, $catalog_id ),
 			ARRAY_A
 		);
 		if ( $previous ) {
@@ -86,7 +86,7 @@ final class TCSUP_Price_History {
 		}
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Current audit history, read-only.
 		return (array) $wpdb->get_results(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE catalog_id=%d ORDER BY id DESC LIMIT %d', TCSUP_Schema::history_table(), $catalog_id, min( 500, max( 1, absint( $limit ) ) ) ),
+			$wpdb->prepare( 'SELECT * FROM %i WHERE catalog_id=%d ORDER BY fecha DESC, id DESC LIMIT %d', TCSUP_Schema::history_table(), $catalog_id, min( 500, max( 1, absint( $limit ) ) ) ),
 			ARRAY_A
 		);
 	}
