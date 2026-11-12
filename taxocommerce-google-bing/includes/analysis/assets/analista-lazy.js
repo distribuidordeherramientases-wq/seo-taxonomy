@@ -249,7 +249,7 @@ jQuery(function ($) {
         exportFailures = 0;
         exportBusy(true);
         exportMessage('Preparando la exportación completa…', false);
-        exportRequest = exportAjax('start', { days: config.days });
+        exportRequest = exportAjax('start', { days: config.days, speed: $('#tgb-chunked-json-speed').val() || 3 });
         exportRequest.done(function (response) {
             if (!exportActive) return;
             if (!response || !response.success || !response.data || !response.data.id) {
