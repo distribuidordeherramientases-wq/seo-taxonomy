@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Suppliers 0.2.21\n"
+"Project-Id-Version: TaxoCommerce Suppliers 0.2.23\n"
 "Language: fr_FR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1686,3 +1686,132 @@ msgstr "Historique des prix"
 
 msgid "Official plugin page"
 msgstr "Page officielle du module"
+
+msgid "1 - Very low"
+msgstr "1 - Très faible"
+
+msgid "2 - Low"
+msgstr "2 - Faible"
+
+msgid "3 - Normal"
+msgstr "3 - Normale"
+
+msgid "4 - High"
+msgstr "4 - Élevée"
+
+msgid "5 - Maximum"
+msgstr "5 - Maximale"
+
+msgid "Added: "
+msgstr "Ajoutés : "
+
+msgid "CSV columns do not match the history export format."
+msgstr "Les colonnes CSV ne correspondent pas au format d’export de l’historique."
+
+msgid "CSV exported. Rows: "
+msgstr "CSV exporté. Lignes : "
+
+msgid "CSV file missing."
+msgstr "Fichier CSV manquant."
+
+msgid "CSV header is missing."
+msgstr "En-tête CSV manquant."
+
+msgid "CSV identity uses supplier, external ID, country and source row key. Unmatched rows are skipped; duplicates are not re-imported. File limit: 15 MB."
+msgstr "L’identification utilise fournisseur, identifiant externe, pays et clé de ligne. Les lignes sans correspondance et les doublons sont ignorés. Limite : 15 Mo."
+
+msgid "Cannot open the CSV file."
+msgstr "Impossible d’ouvrir le fichier CSV."
+
+msgid "Cannot store temporary CSV file."
+msgstr "Impossible de stocker le fichier CSV temporaire."
+
+msgid "Change"
+msgstr "Variation"
+
+msgid "Duplicates: "
+msgstr "Doublons : "
+
+msgid "Export history CSV"
+msgstr "Exporter l’historique CSV"
+
+msgid "Export the filtered history as CSV or import an exported CSV in batches. Existing prices and margins remain unchanged."
+msgstr "Exportez l’historique filtré en CSV ou importez un CSV par lots. Les prix et marges actuels restent inchangés."
+
+msgid "Exporting price history..."
+msgstr "Exportation de l’historique des prix..."
+
+msgid "From date"
+msgstr "Depuis le"
+
+msgid "History CSV file"
+msgstr "Fichier CSV de l’historique"
+
+msgid "Import / export historical prices"
+msgstr "Importer / exporter les prix historiques"
+
+msgid "Import finished. "
+msgstr "Importation terminée. "
+
+msgid "Import history CSV"
+msgstr "Importer l’historique CSV"
+
+msgid "Import is already processing."
+msgstr "Une importation est déjà en cours."
+
+msgid "Import session expired. Upload the CSV again."
+msgstr "La session d’importation a expiré. Téléversez à nouveau le CSV."
+
+msgid "Importing historical prices..."
+msgstr "Importation des prix historiques..."
+
+msgid "Insufficient permissions."
+msgstr "Autorisations insuffisantes."
+
+msgid "Invalid CSV file or file is larger than 15 MB."
+msgstr "Fichier CSV invalide ou supérieur à 15 Mo."
+
+msgid "Invalid import session."
+msgstr "Session d’importation invalide."
+
+msgid "Invalid: "
+msgstr "Invalides : "
+
+msgid "No historical prices match these filters."
+msgstr "Aucun prix historique ne correspond aux filtres."
+
+msgid "Previous selling price"
+msgstr "Prix de vente précédent"
+
+msgid "Previous supplier cost"
+msgstr "Coût fournisseur précédent"
+
+msgid "Price history inventory"
+msgstr "Inventaire de l’historique des prix"
+
+msgid "Processing speed"
+msgstr "Vitesse du traitement"
+
+msgid "Product or SKU"
+msgstr "Produit ou SKU"
+
+msgid "Review price movements across all products. CSV import only adds historical observations; it never changes current catalogue or WooCommerce prices."
+msgstr "Consultez les variations de prix de tous les produits. L’import CSV ajoute seulement des observations historiques, sans modifier les prix actuels du catalogue ni de WooCommerce."
+
+msgid "Selling price"
+msgstr "Prix de vente"
+
+msgid "Server request failed."
+msgstr "La requête au serveur a échoué."
+
+msgid "Supplier cost"
+msgstr "Coût fournisseur"
+
+msgid "To date"
+msgstr "Jusqu’au"
+
+msgid "Unmatched: "
+msgstr "Sans correspondance : "
+
+msgid "historical observations matching the filters"
+msgstr "observations historiques correspondantes"
