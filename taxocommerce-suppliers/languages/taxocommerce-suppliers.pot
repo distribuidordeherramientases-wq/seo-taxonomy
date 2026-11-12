@@ -1685,3 +1685,132 @@ msgstr ""
 
 msgid "Official plugin page"
 msgstr ""
+
+msgid "1 - Very low"
+msgstr ""
+
+msgid "2 - Low"
+msgstr ""
+
+msgid "3 - Normal"
+msgstr ""
+
+msgid "4 - High"
+msgstr ""
+
+msgid "5 - Maximum"
+msgstr ""
+
+msgid "Added: "
+msgstr ""
+
+msgid "CSV columns do not match the history export format."
+msgstr ""
+
+msgid "CSV exported. Rows: "
+msgstr ""
+
+msgid "CSV file missing."
+msgstr ""
+
+msgid "CSV header is missing."
+msgstr ""
+
+msgid "CSV identity uses supplier, external ID, country and source row key. Unmatched rows are skipped; duplicates are not re-imported. File limit: 15 MB."
+msgstr ""
+
+msgid "Cannot open the CSV file."
+msgstr ""
+
+msgid "Cannot store temporary CSV file."
+msgstr ""
+
+msgid "Change"
+msgstr ""
+
+msgid "Duplicates: "
+msgstr ""
+
+msgid "Export history CSV"
+msgstr ""
+
+msgid "Export the filtered history as CSV or import an exported CSV in batches. Existing prices and margins remain unchanged."
+msgstr ""
+
+msgid "Exporting price history..."
+msgstr ""
+
+msgid "From date"
+msgstr ""
+
+msgid "History CSV file"
+msgstr ""
+
+msgid "Import / export historical prices"
+msgstr ""
+
+msgid "Import finished. "
+msgstr ""
+
+msgid "Import history CSV"
+msgstr ""
+
+msgid "Import is already processing."
+msgstr ""
+
+msgid "Import session expired. Upload the CSV again."
+msgstr ""
+
+msgid "Importing historical prices..."
+msgstr ""
+
+msgid "Insufficient permissions."
+msgstr ""
+
+msgid "Invalid CSV file or file is larger than 15 MB."
+msgstr ""
+
+msgid "Invalid import session."
+msgstr ""
+
+msgid "Invalid: "
+msgstr ""
+
+msgid "No historical prices match these filters."
+msgstr ""
+
+msgid "Previous selling price"
+msgstr ""
+
+msgid "Previous supplier cost"
+msgstr ""
+
+msgid "Price history inventory"
+msgstr ""
+
+msgid "Processing speed"
+msgstr ""
+
+msgid "Product or SKU"
+msgstr ""
+
+msgid "Review price movements across all products. CSV import only adds historical observations; it never changes current catalogue or WooCommerce prices."
+msgstr ""
+
+msgid "Selling price"
+msgstr ""
+
+msgid "Server request failed."
+msgstr ""
+
+msgid "Supplier cost"
+msgstr ""
+
+msgid "To date"
+msgstr ""
+
+msgid "Unmatched: "
+msgstr ""
+
+msgid "historical observations matching the filters"
+msgstr ""
