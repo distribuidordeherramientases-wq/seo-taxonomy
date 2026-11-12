@@ -302,6 +302,12 @@ function taxocommerce_google_bing_analysis_screen() {
     if ( function_exists( 'seo_analista_export_json_url' ) ) {
         $json_url = seo_analista_export_json_url( $days );
         // This button uses bounded authenticated AJAX chunks, never one long HTTP request.
+        echo ' <label for="tgb-chunked-json-speed">' . esc_html__( 'Velocidad JSON', 'taxocommerce-google-bing' ) . '</label>';
+        echo ' <select id="tgb-chunked-json-speed" aria-label="' . esc_attr__( 'Velocidad de exportación', 'taxocommerce-google-bing' ) . '">';
+        for ( $speed = 1; $speed <= 5; $speed++ ) {
+            echo '<option value="' . esc_attr( (string) $speed ) . '"' . selected( $speed, 3, false ) . '>' . esc_html( (string) $speed ) . '</option>';
+        }
+        echo '</select>';
         echo ' <button type="button" id="tgb-chunked-json-start" class="button">' . esc_html__( 'Preparar JSON completo por bloques', 'taxocommerce-google-bing' ) . '</button>';
         echo ' <button type="button" id="tgb-chunked-json-stop" class="button" disabled>' . esc_html__( 'Detener exportación', 'taxocommerce-google-bing' ) . '</button>';
     }
