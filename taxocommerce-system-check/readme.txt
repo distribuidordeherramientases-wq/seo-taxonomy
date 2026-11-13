@@ -4,7 +4,7 @@ Tags: diagnostics, security, performance, maintenance, monitoring
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.34
+Stable tag: 0.2.35
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,7 +12,7 @@ Server, WordPress and plugin diagnostics with administrator-controlled reports a
 
 == Description ==
 
-Version 0.2.34 adds 67 more native gettext translations per language for the WordPress, MySQL, server performance, PHP logs and plugin validation controls. Translation catalogs still contain untranslated guidance and require further work; the selected WordPress interface language remains authoritative.
+Version 0.2.35 completes all 354 entries in each of the five existing gettext catalogs (es_ES, en_US, fr_FR, de_DE and nl_NL), including administrative controls, diagnostic messages and explanatory text. WordPress uses the active site/user locale. A full source-code audit for strings outside gettext and end-to-end language validation remain necessary before claiming full interface localization.
 
 
 ## Actualización 0.2.33 — idiomas
