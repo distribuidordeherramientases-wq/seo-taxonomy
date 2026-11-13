@@ -38,7 +38,7 @@ Editorial guidance does not create or modify content automatically. Only authori
 
 == Languages ==
 
-TaxoCommerce Core uses the WordPress gettext domain `taxocommerce-core-catalog-content-management-for-woocommerce` and the plugin `/languages` directory. The WordPress administration locale determines the language automatically. Bundled gettext catalogs cover Spanish (Spain), English (US), French, German and Dutch, with full coverage of the strings currently extracted in each gettext template; technical names and catalog content remain unchanged. The untranslated PHP/JavaScript surface and locale-specific administration display still require functional verification. WordPress.org language packs will be supported once translations are approved.
+TaxoCommerce Core uses the WordPress gettext domain `taxocommerce-core` and the plugin `/languages` directory. The WordPress administration locale determines the language automatically. Bundled gettext catalogs cover Spanish (Spain), English (US), French, German and Dutch, with full coverage of the strings currently extracted in each gettext template; technical names and catalog content remain unchanged. The untranslated PHP/JavaScript surface and locale-specific administration display still require functional verification. WordPress.org language packs will be supported once translations are approved.
 
 == Local developer information ==
 
