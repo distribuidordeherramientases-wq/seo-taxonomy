@@ -467,7 +467,7 @@ final class TaxoCommerce_System_Check_Code_Check {
                 if ( 'security' === $group ) {
                     foreach ( (array) ( $evidence['calls'] ?? array() ) as $item ) {
                         if ( is_array( $item ) && isset( $item['function'] ) ) {
-                            $findings[] = array( 'rule' => 'dangerous_call_' . sanitize_key( $item['function'] ), 'line' => absint( $item['line'] ?? 0 ) );
+                            $findings[] = array( 'rule' => 'dangerous_call_' . strtolower( (string) $item['function'] ), 'line' => absint( $item['line'] ?? 0 ) );
                         }
                     }
                 }
