@@ -1,3 +1,6 @@
+= 1.1.61 (2026-11-13) =
+* Independent competitive visibility selection: use verified Google taxonomy IDs even when Best Sellers products are not selected for display. Issue #2643.
+
 = 1.1.60 (2026-11-13) =
 * Refresh selected external competitive sources through sequential, bounded requests: Merchant Best Sellers, existing rate-limited Trends sync, and one verified Google category per Merchant Visibility step.
 * Keep explicit source diagnostics in saved reports and JSON, preserve cached snapshots and manual report generation. Issue #2643.
