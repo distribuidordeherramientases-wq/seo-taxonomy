@@ -62,7 +62,7 @@ foreach ( $plugins as $slug ) {
         $shell = strpos( $core_screen, 'id="tc-core-autotest"' );
         $main_nav = strpos( $core_screen, 'Navegación de TaxoCommerce Core' );
         $subtabs = strpos( $core_screen, 'Autotest_Code::render_subtabs()' );
-        $functional_form = strpos( $core_screen, 'tc_autotest_manual_run' );
+        $functional_form = strrpos( $core_screen, 'tc_autotest_manual_run' );
         if ( false === $shell || false === $main_nav || false === $subtabs || false === $functional_form
             || ! ( $shell < $main_nav && $main_nav < $subtabs && $subtabs < $functional_form )
             || false === strpos( $core_screen, "if ( ! \\TaxoCommerce_Core_Autotest_Code::render_subtabs() ) :" ) ) {
