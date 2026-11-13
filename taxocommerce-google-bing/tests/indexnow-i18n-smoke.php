@@ -11,6 +11,13 @@ $expected = array(
     'de_DE' => 'Zur IndexNow-Warteschlange hinzufügen',
     'nl_NL' => 'Toevoegen aan IndexNow-wachtrij',
 );
+$required_connection_translations = array(
+    'es_ES' => array( 'Guardar Google', 'Probar Pinterest', 'Conexiones' ),
+    'en_US' => array( 'Save Google', 'Test Pinterest', 'Connections' ),
+    'fr_FR' => array( 'Enregistrer Google', 'Tester Pinterest', 'Connexions' ),
+    'de_DE' => array( 'Google speichern', 'Pinterest testen', 'Verbindungen' ),
+    'nl_NL' => array( 'Google opslaan', 'Pinterest testen', 'Verbindingen' ),
+);
 foreach ($expected as $locale => $translation) {
     $po = file_get_contents($root . $locale . '.po');
     $bytes = file_get_contents($root . $locale . '.mo');
@@ -50,7 +57,10 @@ foreach ($expected as $locale => $translation) {
         !isset($catalog['Activar IndexNow para avisar a Bing de URL creadas, modificadas o eliminadas. No actives esta opción si otro servicio ya envía estas notificaciones.']) ||
         '' === $catalog['Activar IndexNow para avisar a Bing de URL creadas, modificadas o eliminadas. No actives esta opción si otro servicio ya envía estas notificaciones.'] ||
         empty($catalog['Plan de acción']) ||
-        empty($catalog['Estado de proveedores'])) {
+        empty($catalog['Estado de proveedores']) ||
+        ($catalog['Save Google'] ?? null) !== $required_connection_translations[$locale][0] ||
+        ($catalog['Test Pinterest'] ?? null) !== $required_connection_translations[$locale][1] ||
+        ($catalog['Connections'] ?? null) !== $required_connection_translations[$locale][2]) {
         fwrite(STDERR, "FAIL wrong IndexNow translation $locale\n");
         exit(1);
     }

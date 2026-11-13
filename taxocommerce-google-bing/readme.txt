@@ -4,13 +4,16 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.55
+Stable tag: 1.1.57
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 External connections, manual provider data downloads, and market intelligence for WooCommerce.
 
 == Description ==
+
+Version 1.1.56 improves native translations for Connections and provider integrations across Spanish, English, French, German and Dutch. Settings, OAuth errors, connection checks and Merchant/Pinterest/Amazon/Bing buttons are translated. The entire Insights interface is not yet localized; further work remains under #2062.
+
 
 Version 1.1.54 adds five-language WordPress translations for 124 analyst dashboard strings: reports, keywords, competitor comparisons, positions, data quality, supplier tracking and export permissions. Untranslated messages continue to fall back to their original source text. Full translation of longer report guidance remains in progress under #2062.
 

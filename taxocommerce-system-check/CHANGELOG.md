@@ -1,3 +1,15 @@
+## [0.2.36] — 2026-11-13 — Code Check homogéneo con Core 0.4.82 (#2626)
+
+- Code Check añade las reglas nativas de Core 0.4.82, clasificación por errores/avisos/limpios/no verificados, recomendaciones y JSON, conservando sus chequeos especiales de PHP mínimo, rutas, duplicidades y seguridad y sin modificar el Autocheck funcional. Issue #2626.
+- Las reglas se ejecutan dentro del propio plugin, sin depender de Core, Plugin Check ni de un servidor externo. Conserva el procesamiento por lotes y la descarga del informe técnico previo.
+
+## [0.2.35] — 2026-11-13 — Completar los cinco catálogos de System Check (#2062)
+
+- Completa las 356 entradas gettext que estaban vacías: 61 ES, 110 EN, 62 FR, 62 DE y 61 NL. Audita llamadas gettext en los 23 archivos PHP e incorpora 66 cadenas adicionales que faltaban en el POT (330 traducciones nuevas), principalmente de Autocheck, Procesos y cabecera. Los cinco PO quedan con 420 claves, sin vacíos, iguales al POT.
+- Traduce mensajes de diagnósticos, seguridad, registros PHP, permisos, enlaces, auditoría y guías. Los nombres técnicos y los parámetros se conservan; en las traducciones se evitan referencias heredadas a «SEO System» y cifras exclusivas de una instalación.
+- Recompila los cinco MO con 421 entradas por idioma, contando cabecera, y sincroniza la versión del POT. La prueba local verifica claves, valores, offsets y contenido de MO en los cinco idiomas.
+- No modifica consultas, auditorías, datos, ajustes, eventos, interfaces ni dependencias. La cobertura completa de textos PHP/JS no incluidos en gettext y la prueba real en WordPress de los cinco idiomas siguen pendientes en #2062.
+
 ## [0.2.34] — 2026-11-12 — Traducciones de diagnóstico, registros y MySQL (#2062)
 
 - Traduce 67 textos administrativos adicionales en cada uno de los cinco idiomas ES/EN/FR/DE/NL (335 entradas gettext), incluidos controles de servidor, configuración SQL, recursos, registros PHP, estados e informes.

@@ -1,3 +1,15 @@
+## [1.1.57] — 2026-11-13 — Code Check equiparado a Core 0.4.82 (#2626)
+
+- Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.
+- Continúa siendo una revisión estática independiente del Plugin Check oficial, con ejecución por bloques y control de CPU.
+
+## [1.1.56] — 2026-11-13 — Conexiones y errores OAuth en cinco idiomas (#2062)
+
+- Traduce 56 cadenas de controles administrativos por idioma ES/EN/FR/DE/NL (280 entradas): botones para guardar y probar proveedores, Google Merchant, Pinterest, Bing, Amazon, errores OAuth, permisos, revisión de conexiones y Autotest.
+- Conserva exactamente el enlace HTML de ayuda de Merchant Center, los formatos %s y %d, nombres de proveedores y los contratos técnicos. Cinco PO/MO recompilados sin entradas vacías para mantener el fallback de WordPress.
+- Amplía la prueba de integridad MO de los cinco idiomas para exigir los controles de configuración y errores principales; no modifica tokens, URLs, flujos OAuth, nonces ni llamadas de red.
+- Quedan pendientes 602/600/600/599/599 cadenas gettext (ES/EN/FR/DE/NL), así como textos PHP/JS no incluidos en catálogos. No se considera finalizada la interfaz internacionalizada.
+
 ## [1.1.55] — 2026-11-12 — Descargas JSON: nonce válido tras generar informe por AJAX (#2608)
 
 - Corrige «El enlace que has seguido ha caducado» en «Descargar JSON» de las tarjetas de Analysis después de «Crear informe». WordPress devuelve wp_nonce_url() escapada para HTML; JavaScript la asignaba literalmente al atributo href y el servidor recibía amp;_wpnonce en lugar de _wpnonce.

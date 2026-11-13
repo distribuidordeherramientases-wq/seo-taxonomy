@@ -1,3 +1,18 @@
+## [0.1.18] — 2026-11-13 — Publicaciones y Autocheck operativo (#2630)
+
+- Registrada la programación automática de contenidos nuevos cuando no está activa la antigua implementación monolítica; evita dos productores simultáneos en la misma agenda.
+- Recuperación acotada de eventos de agenda futuros sin WP-Cron, respetando eventos heredados aún operativos y publicaciones previamente enviadas. Los vencidos nunca se publican automáticamente.
+- Reprogramación explícita limpia eventos antiguos sin duplicar; ante rechazo de WP-Cron conserva la programación anterior. El Programador marca errores de programación/reintento en lugar de informar éxito falso.
+- El publicador manual conserva la agenda vencida cuando una red rechaza la publicación; el Autocheck puede detectarla y se evita un reenvío automático potencialmente duplicado.
+- Pinterest solicita `boards:write` en OAuth y comprueba el permiso guardado antes de enviar. Las conexiones antiguas requieren nueva autorización del administrador.
+- Cinco verificaciones locales nuevas: eventos WP-Cron asociados a agenda, tareas activas, configuración/expiración/permisos, imágenes Pinterest y últimos resultados por red. Autocheck sigue sin emitir publicaciones ni peticiones externas.
+- Pruebas de regresión para agenda vencida, cola sin evento y publicación fallida; cambios solo en el plugin Social. No se modifican cuentas, credenciales ni contenidos.
+
+## [0.1.17] — 2026-11-13 — Code Check equiparado a Core 0.4.82 (#2626)
+
+- Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.
+- Continúa siendo una revisión estática independiente del Plugin Check oficial, con ejecución por bloques y control de CPU.
+
 ## [0.1.16] — 2026-11-11 — Recuperación de importación/exportación CSV en Calendario
 
 - Recuperados en Calendario los controles Descargar plantilla CSV, Exportar contenidos, Exportar agenda, Exportar historial y Validar CSV antes de importar.

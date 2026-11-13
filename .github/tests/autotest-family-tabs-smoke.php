@@ -24,6 +24,14 @@ foreach ( $plugins as $slug ) {
     if ( 'system-check' === $slug ) {
         $functional = file_get_contents( $root . '/includes/class-taxocommerce-system-check-auto-test.php' );
         $code = file_get_contents( $root . '/includes/class-taxocommerce-system-check-code-check.php' );
+        $core_parity_rules = $root . '/includes/class-taxocommerce-system-check-code-review-rules.php';
+        if ( ! is_file( $core_parity_rules )
+            || false === strpos( $code, 'self::render_classified( $normalized )' )
+            || false === strpos( $code, "['classified_findings']" )
+            || false === strpos( $code, 'TaxoCommerce_System_Check_Code_Review_Rules::scan(' ) ) {
+            fwrite( STDERR, 'System Check must retain existing rules and expose Core Code Check severity and JSON.' . PHP_EOL );
+            exit( 1 );
+        }
         if ( false === strpos( $functional, 'tcs_subtab' )
             || false === strpos( $functional, 'TaxoCommerce_System_Check_Code_Check::render()' )
             || false === strpos( $code, 'function render(' ) ) {
@@ -55,6 +63,29 @@ foreach ( $plugins as $slug ) {
     if ( false !== strpos( $checker, 'self::DOMAIN )' ) ) {
         fwrite( STDERR, 'Dynamic gettext textdomain in ' . $slug . PHP_EOL );
         exit( 1 );
+    }
+    // Core must share one persistent hero and primary navigation across both
+    // checks; sub-tabs must appear below it, never above the plugin heading.
+    if ( 'core' === $slug ) {
+        $core_screen = (string) file_get_contents( $root . '/includes/class-taxocommerce-core-auto-test.php' );
+        $dashboard   = (string) file_get_contents( $root . '/includes/class-taxocommerce-core-dashboard.php' );
+        $main_screen = (string) file_get_contents( $root . '/includes/class-taxocommerce-core.php' );
+        $shell       = strpos( $core_screen, 'id="tc-core-autotest"' );
+        $shared      = strpos( $core_screen, "TaxoCommerce_Core_Dashboard::render_header_nav( 'autocheck' )" );
+        $subtabs     = strpos( $core_screen, 'Autotest_Code::render_subtabs()' );
+        $functional  = strrpos( $core_screen, 'tc_autotest_manual_run' );
+        if ( false === $shell || false === $shared || false === $subtabs || false === $functional
+            || ! ( $shell < $shared && $shared < $subtabs && $subtabs < $functional )
+            || false !== strpos( $core_screen, 'tcc-page-header' )
+            || false === strpos( $core_screen, "if ( ! \\TaxoCommerce_Core_Autotest_Code::render_subtabs() ) :" )
+            || false === strpos( $dashboard, 'function render_header_nav(' )
+            || 1 !== substr_count( $dashboard, '<header class="tcc-hero"' )
+            || false === strpos( $dashboard, "self::render_header_nav( 'overview' )" )
+            || false === strpos( $dashboard, "'autocheck' === $active_tab" )
+            || false === strpos( $main_screen, 'TaxoCommerce_Core_Auto_Test::render();' ) ) {
+            fwrite( STDERR, 'Core must preserve its exact hero and primary navigation on both Code and Functional Check.' . PHP_EOL );
+            exit( 1 );
+        }
     }
     // Each plugin must actually call the subtab renderer in its functional screen.
     $candidates = array_merge(

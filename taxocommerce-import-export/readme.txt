@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.30
+Stable tag: 0.4.32
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,7 +13,7 @@ Import and export catalog, content and Media for WordPress/WooCommerce.
 
 == Description ==
 
-The 0.4.30 release expands native WordPress gettext translations for ES/EN/FR/DE/NL: CSV queue controls, import/export buttons, file states, filters, errors, and administrator messages. Other long guidance strings remain to be translated; this release does not claim full five-language coverage. The site's selected WordPress locale remains authoritative.
+Version 0.4.31 adds five-language translations for Media Library ZIP import/export, error messages, forms and progress tracking. The 0.4.30 CSV queue and export controls remain translated. Longer instructions and some administration strings still need localization; the active WordPress language determines the interface.
 
 
 * CSV batch imports and exports continue through private internal HTTP requests with adaptive load limiting. This plugin no longer creates its own Action Scheduler or WP-Cron jobs. If a loopback fails, recovery requires a later WordPress request or an explicit administrator retry.
