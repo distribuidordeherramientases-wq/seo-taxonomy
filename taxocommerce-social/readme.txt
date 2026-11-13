@@ -4,7 +4,7 @@ Tags: social-media, scheduling, pinterest, publishing, calendar
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.19
+Stable tag: 0.1.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,9 @@ The plugin interacts with selected social network services when an administrator
 Social publishing sends authorized content and associated account data to the selected external social network. Store tokens securely, review provider policies and avoid including personal information in generated posts without permission. Disconnect accounts when the integration is not required.
 
 == Changelog ==
+
+= 0.1.20 =
+* Accept explicit cancellation CSV files through the existing Calendar CSV import button and route safely to the cancellation preview; scheduling CSV remains unchanged.
 
 = 0.1.19 =
 * Add a separate exact-match CSV cancellation action with preview, confirmation and protection from cancelling rescheduled entries. No bulk replacement or republishing.
