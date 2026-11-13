@@ -1,3 +1,6 @@
+= 0.4.84 (2026-11-13) =
+* Fix WordPress.org release packaging to use the confirmed official taxocommerce-core slug, main PHP filename, text domain and five gettext catalogs. Remove obsolete long-slug packaging transformation, ensure the published ZIP contains the same Core code validated in staging, and add regression checks. Issue #2625.
+
 = 0.4.83 (2026-11-13) =
 * Address WordPress.org manual-review findings: delegate extension installation/activation/deactivation to WordPress native plugin administration while retaining discovery and authenticated download of local ZIP packages; remove Core's custom upload/installer and obsolete handlers. Make JSON output-buffer cleanup unconditional, separate read-only country GET from validated POST, replace dynamic CSS with static rules, prefix Core anomaly filters, and remove installation-specific post-slug exceptions. Retain native Code Check rules without suppressing remaining warnings. Issue #2625.
 
