@@ -157,7 +157,7 @@ final class TaxoCommerce_Core_Autotest_Code {
         $namespace = '';
         $n = count( $tokens );
         foreach ( $tokens as $i => $token ) {
-            if ( '{' === $token ) {
+            if ( '{' === $token || ( is_array( $token ) && in_array( $token[0], array( T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES ), true ) ) ) {
                 ++$depth;
                 if ( $new_class ) {
                     $class_depth[] = $depth;
