@@ -1700,3 +1700,267 @@ msgstr "Mogelijk dubbele PHP-declaraties moeten worden gecontroleerd."
 #: includes/class-taxocommerce-system-check-code-check.php
 msgid "Native local checks: PHP, literal include paths, duplicate declarations, WordPress conventions and security patterns. Full data flow, runtime and official Plugin Check remain unverified."
 msgstr "Eigen lokale controles: PHP, letterlijke include-paden, dubbele declaraties, WordPress-conventies en beveiligingspatronen. Volledige gegevensstromen, runtime en officiële Plugin Check blijven ongecontroleerd."
+
+#: includes/admin-branding.php:70
+msgid "Version"
+msgstr "Versie"
+
+#: includes/admin-branding.php:71
+msgid "Last updated"
+msgstr "Laatst bijgewerkt"
+
+#: includes/admin-branding.php:104
+msgid "Version history and improvements"
+msgstr "Versiegeschiedenis en verbeteringen"
+
+#: includes/class-taxocommerce-system-check-auto-test.php:33
+msgid "Último diagnóstico del servidor"
+msgstr "Laatste serverdiagnose"
+
+#: includes/class-taxocommerce-system-check-auto-test.php:39
+msgid "Contrato JSON de Autocheck"
+msgstr "JSON-contract van de zelftest"
+
+#: includes/class-taxocommerce-system-check-auto-test.php:77
+msgid "El diagnóstico PHP independiente no está cargado."
+msgstr "De zelfstandige PHP-diagnose is niet geladen."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:81
+msgid "El diagnóstico PHP no devuelve su inventario completo."
+msgstr "De PHP-diagnose levert geen volledige inventaris op."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:92
+msgid "El inventario PHP contiene datos incompletos, duplicados o estados desconocidos."
+msgstr "De PHP-inventaris bevat onvolledige gegevens, duplicaten of onbekende statussen."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:102
+msgid "%1$d comprobaciones PHP válidas; %2$d avisos del entorno (consultables en Sistema > PHP)."
+msgstr "%1$d geldige PHP-controles; %2$d omgevingswaarschuwingen (zie Systeem > PHP)."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:107
+msgid "La pantalla de diagnóstico del servidor tiene un motor ejecutable."
+msgstr "Het serverdiagnosescherm heeft een uitvoerbare engine."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:108
+msgid "No hay un motor de diagnóstico del servidor ejecutable. Comprueba la carga del módulo independiente."
+msgstr "Er is geen uitvoerbare serverdiagnose-engine beschikbaar. Controleer of de zelfstandige module geladen is."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:113
+msgid "La lectura del histórico de servidor no está disponible; no se inicia ningún escaneo."
+msgstr "Servergeschiedenis is niet beschikbaar; er is geen scan gestart."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:117
+msgid "Aún no hay un diagnóstico del servidor guardado. Ejecuta su comprobación desde Sistema."
+msgstr "Er is nog geen serverdiagnose opgeslagen. Voer deze uit onder Systeem."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:123
+msgid "El último informe guardado del servidor tiene una estructura o fecha inválida."
+msgstr "Het laatst opgeslagen serverrapport heeft een ongeldige structuur of datum."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:132
+msgid "El último diagnóstico contiene comprobaciones incompletas o duplicadas."
+msgstr "De laatste diagnose bevat onvolledige of dubbele controles."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:145
+msgid "El informe de servidor supera las 24 horas: se conserva como histórico, no como prueba actual."
+msgstr "Het serverrapport is ouder dan 24 uur: het blijft bewaard als geschiedenis, niet als actueel bewijs."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:150
+msgid "Informe guardado válido: %d comprobaciones; su estado de salud se consulta en Sistema."
+msgstr "Geldig opgeslagen rapport: %d controles; de status staat onder Systeem."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:155
+msgid "Falta la lectura de módulos activos."
+msgstr "De lijst met actieve modules is niet beschikbaar."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:159
+msgid "System Check no figura en sus módulos registrados."
+msgstr "System Check ontbreekt in de geregistreerde modules."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:187
+msgid "Hay módulos registrados con contratos inválidos o comprobaciones fallidas."
+msgstr "Sommige geregistreerde modules hebben ongeldige contracten of mislukte controles."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:194
+msgid "%d módulos comprobados: versiones, estados y verificaciones coherentes."
+msgstr "%d modules gecontroleerd: versies, statussen en controles komen overeen."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:199
+msgid "No está cargado el auditor HTTP."
+msgstr "De HTTP-auditor is niet geladen."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:205
+msgid "Falta el método HTTP ejecutable: %s."
+msgstr "Uitvoerbare HTTP-methode ontbreekt: %s."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:210
+msgid "Interfaz, inicio, proceso por lotes, controles y descarga HTTP disponibles; no se hace ninguna petición."
+msgstr "HTTP-interface, opstarten, batchverwerking, bediening en download beschikbaar; er wordt geen verzoek verzonden."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:215
+msgid "No se puede verificar el auditor HTTP: clase ausente."
+msgstr "Kan HTTP-auditor niet controleren: klasse ontbreekt."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:227
+msgid "Falta el callback HTTP del hook %s."
+msgstr "HTTP-callback ontbreekt voor hook %s."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:233
+msgid "El intervalo del vigilante HTTP es inválido."
+msgstr "Het interval van de HTTP-bewaking is ongeldig."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:237
+msgid "Callbacks HTTP y vigilancia de cinco minutos registrados y consistentes; no se activan procesos."
+msgstr "HTTP-callbacks en bewaking om de vijf minuten zijn geregistreerd en consistent; er zijn geen processen gestart."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:243
+msgid "El exportador de módulos tiene función y acción de descarga registradas."
+msgstr "De module-exportfunctie en downloadactie zijn geregistreerd."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:244
+msgid "La exportación JSON de módulos no está correctamente registrada."
+msgstr "JSON-export van modules is niet correct geregistreerd."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:248
+msgid "Exportación histórica JSON disponible (no certifica la vigencia del informe)."
+msgstr "Historische JSON-export is beschikbaar (dit bewijst niet dat het rapport actueel is)."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:249
+msgid "Exportación del motor histórico no cargada; no es requisito del plugin independiente."
+msgstr "De exportfunctie van de historische engine is niet geladen; deze is niet vereist voor de zelfstandige plugin."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:253
+msgid "El endpoint del JSON de Autocheck no está registrado."
+msgstr "Het JSON-eindpunt van de zelftest is niet geregistreerd."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:263
+msgid "La serialización JSON pierde estados o estructura."
+msgstr "Bij JSON-serialisatie gaan statussen of structuur verloren."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:265
+msgid "Endpoint disponible y serialización JSON validada, incluido el estado no ejecutado."
+msgstr "Eindpunt beschikbaar en JSON-serialisatie gevalideerd, inclusief de status Niet uitgevoerd."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:327
+msgid "Descargar resultados (JSON)"
+msgstr "Resultaten downloaden (JSON)"
+
+#: includes/class-taxocommerce-system-check-auto-test.php:328
+msgid "Fecha de ejecución:"
+msgstr "Uitvoerdatum:"
+
+#: includes/class-taxocommerce-system-check-auto-test.php:382
+msgid "Resultados:"
+msgstr "Resultaten:"
+
+#: includes/class-taxocommerce-system-check-auto-test.php:387
+msgid "Cobertura del Autocheck: %1$d de %2$d pruebas (%3$d%%). Los chequeos omitidos no se consideran superados."
+msgstr "Dekking van de zelftest: %1$d van %2$d controles (%3$d%%). Overgeslagen controles tellen niet als geslaagd."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:413
+msgid "Sin permisos para descargar el Autocheck."
+msgstr "U hebt geen toestemming om de zelftest te downloaden."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:418
+msgid "Ejecuta el Autocheck antes de descargar el JSON."
+msgstr "Voer de zelftest uit voordat u JSON downloadt."
+
+#: includes/class-taxocommerce-system-check-auto-test.php:422
+msgid "No se pudo generar el informe JSON."
+msgstr "Kon het JSON-rapport niet genereren."
+
+#: includes/class-taxocommerce-system-check-processes.php:131
+msgid "Aprendizaje de Dependiente"
+msgstr "Leerproces van Dependiente"
+
+#: includes/class-taxocommerce-system-check-processes.php:141
+msgid "Cola de importación"
+msgstr "Importwachtrij"
+
+#: includes/class-taxocommerce-system-check-processes.php:179
+msgid "Exportación CSV"
+msgstr "CSV-export"
+
+#: includes/class-taxocommerce-system-check-processes.php:199
+msgid "Detenido desde System Check. No se iniciarán nuevos lotes."
+msgstr "Gestopt vanuit System Check. Er starten geen nieuwe batches."
+
+#: includes/class-taxocommerce-system-check-processes.php:214
+msgid "Detención solicitada desde System Check; se conserva el cursor."
+msgstr "Stop aangevraagd vanuit System Check; de cursor blijft behouden."
+
+#: includes/class-taxocommerce-system-check-processes.php:326
+msgid "Mostrar confirmación de parada global"
+msgstr "Bevestiging tonen voor het stoppen van alle taken"
+
+#: includes/class-taxocommerce-system-check-processes.php:349
+msgid "Procesos de WordPress y WooCommerce"
+msgstr "WordPress- en WooCommerce-processen"
+
+#: includes/class-taxocommerce-system-check-processes.php:350
+msgid "Tareas de aplicación, no procesos Linux. Detener no interrumpe una petición PHP ya en marcha. Se preservan los trabajos críticos de WordPress y WooCommerce."
+msgstr "Applicatietaken, geen Linux-processen. Stoppen onderbreekt geen lopend PHP-verzoek. Kritieke WordPress- en WooCommerce-taken blijven beschermd."
+
+#: includes/class-taxocommerce-system-check-processes.php:351
+msgid "Detener los trabajos cancelables mostrados"
+msgstr "Getoonde annuleerbare taken stoppen"
+
+#: includes/class-taxocommerce-system-check-processes.php:356
+msgid "Operaciones de detención solicitadas o completadas: %d."
+msgstr "Aangevraagde of voltooide stopacties: %d."
+
+#: includes/class-taxocommerce-system-check-processes.php:358
+msgid "Procesos de larga duración"
+msgstr "Langlopende processen"
+
+#: includes/class-taxocommerce-system-check-processes.php:359
+msgid "Trabajo"
+msgstr "Taak"
+
+#: includes/class-taxocommerce-system-check-processes.php:363
+msgid "Detener"
+msgstr "Stoppen"
+
+#: includes/class-taxocommerce-system-check-processes.php:368
+msgid "No hay procesos registrados."
+msgstr "Geen geregistreerde processen."
+
+#: includes/class-taxocommerce-system-check-processes.php:375
+msgid "Cancelar pendiente"
+msgstr "Wachtende taak annuleren"
+
+#: includes/class-taxocommerce-system-check-processes.php:380
+msgid "Sin acciones pendientes o en curso."
+msgstr "Geen wachtende of lopende acties."
+
+#: includes/class-taxocommerce-system-check-processes.php:387
+msgid "Cancelar programación"
+msgstr "Planning annuleren"
+
+#: includes/class-taxocommerce-system-check-processes.php:392
+msgid "No hay eventos de WP-Cron."
+msgstr "Geen WP-Cron-gebeurtenissen."
+
+#: includes/class-taxocommerce-system-check-url-audit.php:675
+msgid "Auditoría HTTP: %s"
+msgstr "HTTP-audit: %s"
+
+#: includes/class-taxocommerce-system-check-url-audit.php:677
+msgid "Trabajo local por lotes"
+msgstr "Lokale batchtaak"
+
+#: includes/class-taxocommerce-system-check-url-audit.php:710
+msgid "Cancelado desde System Check."
+msgstr "Geannuleerd vanuit System Check."
+
+#: includes/official-excerpt.php:20
+msgid "Official plugin page"
+msgstr "Officiële pluginpagina"
+
+#: taxocommerce-system-check.php:180
+msgid "Procesos"
+msgstr "Processen"
+
+#: taxocommerce-system-check.php:180
+msgid "Autocheck"
+msgstr "Zelftest"
