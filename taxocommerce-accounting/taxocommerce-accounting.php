@@ -368,7 +368,14 @@ function tca_export() {
     fputcsv( $out, $fields );
     foreach ( $rows as $row ) {
         $values = array();
-        foreach ( $fields as $field ) $values[] = tca_csv_guard( $row->$field );
+        foreach ( $fields as $field ) {
+            // Preserve signed numbers for correct refunds and bookkeeping math.
+            if ( in_array( $field, array( 'id', 'source_id', 'amount_base', 'amount_tax', 'amount_total', 'deductible_pct' ), true ) ) {
+                $values[] = (string) $row->$field;
+            } else {
+                $values[] = tca_csv_guard( $row->$field );
+            }
+        }
         fputcsv( $out, $values );
     }
     // php://output is closed by PHP at the end of this request.
