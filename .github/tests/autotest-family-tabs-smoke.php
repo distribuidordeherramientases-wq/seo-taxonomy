@@ -24,6 +24,14 @@ foreach ( $plugins as $slug ) {
     if ( 'system-check' === $slug ) {
         $functional = file_get_contents( $root . '/includes/class-taxocommerce-system-check-auto-test.php' );
         $code = file_get_contents( $root . '/includes/class-taxocommerce-system-check-code-check.php' );
+        $core_parity_rules = $root . '/includes/class-taxocommerce-system-check-code-review-rules.php';
+        if ( ! is_file( $core_parity_rules )
+            || false === strpos( $code, 'self::render_classified( $normalized )' )
+            || false === strpos( $code, "['classified_findings']" )
+            || false === strpos( $code, 'TaxoCommerce_System_Check_Code_Review_Rules::scan(' ) ) {
+            fwrite( STDERR, 'System Check must retain existing rules and expose Core Code Check severity and JSON.' . PHP_EOL );
+            exit( 1 );
+        }
         if ( false === strpos( $functional, 'tcs_subtab' )
             || false === strpos( $functional, 'TaxoCommerce_System_Check_Code_Check::render()' )
             || false === strpos( $code, 'function render(' ) ) {
