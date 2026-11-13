@@ -213,7 +213,7 @@ final class TCCUST_CSV {
 
 	private static function row( $data ) {
 		$id_raw = trim( (string) ( $data['id'] ?? '' ) );
-		if ( '' !== $id_raw && ! ctype_digit( $id_raw ) ) {
+		if ( '' !== $id_raw && ( ! ctype_digit( $id_raw ) || strlen( $id_raw ) > 19 || '0' === $id_raw ) ) {
 			return 'rejected';
 		}
 		$id = absint( $id_raw );
@@ -234,7 +234,7 @@ final class TCCUST_CSV {
 				&& (string) $existing['email'] !== sanitize_email( $incoming['email'] ) ) {
 				return 'rejected';
 			}
-		} elseif ( ! in_array( $incoming['source'], array( '', 'manual' ), true ) || '' !== $incoming['woo_user_id'] && '0' !== $incoming['woo_user_id'] ) {
+		} elseif ( ! in_array( $incoming['source'], array( '', 'manual' ), true ) || ( '' !== $incoming['woo_user_id'] && '0' !== $incoming['woo_user_id'] ) ) {
 			return 'rejected'; // CSV must never impersonate a WooCommerce buyer.
 		}
 		$fields = TCCUST_Admin::valid_data( $incoming, $existing );
