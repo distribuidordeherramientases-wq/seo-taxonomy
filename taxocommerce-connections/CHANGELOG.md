@@ -1,3 +1,8 @@
+## [0.3.4] — 2026-11-13 — Code Check equiparado a Core 0.4.82 (#2626)
+
+- Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.
+- Continúa siendo una revisión estática independiente del Plugin Check oficial, con ejecución por bloques y control de CPU.
+
 ## [0.3.3] — 2026-11-08 — Dos comprobaciones independientes en Autocheck (#2423)
 
 - Autocheck integra «Chequeo de funcionalidades» y «Chequeo del código» como dos subpestañas de una misma pantalla, conservando los cinco casos funcionales actuales de Connections.
