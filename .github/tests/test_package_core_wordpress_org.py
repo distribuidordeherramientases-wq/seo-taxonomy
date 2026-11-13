@@ -58,8 +58,15 @@ class CoreDistributionTests(unittest.TestCase):
             native = (original / (MODULE.INSTALLED + ".php")).read_text(encoding="utf-8")
             self.assertIn("Text Domain: " + MODULE.INSTALLED, native)
             self.assertIn("Text Domain: " + MODULE.OFFICIAL, main)
-            self.assertIn("Version: 0.4.78", main)
-            self.assertIn("Version: 0.4.78", native)
+            # The installed, WordPress.org and readme versions must always
+            # match; never hard-code a release number in packaging tests.
+            import re
+            match = re.search(r"(?m)^\\s*\\*\\s*Version:\\s*(\\d+\\.\\d+\\.\\d+)\\s*$", native)
+            self.assertIsNotNone(match)
+            version = match.group(1)
+            self.assertIn("Version: " + version, main)
+            readme = (original / "readme.txt").read_text(encoding="utf-8")
+            self.assertIn("Stable tag: " + version, readme)
             for locale in ("es_ES", "en_US", "fr_FR", "de_DE", "nl_NL"):
                 for ext in (".po", ".mo"):
                     self.assertTrue((package / "languages" / (MODULE.OFFICIAL + "-" + locale + ext)).is_file())
