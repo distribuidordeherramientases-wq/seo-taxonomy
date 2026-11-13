@@ -20,6 +20,129 @@ if ( ! defined( 'TAXOCOMMERCE_INSIGHTS_COMPETITIVE_HISTORY_OPTION' ) ) {
 }
 
 /**
+ * Per-store configuration, separate from monolith/legacy Analista settings.
+ * Only names and optional domains supplied by the store administrator are used.
+ */
+function taxocommerce_insights_competitive_settings() {
+    $defaults = array(
+        'mode' => 'both',
+        'scope' => 'all',
+        'category_ids' => array(),
+        'competitors' => array(),
+        'suppliers' => array(),
+        'signals' => array( 'popular', 'trends', 'gsc', 'visibility' ),
+    );
+    $saved = get_option( 'taxocommerce_insights_competitive_settings_v1', array() );
+    $saved = is_array( $saved ) ? $saved : array();
+    $mode = sanitize_key( (string) ( $saved['mode'] ?? 'both' ) );
+    $scope = sanitize_key( (string) ( $saved['scope'] ?? 'all' ) );
+    $signals = array_intersect(
+        array( 'popular', 'trends', 'gsc', 'visibility' ),
+        array_map( 'sanitize_key', (array) ( $saved['signals'] ?? $defaults['signals'] ) )
+    );
+    return array(
+        'mode' => in_array( $mode, array( 'both', 'current', 'new' ), true ) ? $mode : 'both',
+        'scope' => in_array( $scope, array( 'all', 'selected' ), true ) ? $scope : 'all',
+        'category_ids' => array_slice( array_values( array_unique( array_filter( array_map( 'absint', (array) ( $saved['category_ids'] ?? array() ) ) ) ) ), 0, 100 ),
+        'competitors' => taxocommerce_insights_competitive_parse_actors( (array) ( $saved['competitors'] ?? array() ) ),
+        'suppliers' => taxocommerce_insights_competitive_parse_actors( (array) ( $saved['suppliers'] ?? array() ) ),
+        'signals' => array_values( $signals ),
+    );
+}
+
+/** Normalize administrator-supplied company names (name | optional hostname). */
+function taxocommerce_insights_competitive_parse_actors( $actors ) {
+    $out = array();
+    foreach ( array_slice( (array) $actors, 0, 40 ) as $actor ) {
+        if ( is_array( $actor ) ) {
+            $name = sanitize_text_field( (string) ( $actor['name'] ?? '' ) );
+            $domain = (string) ( $actor['domain'] ?? '' );
+        } else {
+            $parts = explode( '|', (string) $actor, 2 );
+            $name = sanitize_text_field( trim( $parts[0] ) );
+            $domain = isset( $parts[1] ) ? trim( $parts[1] ) : '';
+        }
+        $domain = strtolower( preg_replace( '#^https?://#i', '', trim( $domain ) ) );
+        $domain = preg_replace( '#/.*$#', '', $domain );
+        $domain = preg_replace( '/^www\./', '', $domain );
+        if ( '' !== $domain && ( ! filter_var( $domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME ) || false === strpos( $domain, '.' ) ) ) {
+            $domain = '';
+        }
+        if ( '' === $name && '' === $domain ) {
+            continue;
+        }
+        if ( '' === $name ) {
+            $name = $domain;
+        }
+        $key = strtolower( $name . '|' . $domain );
+        $out[ $key ] = array( 'name' => $name, 'domain' => $domain );
+        if ( count( $out ) >= 20 ) {
+            break;
+        }
+    }
+    return array_values( $out );
+}
+
+/** Save preferences on explicit administrator request, without triggering an API call. */
+function taxocommerce_insights_competitive_settings_handler() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( esc_html__( 'No tienes permisos para configurar Competidores.', 'taxocommerce-google-bing' ) );
+    }
+    check_admin_referer( 'taxocommerce_insights_competition_settings', 'taxocommerce_insights_competition_nonce' );
+    $raw_competitors = isset( $_POST['market_competitors'] ) ? sanitize_textarea_field( wp_unslash( $_POST['market_competitors'] ) ) : '';
+    $raw_suppliers = isset( $_POST['market_suppliers'] ) ? sanitize_textarea_field( wp_unslash( $_POST['market_suppliers'] ) ) : '';
+    $raw_categories = isset( $_POST['market_category_ids'] ) && is_array( $_POST['market_category_ids'] )
+        ? array_map( 'absint', wp_unslash( $_POST['market_category_ids'] ) ) : array();
+    $raw_signals = isset( $_POST['market_signals'] ) && is_array( $_POST['market_signals'] )
+        ? array_map( 'sanitize_key', wp_unslash( $_POST['market_signals'] ) ) : array();
+    update_option( 'taxocommerce_insights_competitive_settings_v1', array(
+        'mode' => sanitize_key( (string) wp_unslash( $_POST['market_mode'] ?? 'both' ) ),
+        'scope' => sanitize_key( (string) wp_unslash( $_POST['market_scope'] ?? 'all' ) ),
+        'category_ids' => array_slice( array_values( array_unique( array_filter( $raw_categories ) ) ), 0, 100 ),
+        'competitors' => taxocommerce_insights_competitive_parse_actors( preg_split( '/\r\n|\r|\n/', $raw_competitors ) ),
+        'suppliers' => taxocommerce_insights_competitive_parse_actors( preg_split( '/\r\n|\r|\n/', $raw_suppliers ) ),
+        'signals' => array_values( array_intersect( array( 'popular', 'trends', 'gsc', 'visibility' ), $raw_signals ) ),
+    ), false );
+    wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'analysis', 'analista_notice' => 'market_settings_saved' ), admin_url( 'admin.php' ) ) );
+    exit;
+}
+add_action( 'admin_post_taxocommerce_insights_competition_settings', 'taxocommerce_insights_competitive_settings_handler' );
+
+/**
+ * Categories work in every WooCommerce store; a TaxoCommerce hierarchy is optional.
+ * Match known titles/categories only; never interpret name matching as a Google category mapping.
+ */
+function taxocommerce_insights_competitive_scope_terms( $settings ) {
+    if ( 'selected' !== $settings['scope'] || ! $settings['category_ids'] ) {
+        return array();
+    }
+    $names = array();
+    foreach ( $settings['category_ids'] as $id ) {
+        $term = get_term( $id, 'product_cat' );
+        if ( $term && ! is_wp_error( $term ) && isset( $term->name ) ) {
+            $names[] = (string) $term->name;
+        }
+    }
+    return $names;
+}
+function taxocommerce_insights_competitive_in_scope( $row, $terms ) {
+    if ( ! $terms ) {
+        return true;
+    }
+    $haystack = strtolower( implode( ' ', array(
+        (string) ( $row['title'] ?? '' ),
+        (string) ( $row['query'] ?? '' ),
+        (string) ( $row['category'] ?? '' ),
+    ) ) );
+    foreach ( $terms as $term ) {
+        if ( '' !== $term && false !== stripos( $haystack, $term ) ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * Turn existing provider snapshots into a report without initiating requests
  * to the websites of competitors.
  *
@@ -28,10 +151,9 @@ if ( ! defined( 'TAXOCOMMERCE_INSIGHTS_COMPETITIVE_HISTORY_OPTION' ) ) {
  */
 function taxocommerce_insights_competitive_build_report( $days = 28 ) {
     $days = in_array( absint( $days ), array( 28, 90 ), true ) ? absint( $days ) : 28;
-    $settings = function_exists( 'seo_analista_get_settings' ) ? (array) seo_analista_get_settings() : array();
-    $configured = function_exists( 'seo_analista_sanitize_domains' )
-        ? seo_analista_sanitize_domains( (array) ( $settings['competitors'] ?? array() ) )
-        : array();
+    $settings = taxocommerce_insights_competitive_settings();
+    $configured = array_values( array_filter( array_column( $settings['competitors'], 'domain' ) ) );
+    $scope_terms = taxocommerce_insights_competitive_scope_terms( $settings );
     $data = function_exists( 'seo_analista_get_data' ) ? (array) seo_analista_get_data( $days ) : array();
     $market = function_exists( 'seo_analista_market_signals' ) ? (array) seo_analista_market_signals( 25 ) : array();
     $acceleration = function_exists( 'seo_analista_search_acceleration' )
@@ -43,7 +165,24 @@ function taxocommerce_insights_competitive_build_report( $days = 28 ) {
     $merchant = class_exists( 'TaxoCommerce_Google_Bing_Merchant', false )
         ? (array) TaxoCommerce_Google_Bing_Merchant::snapshots()
         : array();
-    $popular = array_values( (array) ( $merchant['popular']['rows'] ?? array() ) );
+    $popular = in_array( 'popular', $settings['signals'], true )
+        ? array_values( array_filter( (array) ( $merchant['popular']['rows'] ?? array() ), static function ( $row ) use ( $scope_terms ) {
+            return is_array( $row ) && taxocommerce_insights_competitive_in_scope( $row, $scope_terms );
+        } ) ) : array();
+    if ( ! in_array( 'trends', $settings['signals'], true ) ) {
+        $market = array();
+    } elseif ( 'selected' === $settings['scope'] ) {
+        $market = array_values( array_filter( $market, static function ( $row ) use ( $scope_terms ) {
+            return is_array( $row ) && taxocommerce_insights_competitive_in_scope( $row, $scope_terms );
+        } ) );
+    }
+    if ( ! in_array( 'gsc', $settings['signals'], true ) || 'new' === $settings['mode'] ) {
+        $acceleration = array();
+    } elseif ( 'selected' === $settings['scope'] ) {
+        $acceleration = array_values( array_filter( $acceleration, static function ( $row ) use ( $scope_terms ) {
+            return is_array( $row ) && taxocommerce_insights_competitive_in_scope( $row, $scope_terms );
+        } ) );
+    }
     $category_counts = array();
     foreach ( $popular as $product ) {
         if ( ! is_array( $product ) ) {
@@ -60,7 +199,7 @@ function taxocommerce_insights_competitive_build_report( $days = 28 ) {
     // This method is a bounded, official Merchant Reports API call, invoked
     // only by the explicit "Generate competitive report" admin action.
     $visibility = array( 'status' => 'unavailable', 'rows' => array(), 'errors' => array() );
-    if ( $categories && class_exists( 'TaxoCommerce_Google_Bing_Merchant', false ) &&
+    if ( in_array( 'visibility', $settings['signals'], true ) && $categories && class_exists( 'TaxoCommerce_Google_Bing_Merchant', false ) &&
         method_exists( 'TaxoCommerce_Google_Bing_Merchant', 'competitive_visibility' ) ) {
         $visibility = (array) TaxoCommerce_Google_Bing_Merchant::competitive_visibility( $categories, $days );
     }
@@ -68,6 +207,9 @@ function taxocommerce_insights_competitive_build_report( $days = 28 ) {
     foreach ( (array) ( $visibility['rows'] ?? array() ) as $row ) {
         $domain = sanitize_text_field( (string) ( $row['domain'] ?? '' ) );
         if ( '' === $domain || ! empty( $row['is_own'] ) ) {
+            continue;
+        }
+        if ( $configured && ! in_array( preg_replace( '/^www\\./', '', strtolower( $domain ) ), $configured, true ) ) {
             continue;
         }
         $competitors[] = $row;
@@ -153,6 +295,21 @@ function taxocommerce_insights_competitive_build_report( $days = 28 ) {
         'period_days' => $days,
         'own_domain' => (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ),
         'competitors' => $configured,
+        'configuration' => $settings,
+        'scope_terms' => $scope_terms,
+        'selected_competitors' => array_map( static function ( $actor ) use ( $competitors ) {
+            $matched = false;
+            foreach ( $competitors as $row ) {
+                if ( $actor['domain'] && $actor['domain'] === preg_replace( '/^www\\./', '', strtolower( (string) ( $row['domain'] ?? '' ) ) ) ) {
+                    $matched = true;
+                    break;
+                }
+            }
+            return array( 'name' => $actor['name'], 'domain' => $actor['domain'], 'status' => $matched ? 'available' : 'unavailable' );
+        }, $settings['competitors'] ),
+        'selected_suppliers' => array_map( static function ( $actor ) {
+            return array( 'name' => $actor['name'], 'domain' => $actor['domain'], 'status' => 'not_connected' );
+        }, $settings['suppliers'] ),
         'summary' => $summary,
         'sources' => array(
             'merchant_best_sellers' => array(
@@ -263,6 +420,45 @@ function taxocommerce_insights_competitive_render_panel( $days = 28 ) {
     echo '<section class="seo-analista-section seo-analista-forms">';
     echo '<h2>' . esc_html__( 'Inteligencia competitiva · fuentes oficiales', 'taxocommerce-google-bing' ) . '</h2>';
     echo '<p>' . esc_html__( 'Genera un informe bajo demanda usando Merchant Center, Tendencias, Search Console y Bing. No consulta scrapers, sitios de terceros ni servicios SERP de pago.', 'taxocommerce-google-bing' ) . '</p>';
+    $settings = taxocommerce_insights_competitive_settings();
+    echo '<h3>' . esc_html__( 'Configurar análisis de mercado', 'taxocommerce-google-bing' ) . '</h3>';
+    echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+    echo '<input type="hidden" name="action" value="taxocommerce_insights_competition_settings">';
+    wp_nonce_field( 'taxocommerce_insights_competition_settings', 'taxocommerce_insights_competition_nonce' );
+    echo '<p><label for="market_mode">' . esc_html__( 'Modalidad', 'taxocommerce-google-bing' ) . '</label> <select name="market_mode" id="market_mode">';
+    foreach ( array( 'both' => __( 'Mercado actual y nuevos nichos', 'taxocommerce-google-bing' ), 'current' => __( 'Mercado actual', 'taxocommerce-google-bing' ), 'new' => __( 'Nuevos nichos', 'taxocommerce-google-bing' ) ) as $value => $label ) {
+        echo '<option value="' . esc_attr( $value ) . '"' . selected( $settings['mode'], $value, false ) . '>' . esc_html( $label ) . '</option>';
+    }
+    echo '</select></p>';
+    echo '<p><label for="market_scope">' . esc_html__( 'Ámbito', 'taxocommerce-google-bing' ) . '</label> <select name="market_scope" id="market_scope">';
+    foreach ( array( 'all' => __( 'Toda la tienda', 'taxocommerce-google-bing' ), 'selected' => __( 'Categorías seleccionadas', 'taxocommerce-google-bing' ) ) as $value => $label ) {
+        echo '<option value="' . esc_attr( $value ) . '"' . selected( $settings['scope'], $value, false ) . '>' . esc_html( $label ) . '</option>';
+    }
+    echo '</select></p>';
+    if ( taxonomy_exists( 'product_cat' ) ) {
+        $terms = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'number' => 0 ) );
+        if ( is_array( $terms ) && ! is_wp_error( $terms ) ) {
+            echo '<details><summary>' . esc_html__( 'Seleccionar categorías de WooCommerce', 'taxocommerce-google-bing' ) . '</summary><div style="max-height:220px;overflow:auto;padding:8px;">';
+            foreach ( $terms as $term ) {
+                echo '<label style="display:block"><input type="checkbox" name="market_category_ids[]" value="' . esc_attr( (string) $term->term_id ) . '"' . checked( in_array( (int) $term->term_id, $settings['category_ids'], true ), true, false ) . '> ' . esc_html( $term->name ) . '</label>';
+            }
+            echo '</div></details>';
+        }
+    }
+    echo '<p class="description">' . esc_html__( 'El filtro por categorías utiliza coincidencias de texto; no equivale a una clasificación oficial de Google. Sin categorías seleccionadas se muestra el mercado completo.', 'taxocommerce-google-bing' ) . '</p>';
+    echo '<p><label for="market_competitors"><strong>' . esc_html__( 'Competidores', 'taxocommerce-google-bing' ) . '</strong></label></p>';
+    echo '<textarea id="market_competitors" name="market_competitors" rows="4" class="large-text" placeholder="' . esc_attr__( 'Nombre comercial | dominio.example (uno por línea)', 'taxocommerce-google-bing' ) . '">' . esc_textarea( implode( "\n", array_map( static function ( $item ) { return $item['name'] . ( $item['domain'] ? ' | ' . $item['domain'] : '' ); }, $settings['competitors'] ) ) ) . '</textarea>';
+    echo '<p><label for="market_suppliers"><strong>' . esc_html__( 'Proveedores que se quieren contrastar', 'taxocommerce-google-bing' ) . '</strong></label></p>';
+    echo '<textarea id="market_suppliers" name="market_suppliers" rows="4" class="large-text" placeholder="' . esc_attr__( 'Nombre comercial | dominio.example (uno por línea)', 'taxocommerce-google-bing' ) . '">' . esc_textarea( implode( "\n", array_map( static function ( $item ) { return $item['name'] . ( $item['domain'] ? ' | ' . $item['domain'] : '' ); }, $settings['suppliers'] ) ) ) . '</textarea>';
+    echo '<p class="description">' . esc_html__( 'Los nombres se configuran libremente. Merchant sólo aporta estadísticas de dominios identificados por su informe; no revela ventas particulares. Los proveedores se guardan para el contraste, pero no se les asignan datos de ventas no disponibles.', 'taxocommerce-google-bing' ) . '</p>';
+    echo '<fieldset><legend><strong>' . esc_html__( 'Indicadores', 'taxocommerce-google-bing' ) . '</strong></legend>';
+    foreach ( array( 'popular' => __( 'Productos populares (Merchant)', 'taxocommerce-google-bing' ), 'trends' => __( 'Tendencias (Trends)', 'taxocommerce-google-bing' ), 'gsc' => __( 'Demanda propia (Search Console)', 'taxocommerce-google-bing' ), 'visibility' => __( 'Visibilidad de comercios (Merchant)', 'taxocommerce-google-bing' ) ) as $value => $label ) {
+        echo '<label style="display:inline-block;margin-right:14px"><input type="checkbox" name="market_signals[]" value="' . esc_attr( $value ) . '"' . checked( in_array( $value, $settings['signals'], true ), true, false ) . '> ' . esc_html( $label ) . '</label>';
+    }
+    echo '</fieldset>';
+    submit_button( __( 'Guardar configuración', 'taxocommerce-google-bing' ), 'secondary', 'submit', false );
+    echo '</form><hr>';
+    echo '<p class="description">' . esc_html__( 'El informe utiliza la configuración guardada. No ejecuta conexiones al abrir esta pantalla.', 'taxocommerce-google-bing' ) . '</p>';
     echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
     echo '<input type="hidden" name="action" value="taxocommerce_insights_competition_generate">';
     echo '<input type="hidden" name="analista_days" value="' . esc_attr( (string) $days ) . '">';
@@ -304,6 +500,22 @@ function taxocommerce_insights_competitive_render_panel( $days = 28 ) {
         echo '</li>';
     }
     echo '</ul>';
+    $selected = (array) ( $report['selected_competitors'] ?? array() );
+    if ( $selected ) {
+        echo '<h3>' . esc_html__( 'Competidores elegidos por la tienda', 'taxocommerce-google-bing' ) . '</h3><ul>';
+        foreach ( $selected as $item ) {
+            echo '<li>' . esc_html( (string) $item['name'] ) . ' · ' . esc_html( (string) $item['domain'] ) . ' · ' . esc_html( (string) $item['status'] ) . '</li>';
+        }
+        echo '</ul>';
+    }
+    $suppliers = (array) ( $report['selected_suppliers'] ?? array() );
+    if ( $suppliers ) {
+        echo '<h3>' . esc_html__( 'Proveedores seleccionados', 'taxocommerce-google-bing' ) . '</h3><ul>';
+        foreach ( $suppliers as $item ) {
+            echo '<li>' . esc_html( (string) $item['name'] ) . ' · ' . esc_html__( 'Sin datos comerciales verificados', 'taxocommerce-google-bing' ) . '</li>';
+        }
+        echo '</ul>';
+    }
     $competitors = (array) ( $report['market_competitors'] ?? array() );
     echo '<h3>' . esc_html__( 'Comercios visibles en Google Shopping por categoría', 'taxocommerce-google-bing' ) . '</h3>';
     if ( ! $competitors ) {
