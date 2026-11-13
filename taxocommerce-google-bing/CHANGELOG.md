@@ -1,3 +1,9 @@
+## [1.1.58] — 2026-11-13 — Competidores: configuración comercial por tienda (#2633)
+
+- Añade configuración propia para mercado actual, nichos o ambos, categorías WooCommerce, señales seleccionadas y listas libres de competidores/proveedores; sin dominios predefinidos en el nuevo informe.
+- Separa resultados verificables de Merchant de empresas elegidas sin evidencia y de proveedores sin datos comerciales disponibles; mantiene historiales, exportación JSON, permisos y nonces.
+- Filtra tendencias y productos solo por coincidencia textual de categoría, sin declarar una correspondencia oficial con categorías Google; ninguna consulta remota al abrir el panel.
+
 ## [1.1.57] — 2026-11-13 — Code Check equiparado a Core 0.4.82 (#2626)
 
 - Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.
