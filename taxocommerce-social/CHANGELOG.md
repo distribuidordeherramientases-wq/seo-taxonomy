@@ -1,3 +1,10 @@
+## [0.1.20] — 2026-11-13 — Importador único con reconocimiento de cancelaciones (#2660)
+
+- El importador CSV existente reconoce ahora los archivos con la columna `accion=cancelar` y los deriva a la previsualización segura de cancelaciones. Las fechas vencidas no se rechazan como nuevas programaciones.
+- Conserva el flujo previo de alta/reprogramación para CSV sin `accion`; nunca ejecuta publicaciones al importar órdenes de cancelación.
+- Reutiliza la validación de contenido, red y fecha exacta, con confirmación explícita; sin cambios de otras cuentas, agendas ni plugins.
+- Añade prueba independiente de detección de CSV y de validación de fechas y redes.
+
 ## [0.1.19] — 2026-11-13 — Cancelación exacta por CSV (#2660)
 
 - Nueva acción de importación masiva solo para cancelar programaciones; CSV separado con columnas contenido_id, redes, fecha_hora y accion=cancelar.
