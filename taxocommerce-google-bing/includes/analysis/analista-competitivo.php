@@ -169,7 +169,7 @@ function taxocommerce_insights_competitive_build_report( $days = 28 ) {
         ? array_values( array_filter( (array) ( $merchant['popular']['rows'] ?? array() ), static function ( $row ) use ( $scope_terms ) {
             return is_array( $row ) && taxocommerce_insights_competitive_in_scope( $row, $scope_terms );
         } ) ) : array();
-    if ( ! in_array( 'trends', $settings['signals'], true ) || 'current' === $settings['mode'] ) {
+    if ( ! in_array( 'trends', $settings['signals'], true ) ) {
         $market = array();
     } elseif ( 'selected' === $settings['scope'] ) {
         $market = array_values( array_filter( $market, static function ( $row ) use ( $scope_terms ) {
