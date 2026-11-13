@@ -59,6 +59,7 @@ class Social_Test_DB {
     public function esc_like( $s ) { return $s; }
     public function prepare( $sql ) {
         $args = array_slice( func_get_args(), 1 );
+        if ( count( $args ) === 1 && is_array( $args[0] ) ) $args = $args[0];
         return vsprintf( str_replace( '%i', '%s', $sql ), $args );
     }
     public function get_var( $sql ) {
