@@ -1,3 +1,9 @@
+## [0.1.19] — 2026-11-13 — Cancelación exacta por CSV (#2660)
+
+- Nueva acción de importación masiva solo para cancelar programaciones; CSV separado con columnas contenido_id, redes, fecha_hora y accion=cancelar.
+- Previsualización sin escrituras y confirmación protegida por nonce/capability; se valida contenido, red, fecha y coincidencia exacta con el calendario actual para no eliminar reprogramaciones ni contenido ajeno.
+- Cancela WP-Cron actual y heredado sin ejecutar publicaciones; preserva contenidos, cuentas, programaciones de otras redes, importador normal e historial.
+
 ## [0.1.18] — 2026-11-13 — Publicaciones y Autocheck operativo (#2630)
 
 - Registrada la programación automática de contenidos nuevos cuando no está activa la antigua implementación monolítica; evita dos productores simultáneos en la misma agenda.
