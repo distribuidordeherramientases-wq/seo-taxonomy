@@ -317,7 +317,7 @@ final class Assisted_Delete {
         $default_category = absint( get_option( 'default_product_cat', 0 ) );
         $choices = array();
         foreach ( $terms as $term ) {
-            if ( ! $term instanceof \\WP_Term || $term->term_id === $default_category || (int) $term->count <= 1 ) {
+            if ( ! $term instanceof \WP_Term || $term->term_id === $default_category || (int) $term->count <= 1 ) {
                 continue;
             }
             $url = get_term_link( $term );
