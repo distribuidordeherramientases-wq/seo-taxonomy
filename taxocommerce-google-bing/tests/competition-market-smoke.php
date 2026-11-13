@@ -126,7 +126,7 @@ check_market( false !== strpos( $source, "check_ajax_referer( 'taxocommerce_insi
 check_market( false !== strpos( $source, "current_user_can( 'manage_options' )" ), 'refresh requires admin capability' );
 check_market( false !== strpos( $source, "TaxoCommerce_Google_Bing_Merchant::sync( 'popular', " ), 'best sellers updated through Merchant connector' );
 check_market( false !== strpos( $source, "seo_google_trends_sync( false )" ), 'Trends uses existing rate-limited connector' );
-check_market( false !== strpos( $source, "TaxoCommerce_Google_Bing_Merchant::competitive_visibility( array( $categories[ $step ] ), $day_count )" ), 'one visibility category per request' );
+check_market( false !== strpos( $source, 'TaxoCommerce_Google_Bing_Merchant::competitive_visibility( array( $categories[ $step ] ), $day_count )' ), 'one visibility category per request' );
 $refresh_js = file_get_contents( __DIR__ . '/../includes/analysis/assets/analista-lazy.js' );
 check_market( false !== strpos( $refresh_js, "steps.push('merchant')" ), 'Merchant stage queued' );
 check_market( false !== strpos( $refresh_js, "steps.push('trends')" ), 'Trends stage queued' );
