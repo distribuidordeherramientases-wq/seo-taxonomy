@@ -15,6 +15,7 @@ function check_market( $ok, $name ) {
 }
 function absint( $v ) { return abs( (int) $v ); }
 function sanitize_text_field( $v ) { return strip_tags( (string) $v ); }
+function sanitize_key( $v ) { return preg_replace( '/[^a-z0-9_\\-]/', '', strtolower( (string) $v ) ); }
 function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }
 function home_url( $path ) { return 'https://shop.example.test' . $path; }
 function current_time( $format ) { return gmdate( $format ); }
