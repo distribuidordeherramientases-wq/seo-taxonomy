@@ -1183,8 +1183,7 @@ function taxocommerce_core_anomalies_render_report() {
     " );
 
     $non_commercial_post_slugs = (array) apply_filters(
-        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Retained legacy hook for backwards compatibility with existing extensions.
-        'seo_reports_non_commercial_post_slugs',
+        'taxocommerce_core_non_commercial_post_slugs',
         array(
             'carrito',
             'finalizar-compra',
@@ -1329,8 +1328,7 @@ function taxocommerce_core_anomalies_render_report() {
      * sin modificar el núcleo del informe.
      */
     $non_editorial_post_slugs = (array) apply_filters(
-        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Retained legacy hook for backwards compatibility with existing extensions.
-        'seo_reports_non_editorial_post_slugs',
+        'taxocommerce_core_non_editorial_post_slugs',
         array(
             'carrito',
             'finalizar-compra',
@@ -1388,8 +1386,7 @@ function taxocommerce_core_anomalies_render_report() {
             || in_array($post_slug, $non_editorial_post_slugs, true);
 
         $is_non_editorial = (bool) apply_filters(
-            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Retained legacy hook for backwards compatibility with existing extensions.
-            'seo_reports_is_non_editorial_post',
+            'taxocommerce_core_is_non_editorial_post',
             $is_non_editorial,
             $post_id,
             $post_slug,
