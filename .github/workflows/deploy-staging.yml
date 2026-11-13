@@ -189,6 +189,9 @@ jobs:
           php -l taxocommerce-scrappers/tests/lifecycle-smoke.php
           php taxocommerce-scrappers/tests/lifecycle-smoke.php
           php taxocommerce-social/tests/auto-test-manual-smoke.php
+          php -l taxocommerce-social/includes/csv-cancel.php
+          php -l taxocommerce-social/tests/csv-cancel-smoke.php
+          php taxocommerce-social/tests/csv-cancel-smoke.php
           php -l taxocommerce-accounting/taxocommerce-accounting.php
           php -l taxocommerce-accounting/tests/standalone-bootstrap-smoke.php
           php taxocommerce-accounting/tests/standalone-bootstrap-smoke.php
