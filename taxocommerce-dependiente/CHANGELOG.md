@@ -1,3 +1,8 @@
+## [0.3.44] — 2026-11-13 — Code Check equiparado a Core 0.4.82 (#2626)
+
+- Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.
+- Continúa siendo una revisión estática independiente del Plugin Check oficial, con ejecución por bloques y control de CPU.
+
 ## [0.3.43] — 2026-11-13 — Traducciones del manual de usuario y controles de aprendizaje (#2062)
 
 - Añade 46 traducciones por idioma en ES/EN/FR/DE/NL (230 entradas) del manual: inicio del aprendizaje, prioridades, lecciones, intérprete, mantenimiento M12, calidad y reevaluación, buscador, conocimiento portable, backups, logs y preguntas frecuentes.

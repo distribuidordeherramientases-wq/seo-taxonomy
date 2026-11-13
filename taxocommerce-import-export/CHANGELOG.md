@@ -1,3 +1,8 @@
+## [0.4.32] — 2026-11-13 — Code Check equiparado a Core 0.4.82 (#2626)
+
+- Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.
+- Continúa siendo una revisión estática independiente del Plugin Check oficial, con ejecución por bloques y control de CPU.
+
 ## [0.4.31] — 2026-11-13 — Traducciones del intercambio de medios y mensajes ZIP (#2062)
 
 - Traduce 47 cadenas adicionales por idioma ES/EN/FR/DE/NL (235 entradas gettext): Biblioteca de Medios, ZIP, permisos, errores, progreso de tareas, formularios y secciones del manual.
