@@ -1,3 +1,10 @@
+## [0.1.22] — 2026-11-13 — Cadenas directas y sugerencia de categoría (#2647)
+
+- El motor resuelve redirecciones encadenadas hacia el destino terminal en una sola respuesta HTTP, conservando el código original y la protección frente a ciclos. No altera registros durante las visitas.
+- El gestor permite consolidar individualmente las reglas con cadenas, mostrando el destino final, validándolo de nuevo y requiriendo confirmación, nonce y permisos. No consolida de forma automática equivalencias semánticamente incorrectas.
+- Al borrar un producto publicado, se propone opcionalmente la categoría WooCommerce más específica que mantiene otros productos. Se conserva la edición manual y la opción de no redirigir.
+- No se generan reglas para 404 históricos sin origen/destino comprobables ni se modifica producción.
+
 ## [0.1.21] — 2026-11-13 — Code Check equiparado a Core 0.4.82 (#2626)
 
 - Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.
