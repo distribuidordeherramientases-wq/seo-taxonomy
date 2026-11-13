@@ -1,3 +1,8 @@
+## [0.1.17] — 2026-11-13 — Code Check equiparado a Core 0.4.82 (#2626)
+
+- Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.
+- Continúa siendo una revisión estática independiente del Plugin Check oficial, con ejecución por bloques y control de CPU.
+
 ## [0.1.16] — 2026-11-11 — Recuperación de importación/exportación CSV en Calendario
 
 - Recuperados en Calendario los controles Descargar plantilla CSV, Exportar contenidos, Exportar agenda, Exportar historial y Validar CSV antes de importar.
