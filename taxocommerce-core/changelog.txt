@@ -1,3 +1,6 @@
+= 0.4.83 (2026-11-13) =
+* Address WordPress.org manual-review findings: delegate extension installation/activation/deactivation to WordPress native plugin administration while retaining discovery and authenticated download of local ZIP packages; remove Core's custom upload/installer and obsolete handlers. Make JSON output-buffer cleanup unconditional, separate read-only country GET from validated POST, replace dynamic CSS with static rules, prefix Core anomaly filters, and remove installation-specific post-slug exceptions. Retain native Code Check rules without suppressing remaining warnings. Issue #2625.
+
 = 0.4.82 (2026-11-13) =
 * Group native Core Code Check results by severity: red confirmed errors, amber review warnings, green files without findings, grey unchecked files. Show source location, rule and recommended review action. JSON adds classified_findings while keeping existing results and summary unchanged. No external checker or functional code changes. Issue #2623.
 
