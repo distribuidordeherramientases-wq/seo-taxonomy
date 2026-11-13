@@ -705,11 +705,17 @@ final class TaxoCommerce_Core_Hierarchy {
 	 * @return void
 	 */
 	private function country_request( $write = false ) {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended -- Navigation GET is read-only; write handlers already verified action nonces.
-        $source = $write ? $_POST : $_GET;
-        $value = isset( $source['tc_country'] ) && is_string( $source['tc_country'] ) ? sanitize_text_field( wp_unslash( $source['tc_country'] ) ) : '';
-        return TaxoCommerce_Core_Country::normalize( $value );
-    }
+		if ( $write ) {
+			// All callers are mutation handlers after their action-specific nonce.
+			// Delegate POST validation to the shared, already verified helper.
+			$value = TaxoCommerce_Core_Country::read_posted( 'tc_country' );
+			return is_string( $value ) ? TaxoCommerce_Core_Country::normalize( $value ) : '';
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET country selector.
+		$value = isset( $_GET['tc_country'] ) && is_string( $_GET['tc_country'] )
+			? sanitize_text_field( wp_unslash( $_GET['tc_country'] ) ) : '';
+		return TaxoCommerce_Core_Country::normalize( $value );
+	}
 
 	private function redirect_with_result( $result, $context ) {
 		$tab = 'role' === $context ? 'roles' : 'hierarchy';
