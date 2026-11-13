@@ -44,19 +44,19 @@ msgid "Add contact"
 msgstr "Añadir contacto"
 
 msgid "AJAX handler may be missing nonce verification."
-msgstr "AJAX handler may be missing nonce verification."
+msgstr "El controlador AJAX podría no verificar el nonce."
 
 msgid "All inventoried files have been checked."
-msgstr "All inventoried files have been checked."
+msgstr "Se han comprobado todos los archivos inventariados."
 
 msgid "All rules with findings"
-msgstr "All rules with findings"
+msgstr "Todas las reglas con incidencias"
 
 msgid "All sources"
 msgstr "Todos los orígenes"
 
 msgid "An early exit may bypass output buffer closure."
-msgstr "An early exit may bypass output buffer closure."
+msgstr "Una salida anticipada podría dejar abierto el búfer de salida."
 
 msgid "Architecture and dependencies"
 msgstr "Arquitectura y dependencias"
@@ -83,10 +83,10 @@ msgid "Cannot store temporary CSV."
 msgstr "No se puede guardar el CSV temporal."
 
 msgid "Check"
-msgstr "Check"
+msgstr "Comprobación"
 
 msgid "Check SQL parameters and use $wpdb->prepare() for untrusted values."
-msgstr "Check SQL parameters and use $wpdb->prepare() for untrusted values."
+msgstr "Revisa los parámetros SQL y utiliza $wpdb->prepare() con valores no fiables."
 
 msgid "Choose Add contact, enter a name and at least one email, phone or WhatsApp number, and save the record. No WordPress account is created."
 msgstr "Pulsa Añadir contacto, indica un nombre y un correo, teléfono o WhatsApp, y guarda la ficha. No se crea ninguna cuenta de WordPress."
@@ -104,7 +104,7 @@ msgid "Company"
 msgstr "Empresa"
 
 msgid "Confirm an explicit administrator action and WordPress permissions; otherwise use native WordPress plugin management."
-msgstr "Confirm an explicit administrator action and WordPress permissions; otherwise use native WordPress plugin management."
+msgstr "Exige una acción explícita del administrador y sus permisos; si no, utiliza la gestión nativa de plugins."
 
 msgid "Contacts exported:"
 msgstr "Contactos exportados:"
@@ -113,7 +113,7 @@ msgid "Continue batch"
 msgstr "Continuar bloque"
 
 msgid "Correct the PHP syntax and rerun the check."
-msgstr "Correct the PHP syntax and rerun the check."
+msgstr "Corrige la sintaxis PHP y repite el chequeo."
 
 msgid "Country"
 msgstr "País"
@@ -143,7 +143,7 @@ msgid "CSV session is already processing."
 msgstr "Ya se está procesando una sesión CSV."
 
 msgid "Custom WordPress hook is missing the plugin-specific prefix."
-msgstr "Custom WordPress hook is missing the plugin-specific prefix."
+msgstr "Un hook personalizado carece del prefijo del plugin."
 
 msgid "Customer"
 msgstr "Cliente"
@@ -188,25 +188,25 @@ msgid "Delete contact removes an unlinked manual record. For buyers with orders,
 msgstr "Eliminar contacto borra una ficha manual sin pedidos. Para compradores, Borrar datos del CRM elimina notas y etiquetas sin tocar pedidos."
 
 msgid "Detail"
-msgstr "Detail"
+msgstr "Detalle"
 
 msgid "Detailed results by file (technical view)"
-msgstr "Detailed results by file (technical view)"
+msgstr "Resultados detallados por archivo (vista técnica)"
 
 msgid "Direct-file access protection needs review."
-msgstr "Direct-file access protection needs review."
+msgstr "Revisa la protección contra acceso directo a archivos."
 
 msgid "Distinct rules:"
-msgstr "Distinct rules:"
+msgstr "Reglas diferentes:"
 
 msgid "Download JSON"
 msgstr "Descargar JSON"
 
 msgid "Dynamic CSS needs context-specific validation."
-msgstr "Dynamic CSS needs context-specific validation."
+msgstr "El CSS dinámico necesita validación según su contexto."
 
 msgid "Dynamic SQL query requires validation of identifiers and parameters."
-msgstr "Dynamic SQL query requires validation of identifiers and parameters."
+msgstr "La consulta SQL dinámica requiere validar identificadores y parámetros."
 
 msgid "Edit customer record"
 msgstr "Editar ficha del cliente"
@@ -218,19 +218,19 @@ msgid "Email"
 msgstr "Correo electrónico"
 
 msgid "Ensure every ob_start() closes in the same logical flow, including error paths."
-msgstr "Ensure every ob_start() closes in the same logical flow, including error paths."
+msgstr "Comprueba que cada ob_start() se cierre también en las rutas de error."
 
 msgid "Enter a name and at least one valid email, phone or WhatsApp number."
 msgstr "Introduce un nombre y al menos un correo, teléfono o número de WhatsApp válido."
 
 msgid "Errors"
-msgstr "Errors"
+msgstr "Errores"
 
 msgid "Errors detected"
-msgstr "Errors detected"
+msgstr "Errores detectados"
 
 msgid "Errors to fix"
-msgstr "Errors to fix"
+msgstr "Errores que corregir"
 
 msgid "Every administrative mutation checks a capability and a WordPress nonce. Input is validated and output escaped."
 msgstr "Toda modificación comprueba permisos y nonce de WordPress. Se validan los datos y se escapan las salidas."
@@ -254,19 +254,19 @@ msgid "File"
 msgstr "Archivo"
 
 msgid "File upload requires validation and safe handling."
-msgstr "File upload requires validation and safe handling."
+msgstr "La subida de archivos necesita validación y manejo seguro."
 
 msgid "Files analysed:"
-msgstr "Files analysed:"
+msgstr "Archivos analizados:"
 
 msgid "Files without findings"
-msgstr "Files without findings"
+msgstr "Archivos sin incidencias"
 
 msgid "Filter"
 msgstr "Filtrar"
 
 msgid "Findings:"
-msgstr "Findings:"
+msgstr "Incidencias:"
 
 msgid "First name"
 msgstr "Nombre"
@@ -302,19 +302,19 @@ msgid "Importing contacts..."
 msgstr "Importando contactos..."
 
 msgid "Incomplete: not all files were checked"
-msgstr "Incomplete: not all files were checked"
+msgstr "Incompleto: no se han comprobado todos los archivos"
 
 msgid "Information"
-msgstr "Information"
+msgstr "Información"
 
 msgid "Inspect the execution context and escape output at the point of rendering."
-msgstr "Inspect the execution context and escape output at the point of rendering."
+msgstr "Revisa el contexto de ejecución y escapa la salida al mostrarla."
 
 msgid "Inspect the source line and validate whether this warning requires a code change."
-msgstr "Inspect the source line and validate whether this warning requires a code change."
+msgstr "Revisa la línea de código e identifica si requiere cambios."
 
 msgid "Inspect this check and rerun the analysis."
-msgstr "Inspect this check and rerun the analysis."
+msgstr "Revisa la comprobación y repite el análisis."
 
 msgid "Insufficient permissions."
 msgstr "Permisos insuficientes."
@@ -338,7 +338,7 @@ msgid "Large CSV imports and exports"
 msgstr "Importaciones y exportaciones CSV masivas"
 
 msgid "Last execution"
-msgstr "Last execution"
+msgstr "Última ejecución"
 
 msgid "Last name"
 msgstr "Apellidos"
@@ -350,7 +350,7 @@ msgid "Last updated"
 msgstr "Última actualización"
 
 msgid "Line"
-msgstr "Line"
+msgstr "Línea"
 
 msgid "Manual"
 msgstr "Manual"
@@ -365,7 +365,7 @@ msgid "Manuals"
 msgstr "Manuales"
 
 msgid "Native static indicators only. Official Plugin Check, live security and older PHP versions have not been executed here."
-msgstr "Native static indicators only. Official Plugin Check, live security and older PHP versions have not been executed here."
+msgstr "Solo indicadores estáticos propios. Aquí no se ha ejecutado Plugin Check oficial, seguridad en vivo ni pruebas con PHP antiguo."
 
 msgid "New manual contact"
 msgstr "Nuevo contacto manual"
@@ -374,25 +374,25 @@ msgid "New paid orders are picked up by WooCommerce events. Stop pauses a histor
 msgstr "Los pedidos pagados nuevos se detectan por eventos de WooCommerce. Detener interrumpe el escaneo histórico sin borrar clientes importados."
 
 msgid "No confirmed errors in the implemented checks."
-msgstr "No confirmed errors in the implemented checks."
+msgstr "No se han confirmado errores en las comprobaciones implementadas."
 
 msgid "No customer records match these filters."
 msgstr "Ningún cliente coincide con estos filtros."
 
 msgid "No findings in implemented checks (not a WordPress.org certification)"
-msgstr "No findings in implemented checks (not a WordPress.org certification)"
+msgstr "Sin incidencias en los chequeos implementados (no equivale a certificación de WordPress.org)"
 
 msgid "No findings in the checks implemented for this file."
-msgstr "No findings in the checks implemented for this file."
+msgstr "No se han detectado incidencias en este archivo."
 
 msgid "No fully checked clean files yet."
-msgstr "No fully checked clean files yet."
+msgstr "Todavía no hay archivos completamente comprobados y sin incidencias."
 
 msgid "No warnings detected."
-msgstr "No warnings detected."
+msgstr "No se han detectado avisos."
 
 msgid "Not checked."
-msgstr "Not checked."
+msgstr "Sin comprobar."
 
 msgid "Not specified"
 msgstr "Sin especificar"
@@ -413,16 +413,16 @@ msgid "Operation stopped. Completed batches are retained."
 msgstr "Proceso detenido. Se conservan los bloques completados."
 
 msgid "Output buffer may not be closed in the same execution flow."
-msgstr "Output buffer may not be closed in the same execution flow."
+msgstr "El búfer de salida podría no cerrarse en la misma ejecución."
 
 msgid "Output variable needs context-appropriate escaping."
-msgstr "Output variable needs context-appropriate escaping."
+msgstr "La variable mostrada necesita escape apropiado al contexto."
 
 msgid "Paid buyers are read from WooCommerce, including guest checkouts. Email and WhatsApp contacts can also be added without creating store accounts."
 msgstr "Los compradores con pedidos pagados se obtienen de WooCommerce, incluidos los invitados. También puedes añadir contactos de correo y WhatsApp sin crearles cuenta."
 
 msgid "Passed"
-msgstr "Passed"
+msgstr "Correctas"
 
 msgid "Personal data and permissions"
 msgstr "Datos personales y permisos"
@@ -431,19 +431,19 @@ msgid "Phone"
 msgstr "Teléfono"
 
 msgid "PHP syntax error."
-msgstr "PHP syntax error."
+msgstr "Error de sintaxis PHP."
 
 msgid "PHP syntax, WordPress structure and security indicators for this plugin only. No other checker is required. Findings do not replace official Plugin Check or a security audit."
 msgstr "Sintaxis PHP, estructura de WordPress e indicadores de seguridad solo de este plugin. No requiere otro comprobador. Los resultados no sustituyen al Plugin Check oficial ni a una auditoría de seguridad."
 
 msgid "Plugin activation must require an explicit user action."
-msgstr "Plugin activation must require an explicit user action."
+msgstr "La activación del plugin requiere una acción explícita del usuario."
 
 msgid "Plugin deactivation must require an explicit user action."
-msgstr "Plugin deactivation must require an explicit user action."
+msgstr "La desactivación del plugin requiere una acción explícita del usuario."
 
 msgid "Plugin installation or upgrade operation needs review."
-msgstr "Plugin installation or upgrade operation needs review."
+msgstr "Revisa la instalación o actualización del plugin."
 
 msgid "Postal code"
 msgstr "Código postal"
@@ -473,10 +473,10 @@ msgid "Purchases"
 msgstr "Compras"
 
 msgid "Read-only schema, WooCommerce connection, CSV and translation checks. No customer records are altered."
-msgstr "Read-only schema, WooCommerce connection, CSV and translation checks. No customer records are altered."
+msgstr "Comprobaciones de solo lectura de tablas, WooCommerce, CSV y traducciones. No se modifica ninguna ficha."
 
 msgid "Recommended action:"
-msgstr "Recommended action:"
+msgstr "Acción recomendada:"
 
 msgid "Registered"
 msgstr "Registrado"
@@ -485,25 +485,25 @@ msgid "Rejected"
 msgstr "Rechazados"
 
 msgid "Request handler needs an appropriate user permission check."
-msgstr "Request handler needs an appropriate user permission check."
+msgstr "El controlador de solicitudes debe comprobar los permisos de usuario."
 
 msgid "Request input needs a verified nonce in its execution path."
-msgstr "Request input needs a verified nonce in its execution path."
+msgstr "Los datos de la solicitud necesitan un nonce verificado."
 
 msgid "Request input needs contextual sanitization and validation."
-msgstr "Request input needs contextual sanitization and validation."
+msgstr "Los datos de la solicitud necesitan saneamiento y validación contextual."
 
 msgid "Resume"
 msgstr "Reanudar"
 
 msgid "Review required: warnings found"
-msgstr "Review required: warnings found"
+msgstr "Revisión necesaria: se han encontrado avisos"
 
 msgid "Review the flagged code for compliance with WordPress requirements."
-msgstr "Review the flagged code for compliance with WordPress requirements."
+msgstr "Revisa que el código señalado cumpla los requisitos de WordPress."
 
 msgid "Run Autotest"
-msgstr "Run Autotest"
+msgstr "Ejecutar Autotest"
 
 msgid "Run Code Check"
 msgstr "Ejecutar chequeo de código"
@@ -512,7 +512,7 @@ msgid "Run Code Check first."
 msgstr "Ejecuta primero el chequeo de código."
 
 msgid "Run the functional Autotest first."
-msgstr "Run the functional Autotest first."
+msgstr "Ejecuta primero el Autotest funcional."
 
 msgid "Save record"
 msgstr "Guardar ficha"
@@ -527,13 +527,13 @@ msgid "Security and CSV operations"
 msgstr "Seguridad y operaciones CSV"
 
 msgid "Security:"
-msgstr "Security:"
+msgstr "Seguridad:"
 
 msgid "Source"
 msgstr "Origen"
 
 msgid "SQL construction and prepared statements need review."
-msgstr "SQL construction and prepared statements need review."
+msgstr "Revisa la construcción SQL y las consultas preparadas."
 
 msgid "Status"
 msgstr "Estado"
@@ -557,7 +557,7 @@ msgid "Syncing paid WooCommerce orders..."
 msgstr "Sincronizando pedidos pagados de WooCommerce..."
 
 msgid "TaxoCommerce Customer CRM"
-msgstr "TaxoCommerce Customer CRM"
+msgstr "TaxoCommerce CRM de clientes"
 
 msgid "TaxoCommerce Customers"
 msgstr "TaxoCommerce Clientes"
@@ -569,7 +569,7 @@ msgid "The adapter uses wc_get_orders(), wc_get_order() and order hooks; it neve
 msgstr "El adaptador usa wc_get_orders(), wc_get_order() y hooks de pedidos; nunca consulta ni escribe directamente las tablas de pedidos."
 
 msgid "The check failed but returned no source location."
-msgstr "The check failed but returned no source location."
+msgstr "La comprobación ha fallado sin indicar ubicación en el código."
 
 msgid "The customers table contains an optional unique WooCommerce user ID and an optional normalized unique email; contacts without email can still be entered manually using a phone number."
 msgstr "La tabla admite un ID de usuario WooCommerce único opcional y un correo normalizado único opcional. También se permiten contactos manuales sin correo, con teléfono."
@@ -596,7 +596,7 @@ msgid "Unable to create JSON."
 msgstr "No se ha podido crear el JSON."
 
 msgid "Unable to produce JSON."
-msgstr "Unable to produce JSON."
+msgstr "No se ha podido generar el JSON."
 
 msgid "Unable to save this customer record."
 msgstr "No se ha podido guardar la ficha del cliente."
@@ -605,7 +605,7 @@ msgid "Unchanged"
 msgstr "Sin cambios"
 
 msgid "Unchecked or incomplete"
-msgstr "Unchecked or incomplete"
+msgstr "Sin comprobar o incompletos"
 
 msgid "Unexpected server response."
 msgstr "Respuesta inesperada del servidor."
@@ -617,10 +617,10 @@ msgid "Updated"
 msgstr "Actualizados"
 
 msgid "Uploaded temporary file path needs secure validation."
-msgstr "Uploaded temporary file path needs secure validation."
+msgstr "La ruta temporal del archivo subido necesita validación segura."
 
 msgid "Use a unique plugin-specific prefix; preserve compatibility through reviewed migration."
-msgstr "Use a unique plugin-specific prefix; preserve compatibility through reviewed migration."
+msgstr "Usa un prefijo propio del plugin y preserva la compatibilidad al migrar."
 
 msgid "Use Edit record to update company, address, contact preferences, internal labels and private notes. CRM changes never rewrite WooCommerce billing data."
 msgstr "Usa Editar ficha para actualizar empresa, dirección, preferencias, etiquetas y notas privadas. El CRM no modifica los datos de facturación de WooCommerce."
@@ -632,10 +632,10 @@ msgid "User manual"
 msgstr "Manual de usuario"
 
 msgid "Validate the input type, sanitize values and check uploads with WordPress APIs."
-msgstr "Validate the input type, sanitize values and check uploads with WordPress APIs."
+msgstr "Valida el tipo de entrada, sanea los valores y comprueba las subidas con las API de WordPress."
 
 msgid "Verify the nonce and capability along the actual input-handling path."
-msgstr "Verify the nonce and capability along the actual input-handling path."
+msgstr "Verifica el nonce y los permisos en el recorrido real de los datos."
 
 msgid "Version"
 msgstr "Versión"
@@ -644,7 +644,7 @@ msgid "Version history and improvements"
 msgstr "Historial de versiones y mejoras"
 
 msgid "Warnings to review"
-msgstr "Warnings to review"
+msgstr "Avisos que revisar"
 
 msgid "WhatsApp"
 msgstr "WhatsApp"
@@ -665,7 +665,7 @@ msgid "WooCommerce synchronization"
 msgstr "Sincronización con WooCommerce"
 
 msgid "WooCommerce-related buyer identity is retained while orders are subject to store retention requirements."
-msgstr "WooCommerce-related buyer identity is retained while orders are subject to store retention requirements."
+msgstr "Se mantiene la identidad del comprador vinculada a WooCommerce mientras los pedidos estén sujetos a conservación legal."
 
 msgid "WordPress custom tables store private CRM fields and compact order ID references; WooCommerce HPOS APIs remain the source of orders and payment status."
 msgstr "Tablas propias guardan los campos privados del CRM y referencias de IDs de pedido. Las API de WooCommerce, compatibles con HPOS, siguen siendo la fuente oficial de pedidos y pagos."
