@@ -4,13 +4,16 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.58
+Stable tag: 1.1.59
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 External connections, manual provider data downloads, and market intelligence for WooCommerce.
 
 == Description ==
+
+Version 1.1.59 restores the Competition analysis panel after generating an official-source report or saving its configuration. The administrator returns to the saved report, keeping the chosen reporting period, without running Merchant or Trends requests again.
+
 
 Version 1.1.58 makes the Competition report configurable per store: market scope, WooCommerce category filters, explicit company/supplier lists, and selected official-source indicators. Selected supplier identities are not presented as verified commercial data; no competitor sites are crawled.
 
