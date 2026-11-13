@@ -69,7 +69,7 @@ function esc_attr( $value ) { return esc_html( $value ); }
 function esc_url( $value ) { return esc_html( $value ); }
 function esc_html_e( $value, $domain = '' ) { echo esc_html( $value ); }
 function esc_attr_e( $value, $domain = '' ) { echo esc_attr( $value ); }
-function wp_nonce_field( $nonce, $field ) { echo '<input name="' . esc_attr( $field ) . '" value="valid">'; }
+function wp_nonce_field( $nonce, $field = '_wpnonce' ) { echo '<input name="' . esc_attr( $field ) . '" value="valid">'; }
 function selected( $value, $current, $echo = true ) { return (string) $value === (string) $current ? ' selected="selected"' : ''; }
 function submit_button( $label, $style = '', $name = '', $wrap = false ) { echo '<button type="submit">' . esc_html( $label ) . '</button>'; }
 function admin_url( $path = '' ) { return 'https://asociacionfocazul.example/wp-admin/' . $path; }
