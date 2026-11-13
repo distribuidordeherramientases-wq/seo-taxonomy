@@ -988,136 +988,136 @@ msgstr ""
 
 #: includes/class-taxocommerce-connections-admin.php:135
 msgid "Google OAuth test failed."
-msgstr ""
+msgstr "La prueba de OAuth de Google ha fallado."
 
 #: includes/class-taxocommerce-connections-admin.php:136
 msgid "Google denied authorization."
-msgstr ""
+msgstr "Google ha denegado la autorización."
 
 #. translators: %d: number of accessible Google Search Console properties.
 #: includes/class-taxocommerce-connections-admin.php:150
 msgid "Accessible properties: %d."
-msgstr ""
+msgstr "Propiedades accesibles: %d."
 
 #: includes/class-taxocommerce-connections-admin.php:201
 msgid "Connections"
-msgstr ""
+msgstr "Conexiones"
 
 #: includes/class-taxocommerce-connections-admin.php:202
 msgid ""
 "External data connections used by TaxoCommerce and the download screens. "
 "Credentials and OAuth are stored here for Google Search Console, Google "
 "Analytics, Bing, Google Trends, Amazon, and Pinterest."
-msgstr ""
+msgstr "Conexiones con proveedores externos y pantallas para descargar datos. Las credenciales y OAuth de Search Console, Google Analytics, Bing, Google Trends, Amazon y Pinterest se gestionan aquí."
 
 #: includes/class-taxocommerce-connections-admin.php:221
 msgid "Save Google"
-msgstr ""
+msgstr "Guardar Google"
 
 #: includes/class-taxocommerce-connections-admin.php:226
 msgid "Test Google"
-msgstr ""
+msgstr "Probar Google"
 
 #: includes/class-taxocommerce-connections-admin.php:231
 msgid "Cómo conectar Google Merchant Center"
-msgstr ""
+msgstr "Cómo conectar Google Merchant Center"
 
 #. translators: %s: URL de acceso a Google Merchant Center.
 #: includes/class-taxocommerce-connections-admin.php:233
 msgid ""
 "Abre <a href=\"%s\" target=\"_blank\" rel=\"noopener noreferrer\">Google "
 "Merchant Center</a> con la cuenta que administra tu tienda."
-msgstr ""
+msgstr "Abre <a href=\"%s\" target=\"_blank\" rel=\"noopener noreferrer\">Google Merchant Center</a> con la cuenta que administra tu tienda."
 
 #. translators: %s: URL de acceso a Google Merchant Center.
 #: includes/class-taxocommerce-connections-admin.php:234
 msgid ""
 "Selecciona tu cuenta y copia su ID numérico de Merchant Center (no es el ID "
 "de Google Analytics ni el de Google Ads)."
-msgstr ""
+msgstr "Selecciona tu cuenta y copia su ID numérico de Merchant Center (no es el ID de Google Analytics ni el de Google Ads)."
 
 #: includes/class-taxocommerce-connections-admin.php:235
 msgid "Introduce el ID en este campo y pulsa «Save Merchant»."
-msgstr ""
+msgstr "Introduce el ID en este campo y pulsa «Guardar Merchant»."
 
 #: includes/class-taxocommerce-connections-admin.php:236
 msgid ""
 "Comprueba que la identidad de Google utilizada por TaxoCommerce tiene acceso"
 " a esa cuenta de Merchant Center y que Merchant API está habilitada cuando "
 "corresponda."
-msgstr ""
+msgstr "Comprueba que la identidad de Google utilizada por TaxoCommerce tiene acceso a esa cuenta de Merchant Center y que Merchant API está habilitada cuando corresponda."
 
 #: includes/class-taxocommerce-connections-admin.php:237
 msgid ""
 "Pulsa «Test Merchant». Si falla, revisa el acceso de esa identidad; guardar "
 "el ID no concede permisos automáticamente."
-msgstr ""
+msgstr "Pulsa «Probar Merchant». Si falla, comprueba el acceso de esa identidad; guardar el ID no concede permisos automáticamente."
 
 #: includes/class-taxocommerce-connections-admin.php:239
 msgid "Ayuda oficial de Merchant Center"
-msgstr ""
+msgstr "Ayuda oficial de Merchant Center"
 
 #: includes/class-taxocommerce-connections-admin.php:239
 msgid "Documentación oficial de Merchant API"
-msgstr ""
+msgstr "Documentación oficial de Merchant API"
 
 #: includes/class-taxocommerce-connections-admin.php:245
 msgid "Save Merchant"
-msgstr ""
+msgstr "Guardar Merchant"
 
 #: includes/class-taxocommerce-connections-admin.php:250
 msgid "Test Merchant"
-msgstr ""
+msgstr "Probar Merchant"
 
 #: includes/class-taxocommerce-connections-admin.php:273
 msgid "Save Bing"
-msgstr ""
+msgstr "Guardar Bing"
 
 #: includes/class-taxocommerce-connections-admin.php:278
 msgid "Test Bing"
-msgstr ""
+msgstr "Probar Bing"
 
 #: includes/class-taxocommerce-connections-admin.php:300
 msgid "Save Amazon"
-msgstr ""
+msgstr "Guardar Amazon"
 
 #: includes/class-taxocommerce-connections-admin.php:305
 msgid "Test Creators API"
-msgstr ""
+msgstr "Probar Creators API"
 
 #: includes/class-taxocommerce-connections-admin.php:331
 msgid "Save Pinterest"
-msgstr ""
+msgstr "Guardar Pinterest"
 
 #: includes/class-taxocommerce-connections-admin.php:340
 msgid "Test Pinterest"
-msgstr ""
+msgstr "Probar Pinterest"
 
 #: includes/class-taxocommerce-connections-admin.php:351
 msgid "Save Pinterest Merchant"
-msgstr ""
+msgstr "Guardar Pinterest Merchant"
 
 #: includes/class-taxocommerce-connections-amazon.php:163
 msgid ""
 "Creators API is not configured. Affiliate links can still work with only a "
 "Partner Tag."
-msgstr ""
+msgstr "Creators API no está configurada. Los enlaces de afiliación pueden funcionar únicamente con una etiqueta Partner Tag."
 
 #: includes/class-taxocommerce-connections-amazon.php:198
 msgid "Amazon did not return an access_token."
-msgstr ""
+msgstr "Amazon no ha devuelto un access_token."
 
 #: includes/class-taxocommerce-connections-amazon.php:210
 msgid "Falta el Partner Tag de Amazon Associates."
-msgstr ""
+msgstr "Falta el Partner Tag de Amazon Associates."
 
 #: includes/class-taxocommerce-connections-amazon.php:242
 msgid "Error de Creators API."
-msgstr ""
+msgstr "Error de Creators API."
 
 #: includes/class-taxocommerce-connections-amazon.php:263
 msgid "Enter a search query for Amazon."
-msgstr ""
+msgstr "Introduce una consulta de búsqueda para Amazon."
 
 #: includes/class-taxocommerce-connections-google-bing.php:68
 msgid ""
@@ -1157,65 +1157,65 @@ msgstr ""
 
 #: includes/class-taxocommerce-connections-pinterest.php:147
 msgid "OpenSSL is not available."
-msgstr ""
+msgstr "OpenSSL no está disponible."
 
 #: includes/class-taxocommerce-connections-pinterest.php:155
 msgid "The secret could not be encrypted."
-msgstr ""
+msgstr "No se ha podido cifrar el secreto."
 
 #: includes/class-taxocommerce-connections-pinterest.php:213
 msgid "Pinterest did not return an Access Token."
-msgstr ""
+msgstr "Pinterest no ha devuelto un token de acceso."
 
 #: includes/class-taxocommerce-connections-pinterest.php:241
 msgid "Pinterest no tiene Access Token guardado."
-msgstr ""
+msgstr "Pinterest no tiene ningún token de acceso guardado."
 
 #: includes/class-taxocommerce-connections-pinterest.php:252
 msgid "The Pinterest token has expired; authorize the account again."
-msgstr ""
+msgstr "El token de Pinterest ha caducado; vuelve a autorizar la cuenta."
 
 #: includes/class-taxocommerce-connections-pinterest.php:325
 msgid "Select a board before testing Pinterest."
-msgstr ""
+msgstr "Selecciona un tablero antes de probar Pinterest."
 
 #: includes/class-taxocommerce-connections-pinterest.php:341
 msgid "You do not have permission to connect Pinterest."
-msgstr ""
+msgstr "No tienes permisos para conectar Pinterest."
 
 #: includes/class-taxocommerce-connections-pinterest.php:395
 msgid "The OAuth state is invalid or expired."
-msgstr ""
+msgstr "El estado de OAuth no es válido o ha caducado."
 
 #: includes/class-taxocommerce-connections-pinterest.php:398
 msgid "The OAuth user does not have permission."
-msgstr ""
+msgstr "El usuario de OAuth no tiene permisos."
 
 #: includes/class-taxocommerce-connections-pinterest.php:481
 msgid "Invalid domain verification code."
-msgstr ""
+msgstr "Código de verificación de dominio no válido."
 
 #: includes/class-taxocommerce-connections-status.php:136
 msgid "Estado de las conexiones"
-msgstr ""
+msgstr "Estado de las conexiones"
 
 #: includes/class-taxocommerce-connections-status.php:137
 msgid ""
 "Estados de credenciales y verificaciones manuales. Abrir esta pantalla no "
 "llama a proveedores externos."
-msgstr ""
+msgstr "Estado de las credenciales y verificaciones manuales. Abrir esta pantalla no realiza llamadas a proveedores externos."
 
 #: includes/class-taxocommerce-connections-status.php:153
 msgid "Prueba la conexión para verificarla."
-msgstr ""
+msgstr "Prueba la conexión para verificarla."
 
 #: includes/class-taxocommerce-connections-status.php:155
 msgid "Configuración local guardada; sin validación externa."
-msgstr ""
+msgstr "Configuración local guardada; sin validación externa."
 
 #: includes/class-taxocommerce-connections-status.php:163
 msgid "Comprobar"
-msgstr ""
+msgstr "Comprobar"
 
 #: includes/class-taxocommerce-connections-status.php:167
 msgid ""
@@ -1223,15 +1223,15 @@ msgid ""
 " manual reciente (máximo 7 días). Cambiar credenciales exige repetirla. Los "
 "enlaces de afiliados y los catálogos configurados no equivalen a una "
 "conexión API validada."
-msgstr ""
+msgstr "«Conectado» significa que el proveedor ha respondido correctamente a una prueba manual reciente (máximo 7 días). Si cambias las credenciales, debes repetir la prueba. Los enlaces de afiliación y los catálogos configurados no equivalen a una conexión API validada."
 
 #: includes/class-taxocommerce-connections-status.php:305
 msgid "Sin permisos para comprobar conexiones."
-msgstr ""
+msgstr "Sin permisos para comprobar conexiones."
 
 #: includes/class-taxocommerce-connections-status.php:312
 msgid "La conexión no está preparada para comprobarse."
-msgstr ""
+msgstr "La conexión no está preparada para comprobarse."
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:119
 msgid "No tienes permisos para ejecutar Auto Test."
@@ -1239,44 +1239,44 @@ msgstr "No tienes permisos para ejecutar Auto Test."
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:149
 msgid "Sin permisos para descargar el diagnóstico."
-msgstr ""
+msgstr "Sin permisos para descargar el diagnóstico."
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:160
 msgid "No existe un informe válido para esta instalación."
-msgstr ""
+msgstr "No existe un informe válido para esta instalación."
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:164
 msgid "No se ha podido generar el informe JSON."
-msgstr ""
+msgstr "No se ha podido generar el informe JSON."
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:681
 msgid "No tienes permiso para abrir Auto Test."
-msgstr ""
+msgstr "No tienes permisos para abrir Auto Test."
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:695
 msgid "Auto Test — TaxoCommerce Insights"
-msgstr ""
+msgstr "Auto Test — TaxoCommerce Insights"
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:696
 msgid ""
 "Diagnóstico por módulos y comparación antes/después de actualizar el plugin."
 " No modifica fuentes, informes, credenciales ni conexiones; solo conserva "
 "dos pequeños resultados por administrador."
-msgstr ""
+msgstr "Diagnóstico por módulos y comparación antes/después de actualizar el plugin. No modifica fuentes, informes, credenciales ni conexiones; solo conserva dos pequeños resultados por administrador."
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:704
 msgid "Referencia anterior al despliegue"
-msgstr ""
+msgstr "Referencia anterior al despliegue"
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:710
 msgid ""
 "No hay referencia. Ejecuta «Guardar estado ANTES» antes de actualizar el "
 "plugin."
-msgstr ""
+msgstr "No hay referencia. Ejecuta «Guardar estado ANTES» antes de actualizar el plugin."
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:714
 msgid "Última ejecución"
-msgstr ""
+msgstr "Última ejecución"
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:720
 msgid "Aún no se ha realizado ningún autochequeo."
