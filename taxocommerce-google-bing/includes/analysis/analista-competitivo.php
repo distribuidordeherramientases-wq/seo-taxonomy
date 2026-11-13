@@ -103,7 +103,15 @@ function taxocommerce_insights_competitive_settings_handler() {
         'suppliers' => taxocommerce_insights_competitive_parse_actors( preg_split( '/\r\n|\r|\n/', $raw_suppliers ) ),
         'signals' => array_values( array_intersect( array( 'popular', 'trends', 'gsc', 'visibility' ), $raw_signals ) ),
     ), false );
-    wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'analysis', 'analista_notice' => 'market_settings_saved' ), admin_url( 'admin.php' ) ) );
+    $days = isset( $_POST['analysis_days'] ) ? absint( wp_unslash( $_POST['analysis_days'] ) ) : 28;
+    $days = in_array( $days, array( 28, 90 ), true ) ? $days : 28;
+    wp_safe_redirect( add_query_arg( array(
+        'page' => 'taxocommerce-google-bing',
+        'tgb_tab' => 'analysis',
+        'analysis_days' => $days,
+        'analysis_open' => 'competencia',
+        'analista_notice' => 'market_settings_saved',
+    ), admin_url( 'admin.php' ) ) . '#seo-analista-lazy-result' );
     exit;
 }
 add_action( 'admin_post_taxocommerce_insights_competition_settings', 'taxocommerce_insights_competitive_settings_handler' );
@@ -378,11 +386,12 @@ function taxocommerce_insights_competitive_generate_handler() {
         array(
             'page' => 'taxocommerce-google-bing',
             'tgb_tab' => 'analysis',
-            'analista_days' => $days,
+            'analysis_days' => $days,
+            'analysis_open' => 'competencia',
             'analista_notice' => 'competitive_generated',
         ),
         admin_url( 'admin.php' )
-    ) );
+    ) . '#seo-analista-lazy-result' );
     exit;
 }
 add_action( 'admin_post_taxocommerce_insights_competition_generate', 'taxocommerce_insights_competitive_generate_handler' );
@@ -424,6 +433,7 @@ function taxocommerce_insights_competitive_render_panel( $days = 28 ) {
     echo '<h3>' . esc_html__( 'Configurar análisis de mercado', 'taxocommerce-google-bing' ) . '</h3>';
     echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
     echo '<input type="hidden" name="action" value="taxocommerce_insights_competition_settings">';
+    echo '<input type="hidden" name="analysis_days" value="' . esc_attr( (string) $days ) . '">';
     wp_nonce_field( 'taxocommerce_insights_competition_settings', 'taxocommerce_insights_competition_nonce' );
     echo '<p><label for="market_mode">' . esc_html__( 'Modalidad', 'taxocommerce-google-bing' ) . '</label> <select name="market_mode" id="market_mode">';
     foreach ( array( 'both' => __( 'Mercado actual y nuevos nichos', 'taxocommerce-google-bing' ), 'current' => __( 'Mercado actual', 'taxocommerce-google-bing' ), 'new' => __( 'Nuevos nichos', 'taxocommerce-google-bing' ) ) as $value => $label ) {
