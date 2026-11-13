@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Suppliers 0.2.23\n"
+"Project-Id-Version: TaxoCommerce Suppliers 0.2.26\n"
 "Language: en_US\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1815,3 +1815,147 @@ msgstr "Unmatched: "
 
 msgid "historical observations matching the filters"
 msgstr "historical observations matching the filters"
+
+msgid "Commercial name"
+msgstr "Commercial name"
+
+msgid "Legal business name"
+msgstr "Legal business name"
+
+msgid "Tax ID"
+msgstr "Tax ID"
+
+msgid "Company phone"
+msgstr "Company phone"
+
+msgid "Company email"
+msgstr "Company email"
+
+msgid "Website"
+msgstr "Website"
+
+msgid "Sales contact"
+msgstr "Sales contact"
+
+msgid "Contact role"
+msgstr "Contact role"
+
+msgid "Sales contact phone"
+msgstr "Sales contact phone"
+
+msgid "Sales contact email"
+msgstr "Sales contact email"
+
+msgid "Street address"
+msgstr "Street address"
+
+msgid "Postal code"
+msgstr "Postal code"
+
+msgid "City"
+msgstr "City"
+
+msgid "Province or region"
+msgstr "Province or region"
+
+msgid "Typical delivery time"
+msgstr "Typical delivery time"
+
+msgid "Supplier record saved."
+msgstr "Supplier record saved."
+
+msgid "Contact record deleted. The supplier and its products remain in the catalogue."
+msgstr "Contact record deleted. The supplier and its products remain in the catalogue."
+
+msgid "This supplier no longer exists in the catalogue."
+msgstr "This supplier no longer exists in the catalogue."
+
+msgid "The supplier record could not be saved."
+msgstr "The supplier record could not be saved."
+
+msgid "Supplier management"
+msgstr "Supplier management"
+
+msgid "Suppliers are discovered automatically from imported inventory. New suppliers appear after their first successful catalogue import; only their private contact details are edited here."
+msgstr "Suppliers are discovered automatically from imported inventory. New suppliers appear after their first successful catalogue import; only their private contact details are edited here."
+
+msgid "The requested supplier is not in the inventory."
+msgstr "The requested supplier is not in the inventory."
+
+msgid "Search suppliers"
+msgstr "Search suppliers"
+
+msgid "%d suppliers in the catalogue"
+msgstr "%d suppliers in the catalogue"
+
+msgid "Catalogue products"
+msgstr "Catalogue products"
+
+msgid "Record"
+msgstr "Record"
+
+msgid "Action"
+msgstr "Action"
+
+msgid "Not completed"
+msgstr "Not completed"
+
+msgid "Saved"
+msgstr "Saved"
+
+msgid "Create record"
+msgstr "Create record"
+
+msgid "No suppliers found in the imported catalogue."
+msgstr "No suppliers found in the imported catalogue."
+
+msgid "Edit supplier record"
+msgstr "Edit supplier record"
+
+msgid "Create supplier record"
+msgstr "Create supplier record"
+
+msgid "Supplier identity comes from the inventory and cannot be changed here. These details are private to store administrators."
+msgstr "Supplier identity comes from the inventory and cannot be changed here. These details are private to store administrators."
+
+msgid "Company details"
+msgstr "Company details"
+
+msgid "Sales contact details"
+msgstr "Sales contact details"
+
+msgid "Address and logistics"
+msgstr "Address and logistics"
+
+msgid "Internal notes and incidents"
+msgstr "Internal notes and incidents"
+
+msgid "Contact preferences, delivery delays, incorrect shipments or other notes..."
+msgstr "Contact preferences, delivery delays, incorrect shipments or other notes..."
+
+msgid "Save supplier record"
+msgstr "Save supplier record"
+
+msgid "Delete only the contact record? Catalogue products will not be removed."
+msgstr "Delete only the contact record? Catalogue products will not be removed."
+
+msgid "Delete contact record"
+msgstr "Delete contact record"
+
+msgid "Gestión de proveedores"
+msgstr "Gestión de proveedores"
+
+msgid "Ver los proveedores importados, crear y editar sus fichas privadas, contactos, direcciones, plazos y observaciones."
+msgstr "Ver los proveedores importados, crear y editar sus fichas privadas, contactos, direcciones, plazos y observaciones."
+
+msgid "Solo modifica la tabla de fichas, nunca productos del inventario ni pedidos WooCommerce."
+msgstr "Solo modifica la tabla de fichas, nunca productos del inventario ni pedidos WooCommerce."
+
+msgid "La lista se crea automáticamente con los nombres distintos de proveedor que figuran en el inventario intermedio. Al importar el primer producto de un proveedor nuevo, su ficha aparecerá sin datos y podrás completarla. No se dan de alta proveedores ajenos al catálogo."
+msgstr "La lista se crea automáticamente con los nombres distintos de proveedor que figuran en el inventario intermedio. Al importar el primer producto de un proveedor nuevo, su ficha aparecerá sin datos y podrás completarla. No se dan de alta proveedores ajenos al catálogo."
+
+msgid "Pulsa Crear ficha o Editar para registrar razón social, NIF, contactos comerciales, teléfonos, correos, dirección, plazo habitual de entrega y observaciones internas. Son datos privados de administración y no se publican en WooCommerce."
+msgstr "Pulsa Crear ficha o Editar para registrar razón social, NIF, contactos comerciales, teléfonos, correos, dirección, plazo habitual de entrega y observaciones internas. Son datos privados de administración y no se publican en WooCommerce."
+
+msgid "Eliminar ficha borra únicamente los datos de contacto. Si el proveedor continúa en el inventario, seguirá visible y se podrá volver a rellenar. Eliminar la ficha no borra ni modifica importaciones, productos, precios o pedidos."
+msgstr "Eliminar ficha borra únicamente los datos de contacto. Si el proveedor continúa en el inventario, seguirá visible y se podrá volver a rellenar. Eliminar la ficha no borra ni modifica importaciones, productos, precios o pedidos."

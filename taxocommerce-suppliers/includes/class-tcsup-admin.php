@@ -30,6 +30,7 @@ final class TCSUP_Admin {
 		add_action( 'admin_post_tcsup_images_update', array( 'TCSUP_Products', 'handle_images_update' ) );
 		add_action( 'admin_post_tcsup_settings', array( __CLASS__, 'handle_settings' ) );
 		TCSUP_History_Transfer::boot();
+		TCSUP_Profiles::boot();
 	}
 
 	public static function capability() {
@@ -102,7 +103,7 @@ final class TCSUP_Admin {
 	private static function active_tab() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation.
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'import';
-		return in_array( $tab, array( 'import', 'templates', 'inventory', 'prices', 'history', 'images', 'purchasing', 'manual', 'autotest' ), true ) ? $tab : 'import';
+		return in_array( $tab, array( 'import', 'templates', 'inventory', 'prices', 'history', 'images', 'purchasing', 'providers', 'manual', 'autotest' ), true ) ? $tab : 'import';
 	}
 
 	public static function render() {
@@ -129,6 +130,7 @@ final class TCSUP_Admin {
 					'history'   => __( 'Price history', 'taxocommerce-suppliers' ),
 					'images'     => __( 'External Images', 'taxocommerce-suppliers' ),
 					'purchasing' => __( 'Purchasing', 'taxocommerce-suppliers' ),
+					'providers' => __( 'Supplier management', 'taxocommerce-suppliers' ),
 					'manual' => __( 'Manual', 'taxocommerce-suppliers' ),
 					'autotest' => __( 'Autocheck', 'taxocommerce-suppliers' ),
 				);
@@ -162,6 +164,9 @@ final class TCSUP_Admin {
 					break;
 				case 'purchasing':
 					TCSUP_Purchasing::render();
+					break;
+				case 'providers':
+					TCSUP_Profiles::render();
 					break;
 				case 'manual':
 					TCSUP_Manual::render();

@@ -66,6 +66,7 @@ final class TCSUP_Autotest {
 				__( 'Catálogo intermedio', 'taxocommerce-suppliers' ) => array( TCSUP_Schema::catalog_table(), array( 'id', 'proveedor', 'proveedor_id_externo', 'pais_origen', 'source_row_key', 'estado_seleccion', 'object_id' ) ),
 				__( 'Imágenes externas', 'taxocommerce-suppliers' )   => array( TCSUP_Schema::images_table(), array( 'id', 'supplier', 'supplier_sku', 'product_id', 'image_url', 'status' ) ),
 				__( 'Historial de precios', 'taxocommerce-suppliers' ) => array( TCSUP_Schema::history_table(), array( 'id', 'catalog_id', 'product_id', 'fecha', 'precio_venta', 'origen' ) ),
+				__( 'Supplier management', 'taxocommerce-suppliers' ) => array( TCSUP_Schema::profiles_table(), array( 'id', 'proveedor', 'telefono', 'contacto_nombre', 'observaciones', 'actualizado' ) ),
 			);
 			foreach ( $tables as $label => $spec ) {
 				$table = $spec[0];

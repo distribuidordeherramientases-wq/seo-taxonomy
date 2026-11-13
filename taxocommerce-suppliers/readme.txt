@@ -4,10 +4,10 @@ Tags: woocommerce, suppliers, csv, inventory, prices
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.25
+Stable tag: 0.2.26
 License: GPLv2 or later
 
-CSV-only supplier catalogue management for the TaxoCommerce family.
+CSV-only supplier catalogue management and private supplier contact directory for the TaxoCommerce family.
 
 == Description ==
 
@@ -28,6 +28,7 @@ Version 0.2.22 synchronizes the five local translation catalogs (es_ES, en_US, f
 TaxoCommerce Suppliers owns the supplier intake and intermediate supplier catalogue workflow.
 
 Included:
+* Inventory-backed supplier management with editable private business/contact/address/lead-time records and free-form notes. New suppliers automatically appear after their first CSV import; deleting a record never removes catalogue products.
 * CSV-only supplier imports.
 * Reusable CSV mapping templates.
 * Generic canonical CSV import format and price-only update format; no provider templates preinstalled.
@@ -58,6 +59,9 @@ Explicitly excluded:
 4. The plugin installs its own supplier price history table automatically; history starts at the first captured observation.
 
 == Changelog ==
+
+= 0.2.26 =
+* Supplier management tab discovers actual providers from intermediate inventory, supports private contact/company/address/delivery/notes records, and separates profile deletion from inventory products. Adds an isolated DB table and five-language gettext entries.
 
 = 0.2.24 =
 * Link to the supplier's product page directly from Inventory, with safe external navigation and canonical URL fallback. Issue #2610.

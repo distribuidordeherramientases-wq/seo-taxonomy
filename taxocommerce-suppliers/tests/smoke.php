@@ -113,5 +113,6 @@ tcsup_assert( false === strpos( $transfer, 'set_regular_price(' ) && false === s
 tcsup_assert( false !== strpos( $history_js, 'tcsup_history_export_batch' ) && false !== strpos( $history_js, 'tcsup_history_import_batch' ), 'browser CSV chunk endpoints' );
 require_once __DIR__ . '/history-transfer-smoke.php';
 
+require_once __DIR__ . '/providers-smoke.php';
 require_once __DIR__ . '/i18n-smoke.php';
 echo "OK\n";

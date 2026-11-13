@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Suppliers 0.2.23\n"
+"Project-Id-Version: TaxoCommerce Suppliers 0.2.26\n"
 "Language: nl_NL\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1814,3 +1814,147 @@ msgstr "Niet gekoppeld: "
 
 msgid "historical observations matching the filters"
 msgstr "overeenkomende historische prijsregistraties"
+
+msgid "Commercial name"
+msgstr "Handelsnaam"
+
+msgid "Legal business name"
+msgstr "Statutaire bedrijfsnaam"
+
+msgid "Tax ID"
+msgstr "Fiscaal nummer"
+
+msgid "Company phone"
+msgstr "Telefoon bedrijf"
+
+msgid "Company email"
+msgstr "E-mail bedrijf"
+
+msgid "Website"
+msgstr "Website"
+
+msgid "Sales contact"
+msgstr "Commercieel contact"
+
+msgid "Contact role"
+msgstr "Functie contactpersoon"
+
+msgid "Sales contact phone"
+msgstr "Telefoon commercieel contact"
+
+msgid "Sales contact email"
+msgstr "E-mail commercieel contact"
+
+msgid "Street address"
+msgstr "Straatadres"
+
+msgid "Postal code"
+msgstr "Postcode"
+
+msgid "City"
+msgstr "Plaats"
+
+msgid "Province or region"
+msgstr "Provincie of regio"
+
+msgid "Typical delivery time"
+msgstr "Gebruikelijke levertijd"
+
+msgid "Supplier record saved."
+msgstr "Leveranciersfiche opgeslagen."
+
+msgid "Contact record deleted. The supplier and its products remain in the catalogue."
+msgstr "Contactfiche verwijderd. Leverancier en producten blijven in de catalogus."
+
+msgid "This supplier no longer exists in the catalogue."
+msgstr "Deze leverancier staat niet meer in de catalogus."
+
+msgid "The supplier record could not be saved."
+msgstr "De leveranciersfiche kon niet worden opgeslagen."
+
+msgid "Supplier management"
+msgstr "Leveranciersbeheer"
+
+msgid "Suppliers are discovered automatically from imported inventory. New suppliers appear after their first successful catalogue import; only their private contact details are edited here."
+msgstr "Leveranciers worden automatisch uit de geïmporteerde voorraad gehaald. Nieuwe leveranciers verschijnen na de eerste geslaagde import; hier worden alleen privécontactgegevens bewerkt."
+
+msgid "The requested supplier is not in the inventory."
+msgstr "De gevraagde leverancier staat niet in de voorraad."
+
+msgid "Search suppliers"
+msgstr "Leveranciers zoeken"
+
+msgid "%d suppliers in the catalogue"
+msgstr "%d leveranciers in de catalogus"
+
+msgid "Catalogue products"
+msgstr "Catalogusproducten"
+
+msgid "Record"
+msgstr "Fiche"
+
+msgid "Action"
+msgstr "Actie"
+
+msgid "Not completed"
+msgstr "Niet ingevuld"
+
+msgid "Saved"
+msgstr "Opgeslagen"
+
+msgid "Create record"
+msgstr "Fiche aanmaken"
+
+msgid "No suppliers found in the imported catalogue."
+msgstr "Geen leveranciers gevonden in de geïmporteerde catalogus."
+
+msgid "Edit supplier record"
+msgstr "Leveranciersfiche bewerken"
+
+msgid "Create supplier record"
+msgstr "Leveranciersfiche aanmaken"
+
+msgid "Supplier identity comes from the inventory and cannot be changed here. These details are private to store administrators."
+msgstr "De leveranciersidentiteit komt uit de voorraad en kan hier niet worden gewijzigd. Deze gegevens zijn alleen voor beheerders zichtbaar."
+
+msgid "Company details"
+msgstr "Bedrijfsgegevens"
+
+msgid "Sales contact details"
+msgstr "Gegevens commercieel contact"
+
+msgid "Address and logistics"
+msgstr "Adres en logistiek"
+
+msgid "Internal notes and incidents"
+msgstr "Interne notities en incidenten"
+
+msgid "Contact preferences, delivery delays, incorrect shipments or other notes..."
+msgstr "Contactvoorkeuren, leveringsvertragingen, foutieve zendingen of andere notities..."
+
+msgid "Save supplier record"
+msgstr "Leveranciersfiche opslaan"
+
+msgid "Delete only the contact record? Catalogue products will not be removed."
+msgstr "Alleen de contactfiche verwijderen? Catalogusproducten blijven behouden."
+
+msgid "Delete contact record"
+msgstr "Contactfiche verwijderen"
+
+msgid "Gestión de proveedores"
+msgstr "Leveranciersbeheer"
+
+msgid "Ver los proveedores importados, crear y editar sus fichas privadas, contactos, direcciones, plazos y observaciones."
+msgstr "Geïmporteerde leveranciers bekijken en privéfiches met contacten, adressen, levertijden en notities beheren."
+
+msgid "Solo modifica la tabla de fichas, nunca productos del inventario ni pedidos WooCommerce."
+msgstr "Wijzigt alleen de fiches, nooit voorraadproducten of WooCommerce-bestellingen."
+
+msgid "La lista se crea automáticamente con los nombres distintos de proveedor que figuran en el inventario intermedio. Al importar el primer producto de un proveedor nuevo, su ficha aparecerá sin datos y podrás completarla. No se dan de alta proveedores ajenos al catálogo."
+msgstr "De lijst wordt automatisch opgebouwd uit unieke leveranciersnamen in de tussenvoorraad. Na import van het eerste product van een nieuwe leverancier verschijnt een lege fiche die kan worden aangevuld. Leveranciers buiten de catalogus kunnen niet worden toegevoegd."
+
+msgid "Pulsa Crear ficha o Editar para registrar razón social, NIF, contactos comerciales, teléfonos, correos, dirección, plazo habitual de entrega y observaciones internas. Son datos privados de administración y no se publican en WooCommerce."
+msgstr "Klik op Fiche aanmaken of Bewerken om bedrijfsnaam, fiscaal nummer, contactpersonen, telefoons, e-mails, adres, gebruikelijke levertijd en interne notities vast te leggen. Deze beheerdersgegevens worden niet in WooCommerce gepubliceerd."
+
+msgid "Eliminar ficha borra únicamente los datos de contacto. Si el proveedor continúa en el inventario, seguirá visible y se podrá volver a rellenar. Eliminar la ficha no borra ni modifica importaciones, productos, precios o pedidos."
+msgstr "Fiche verwijderen wist alleen de contactgegevens. Zolang de leverancier in de voorraad staat, blijft deze zichtbaar en kan de fiche opnieuw worden ingevuld. Importen, producten, prijzen en bestellingen blijven ongewijzigd."
