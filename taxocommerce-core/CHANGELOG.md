@@ -1,3 +1,10 @@
+## [0.4.79] — 2026-11-13 — Cabecera persistente en Core → Autocheck
+
+- Core utiliza exactamente su cabecera original (título, Description, ficha oficial, CHANGELOG local, versión y fecha) en Resumen y Autocheck, sin cabeceras alternativas.
+- Los chequeos de funcionalidades y de código aparecen debajo de la navegación general, como dos subpestañas independientes; mantienen sus botones, informe y JSON propios.
+- El chequeo de código permanece limitado a los archivos PHP de Core y sus lotes/velocidades de CPU. Se añaden regresiones para el encabezado compartido y la navegación independiente.
+- No se introducen todavía las nuevas reglas de la revisión manual de WordPress.org ni se alteran datos, otros plugins o producción.
+
 ## [0.4.78] — 2026-11-11 — Corrige chequeo local y paquete WordPress.org (#2565)
 
 - Corrige los 1.022 errores y la advertencia de discrepancia de dominio de traducción identificados al comprobar Core instalado en `taxocommerce-core/`. El plugin instalado recupera el dominio nativo `taxocommerce-core`, sin modificar menús, tablas ni funciones.
