@@ -1,3 +1,8 @@
+## [1.1.57] — 2026-11-13 — Code Check equiparado a Core 0.4.82 (#2626)
+
+- Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.
+- Continúa siendo una revisión estática independiente del Plugin Check oficial, con ejecución por bloques y control de CPU.
+
 ## [1.1.56] — 2026-11-13 — Conexiones y errores OAuth en cinco idiomas (#2062)
 
 - Traduce 56 cadenas de controles administrativos por idioma ES/EN/FR/DE/NL (280 entradas): botones para guardar y probar proveedores, Google Merchant, Pinterest, Bing, Amazon, errores OAuth, permisos, revisión de conexiones y Autotest.
