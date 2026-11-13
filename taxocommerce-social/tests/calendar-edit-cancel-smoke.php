@@ -17,6 +17,7 @@ class WP_Error {
     public function get_error_message() { return $this->message; }
 }
 function __( $text, $domain = '' ) { return $text; }
+function esc_html__($text, $domain = '') { return htmlspecialchars((string) $text, ENT_QUOTES); }
 function is_wp_error($value) { return $value instanceof WP_Error; }
 function add_action($name, $callback) {}
 function absint($value) { return abs((int) $value); }
