@@ -17,8 +17,18 @@ defined( 'ABSPATH' ) || exit;
 define( 'TCA_VERSION', '0.1.0' );
 define( 'TCA_DB_VERSION', '1' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
+// Prefer official WordPress language packs; load bundled MO only as a fallback.
 add_action( 'init', static function () {
-    load_plugin_textdomain( 'taxocommerce-accounting', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+    $domain = 'taxocommerce-accounting';
+    if ( is_textdomain_loaded( $domain ) ) return;
+    $locale = sanitize_file_name( determine_locale() );
+    $official = WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale;
+    if ( is_readable( $official . '.mo' ) || is_readable( $official . '.l10n.php' ) ) return;
+    $fallbacks = array( 'es' => 'es_ES', 'en' => 'en_US', 'fr' => 'fr_FR', 'de' => 'de_DE', 'nl' => 'nl_NL' );
+    $language = substr( strtolower( $locale ), 0, 2 );
+    $filename = $domain . '-' . ( isset( $fallbacks[ $language ] ) ? $fallbacks[ $language ] : $locale ) . '.mo';
+    $catalog = plugin_dir_path( __FILE__ ) . 'languages/' . $filename;
+    if ( is_readable( $catalog ) ) load_textdomain( $domain, $catalog );
 }, 5 );
 
 /** Own data; no dependency on any TaxoCommerce module. */
