@@ -7,6 +7,66 @@
 
 defined( 'ABSPATH' ) || exit;
 
+
+/**
+ * Identify cancellation CSVs in the existing scheduling importer.
+ *
+ * Checking a header does not create, change or cancel any schedule.
+ *
+ * @param string $path Temporary CSV path.
+ * @return bool
+ */
+function tcsocial_csv_cancel_has_action_column( $path ) {
+    if ( ! is_readable( $path ) ) {
+        return false;
+    }
+    $handle = tcsocial_network_csv_stream_open( $path, 'r' );
+    if ( false === $handle ) {
+        return false;
+    }
+    $first_line = fgets( $handle );
+    if ( false === $first_line ) {
+        tcsocial_network_csv_stream_close( $handle );
+        return false;
+    }
+    $delimiter = tcsocial_network_scheduler_detect_delimiter( $first_line );
+    rewind( $handle );
+    $headers = fgetcsv( $handle, 0, $delimiter, '"', '' );
+    tcsocial_network_csv_stream_close( $handle );
+
+    foreach ( (array) $headers as $header ) {
+        if ( 'accion' === tcsocial_network_scheduler_normalize_header( $header ) ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Share the safe cancellation preview between both CSV upload controls.
+ * Both entry points validate the upload, capability and nonce first.
+ *
+ * @param string $path Validated uploaded file path.
+ * @return void
+ */
+function tcsocial_csv_cancel_start_preview( $path ) {
+    $parsed = tcsocial_csv_cancel_parse( $path );
+    if ( is_wp_error( $parsed ) ) {
+        wp_die( esc_html( $parsed->get_error_message() ) );
+    }
+    $token = wp_generate_password( 24, false, false );
+    set_transient( 'tcsocial_cancel_' . get_current_user_id() . '_' . $token, $parsed, 20 * MINUTE_IN_SECONDS );
+    wp_safe_redirect( add_query_arg(
+        array(
+            'page'             => 'taxocommerce-social',
+            'tab'              => 'calendar',
+            'cancel_csv_token' => $token,
+        ),
+        admin_url( 'admin.php' )
+    ) );
+    exit;
+}
+
 /**
  * Parse exact cancellation instructions. Dates must match current agenda.
  *
@@ -109,16 +169,7 @@ function tcsocial_csv_cancel_preview() {
         || ! is_uploaded_file( $file['tmp_name'] ) ) {
         wp_die( esc_html__( 'Selecciona un CSV válido de hasta 2 MB.', 'taxocommerce-social' ) );
     }
-    $parsed = tcsocial_csv_cancel_parse( $file['tmp_name'] );
-    if ( is_wp_error( $parsed ) ) {
-        wp_die( esc_html( $parsed->get_error_message() ) );
-    }
-    $token = wp_generate_password( 24, false, false );
-    set_transient( 'tcsocial_cancel_' . get_current_user_id() . '_' . $token, $parsed, 20 * MINUTE_IN_SECONDS );
-    wp_safe_redirect( add_query_arg( array(
-        'page' => 'taxocommerce-social', 'tab' => 'calendar', 'cancel_csv_token' => $token,
-    ), admin_url( 'admin.php' ) ) );
-    exit;
+    tcsocial_csv_cancel_start_preview( (string) $file['tmp_name'] );
 }
 add_action( 'admin_post_tcsocial_csv_cancel_preview', 'tcsocial_csv_cancel_preview' );
 
