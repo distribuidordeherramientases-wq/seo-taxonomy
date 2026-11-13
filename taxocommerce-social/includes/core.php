@@ -2278,6 +2278,17 @@ function tcsocial_network_handle_scheduler_import_preview()
         exit;
     }
 
+    // Cancellation CSVs use the same import button, but must never reach the
+    // scheduling path (which would reject past dates or create new events).
+    if (
+        is_uploaded_file( (string) $file['tmp_name'] )
+        && function_exists( 'tcsocial_csv_cancel_has_action_column' )
+        && tcsocial_csv_cancel_has_action_column( (string) $file['tmp_name'] )
+    ) {
+        tcsocial_csv_cancel_start_preview( (string) $file['tmp_name'] );
+        exit;
+    }
+
     $parsed = tcsocial_network_scheduler_parse_import_file((string) $file['tmp_name']);
     if (is_wp_error($parsed)) {
         set_transient('seo_social_scheduler_import_error_' . get_current_user_id(), $parsed->get_error_message(), 5 * MINUTE_IN_SECONDS);
