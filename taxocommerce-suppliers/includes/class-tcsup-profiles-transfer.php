@@ -279,7 +279,7 @@ final class TCSUP_Profiles_Transfer {
 	 */
 	private static function ungard_cell( $value ) {
 		$value = (string) $value;
-		return preg_match( '/^''[[:space:]]*[=+\-@]/u', $value ) ? substr( $value, 1 ) : $value;
+		return preg_match( "/^'[[:space:]]*[=+\\-@]/u", $value ) ? substr( $value, 1 ) : $value;
 	}
 
 	private static function char_length( $value ) {
