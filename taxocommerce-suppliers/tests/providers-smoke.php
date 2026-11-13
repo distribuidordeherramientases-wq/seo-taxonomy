@@ -20,6 +20,7 @@ tcsup_assert( false !== strpos( $profiles, 'LEFT JOIN %i AS p ON p.proveedor=c.p
 tcsup_assert( false !== strpos( $profiles, 'GROUP BY proveedor' ), 'one directory entry per supplier' );
 tcsup_assert( false !== strpos( $profiles, "check_admin_referer( 'tcsup_profile_save' )" ), 'profile update verifies nonce before reading payload' );
 tcsup_assert( false !== strpos( $profiles, "check_admin_referer( 'tcsup_profile_delete' )" ), 'profile deletion verifies nonce before reading payload' );
+tcsup_assert( false === strpos( $profiles, "private static function posted_supplier()" ), 'no unverified request in shared supplier helper' );
 tcsup_assert( false !== strpos( $profiles, "TCSUP_Admin::capability()" ), 'profile administration permissions' );
 tcsup_assert( false !== strpos( $profiles, 'sanitize_textarea_field' ), 'private notes sanitised' );
 tcsup_assert( false !== strpos( $profiles, 'esc_textarea' ), 'private notes escaped' );
