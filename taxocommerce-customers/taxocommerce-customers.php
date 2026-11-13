@@ -40,5 +40,6 @@ add_action( 'plugins_loaded', static function () {
 	TCCUST_Sync::boot();
 	TCCUST_CSV::boot();
 	TCCUST_Privacy::boot();
+	TCCUST_Autotest::boot();
 	TaxoCommerce_Customers_Autotest_Code::boot();
 } );
