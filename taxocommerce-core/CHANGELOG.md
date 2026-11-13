@@ -1,3 +1,10 @@
+## [0.4.82] — 2026-11-13 — Semáforo y JSON clasificado en Code Check
+
+- Presenta errores confirmados en rojo, advertencias de revisión en naranja, archivos sin incidencias en verde y resultados incompletos en gris. Cada categoría se identifica también por texto, sin depender únicamente del color.
+- Los errores y warnings muestran archivo, línea, regla, explicación y acción recomendada. Los archivos marcados en verde únicamente están libres de hallazgos para las reglas implementadas; no representan una certificación WordPress.org.
+- Exporta `classified_findings` con `errors`, `warnings`, `clean`, `unchecked` y recuentos, preservando íntegros `results` y `summary`. Conserva ejecución local por bloques y control de CPU.
+- Incluye pruebas de clasificación, no verificados y recomendaciones. Issue #2623. No se ha corregido código funcional ni se han alterado otros plugins.
+
 ## [0.4.81] — 2026-11-13 — Visibilidad real de los hallazgos de Code Check
 
 - Distingue archivos analizados, cantidad de incidencias y número de reglas activadas. PHP `pass` no oculta las advertencias de WordPress y seguridad.
