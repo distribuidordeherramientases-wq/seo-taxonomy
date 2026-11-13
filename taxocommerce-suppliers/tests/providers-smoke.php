@@ -18,8 +18,9 @@ tcsup_assert( false !== strpos( $profiles, 'SELECT proveedor FROM %i WHERE prove
 tcsup_assert( false !== strpos( $profiles, 'COUNT(DISTINCT proveedor)' ), 'dynamic inventory-based listing' );
 tcsup_assert( false !== strpos( $profiles, 'LEFT JOIN %i AS p ON p.proveedor=c.proveedor' ), 'missing records remain visible after imports/deletion' );
 tcsup_assert( false !== strpos( $profiles, 'GROUP BY proveedor' ), 'one directory entry per supplier' );
-tcsup_assert( false !== strpos( $profiles, "check_admin_referer( 'tcsup_profile_save_' . \$supplier )" ), 'profile update nonce' );
-tcsup_assert( false !== strpos( $profiles, "check_admin_referer( 'tcsup_profile_delete_' . \$supplier )" ), 'profile deletion nonce' );
+tcsup_assert( false !== strpos( $profiles, "check_admin_referer( 'tcsup_profile_' . \$operation )" ), 'profile nonce validated before reading submitted supplier' );
+tcsup_assert( false !== strpos( $profiles, "self::posted_supplier( 'save' )" ), 'profile update verifies nonce' );
+tcsup_assert( false !== strpos( $profiles, "self::posted_supplier( 'delete' )" ), 'profile deletion verifies nonce' );
 tcsup_assert( false !== strpos( $profiles, "TCSUP_Admin::capability()" ), 'profile administration permissions' );
 tcsup_assert( false !== strpos( $profiles, 'sanitize_textarea_field' ), 'private notes sanitised' );
 tcsup_assert( false !== strpos( $profiles, 'esc_textarea' ), 'private notes escaped' );

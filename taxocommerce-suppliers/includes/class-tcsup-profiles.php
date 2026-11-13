@@ -75,12 +75,11 @@ final class TCSUP_Profiles {
 		global $wpdb;
 		$like   = '%' . $wpdb->esc_like( $search ) . '%';
 		$offset = ( $page - 1 ) * $per_page;
-		$where  = 'proveedor<>%s AND (%s=%s OR proveedor LIKE %s)';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Always display the actual inventory after a supplier import.
 		$total = absint( $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(DISTINCT proveedor) FROM %i WHERE {$where}",
+				"SELECT COUNT(DISTINCT proveedor) FROM %i WHERE proveedor<>%s AND (%s=%s OR proveedor LIKE %s)",
 				TCSUP_Schema::catalog_table(),
 				'',
 				$search,
@@ -96,7 +95,7 @@ final class TCSUP_Profiles {
 						p.telefono, p.email, p.actualizado AS ficha_actualizada
 				   FROM (
 					 SELECT proveedor, COUNT(*) AS productos FROM %i
-					 WHERE {$where} GROUP BY proveedor
+					 WHERE proveedor<>%s AND (%s=%s OR proveedor LIKE %s) GROUP BY proveedor
 					 ORDER BY proveedor ASC LIMIT %d OFFSET %d
 				   ) AS c
 				   LEFT JOIN %i AS p ON p.proveedor=c.proveedor
@@ -255,7 +254,7 @@ final class TCSUP_Profiles {
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 					<input type="hidden" name="action" value="tcsup_profile_save">
 					<input type="hidden" name="provider" value="<?php echo esc_attr( $supplier ); ?>">
-					<?php wp_nonce_field( 'tcsup_profile_save_' . $supplier ); ?>
+					<?php wp_nonce_field( 'tcsup_profile_save' ); ?>
 					<h3><?php esc_html_e( 'Company details', 'taxocommerce-suppliers' ); ?></h3>
 					<div class="tcsup-form-grid">
 						<?php foreach ( array( 'nombre_comercial', 'razon_social', 'nif', 'telefono', 'email', 'web' ) as $key ) { self::field( $key, $record ); } ?>
@@ -276,7 +275,7 @@ final class TCSUP_Profiles {
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm(<?php echo esc_attr( wp_json_encode( __( 'Delete only the contact record? Catalogue products will not be removed.', 'taxocommerce-suppliers' ) ) ); ?>);">
 						<input type="hidden" name="action" value="tcsup_profile_delete">
 						<input type="hidden" name="provider" value="<?php echo esc_attr( $supplier ); ?>">
-						<?php wp_nonce_field( 'tcsup_profile_delete_' . $supplier ); ?>
+						<?php wp_nonce_field( 'tcsup_profile_delete' ); ?>
 						<button type="submit" class="button"><?php esc_html_e( 'Delete contact record', 'taxocommerce-suppliers' ); ?></button>
 					</form>
 				<?php endif; ?>
@@ -284,7 +283,8 @@ final class TCSUP_Profiles {
 		<?php endif;
 	}
 
-	private static function posted_supplier() {
+	private static function posted_supplier( $operation ) {
+		check_admin_referer( 'tcsup_profile_' . $operation );
 		$requested = isset( $_POST['provider'] ) && is_string( $_POST['provider'] )
 			? sanitize_text_field( wp_unslash( $_POST['provider'] ) ) : '';
 		$supplier = self::supplier_in_catalogue( $requested );
@@ -304,7 +304,7 @@ final class TCSUP_Profiles {
 	}
 
 	private static function clean_value( $value, $key, $max ) {
-		$value = is_string( $value ) ? wp_unslash( $value ) : '';
+		$value = is_string( $value ) ? $value : '';
 		if ( in_array( $key, array( 'email', 'contacto_email' ), true ) ) {
 			$value = sanitize_email( $value );
 		} elseif ( 'web' === $key ) {
@@ -317,15 +317,16 @@ final class TCSUP_Profiles {
 
 	public static function handle_save() {
 		self::guard();
-		$supplier = self::posted_supplier();
-		check_admin_referer( 'tcsup_profile_save_' . $supplier );
+		$supplier = self::posted_supplier( 'save' );
 
-		$data = array();
+		// A single nonce-protected, unslashed and sanitised input snapshot.
+		$submitted = map_deep( wp_unslash( $_POST ), 'sanitize_textarea_field' );
+		$data      = array();
 		foreach ( self::fields() as $key => $definition ) {
-			$data[ $key ] = self::clean_value( $_POST[ $key ] ?? '', $key, $definition[2] );
+			$data[ $key ] = self::clean_value( $submitted[ $key ] ?? '', $key, $definition[2] );
 		}
-		$raw_notes = isset( $_POST['observaciones'] ) && is_string( $_POST['observaciones'] )
-			? wp_unslash( $_POST['observaciones'] ) : '';
+		$raw_notes = isset( $submitted['observaciones'] ) && is_string( $submitted['observaciones'] )
+			? $submitted['observaciones'] : '';
 		$data['observaciones'] = sanitize_textarea_field( $raw_notes );
 		$data['observaciones'] = function_exists( 'mb_substr' ) ? mb_substr( $data['observaciones'], 0, 10000, 'UTF-8' ) : substr( $data['observaciones'], 0, 10000 );
 		$data['actualizado'] = current_time( 'mysql' );
@@ -346,8 +347,7 @@ final class TCSUP_Profiles {
 
 	public static function handle_delete() {
 		self::guard();
-		$supplier = self::posted_supplier();
-		check_admin_referer( 'tcsup_profile_delete_' . $supplier );
+		$supplier = self::posted_supplier( 'delete' );
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Delete only profile data, never inventory or WooCommerce products.
 		$ok = $wpdb->delete( TCSUP_Schema::profiles_table(), array( 'proveedor' => $supplier ) );
