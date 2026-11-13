@@ -1,3 +1,9 @@
+## [0.2.24] — 2026-11-13 — Enlace a tienda del proveedor desde Inventario (#2610)
+
+- La tabla Inventario muestra una columna «Supplier product» con acceso directo a la ficha del proveedor, sin que exista pedido WooCommerce.
+- Emplea la URL de origen y recurre a la canónica cuando falta o no es válida, como en Compras. Abre el enlace externo en otra pestaña de forma segura; si no hay URL válida, muestra un guion.
+- Reutiliza las cadenas ya traducidas en ES/EN/FR/DE/NL, sin nuevas dependencias ni cambios de base de datos, precios, productos, enlaces de pedidos o importaciones.
+
 ## [0.2.23] — 2026-11-12 — Inventario global e importación/exportación CSV de precios históricos (#2600)
 
 - Nueva pestaña «Historial de precios»: vista global paginada de movimientos de catálogo, proveedor, SKU, precio anterior, precio actual y variación, con filtros por proveedor, búsqueda y fechas.

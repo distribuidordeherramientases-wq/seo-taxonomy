@@ -35,6 +35,10 @@ tcsup_assert( false !== strpos( $csv, 'TCSUP_Price_History::capture' ), 'CSV pri
 tcsup_assert( false !== strpos( $history, 'ORDER BY fecha DESC, id DESC LIMIT 1' ), 'latest snapshot uses observed date, not insert order' );
 tcsup_assert( false !== strpos( $history, 'ORDER BY fecha DESC, id DESC LIMIT %d' ), 'history viewer uses observed date' );
 tcsup_assert( false !== strpos( $admin, 'TCSUP_Price_History::recent' ), 'read-only inventory history view' );
+tcsup_assert( false !== strpos( $admin, "'Supplier product', 'taxocommerce-suppliers'" ), 'supplier product link column present in inventory' );
+tcsup_assert( false !== strpos( $admin, "\$row['url_origen']" ) && false !== strpos( $admin, "\$row['url_canonica']" ), 'inventory prefers original supplier URL with canonical fallback' );
+tcsup_assert( false !== strpos( $admin, 'target="_blank" rel="noopener noreferrer"' ), 'external supplier link opens securely in new tab' );
+tcsup_assert( false !== strpos( $admin, 'colspan="12"' ), 'inventory empty-state column count updated' );
 tcsup_assert( false !== strpos( $main, "class-tcsup-purchasing.php" ), 'purchasing bootstrap' );
 tcsup_assert( false !== strpos( $purchasing, "wc_get_orders" ), 'WooCommerce sales intake' );
 tcsup_assert( false !== strpos( $purchasing, "sources_for_product" ), 'supplier source resolution' );
