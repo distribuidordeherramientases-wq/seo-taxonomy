@@ -1,3 +1,11 @@
+## [0.4.80] — 2026-11-13 — Reglas nativas de revisión de código en Core
+
+- Ampliado el Code Check local con señales de los siete grupos señalados por WordPress.org: instalación/activación/desactivación, buffers, nonces/permisos, entradas y subidas, escapes/estilos inline y prefijos para elementos globales y hooks; añade detección de sesiones PHP y consultas SQL dinámicas.
+- El análisis conserva sintaxis PHP, estructura de WordPress y seguridad preexistentes, control de CPU por lotes y descarga JSON; registra regla, línea, origen y severidad de revisión sin afirmar que se ha ejecutado Plugin Check externo ni auditoría de seguridad en tiempo real.
+- Añadidos casos de regresión de las ubicaciones citadas por WordPress.org y pruebas negativas que evitan falsos positivos. Corregido el contador de llaves en cadenas interpoladas para no confundir métodos de una clase con funciones globales.
+- Solo se ha ampliado la **detección**. No se corrigen aún los hallazgos reportados ni se modifica ninguna otra extensión.
+- Issue #2619.
+
 ## [0.4.79] — 2026-11-13 — Cabecera persistente en Core → Autocheck
 
 - Core utiliza exactamente su cabecera original (título, Description, ficha oficial, CHANGELOG local, versión y fecha) en Resumen y Autocheck, sin cabeceras alternativas.
