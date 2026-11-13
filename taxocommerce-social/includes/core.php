@@ -169,7 +169,7 @@ function tcsocial_network_default_settings()
                 'refresh_token_enc'        => '',
                 'token_expires_at'         => 0,
                 'refresh_token_expires_at' => 0,
-                'scope'                    => 'boards:read pins:read pins:write',
+                'scope'                    => 'boards:read boards:write pins:read pins:write',
                 'board_id'                 => '',
                 'board_name'               => '',
                 'boards'                   => array(),
@@ -880,6 +880,22 @@ function tcsocial_network_schedule_on_publish($new_status, $old_status, $post)
 
 
 /**
+ * Registra la programación automática solo cuando el motor heredado no la gestiona.
+ * La comprobación se realiza tras cargar los plugins para evitar dos productores
+ * sobre las mismas claves de agenda.
+ */
+function tcsocial_network_register_auto_publish_hook()
+{
+    if (has_action('transition_post_status', 'seo_social_network_schedule_on_publish')) {
+        return;
+    }
+    if (!has_action('transition_post_status', 'tcsocial_network_schedule_on_publish')) {
+        add_action('transition_post_status', 'tcsocial_network_schedule_on_publish', 20, 3);
+    }
+}
+add_action('init', 'tcsocial_network_register_auto_publish_hook', 40);
+
+/**
  * @param int    $content_id
  * @param string $provider
  */
@@ -898,6 +914,59 @@ function tcsocial_network_publish_scheduled($content_id, $provider)
     }
 }
 add_action('tcsocial_network_publish_scheduled', 'tcsocial_network_publish_scheduled', 10, 2);
+
+/**
+ * Recupera solo eventos FUTUROS de la agenda que ya no tengan ejecutor.
+ * No ejecuta tareas vencidas ni modifica el calendario de fechas; los eventos
+ * heredados de un motor todavía disponible se respetan para evitar duplicados.
+ */
+function tcsocial_network_reconcile_future_events()
+{
+    global $wpdb;
+    $prefix = '_seo_social_schedule_';
+    $like = $wpdb->esc_like($prefix) . '%';
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reconciliación acotada de eventos futuros; lectura de agenda propia sin caché.
+    $jobs = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT pm.post_id, pm.meta_key, pm.meta_value FROM %i pm
+             INNER JOIN %i p ON p.ID = pm.post_id
+             WHERE pm.meta_key LIKE %s AND CAST(pm.meta_value AS UNSIGNED) > %d
+               AND p.post_status = 'publish'
+             ORDER BY CAST(pm.meta_value AS UNSIGNED) ASC LIMIT %d",
+            $wpdb->postmeta, $wpdb->posts, $like, time() + 30, 150
+        )
+    );
+    if (!is_array($jobs)) {
+        return;
+    }
+    $repaired = 0;
+    foreach ($jobs as $job) {
+        $content_id = absint($job->post_id);
+        $provider = sanitize_key(substr((string) $job->meta_key, strlen($prefix)));
+        $timestamp = absint($job->meta_value);
+        if (!$content_id || !$timestamp || !tcsocial_network_get_provider($provider)) {
+            continue;
+        }
+        $args = array($content_id, $provider);
+        if (
+            wp_next_scheduled('tcsocial_network_publish_manual_scheduled', $args)
+            || (has_action('seo_social_network_publish_manual_scheduled')
+                && wp_next_scheduled('seo_social_network_publish_manual_scheduled', $args))
+        ) {
+            continue;
+        }
+        // No restaurar una tarea que la red ya haya registrado como publicada.
+        $latest = tcsocial_network_get_latest_publication($content_id, $provider);
+        if ($latest && in_array($latest->status, array('pending', 'published'), true)) {
+            continue;
+        }
+        wp_schedule_single_event($timestamp, 'tcsocial_network_publish_manual_scheduled', $args, true);
+        if (++$repaired >= 20) {
+            break;
+        }
+    }
+}
+add_action('init', 'tcsocial_network_reconcile_future_events', 50);
 
 /**
  * Clave meta de una programacion manual.
@@ -946,13 +1015,21 @@ function tcsocial_network_set_scheduled_publication($content_id, $provider, $tim
     }
 
     $args = array($content_id, $provider);
-    wp_clear_scheduled_hook('tcsocial_network_publish_manual_scheduled', $args);
-    update_post_meta($content_id, tcsocial_network_schedule_meta_key($provider), $timestamp);
+    $old_timestamp = tcsocial_network_get_scheduled_timestamp($content_id, $provider);
+    $legacy_timestamp = wp_next_scheduled('seo_social_network_publish_manual_scheduled', $args);
 
-    if (!wp_schedule_single_event($timestamp, 'tcsocial_network_publish_manual_scheduled', $args)) {
-        delete_post_meta($content_id, tcsocial_network_schedule_meta_key($provider));
-        return new WP_Error('schedule_failed', 'WordPress no pudo crear la tarea programada.');
+    // Una reprogramación explícita sustituye ambos eventos para evitar dobles envíos.
+    wp_clear_scheduled_hook('tcsocial_network_publish_manual_scheduled', $args);
+    $scheduled = wp_schedule_single_event($timestamp, 'tcsocial_network_publish_manual_scheduled', $args, true);
+    if (is_wp_error($scheduled) || !$scheduled) {
+        if ($old_timestamp > time() + 30) {
+            wp_schedule_single_event($old_timestamp, 'tcsocial_network_publish_manual_scheduled', $args);
+        }
+        return new WP_Error('schedule_failed', 'WordPress no pudo crear la tarea programada. La agenda anterior se ha conservado.');
     }
+
+    wp_clear_scheduled_hook('seo_social_network_publish_manual_scheduled', $args);
+    update_post_meta($content_id, tcsocial_network_schedule_meta_key($provider), $timestamp);
 
     return true;
 }
@@ -1435,13 +1512,16 @@ function tcsocial_network_schedule_news_publication($content_id, $provider, $req
  */
 function tcsocial_network_publish_manual_scheduled($content_id, $provider)
 {
-    tcsocial_network_clear_scheduled_publication($content_id, $provider);
     $result = tcsocial_network_publish_content($content_id, $provider);
     if (is_wp_error($result)) {
+        // Conservar la fecha vencida para que Autocheck pueda denunciar el
+        // fallo; no reintentar automáticamente por posible envío remoto incierto.
         if (function_exists('seo_system_private_log')) {
             seo_system_private_log('error', '[SEO Social] Publicacion programada fallida: ' . $result->get_error_message());
         }
+        return;
     }
+    tcsocial_network_clear_scheduled_publication($content_id, $provider);
 }
 add_action('tcsocial_network_publish_manual_scheduled', 'tcsocial_network_publish_manual_scheduled', 10, 2);
 
