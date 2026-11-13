@@ -1,4 +1,4 @@
-"""Verify that Core's official ZIP uses the Plugins Team's confirmed short slug."""
+"""Regression for the WordPress.org-assigned TaxoCommerce Core slug."""
 from __future__ import annotations
 
 import importlib.util
@@ -15,41 +15,46 @@ SPEC.loader.exec_module(MODULE)
 
 
 class CoreDistributionTests(unittest.TestCase):
-    def test_confirmed_slug_is_short(self):
-        self.assertEqual("taxocommerce-core", MODULE.OFFICIAL)
-        self.assertNotEqual(MODULE.OLD_SLUG, MODULE.OFFICIAL)
+    def test_slug_is_final_short_wordpress_org_identifier(self):
+        self.assertEqual("taxocommerce-core", MODULE.SLUG)
 
-    def test_distribution_preserves_source_without_rewrites(self):
-        original = ROOT / MODULE.OFFICIAL
-        with tempfile.TemporaryDirectory() as temp:
-            package = Path(temp) / MODULE.OFFICIAL
+    def test_public_package_preserves_main_file_and_gettext_domain(self):
+        original = ROOT / MODULE.SLUG
+        with tempfile.TemporaryDirectory() as tmp:
+            package = Path(tmp) / MODULE.SLUG
             shutil.copytree(original, package, ignore=shutil.ignore_patterns("tests"))
-            before_main = (package / (MODULE.OFFICIAL + ".php")).read_bytes()
-            before_readme = (package / "readme.txt").read_bytes()
-            report = MODULE.prepare(package)
-            self.assertEqual(before_main, (package / (MODULE.OFFICIAL + ".php")).read_bytes())
-            self.assertEqual(before_readme, (package / "readme.txt").read_bytes())
+            # The source repository still has legacy language files for
+            # historical build compatibility. Never ship them in the ZIP.
+            for legacy in (package / "languages").glob(MODULE.OLD_SLUG + "-*"):
+                legacy.unlink()
+            expected = (original / (MODULE.SLUG + ".php")).read_bytes()
+            outcome = MODULE.prepare(package)
+            self.assertGreater(outcome["php_files"], 15)
+            self.assertEqual(outcome["locales"], 5)
+            self.assertEqual(expected, (package / (MODULE.SLUG + ".php")).read_bytes())
             self.assertFalse((package / (MODULE.OLD_SLUG + ".php")).exists())
-            self.assertTrue((package / "languages" / "taxocommerce-core-es_ES.mo").is_file())
             for locale in MODULE.LOCALES:
-                for suffix in (".po", ".mo"):
-                    self.assertTrue((package / "languages" / ("taxocommerce-core-" + locale + suffix)).is_file())
-                    self.assertFalse((package / "languages" / (MODULE.OLD_SLUG + "-" + locale + suffix)).exists())
-            self.assertGreaterEqual(report["legacy_catalogs_excluded"], 0)
-            self.assertEqual(before_main, (original / (MODULE.OFFICIAL + ".php")).read_bytes())
+                for extension in (".po", ".mo"):
+                    self.assertTrue((package / "languages" / (MODULE.SLUG + "-" + locale + extension)).is_file())
 
-    def test_wrong_directory_is_rejected(self):
-        with tempfile.TemporaryDirectory() as temp:
-            with self.assertRaisesRegex(ValueError, "distribution directory"):
-                MODULE.prepare(Path(temp) / MODULE.OLD_SLUG)
+    def test_wrong_slug_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(ValueError, "taxocommerce-core"):
+                MODULE.prepare(Path(tmp) / MODULE.OLD_SLUG)
 
-    def test_missing_language_is_rejected(self):
-        with tempfile.TemporaryDirectory() as temp:
-            package = Path(temp) / MODULE.OFFICIAL
-            shutil.copytree(ROOT / MODULE.OFFICIAL, package, ignore=shutil.ignore_patterns("tests"))
-            (package / "languages" / "taxocommerce-core-es_ES.mo").unlink()
-            with self.assertRaisesRegex(ValueError, "Missing Core locale catalog"):
+    def test_obsolete_translation_is_not_permitted(self):
+        original = ROOT / MODULE.SLUG
+        with tempfile.TemporaryDirectory() as tmp:
+            package = Path(tmp) / MODULE.SLUG
+            shutil.copytree(original, package, ignore=shutil.ignore_patterns("tests"))
+            with self.assertRaisesRegex(ValueError, "Obsolete long-slug"):
                 MODULE.prepare(package)
+
+    def test_workflow_uses_single_official_slug(self):
+        workflow = (ROOT / ".github/workflows/taxocommerce-plugin-check.yml").read_text(encoding="utf-8")
+        self.assertIn('TARGET_SLUG="$PLUGIN"', workflow)
+        self.assertNotIn('TARGET_SLUG="' + MODULE.OLD_SLUG + '"', workflow)
+        self.assertIn("package_core_wordpress_org.py", workflow)
 
 
 if __name__ == "__main__":
