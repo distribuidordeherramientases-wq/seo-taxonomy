@@ -30,14 +30,14 @@ function taxocommerce_insights_competitive_refresh_source_ajax() {
     }
     check_ajax_referer( 'taxocommerce_insights_competition_sources', 'nonce' );
     $source = isset( $_POST['source'] ) ? sanitize_key( wp_unslash( $_POST['source'] ) ) : '';
-    if ( ! in_array( $source, array( 'merchant', 'trends' ), true ) ) {
+    if ( ! in_array( $source, array( 'merchant', 'trends', 'visibility' ), true ) ) {
         wp_send_json_error( array( 'message' => __( 'Fuente no reconocida.', 'taxocommerce-google-bing' ) ), 400 );
     }
 
     $settings = taxocommerce_insights_competitive_settings();
     $allowed = 'merchant' === $source
         ? array_intersect( $settings['signals'], array( 'popular', 'visibility' ) )
-        : in_array( 'trends', $settings['signals'], true );
+        : in_array( 'visibility' === $source ? 'visibility' : 'trends', $settings['signals'], true );
     if ( ! $allowed ) {
         wp_send_json_error( array( 'message' => __( 'Fuente no seleccionada.', 'taxocommerce-google-bing' ) ), 400 );
     }
@@ -72,6 +72,41 @@ function taxocommerce_insights_competitive_refresh_source_ajax() {
                     : __( 'Merchant tiene más páginas pendientes. Vuelve a generar para continuar.', 'taxocommerce-google-bing' );
             }
         }
+    } elseif ( 'visibility' === $source ) {
+        // One Google taxonomy category per request. The browser queues at most
+        // three requests, so no request performs multiple expensive API calls.
+        $day_count = isset( $_POST['days'] ) ? absint( wp_unslash( $_POST['days'] ) ) : 28;
+        $day_count = in_array( $day_count, array( 28, 90 ), true ) ? $day_count : 28;
+        $step = isset( $_POST['step'] ) ? min( 2, absint( wp_unslash( $_POST['step'] ) ) ) : 0;
+        $categories = taxocommerce_insights_competitive_google_categories();
+        $account = class_exists( 'TaxoCommerce_Google_Bing_Merchant', false )
+            ? TaxoCommerce_Google_Bing_Merchant::account() : '';
+        $signature = md5( $account . '|' . $day_count . '|' . implode( ',', $categories ) );
+        $previous = get_option( 'taxocommerce_insights_competitive_visibility_progress_v1', array() );
+        if ( ! is_array( $previous ) || ( $previous['signature'] ?? '' ) !== $signature || 0 === $step ) {
+            $previous = array( 'signature' => $signature, 'rows' => array(), 'errors' => array() );
+        }
+        if ( '' === $account ) {
+            $status = 'not_configured';
+            $message = __( 'La cuenta Merchant no está configurada.', 'taxocommerce-google-bing' );
+        } elseif ( ! $categories ) {
+            $status = 'blocked';
+            $message = __( 'No hay categorías Google verificadas: consulta primero Best Sellers.', 'taxocommerce-google-bing' );
+        } elseif ( isset( $categories[ $step ] ) ) {
+            $result = TaxoCommerce_Google_Bing_Merchant::competitive_visibility( array( $categories[ $step ] ), $day_count );
+            $previous['rows'] = array_merge( (array) $previous['rows'], (array) ( $result['rows'] ?? array() ) );
+            $previous['errors'] = array_merge( (array) $previous['errors'], (array) ( $result['errors'] ?? array() ) );
+            $count = count( $previous['rows'] );
+            $status = $count ? 'available' : ( ! empty( $previous['errors'] ) ? 'error' : 'no_data' );
+            $message = implode( ' · ', array_slice( (array) $previous['errors'], 0, 3 ) );
+        } else {
+            $status = 'no_data';
+        }
+        $complete = ! $categories || $step >= count( $categories ) - 1;
+        $previous['updated_at'] = current_time( 'mysql' );
+        $previous['status'] = $status;
+        $previous['complete'] = $complete;
+        update_option( 'taxocommerce_insights_competitive_visibility_progress_v1', $previous, false );
     } else {
         if ( ! function_exists( 'seo_google_trends_sync' ) ) {
             $status = 'not_configured';
@@ -114,11 +149,34 @@ function taxocommerce_insights_competitive_refresh_source_ajax() {
         'checked_at' => current_time( 'mysql' ),
         'count' => $count,
         'complete' => $complete,
+        'next_step' => 'visibility' === $source && ! $complete ? $step + 1 : null,
     );
     update_option( 'taxocommerce_insights_competitive_source_diagnostics_v1', $diagnostics, false );
     wp_send_json_success( $diagnostics[ $source ] );
 }
 add_action( 'wp_ajax_taxocommerce_insights_competitive_source_refresh', 'taxocommerce_insights_competitive_refresh_source_ajax' );
+
+/** Up to three verified taxonomy category IDs already present in Merchant. */
+function taxocommerce_insights_competitive_google_categories() {
+    if ( ! class_exists( 'TaxoCommerce_Google_Bing_Merchant', false ) ) {
+        return array();
+    }
+    $snapshots = TaxoCommerce_Google_Bing_Merchant::snapshots();
+    $settings = taxocommerce_insights_competitive_settings();
+    $terms = taxocommerce_insights_competitive_scope_terms( $settings );
+    $counts = array();
+    foreach ( (array) ( $snapshots['popular']['rows'] ?? array() ) as $row ) {
+        if ( ! is_array( $row ) || ! taxocommerce_insights_competitive_in_scope( $row, $terms ) ) {
+            continue;
+        }
+        $id = absint( $row['category_id'] ?? 0 );
+        if ( $id ) {
+            $counts[ $id ] = ( $counts[ $id ] ?? 0 ) + 1;
+        }
+    }
+    arsort( $counts );
+    return array_slice( array_keys( $counts ), 0, 3 );
+}
 
 /** Distinguish fresh data, prior snapshots and failed external requests. */
 function taxocommerce_insights_competitive_source_status( $key, $has_rows, $diagnostics, $updated_at = '' ) {
@@ -323,16 +381,27 @@ function taxocommerce_insights_competitive_build_report( $days = 28 ) {
     arsort( $category_counts );
     $categories = array_slice( array_keys( $category_counts ), 0, 3 );
 
-    // This method is a bounded, official Merchant Reports API call, invoked
-    // only by the explicit "Generate competitive report" admin action.
+    // The AJAX flow fetched each category in a separate request. Rendering
+    // never triggers a potentially 100-second chain of Merchant requests.
     $visibility = array(
         'status' => $categories ? 'not_checked' : 'blocked',
         'rows' => array(),
         'errors' => $categories ? array() : array( __( 'Antes se necesitan categorías verificadas de Merchant Best Sellers.', 'taxocommerce-google-bing' ) ),
     );
-    if ( in_array( 'visibility', $settings['signals'], true ) && $categories && class_exists( 'TaxoCommerce_Google_Bing_Merchant', false ) &&
-        method_exists( 'TaxoCommerce_Google_Bing_Merchant', 'competitive_visibility' ) ) {
-        $visibility = (array) TaxoCommerce_Google_Bing_Merchant::competitive_visibility( $categories, $days );
+    if ( in_array( 'visibility', $settings['signals'], true ) && $categories ) {
+        $progress = get_option( 'taxocommerce_insights_competitive_visibility_progress_v1', array() );
+        $account = class_exists( 'TaxoCommerce_Google_Bing_Merchant', false )
+            ? TaxoCommerce_Google_Bing_Merchant::account() : '';
+        $signature = md5( $account . '|' . $days . '|' . implode( ',', $categories ) );
+        if ( is_array( $progress ) && ( $progress['signature'] ?? '' ) === $signature ) {
+            $visibility = array(
+                'status' => (string) ( $progress['status'] ?? 'not_checked' ),
+                'rows' => (array) ( $progress['rows'] ?? array() ),
+                'errors' => (array) ( $progress['errors'] ?? array() ),
+                'complete' => ! empty( $progress['complete'] ),
+                'updated_at' => (string) ( $progress['updated_at'] ?? '' ),
+            );
+        }
     }
     $competitors = array();
     foreach ( (array) ( $visibility['rows'] ?? array() ) as $row ) {
@@ -451,6 +520,8 @@ function taxocommerce_insights_competitive_build_report( $days = 28 ) {
                 'status' => (string) ( $visibility['status'] ?? 'unavailable' ),
                 'errors' => (array) ( $visibility['errors'] ?? array() ),
                 'detail' => implode( ' · ', (array) ( $visibility['errors'] ?? array() ) ),
+                'complete' => ! empty( $visibility['complete'] ),
+                'updated_at' => (string) ( $visibility['updated_at'] ?? '' ),
             ),
             'google_trends' => taxocommerce_insights_competitive_source_status( 'trends', ! empty( $market ), $diagnostics ),
             'search_console' => array( 'status' => ! empty( $data['queries'] ) ? 'available' : 'unavailable' ),
