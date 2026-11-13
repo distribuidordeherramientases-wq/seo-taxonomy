@@ -36,6 +36,7 @@ function tcsocial_csv_cancel_parse( $path ) {
     foreach ( array( 'contenido_id', 'redes', 'fecha_hora', 'accion' ) as $required ) {
         if ( ! array_key_exists( $required, $columns ) ) {
             fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Native CSV stream.
+            /* translators: %s: required CSV column name. */
             return new WP_Error( 'missing_header', sprintf( __( 'Falta la columna %s.', 'taxocommerce-social' ), $required ) );
         }
     }
@@ -173,6 +174,7 @@ function tcsocial_csv_cancel_panel() {
         $done = absint( $_GET['cancel_csv_done'] );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only summary from redirect.
         $skipped = absint( $_GET['cancel_csv_skipped'] ?? 0 );
+        /* translators: 1: cancelled schedule count, 2: skipped schedule count. */
         echo '<p>' . esc_html( sprintf( __( 'Canceladas: %1$d. Omitidas: %2$d.', 'taxocommerce-social' ), $done, $skipped ) ) . '</p>';
     }
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only transient preview.
@@ -192,6 +194,7 @@ function tcsocial_csv_cancel_panel() {
             echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
             echo '<input type="hidden" name="action" value="tcsocial_csv_cancel_confirm"><input type="hidden" name="cancel_csv_token" value="' . esc_attr( $token ) . '">';
             wp_nonce_field( 'tcsocial_csv_cancel_confirm' );
+            /* translators: %d: number of selected schedules to cancel. */
             echo '<p><button type="submit" class="button button-primary">' . esc_html( sprintf( __( 'Confirmar cancelación de %d programaciones', 'taxocommerce-social' ), $valid ) ) . '</button></p></form>';
         }
     }
