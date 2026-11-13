@@ -247,6 +247,8 @@ final class TCSocial_Auto_Test {
         if ( ! $rows ) return self::skip( 'Sin agenda editorial visible en la muestra de hasta 100 filas.' );
         $overdue = 0;
         $orphaned = 0;
+        $disconnected = 0;
+        $settings = tcsocial_network_get_settings();
         $checked = 0;
         foreach ( $rows as $row ) {
             $id = absint( $row->post_id );
@@ -254,6 +256,7 @@ final class TCSocial_Auto_Test {
             $stamp = absint( $row->meta_value );
             if ( ! $id || ! $stamp || ! tcsocial_network_get_provider( $provider ) ) continue;
             ++$checked;
+            if ( empty( $settings['providers'][ $provider ]['enabled'] ) ) ++$disconnected;
             if ( $stamp < time() - 600 ) {
                 ++$overdue;
                 continue;
@@ -264,10 +267,10 @@ final class TCSocial_Auto_Test {
                 && ! wp_next_scheduled( 'seo_social_network_publish_manual_scheduled', $args )
             ) ++$orphaned;
         }
-        if ( $overdue || $orphaned ) {
+        if ( $overdue || $orphaned || $disconnected ) {
             return self::fail( sprintf(
-                'Agenda: %d vencidas sin confirmar y %d sin evento WP-Cron de %d comprobadas. No se reenviarán automáticamente; revisar y reprogramar tras descartar duplicados.',
-                $overdue, $orphaned, $checked
+                'Agenda: %d vencidas sin confirmar, %d sin evento WP-Cron y %d para redes desconectadas, de %d comprobadas. No se reenviarán automáticamente; revisar y reprogramar tras descartar duplicados.',
+                $overdue, $orphaned, $disconnected, $checked
             ) );
         }
         return self::pass( sprintf( '%d entradas de agenda con fecha futura y ejecutor WP-Cron (muestra hasta 100).', $checked ) );
