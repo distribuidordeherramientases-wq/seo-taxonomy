@@ -4,13 +4,16 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.57
+Stable tag: 1.1.58
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 External connections, manual provider data downloads, and market intelligence for WooCommerce.
 
 == Description ==
+
+Version 1.1.58 makes the Competition report configurable per store: market scope, WooCommerce category filters, explicit company/supplier lists, and selected official-source indicators. Selected supplier identities are not presented as verified commercial data; no competitor sites are crawled.
+
 
 Version 1.1.56 improves native translations for Connections and provider integrations across Spanish, English, French, German and Dutch. Settings, OAuth errors, connection checks and Merchant/Pinterest/Amazon/Bing buttons are translated. The entire Insights interface is not yet localized; further work remains under #2062.
 
