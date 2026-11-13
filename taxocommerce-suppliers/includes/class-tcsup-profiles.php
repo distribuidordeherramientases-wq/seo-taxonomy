@@ -283,8 +283,7 @@ final class TCSUP_Profiles {
 		<?php endif;
 	}
 
-	private static function posted_supplier( $operation ) {
-		check_admin_referer( 'tcsup_profile_' . $operation );
+	private static function posted_supplier() {
 		$requested = isset( $_POST['provider'] ) && is_string( $_POST['provider'] )
 			? sanitize_text_field( wp_unslash( $_POST['provider'] ) ) : '';
 		$supplier = self::supplier_in_catalogue( $requested );
@@ -317,7 +316,8 @@ final class TCSUP_Profiles {
 
 	public static function handle_save() {
 		self::guard();
-		$supplier = self::posted_supplier( 'save' );
+		check_admin_referer( 'tcsup_profile_save' );
+		$supplier = self::posted_supplier();
 
 		// A single nonce-protected, unslashed and sanitised input snapshot.
 		$submitted = map_deep( wp_unslash( $_POST ), 'sanitize_textarea_field' );
@@ -347,7 +347,8 @@ final class TCSUP_Profiles {
 
 	public static function handle_delete() {
 		self::guard();
-		$supplier = self::posted_supplier( 'delete' );
+		check_admin_referer( 'tcsup_profile_delete' );
+		$supplier = self::posted_supplier();
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Delete only profile data, never inventory or WooCommerce products.
 		$ok = $wpdb->delete( TCSUP_Schema::profiles_table(), array( 'proveedor' => $supplier ) );
