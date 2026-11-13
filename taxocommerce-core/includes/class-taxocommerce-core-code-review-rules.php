@@ -199,7 +199,7 @@ final class TaxoCommerce_Core_Code_Review_Rules {
 				++$existing;
 			}
 		}
-		if ( $existing < 6 ) {
+		if ( $existing < 100 ) {
 			$findings[ $group ][] = array(
 				'rule'     => $rule,
 				'line'     => (int) $line,
