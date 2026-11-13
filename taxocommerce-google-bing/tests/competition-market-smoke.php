@@ -107,6 +107,13 @@ check_market( 'available' === $configured_report['selected_competitors'][0]['sta
 check_market( 'not_connected' === $configured_report['selected_suppliers'][0]['status'], 'supplier data not invented' );
 check_market( 0 === count( $configured_report['market_context'] ), 'unchecked Trends not reported' );
 check_market( 0 === count( $configured_report['own_acceleration'] ), 'unchecked GSC not reported' );
+// Visibility-only selection must still use the official Google categories
+// learned from Merchant, without displaying Best Sellers opportunities.
+$GLOBALS['test_options']['taxocommerce_insights_competitive_settings_v1']['signals'] = array( 'visibility' );
+$visibility_only = taxocommerce_insights_competitive_build_report( 28 );
+check_market( 1 === $visibility_only['summary']['competitor_count'], 'visibility works when Best Sellers display is disabled' );
+check_market( 0 === $visibility_only['summary']['merchant_popular_count'], 'unselected Best Sellers are not displayed' );
+check_market( 'not_selected' === $visibility_only['sources']['merchant_best_sellers']['status'], 'unselected indicator clearly marked' );
 check_market( 1 === $report['summary']['merchant_missing_count'], 'feed gap counted' );
 check_market( 1 === $report['summary']['trends_count'], 'Trends reused' );
 check_market( 1 === $report['summary']['gsc_accelerations'], 'GSC demand reused' );
