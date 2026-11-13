@@ -101,10 +101,19 @@ class DeltaTests(unittest.TestCase):
                         if calls[0] == 1:
                             raise module.ftplib.error_perm("550 absent")
                     ftp.cwd.side_effect = cwd
+                    import hashlib
+                    digests = {
+                        "taxocommerce-customers.php": hashlib.sha256(b"<?php").hexdigest(),
+                        "readme.txt": hashlib.sha256(b"Customers plugin").hexdigest(),
+                    }
+                    probes = {}
+                    def remote_hash(ftp_instance, filename):
+                        probes[filename] = probes.get(filename, 0) + 1
+                        return None if probes[filename] == 1 else digests[filename]
                     with mock.patch.object(module, "plugin_source_files", return_value=[
                         "taxocommerce-customers.php", "readme.txt"
                     ]) as manifest:
-                        with mock.patch.object(module, "existing_file_hash", return_value=None):
+                        with mock.patch.object(module, "existing_file_hash", side_effect=remote_hash):
                             module.upload_plugin(ftp, target, "taxocommerce-customers", ["readme.txt"], required=False)
                     ftp.mkd.assert_called_once_with("taxocommerce-customers")
                     manifest.assert_called_once_with("taxocommerce-customers")
