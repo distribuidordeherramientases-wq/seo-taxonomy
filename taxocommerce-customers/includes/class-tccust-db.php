@@ -71,6 +71,15 @@ final class TCCUST_DB {
 			self::install();
 			return;
 		}
+		global $wpdb;
+		foreach ( array( self::customers_table(), self::links_table() ) as $table ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Verify private tables after restores.
+			$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
+			if ( $exists !== $table ) {
+				self::install();
+				return;
+			}
+		}
 	}
 
 	/**
