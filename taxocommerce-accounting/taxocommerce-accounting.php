@@ -431,9 +431,15 @@ function tca_autocheck( $rows ) {
         'treatment_review' => count( array_filter( $rows, static function ( $row ) { return 'review' === $row->treatment; } ) ) ? 'fail' : 'pass',
         'unverified_invoices' => count( array_filter( $rows, static function ( $row ) { return 'sale' === $row->kind && '' === $row->document_no; } ) ) ? 'fail' : 'pass',
     );
-    return array( 'version' => TCA_VERSION, 'executed_at' => current_time( 'mysql' ), 'tests' => $tests,
-        'pass' => count( array_filter( $tests, static function ( $v ) { return 'pass' === $v; } ) ),
-        'fail' => count( array_filter( $tests, static function ( $v ) { return 'fail' === $v; } ) ) );
+    $rows = array();
+    $totals = array( 'pass' => 0, 'fail' => 0, 'skip' => 0 );
+    foreach ( $tests as $name => $status ) {
+        $rows[] = array( 'id' => $name, 'status' => $status, 'message' => $status === 'pass' ? 'OK' : 'Requires review' );
+        ++$totals[ $status ];
+    }
+    return array( 'version' => TCA_VERSION, 'executed_at' => gmdate( 'c' ),
+        'date' => current_time( 'mysql' ), 'rows' => $rows, 'totals' => $totals,
+        'pass' => $totals['pass'], 'fail' => $totals['fail'] );
 }
 function tca_autocheck_download() {
     if ( ! tca_capable() ) wp_die( esc_html__( 'Insufficient permissions.', 'taxocommerce-accounting' ) );
@@ -531,6 +537,7 @@ function tca_admin() {
     } elseif ( 'autocheck' === $tab ) {
         $report = tca_autocheck( $rows );
         echo '<h2>' . esc_html__( 'Read-only functional Autocheck', 'taxocommerce-accounting' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-accounting' ) . ' ' . esc_html( $report['date'] ) . '</p>';
         echo '<p>' . esc_html( $report['pass'] ) . ' PASS / ' . esc_html( $report['fail'] ) . ' FAIL</p><table class="widefat striped">';
         foreach ( $report['tests'] as $test => $state ) echo '<tr><td>' . esc_html( $test ) . '</td><td>' . esc_html( strtoupper( $state ) ) . '</td></tr>';
         echo '</table><p>' . esc_html__( 'Failure of draft/review checks means fiscal data needs validation, not that the plugin runtime has failed.', 'taxocommerce-accounting' ) . '</p>';
