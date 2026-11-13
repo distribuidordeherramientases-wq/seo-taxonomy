@@ -263,21 +263,24 @@ def existing_file_hash(ftp, name):
 
 
 def upload_plugin(ftp, target, slug, files, required):
-    # Issue #2290 authorizes the FIRST installation of Tasks on these two sites only.
-    # All other absent plugins remain strictly excluded from automatic installation.
-    new_tasks_install = False
+    # Issues #2290 and #2644 authorize first installation only to the named sites.
+    # Accounting is allowed solely on STAGING, never Focazul or PRO.
+    new_plugin_install = False
     try:
         ftp.cwd(remote_plugin_dir(target, slug))
     except ftplib.error_perm as exc:
         if not str(exc).startswith("550"):
             raise
-        if slug == "taxocommerce-tasks" and target in ("staging", "focazul"):
+        if (slug == "taxocommerce-tasks" and target in ("staging", "focazul")) or (
+            slug == "taxocommerce-accounting" and target == "staging"
+        ):
             plugin_parent = remote_plugin_dir(target, slug).rsplit(slug + "/", 1)[0]
             ftp.cwd(plugin_parent)
             ftp.mkd(slug)
             ftp.cwd(slug)
-            new_tasks_install = True
-            print(f"INSTALL {target}/{slug}: explicitly authorized by Issue #2290")
+            new_plugin_install = True
+            issue = "#2644" if slug == "taxocommerce-accounting" else "#2290"
+            print(f"INSTALL {target}/{slug}: explicitly authorized by Issue {issue}")
         elif not required:
             print(f"SKIP {slug}: plugin directory absent on this WordPress")
             return
@@ -285,7 +288,7 @@ def upload_plugin(ftp, target, slug, files, required):
             raise RuntimeError(f"{slug}: installed plugin directory is inaccessible") from exc
     root = ftp.pwd()
     # Preexisting plugins must have the entrypoint; never repair unknown installs.
-    if not new_tasks_install and existing_file_hash(ftp, slug + ".php") is None:
+    if not new_plugin_install and existing_file_hash(ftp, slug + ".php") is None:
         if not required:
             print(f"SKIP {slug}: plugin entrypoint absent on this WordPress")
             return
