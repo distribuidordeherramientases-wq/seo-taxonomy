@@ -1,3 +1,8 @@
+## [0.2.25] — 2026-11-13 — Code Check equiparado a Core 0.4.82 (#2626)
+
+- Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.
+- Continúa siendo una revisión estática independiente del Plugin Check oficial, con ejecución por bloques y control de CPU.
+
 ## [0.2.24] — 2026-11-13 — Enlace a tienda del proveedor desde Inventario (#2610)
 
 - La tabla Inventario muestra una columna «Supplier product» con acceso directo a la ficha del proveedor, sin que exista pedido WooCommerce.
