@@ -111,6 +111,13 @@ $examples = array(
 	'de_DE' => 'Priorität speichern',
 	'nl_NL' => 'Prioriteit opslaan',
 );
+$required_user_guide = array(
+    'es_ES' => '7. Utilizar el buscador en la tienda',
+    'en_US' => '7. Using the search on the store',
+    'fr_FR' => '7. Utiliser la recherche dans la boutique',
+    'de_DE' => '7. Suche im Shop verwenden',
+    'nl_NL' => '7. De zoekfunctie in de winkel gebruiken',
+);
 $required_modern_knowledge = array(
     'es_ES' => 'Conocimiento moderno',
     'en_US' => 'Modern knowledge',
@@ -142,9 +149,12 @@ foreach ( $examples as $locale => $expected_label ) {
 			tcd_i18n_fail( 'PO/MO mismatch: ' . $locale );
 		}
 	}
-	if ( ! isset( $mo['Guardar prioridad'] ) || $expected_label !== $mo['Guardar prioridad'] || count( $translated ) < 180 ) {
+	if ( ! isset( $mo['Guardar prioridad'] ) || $expected_label !== $mo['Guardar prioridad'] || count( $translated ) < 220 ) {
 		tcd_i18n_fail( 'Admin label missing or insufficient coverage: ' . $locale );
 	}
+	if ( ( $mo['7. Utilizar el buscador en la tienda'] ?? '' ) !== $required_user_guide[ $locale ] ) {
+        tcd_i18n_fail( 'Search guide translation missing: ' . $locale );
+    }
 	if ( ( $mo['Conocimiento moderno'] ?? '' ) !== $required_modern_knowledge[ $locale ] ) {
         tcd_i18n_fail( 'Portable knowledge translation missing: ' . $locale );
     }

@@ -1,3 +1,10 @@
+## [0.3.43] — 2026-11-13 — Traducciones del manual de usuario y controles de aprendizaje (#2062)
+
+- Añade 46 traducciones por idioma en ES/EN/FR/DE/NL (230 entradas) del manual: inicio del aprendizaje, prioridades, lecciones, intérprete, mantenimiento M12, calidad y reevaluación, buscador, conocimiento portable, backups, logs y preguntas frecuentes.
+- Conserva numeración de las secciones 7–11 en los cinco idiomas y los identificadores técnicos, y recompila los MO sin entradas vacías.
+- Refuerza el test de gettext para detectar la ausencia de la sección de búsqueda en la documentación traducida, sin modificar lógica, datos, cron, aprendizaje, WooCommerce ni importación.
+- Restan 136/137/138/136/136 entradas gettext pendientes (ES/EN/FR/DE/NL); no se declara completada la interfaz ni validado cada literal de PHP/JS.
+
 ## [0.3.42] — 2026-11-12 — Traducciones de conocimiento, copias y controles de Dependiente (#2062)
 
 - Traduce 87 cadenas adicionales en los cinco idiomas ES/EN/FR/DE/NL (435 entradas gettext). Incluye restauración, backup, conocimiento portable, importación/fusión, aprendizaje, categorías de documentación y títulos de manuales.
