@@ -31,8 +31,47 @@ require_once TCCUST_DIR . 'includes/class-taxocommerce-autotest-code.php';
 
 register_activation_hook( __FILE__, array( 'TCCUST_DB', 'install' ) );
 
+/* Prefer official WordPress language packs; load bundled PO/MO catalogs locally. */
 add_action( 'init', static function () {
-	load_plugin_textdomain( 'taxocommerce-customers', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+	$domain = 'taxocommerce-customers';
+	if ( is_textdomain_loaded( $domain ) ) {
+		return;
+	}
+	$locale = sanitize_file_name( determine_locale() );
+	$official_pack = WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale;
+	if ( is_readable( $official_pack . '.mo' ) || is_readable( $official_pack . '.l10n.php' ) ) {
+		return;
+	}
+	$catalog = TCCUST_DIR . 'languages/' . $domain . '-' . $locale . '.mo';
+	if ( ! is_readable( $catalog ) ) {
+		$fallback = array( 'es' => 'es_ES', 'en' => 'en_US', 'fr' => 'fr_FR', 'de' => 'de_DE', 'nl' => 'nl_NL' );
+		$lang = strtolower( substr( $locale, 0, 2 ) );
+		if ( isset( $fallback[ $lang ] ) ) {
+			$catalog = TCCUST_DIR . 'languages/' . $domain . '-' . $fallback[ $lang ] . '.mo';
+		}
+	}
+	if ( is_readable( $catalog ) ) {
+		load_textdomain( $domain, $catalog );
+	}
+}, 1 );
+
+/* Core integration is optional and never owns Customers' private data. */
+add_action( 'taxocommerce_core_register_modules', array( 'TCCUST_Admin', 'register_module' ) );
+if ( function_exists( 'taxocommerce_core' ) && did_action( 'taxocommerce_core_loaded' ) ) {
+	TCCUST_Admin::register_module( taxocommerce_core() );
+}
+add_filter( 'taxocommerce_core_family_extensions', static function ( $extensions ) {
+	$extensions = is_array( $extensions ) ? $extensions : array();
+	$extensions['customers'] = array(
+		'id' => 'customers',
+		'name' => 'TaxoCommerce Customers',
+		'plugin_file' => 'taxocommerce-customers/taxocommerce-customers.php',
+		'org_slug' => 'taxocommerce-customers',
+		'wordpress_org' => false,
+		'admin_url' => admin_url( 'admin.php?page=taxocommerce-customers' ),
+		'description' => __( 'Private customer and purchaser management.', 'taxocommerce-customers' ),
+	);
+	return $extensions;
 } );
 
 add_action( 'plugins_loaded', static function () {
