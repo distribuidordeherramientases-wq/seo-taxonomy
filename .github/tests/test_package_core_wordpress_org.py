@@ -61,7 +61,7 @@ class CoreDistributionTests(unittest.TestCase):
             # The installed, WordPress.org and readme versions must always
             # match; never hard-code a release number in packaging tests.
             import re
-            match = re.search(r"(?m)^\\s*\\*\\s*Version:\\s*(\\d+\\.\\d+\\.\\d+)\\s*$", native)
+            match = re.search(r"(?m)^\s*\*\s*Version:\s*(\d+\.\d+\.\d+)\s*$", native)
             self.assertIsNotNone(match)
             version = match.group(1)
             self.assertIn("Version: " + version, main)
