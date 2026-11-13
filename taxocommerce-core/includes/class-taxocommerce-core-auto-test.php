@@ -876,7 +876,6 @@ final class TaxoCommerce_Core_Auto_Test {
     }
 
     public static function render() {
-        if ( \TaxoCommerce_Core_Autotest_Code::render_subtabs() ) { return; }
         if ( ! self::allowed() ) {
             wp_die( esc_html__( 'Acceso denegado a Autocheck.', 'taxocommerce-core' ) );
         }
@@ -892,7 +891,13 @@ final class TaxoCommerce_Core_Auto_Test {
                 <a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core' ) ); ?>"><?php esc_html_e( 'Overview', 'taxocommerce-core' ); ?></a>
                 <a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=' . TaxoCommerce_Core_User_Guide::PAGE_SLUG ) ); ?>"><?php esc_html_e( 'User Guide', 'taxocommerce-core' ); ?></a>
                 <a class="nav-tab nav-tab-active" aria-current="page" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'autocheck' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Autocheck', 'taxocommerce-core' ); ?></a>
-            </nav>            <form class="tc-at-actions" action="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core&tab=autocheck' ) ); ?>" method="post">
+            </nav>
+            <?php
+            // The functional and source-code checks share Core's screen and navigation.
+            // Switching to Code Check must not run the functional suite.
+            if ( ! \TaxoCommerce_Core_Autotest_Code::render_subtabs() ) :
+            ?>
+            <form class="tc-at-actions" action="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core&tab=autocheck' ) ); ?>" method="post">
                 <input type="hidden" name="tc_autotest_manual_run" value="1">
                 <?php wp_nonce_field( self::NONCE, 'tc_autotest_nonce' ); ?>
                 <?php submit_button( __( 'Ejecutar autocheck', 'taxocommerce-core' ), 'primary', 'submit', false ); ?>
@@ -930,6 +935,7 @@ final class TaxoCommerce_Core_Auto_Test {
                     </div>
                 <?php endforeach; ?>
                 <p class="description"><?php esc_html_e( 'Verde significa que pasó la comprobación indicada. Gris significa no aplicable o no ejecutado. Los resultados basados en muestras no sustituyen una auditoría completa ni las UAT de escritura en staging.', 'taxocommerce-core' ); ?></p>
+            <?php endif; ?>
             <?php endif; ?>
         </div>
         <?php
