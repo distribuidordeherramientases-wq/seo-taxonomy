@@ -488,7 +488,7 @@ final class TaxoCommerce_Core_Autotest_Code {
     public static function render() {
         $state = self::state();
         $speeds = self::speeds();
-        echo '<section class="wrap tc-autotest-code">';
+        echo '<section class="tc-autotest-code tcc-family-panel">';
         echo '<h2>' . esc_html__( 'Code Check', 'taxocommerce-core' ) . '</h2>';
         echo '<p>' . esc_html__( 'PHP syntax, WordPress structure and security indicators for this plugin only. No other checker is required. Findings do not replace official Plugin Check or a security audit.', 'taxocommerce-core' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
