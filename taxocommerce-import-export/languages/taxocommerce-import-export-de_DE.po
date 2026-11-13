@@ -1338,18 +1338,18 @@ msgstr ""
 
 #: includes/class-taxocommerce-import-export-manual.php:177
 msgid "No tienes permisos para consultar el manual."
-msgstr ""
+msgstr "Sie haben keine Berechtigung, das Handbuch anzuzeigen."
 
 #: includes/class-taxocommerce-import-export-manual.php:181
 #: includes/class-taxocommerce-import-export-manual.php:183
 msgid "Manual de TaxoCommerce Import-Export"
-msgstr ""
+msgstr "TaxoCommerce-Import-Export-Handbuch"
 
 #: includes/class-taxocommerce-import-export-manual.php:184
 msgid ""
 "Manual de usuario y manual técnico integrados. Consultarlos no inicia "
 "procesos ni modifica el catálogo."
-msgstr ""
+msgstr "Integriertes Benutzer- und technisches Handbuch. Das Lesen startet keine Prozesse und ändert den Katalog nicht."
 
 #: includes/class-taxocommerce-import-export-manual.php:185
 msgid "Manual de usuario"
@@ -1362,84 +1362,84 @@ msgstr "Technisches Handbuch"
 #: includes/class-taxocommerce-import-export-media.php:27
 #: includes/class-taxocommerce-import-export-media.php:165
 msgid "El servidor no tiene disponible ZipArchive."
-msgstr ""
+msgstr "ZipArchive ist auf diesem Server nicht verfügbar."
 
 #: includes/class-taxocommerce-import-export-media.php:33
 msgid "No se pudieron crear los archivos temporales."
-msgstr ""
+msgstr "Temporäre Dateien konnten nicht erstellt werden."
 
 #: includes/class-taxocommerce-import-export-media.php:40
 msgid "No se pudo crear media.csv."
-msgstr ""
+msgstr "media.csv konnte nicht erstellt werden."
 
 #: includes/class-taxocommerce-import-export-media.php:70
 msgid "No se pudo crear el ZIP de Media."
-msgstr ""
+msgstr "Das Medien-ZIP konnte nicht erstellt werden."
 
 #: includes/class-taxocommerce-import-export-media.php:169
 msgid "No se ha recibido ningún ZIP de Media."
-msgstr ""
+msgstr "Es wurde keine Medien-ZIP-Datei empfangen."
 
 #: includes/class-taxocommerce-import-export-media.php:174
 msgid "La subida del ZIP ha fallado."
-msgstr ""
+msgstr "Der ZIP-Upload ist fehlgeschlagen."
 
 #: includes/class-taxocommerce-import-export-media.php:179
 msgid "El archivo de Media debe tener extensión .zip."
-msgstr ""
+msgstr "Die Mediendatei muss die Erweiterung .zip haben."
 
 #: includes/class-taxocommerce-import-export-media.php:184
 msgid "No se pudo abrir el ZIP de Media."
-msgstr ""
+msgstr "Das Medien-ZIP konnte nicht geöffnet werden."
 
 #: includes/class-taxocommerce-import-export-media.php:190
 msgid "El ZIP no contiene media.csv."
-msgstr ""
+msgstr "Die ZIP-Datei enthält keine media.csv."
 
 #: includes/class-taxocommerce-import-export-media.php:197
 msgid "media.csv no contiene cabecera."
-msgstr ""
+msgstr "media.csv enthält keine Kopfzeile."
 
 #: includes/class-taxocommerce-import-export-media.php:206
 msgid "El paquete de Media no tiene el formato esperado."
-msgstr ""
+msgstr "Das Medienpaket hat ein unerwartetes Format."
 
 #: includes/class-taxocommerce-import-export-media.php:233
 msgid "El ZIP contiene una ruta de archivo no válida."
-msgstr ""
+msgstr "Die ZIP-Datei enthält einen ungültigen Dateipfad."
 
 #: includes/class-taxocommerce-import-export-media.php:625
 msgid "No tienes permisos para importar o exportar Media."
-msgstr ""
+msgstr "Sie haben keine Berechtigung, Medien zu importieren oder exportieren."
 
 #: includes/class-taxocommerce-import-export.php:159
 #: includes/class-taxocommerce-import-export.php:160
 msgid "Import / Export"
-msgstr ""
+msgstr "Import / Export"
 
 #: includes/class-taxocommerce-import-export.php:169
 #: includes/class-taxocommerce-import-export.php:170
 #: includes/class-taxocommerce-import-export.php:217
 msgid "TaxoCommerce Import-Export"
-msgstr ""
+msgstr "TaxoCommerce Import-Export"
 
 #: includes/class-taxocommerce-import-export.php:188
 msgid "Abrir"
-msgstr ""
+msgstr "Öffnen"
 
 #: includes/class-taxocommerce-import-export.php:216
 msgid "Familia TaxoCommerce"
-msgstr ""
+msgstr "TaxoCommerce-Familie"
 
 #: includes/class-taxocommerce-import-export.php:218
 msgid ""
 "Un único punto de intercambio para productos, categorías, posts, páginas y "
 "Biblioteca de Medios."
-msgstr ""
+msgstr "Ein zentraler Austauschpunkt für Produkte, Kategorien, Beiträge, Seiten und die Mediathek."
 
 #: includes/class-taxocommerce-import-export.php:222
 msgid "Secciones de Import-Export"
-msgstr ""
+msgstr "Import-Export-Bereiche"
 
 #: includes/class-taxocommerce-import-export.php:223
 msgid "Exportación"
@@ -1447,11 +1447,11 @@ msgstr "Exportieren"
 
 #: includes/class-taxocommerce-import-export.php:224
 msgid "Importación individual"
-msgstr ""
+msgstr "Einzelimport"
 
 #: includes/class-taxocommerce-import-export.php:225
 msgid "Importación por lotes"
-msgstr ""
+msgstr "Stapelimport"
 
 #: includes/class-taxocommerce-import-export.php:226
 msgid "Auto Test"
@@ -1463,31 +1463,31 @@ msgstr "Handbuch"
 
 #: includes/class-taxocommerce-import-export.php:249
 msgid "Media · paquete ZIP"
-msgstr ""
+msgstr "Medien · ZIP-Paket"
 
 #: includes/class-taxocommerce-import-export.php:250
 msgid ""
 "Media mantiene su exportación específica porque transporta archivos binarios"
 " además de metadatos. No forma parte del CSV por bloques."
-msgstr ""
+msgstr "Medien haben einen eigenen Export, da binäre Dateien und Metadaten übertragen werden. Sie gehören nicht zum CSV-Export in Blöcken."
 
 #: includes/class-taxocommerce-import-export.php:254
 msgid "Descargar ZIP de Media"
-msgstr ""
+msgstr "Medien-ZIP herunterladen"
 
 #. translators: %d: number of Media images imported.
 #: includes/class-taxocommerce-import-export.php:272
 msgid "Importación de Media completada. Imágenes importadas: %d."
-msgstr ""
+msgstr "Medienimport abgeschlossen. Importierte Bilder: %d."
 
 #. translators: %d: number of CSV rows processed.
 #: includes/class-taxocommerce-import-export.php:275
 msgid "Importación completada. Filas procesadas: %d."
-msgstr ""
+msgstr "Import abgeschlossen. Verarbeitete Zeilen: %d."
 
 #: includes/class-taxocommerce-import-export.php:283
 msgid "Importación individual de datos y contenidos"
-msgstr ""
+msgstr "Einzelimport von Daten und Inhalten"
 
 #: includes/class-taxocommerce-import-export.php:286
 #: includes/class-taxocommerce-import-export.php:295
@@ -1496,60 +1496,60 @@ msgstr "CSV importieren"
 
 #: includes/class-taxocommerce-import-export.php:287
 msgid "Importa un CSV generado por este plugin."
-msgstr ""
+msgstr "Eine von diesem Plugin erzeugte CSV-Datei importieren."
 
 #: includes/class-taxocommerce-import-export.php:292
 msgid "Archivo CSV"
-msgstr ""
+msgstr "CSV-Datei"
 
 #: includes/class-taxocommerce-import-export.php:301
 msgid "Estado de la última importación individual"
-msgstr ""
+msgstr "Status des letzten Einzelimports"
 
 #: includes/class-taxocommerce-import-export.php:302
 msgid "Consultando el último trabajo…"
-msgstr ""
+msgstr "Letzten Job prüfen…"
 
 #: includes/class-taxocommerce-import-export.php:305
 msgid ""
 "El seguimiento permanece visible al recargar. El CSV se procesa con la cola "
 "propia y el limitador de velocidad; no cierres el informe por falta de "
 "movimiento instantáneo."
-msgstr ""
+msgstr "Der Fortschritt bleibt nach dem Neuladen sichtbar. Die CSV wird über die eigene Warteschlange und Geschwindigkeitsbegrenzung verarbeitet; schließen Sie den Bericht nicht, nur weil sich der Fortschritt nicht sofort ändert."
 
 #: includes/class-taxocommerce-import-export.php:329
 #: includes/class-taxocommerce-import-export.php:354
 msgid "Media · imágenes"
-msgstr ""
+msgstr "Medien · Bilder"
 
 #: includes/class-taxocommerce-import-export.php:330
 msgid ""
 "Las imágenes se transportan aquí, no desde TaxoCommerce Images. El paquete "
 "contiene originales, metadatos y relaciones; las miniaturas se regeneran al "
 "importar."
-msgstr ""
+msgstr "Bilder werden hier übertragen, nicht über TaxoCommerce Images. Das Paket enthält Originaldateien, Metadaten und Zuordnungen; Vorschaubilder werden beim Import neu erstellt."
 
 #: includes/class-taxocommerce-import-export.php:333
 msgid "Importar Media"
-msgstr ""
+msgstr "Medien importieren"
 
 #: includes/class-taxocommerce-import-export.php:334
 msgid ""
 "Importa un ZIP generado por TaxoCommerce Import-Export. Los archivos se "
 "crean como attachments reales en Media."
-msgstr ""
+msgstr "Importieren Sie eine von TaxoCommerce Import-Export erstellte ZIP-Datei. Die Dateien werden als echte Medienanhänge in der Mediathek angelegt."
 
 #: includes/class-taxocommerce-import-export.php:339
 msgid "Paquete ZIP de Media"
-msgstr ""
+msgstr "Medien-ZIP-Paket"
 
 #: includes/class-taxocommerce-import-export.php:342
 msgid "Importar ZIP de Media"
-msgstr ""
+msgstr "Medien-ZIP importieren"
 
 #: includes/class-taxocommerce-import-export.php:347
 msgid "Qué se transporta"
-msgstr ""
+msgstr "Übertragene Daten"
 
 #: includes/class-taxocommerce-import-export.php:349
 msgid "Contenido"
@@ -1563,26 +1563,26 @@ msgstr "Produkte"
 msgid ""
 "ID, tipo, estado, nombre, slug, SKU, precios, stock, descripciones, "
 "categorías, etiquetas, atributos y datos de producto externo."
-msgstr ""
+msgstr "ID, Typ, Status, Name, Slug, SKU, Preise, Bestand, Beschreibungen, Kategorien, Schlagwörter, Attribute und Daten externer Produkte."
 
 #: includes/class-taxocommerce-import-export.php:352
 msgid "ID, nombre, slug, padre, descripción e imagen."
-msgstr ""
+msgstr "ID, Name, Slug, übergeordnetes Element, Beschreibung und Bild."
 
 #: includes/class-taxocommerce-import-export.php:353
 msgid "Posts / Páginas"
-msgstr ""
+msgstr "Beiträge / Seiten"
 
 #: includes/class-taxocommerce-import-export.php:353
 msgid ""
 "ID, estado, título, slug, extracto, contenido, fecha, autor y taxonomías."
-msgstr ""
+msgstr "ID, Status, Titel, Slug, Auszug, Inhalt, Datum, Autor und Taxonomien."
 
 #: includes/class-taxocommerce-import-export.php:354
 msgid ""
 "Archivo original, título, ALT, leyenda, descripción, post_parent, imagen "
 "destacada, galería WooCommerce e imagen de categoría."
-msgstr ""
+msgstr "Originaldatei, Titel, ALT-Text, Bildunterschrift, Beschreibung, post_parent, Beitragsbild, WooCommerce-Galerie und Kategoriebild."
 
 #: includes/class-taxocommerce-import-export.php:385
 msgid "No tienes permisos para gestionar TaxoCommerce Import-Export."

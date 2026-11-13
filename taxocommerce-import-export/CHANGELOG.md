@@ -1,3 +1,10 @@
+## [0.4.31] — 2026-11-13 — Traducciones del intercambio de medios y mensajes ZIP (#2062)
+
+- Traduce 47 cadenas adicionales por idioma ES/EN/FR/DE/NL (235 entradas gettext): Biblioteca de Medios, ZIP, permisos, errores, progreso de tareas, formularios y secciones del manual.
+- Regenera los cinco archivos MO con los textos traducidos y sin entradas vacías; mantiene el mecanismo nativo de fallback de gettext para las cadenas aún pendientes y preserva los plurales existentes.
+- Amplía el test de integridad MO para exigir textos de Media y mensajes de ZIP en todos los idiomas. No cambia las colas, la importación, la exportación, los ficheros ni los datos.
+- Permanecen 133/137/136/134/134 entradas gettext sin traducción (ES/EN/FR/DE/NL), más posibles textos PHP/JS fuera de gettext. La interfaz no se declara traducida al 100 %.
+
 ## [0.4.30] — 2026-11-12 — Internacionalización de los controles de importación/exportación (#2062)
 
 - Traduce 132 cadenas de interfaz previamente vacías en ES/EN/FR/DE/NL (660 entradas; dos de ellas incluyen las formas singular y plural, 670 valores gettext). Conserva textos, marcadores de formato y traducciones existentes.
