@@ -3020,6 +3020,7 @@ function tcsocial_network_render_scheduler_csv_panel()
     echo '<input type="hidden" name="action" value="tcsocial_network_scheduler_import_preview">';
     wp_nonce_field('tcsocial_network_scheduler_import');
     echo '<input type="file" name="schedule_csv" accept=".csv,.txt,.tsv,text/csv,text/plain" required>';
+    echo '<p class="seo-social-help">' . esc_html__( 'Si el CSV incluye la columna accion=cancelar, se mostrará una previsualización de cancelaciones. No se crearán nuevas publicaciones.', 'taxocommerce-social' ) . '</p>';
     echo '<button type="submit" class="button button-primary">' . esc_html__( 'Validar CSV antes de importar', 'taxocommerce-social' ) . '</button>' . '</form>' . '</div>';
 
     echo '<div class="seo-social-scheduler-io__block">' . '<h3>' . esc_html__( 'Exportar', 'taxocommerce-social' ) . '</h3>' . '<p class="seo-social-help">' . esc_html__( 'Todos los archivos usan UTF-8 y punto y coma para abrirlos directamente con Excel en configuraciones regionales españolas.', 'taxocommerce-social' ) . '</p>';
