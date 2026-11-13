@@ -1,3 +1,6 @@
+= 0.1.22 =
+* Chain redirects resolve to terminal destinations with one HTTP redirect, and individual stored chains can be flattened after review. Optional populated product category suggestion during assisted deletion. Issue #2647.
+
 = 0.1.21 (2026-11-13) =
 * Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.
 

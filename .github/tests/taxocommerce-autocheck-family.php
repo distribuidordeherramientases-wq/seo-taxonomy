@@ -5,6 +5,7 @@
  */
 $root = dirname( __DIR__, 2 );
 $ui = array(
+    'accounting' => 'taxocommerce-accounting.php',
     'auditor' => 'includes/class-admin.php',
     'campaigns' => 'includes/admin.php',
     'connections' => 'includes/class-taxocommerce-connections-autocheck.php',
@@ -29,6 +30,7 @@ $ui = array(
     'vocabulary' => 'includes/class-tcv-admin.php',
 );
 $reporter = array(
+    'accounting' => 'taxocommerce-accounting.php',
     'auditor' => 'includes/class-auto-test.php',
     'campaigns' => 'includes/autotest.php',
     'connections' => 'includes/class-taxocommerce-connections-autocheck.php',

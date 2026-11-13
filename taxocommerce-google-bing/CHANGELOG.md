@@ -1,3 +1,9 @@
+## [1.1.61] — 2026-11-13 — Competidores: visibilidad independiente de la casilla Productos populares (#2643)
+
+- La consulta de visibilidad Merchant utiliza las categorías oficiales verificadas del snapshot independientemente de que se muestre el indicador de productos populares.
+- Si el administrador selecciona solo visibilidad, los productos populares no aparecen como resultados seleccionados; se identifica correctamente el estado del indicador.
+- Amplía las pruebas de regresión para selección independiente de indicadores, sin cambiar credenciales ni llamadas de red.
+
 ## [1.1.60] — 2026-11-13 — Competidores: adquisición de fuentes verificable por bloques (#2643)
 
 - Al generar Competidores, actualiza por AJAX las fuentes elegidas: una página de Merchant Best Sellers, el conector Trends con sus límites y hasta tres categorías oficiales de visibilidad Merchant, cada una en una petición separada. No hay llamadas remotas al cargar la pantalla ni acceso a sitios de terceros.

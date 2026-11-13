@@ -368,18 +368,9 @@ function taxocommerce_insights_competitive_build_report( $days = 28 ) {
             return is_array( $row ) && taxocommerce_insights_competitive_in_scope( $row, $scope_terms );
         } ) );
     }
-    $category_counts = array();
-    foreach ( $popular as $product ) {
-        if ( ! is_array( $product ) ) {
-            continue;
-        }
-        $category_id = absint( $product['category_id'] ?? 0 );
-        if ( $category_id > 0 ) {
-            $category_counts[ $category_id ] = ( $category_counts[ $category_id ] ?? 0 ) + 1;
-        }
-    }
-    arsort( $category_counts );
-    $categories = array_slice( array_keys( $category_counts ), 0, 3 );
+    // Visibility uses verified Merchant categories even when the store chose
+    // not to display the Best Sellers indicator in its final report.
+    $categories = taxocommerce_insights_competitive_google_categories();
 
     // The AJAX flow fetched each category in a separate request. Rendering
     // never triggers a potentially 100-second chain of Merchant requests.
@@ -514,7 +505,12 @@ function taxocommerce_insights_competitive_build_report( $days = 28 ) {
         'sources' => array(
             'merchant_best_sellers' => array_merge(
                 taxocommerce_insights_competitive_source_status( 'merchant', $merchant_available, $diagnostics, (string) ( $merchant['popular']['updated_at'] ?? '' ) ),
-                array( 'complete' => ! empty( $merchant['popular']['complete'] ) )
+                array(
+                    'status' => in_array( 'popular', $settings['signals'], true )
+                        ? ( $merchant_available ? 'available' : (string) ( $diagnostics['merchant']['status'] ?? 'not_checked' ) )
+                        : 'not_selected',
+                    'complete' => ! empty( $merchant['popular']['complete'] ),
+                )
             ),
             'merchant_competitive_visibility' => array(
                 'status' => (string) ( $visibility['status'] ?? 'unavailable' ),

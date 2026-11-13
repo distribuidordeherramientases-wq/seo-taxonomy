@@ -189,6 +189,10 @@ jobs:
           php -l taxocommerce-scrappers/tests/lifecycle-smoke.php
           php taxocommerce-scrappers/tests/lifecycle-smoke.php
           php taxocommerce-social/tests/auto-test-manual-smoke.php
+          php -l taxocommerce-accounting/taxocommerce-accounting.php
+          php -l taxocommerce-accounting/tests/standalone-bootstrap-smoke.php
+          php taxocommerce-accounting/tests/standalone-bootstrap-smoke.php
+          python3 -m py_compile .github/scripts/activate_accounting_staging.py
           php taxocommerce-suppliers/tests/smoke.php
           php taxocommerce-suppliers/tests/template-creation-smoke.php
           php taxocommerce-system-check/tests/auto-test-guide-smoke.php
@@ -347,6 +351,12 @@ jobs:
         # deploy() has a bounded 3-attempt reconnect loop; never retry it 3x in bash.
         # Unbuffered output records progress and the actual failing FTPS phase.
         run: python3 -u .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target staging --slug "$SLUG" --full "$SYNC"
+      - name: Activate and verify new Accounting plugin on STAGING only
+        if: ${{ matrix.slug == 'taxocommerce-accounting' }}
+        env:
+          TC_STAGING_WP_USER: ${{ secrets.TC_STAGING_WP_USER }}
+          TC_STAGING_WP_PASSWORD: ${{ secrets.TC_STAGING_WP_PASSWORD }}
+        run: python3 .github/scripts/activate_accounting_staging.py
 
   deploy-focazul:
     name: Focazul / ${{ matrix.slug }}

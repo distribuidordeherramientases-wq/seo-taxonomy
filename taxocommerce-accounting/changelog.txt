@@ -1,0 +1,2 @@
+= 0.1.0 =
+* First standalone WooCommerce accounting ledger; draft sales, manual supplier expenses, internal monthly VAT figures and CSV/JSON exports.

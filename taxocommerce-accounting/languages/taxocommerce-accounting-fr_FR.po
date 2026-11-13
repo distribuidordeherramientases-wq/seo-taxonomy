@@ -1,0 +1,242 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: fr_FR\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "1. Set the start date; 2. import paid WooCommerce orders page by page; 3. enter actual supplier invoices and expenses; 4. verify tax classification and the issued invoice before validating an entry; 5. review months and export the ledger for your accountant."
+msgstr "1. Set the start date; 2. import paid WooCommerce orders page by page; 3. enter actual supplier invoices and expenses; 4. verify tax classification and the issued invoice before validating an entry; 5. review months and export the ledger for your accountant."
+
+msgid "Accounting"
+msgstr "Comptabilité"
+
+msgid "Accounting sections"
+msgstr "Sections comptables"
+
+msgid "Action"
+msgstr "Action"
+
+msgid "Add received invoice / expense"
+msgstr "Ajouter une facture ou une dépense"
+
+msgid "All records live in a dedicated WordPress-prefix table, with unique source/source_id keys. Imports use WooCommerce WC_Order APIs and never change orders. No TaxoCommerce sibling is required. Validated entries are immutable; corrections need a new adjustment record in a later version."
+msgstr "All records live in a dedicated WordPress-prefix table, with unique source/source_id keys. Imports use WooCommerce WC_Order APIs and never change orders. No TaxoCommerce sibling is required. Validated entries are immutable; corrections need a new adjustment record in a later version."
+
+msgid "Assets"
+msgstr "Immobilisations"
+
+msgid "Autocheck"
+msgstr "Autocheck"
+
+msgid "Base"
+msgstr "Base"
+
+msgid "Base country:"
+msgstr "Base country:"
+
+msgid "CSV and JSON are internal fiscal registers, not official AEAT files. Each export has a 20,000-row upper bound."
+msgstr "CSV and JSON are internal fiscal registers, not official AEAT files. Each export has a 20,000-row upper bound."
+
+msgid "Cannot read orders."
+msgstr "Cannot read orders."
+
+msgid "Changing this date does not erase previously imported records."
+msgstr "Changing this date does not erase previously imported records."
+
+msgid "Concept"
+msgstr "Objet"
+
+msgid "Currency:"
+msgstr "Currency:"
+
+msgid "Date"
+msgstr "Date"
+
+msgid "Deductible VAT percentage (review first)"
+msgstr "Pourcentage de TVA déductible (à vérifier)"
+
+msgid "Deductible input VAT"
+msgstr "TVA déductible"
+
+msgid "Developer guide"
+msgstr "Guide technique"
+
+msgid "Difference"
+msgstr "Différence"
+
+msgid "Document"
+msgstr "Document"
+
+msgid "Domestic VAT (verify)"
+msgstr "TVA nationale (à vérifier)"
+
+msgid "Download Autocheck JSON"
+msgstr "Télécharger le JSON du contrôle"
+
+msgid "Exempt"
+msgstr "Exonéré"
+
+msgid "Expenses"
+msgstr "Dépenses"
+
+msgid "Exports"
+msgstr "Exports"
+
+msgid "Failure of draft/review checks means fiscal data needs validation, not that the plugin runtime has failed."
+msgstr "Failure of draft/review checks means fiscal data needs validation, not that the plugin runtime has failed."
+
+msgid "Fecha de ejecución:"
+msgstr "Fecha de ejecución:"
+
+msgid "Financial year:"
+msgstr "Exercice :"
+
+msgid "First real commercial date:"
+msgstr "Début des opérations réelles :"
+
+msgid "Fiscal ledger settings"
+msgstr "Paramètres du registre fiscal"
+
+msgid "Fiscal register, VAT review, supplier invoices and export. No tax return is filed automatically."
+msgstr "Fiscal register, VAT review, supplier invoices and export. No tax return is filed automatically."
+
+msgid "Import page %d (up to 25 orders)"
+msgstr "Importer la page %d (25 commandes maximum)"
+
+msgid "Imports only paid-status orders dated after the configured start. All imported records remain drafts until invoice and VAT verification; repeated imports do not duplicate them."
+msgstr "Imports only paid-status orders dated after the configured start. All imported records remain drafts until invoice and VAT verification; repeated imports do not duplicate them."
+
+msgid "Input VAT amount"
+msgstr "TVA déductible potentielle"
+
+msgid "Insufficient permissions."
+msgstr "Insufficient permissions."
+
+msgid "Internal exports"
+msgstr "Exports internes"
+
+msgid "Intra-EU"
+msgstr "Intracommunautaire"
+
+msgid "Invalid year."
+msgstr "Invalid year."
+
+msgid "Invoice number"
+msgstr "Numéro de facture"
+
+msgid "Issued invoice number"
+msgstr "Numéro de facture émise"
+
+msgid "Manual"
+msgstr "Manuel"
+
+msgid "Model 303 — preliminary working figures"
+msgstr "Model 303 — preliminary working figures"
+
+msgid "Month"
+msgstr "Mois"
+
+msgid "Monthly fiscal summary (validated domestic entries only)"
+msgstr "Synthèse mensuelle (écritures nationales validées)"
+
+msgid "Next import page"
+msgstr "Page d'import suivante"
+
+msgid "No entries in this section."
+msgstr "Aucune écriture dans cette section."
+
+msgid "Notes / document reference"
+msgstr "Notes / justificatif"
+
+msgid "Other tax forms (390, 347, 349, 200) require their own eligibility rules and are not generated in this first version."
+msgstr "Other tax forms (390, 347, 349, 200) require their own eligibility rules and are not generated in this first version."
+
+msgid "Output VAT"
+msgstr "TVA collectée"
+
+msgid "Party"
+msgstr "Tiers"
+
+msgid "Pending review"
+msgstr "En attente de vérification"
+
+msgid "Purchases / expenses"
+msgstr "Achats / dépenses"
+
+msgid "Read-only functional Autocheck"
+msgstr "Contrôle fonctionnel en lecture seule"
+
+msgid "Received invoices"
+msgstr "Factures reçues"
+
+msgid "Refund requires credit-note and VAT verification."
+msgstr "Refund requires credit-note and VAT verification."
+
+msgid "Requires review"
+msgstr "À vérifier"
+
+msgid "Reverse charge"
+msgstr "Autoliquidation"
+
+msgid "Sales"
+msgstr "Ventes"
+
+msgid "Save draft"
+msgstr "Enregistrer le brouillon"
+
+msgid "Save settings"
+msgstr "Enregistrer les paramètres"
+
+msgid "Settings"
+msgstr "Paramètres"
+
+msgid "Status"
+msgstr "Statut"
+
+msgid "Summary"
+msgstr "Résumé"
+
+msgid "Supplier"
+msgstr "Fournisseur"
+
+msgid "Tax identification"
+msgstr "Identification fiscale"
+
+msgid "Tax returns"
+msgstr "Déclarations fiscales"
+
+msgid "Taxable base"
+msgstr "Base imposable"
+
+msgid "TaxoCommerce Accounting"
+msgstr "Comptabilité TaxoCommerce"
+
+msgid "The simplified amounts above are NOT an official Model 303, and do not include reverse charge, imports, exemptions, regional VAT regimes, carryovers or corrections. Do not submit them to the tax authority without professional review."
+msgstr "The simplified amounts above are NOT an official Model 303, and do not include reverse charge, imports, exemptions, regional VAT regimes, carryovers or corrections. Do not submit them to the tax authority without professional review."
+
+msgid "Total"
+msgstr "Total"
+
+msgid "Unverified order: reconcile the issued invoice, taxes and possible refunds before approval."
+msgstr "Unverified order: reconcile the issued invoice, taxes and possible refunds before approval."
+
+msgid "User guide"
+msgstr "Guide utilisateur"
+
+msgid "VAT"
+msgstr "TVA"
+
+msgid "VAT treatment"
+msgstr "Traitement TVA"
+
+msgid "Validate"
+msgstr "Valider"
+
+msgid "WooCommerce is unavailable."
+msgstr "WooCommerce is unavailable."
+
+msgid "WooCommerce sales / refunds"
+msgstr "Ventes et remboursements WooCommerce"
+
+msgid "Year contains over 400 entries; use the exports for full reporting. This dashboard is limited."
+msgstr "Year contains over 400 entries; use the exports for full reporting. This dashboard is limited."
