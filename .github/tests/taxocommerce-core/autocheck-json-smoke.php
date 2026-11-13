@@ -42,7 +42,9 @@ function add_action( $name, $callback ) { $GLOBALS['registered_hooks'][ $name ] 
 function current_user_can( $cap ) { return (bool) $GLOBALS['allowed']; }
 function apply_filters( $tag, $value ) { return $value; }
 function get_current_user_id() { return 7; }
+function get_current_blog_id() { return 1; }
 function get_transient( $key ) {
+    if ( 'tc_core_code_1_7' === $key ) { return false; }
     check( 'taxocommerce_core_autotest_7' === $key, 'Reports are strictly scoped to authenticated user' );
     $GLOBALS['transient_reads']++;
     return $GLOBALS['saved_report'];
@@ -68,6 +70,7 @@ function esc_url( $value ) { return esc_html( $value ); }
 function esc_html_e( $value, $domain = '' ) { echo esc_html( $value ); }
 function esc_attr_e( $value, $domain = '' ) { echo esc_attr( $value ); }
 function wp_nonce_field( $nonce, $field ) { echo '<input name="' . esc_attr( $field ) . '" value="valid">'; }
+function selected( $value, $current, $echo = true ) { return (string) $value === (string) $current ? ' selected="selected"' : ''; }
 function submit_button( $label, $style = '', $name = '', $wrap = false ) { echo '<button type="submit">' . esc_html( $label ) . '</button>'; }
 function admin_url( $path = '' ) { return 'https://asociacionfocazul.example/wp-admin/' . $path; }
 function add_query_arg( $query, $value, $url = '' ) { return is_array( $query ) ? $value . '?' . http_build_query( $query ) : ( $url ?: admin_url( 'admin.php?page=taxocommerce-core' ) ) . '&' . rawurlencode( $query ) . '=' . rawurlencode( (string) $value ); }
@@ -142,6 +145,19 @@ check( strpos( $html, 'taxocommerce_core_export_auto_test_json' ) !== false, 'Do
 check( strpos( $html, 'tc_autotest_export_nonce' ) !== false, 'Download button has its own nonce' );
 check( strpos( $html, 'No se pudieron cargar las páginas' ) !== false, 'Failure displayed in UI' );
 check( strpos( $html, 'No ejecutada; requiere UAT' ) !== false, 'Skipped test displayed in UI' );
+
+// Switching to Code Check keeps the same Core hero, and never runs the functional suite.
+$_GET['tc_autotest_section'] = 'code';
+ob_start();
+TaxoCommerce_Core_Auto_Test::render();
+$code_html = ob_get_clean();
+check( strpos( $code_html, 'tcc-hero' ) !== false, 'Code Check retains Core header' );
+check( strpos( $code_html, 'Core navigation: autocheck' ) !== false, 'Code Check stays in Core Autocheck' );
+check( strpos( $code_html, 'Run Code Check' ) !== false, 'Code Check form is available' );
+check( strpos( $code_html, 'tc_autotest_manual_run' ) === false, 'Functional form is hidden on Code Check' );
+check( strpos( $code_html, 'No se pudieron cargar las páginas' ) === false, 'Functional results are hidden on Code Check' );
+unset( $_GET['tc_autotest_section'] );
+
 
 $GLOBALS['saved_report'] = false;
 ob_start();
