@@ -385,7 +385,6 @@ final class TaxoCommerce_Core_Autotest_Code {
         if ( $state['cursor'] >= $total ) {
             $state['status'] = 'completed';
         }
-        $state['classified_findings'] = self::classified_findings( $state );
         $state['summary'] = self::summary( $state );
         $state['updated_at'] = gmdate( 'c' );
         return $state;
