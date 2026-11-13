@@ -35,6 +35,7 @@
 	if (sync) {
 		const startButton = document.getElementById('tccust-sync-start');
 		const stopButton = document.getElementById('tccust-sync-stop');
+		const speed = document.getElementById('tccust-sync-speed');
 		let syncing = false, stopped = false, token = '';
 
 		stopButton.addEventListener('click', function () {
@@ -51,7 +52,7 @@
 				token = first.token;
 				let done = false;
 				while (!done && !stopped) {
-					const result = await send(sync, 'tccust_sync_batch', { token: token, size: 50 });
+					const result = await send(sync, 'tccust_sync_batch', { token: token, size: Number(speed.value) || 50 });
 					done = !!result.done;
 					update(sync, t('syncing', 'Syncing paid WooCommerce orders...') + ' ' +
 						result.page + '/' + result.pages + ' · ' + result.linked,
@@ -74,7 +75,7 @@
 				stopButton.hidden = true; stopButton.disabled = false;
 			}
 		}
-		startButton.addEventListener('click', function () { run(true); });
+		startButton.addEventListener('click', function () { run(sync.dataset.auto !== '1'); });
 		if (sync.dataset.auto === '1') { run(false); }
 	}
 

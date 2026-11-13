@@ -187,6 +187,12 @@ final class TCCUST_Admin {
 				. '" data-ajax="' . esc_url( admin_url( 'admin-ajax.php' ) )
 				. '" data-nonce="' . esc_attr( wp_create_nonce( TCCUST_Sync::NONCE ) ) . '">';
 			echo '<p><button type="button" class="button" id="tccust-sync-start">' . esc_html__( 'Synchronize WooCommerce buyers', 'taxocommerce-customers' ) . '</button> ';
+			echo '<label for="tccust-sync-speed">' . esc_html__( 'Processing speed', 'taxocommerce-customers' ) . '</label> ';
+			echo '<select id="tccust-sync-speed"><option value="10">' . esc_html__( '1 - Very low', 'taxocommerce-customers' ) . '</option>';
+			echo '<option value="25">' . esc_html__( '2 - Low', 'taxocommerce-customers' ) . '</option>';
+			echo '<option value="50" selected>' . esc_html__( '3 - Normal', 'taxocommerce-customers' ) . '</option>';
+			echo '<option value="75">' . esc_html__( '4 - High', 'taxocommerce-customers' ) . '</option>';
+			echo '<option value="100">' . esc_html__( '5 - Maximum', 'taxocommerce-customers' ) . '</option></select> ';
 			echo '<button type="button" class="button" id="tccust-sync-stop" hidden>' . esc_html__( 'Stop', 'taxocommerce-customers' ) . '</button></p>';
 			echo '<p id="tccust-sync-status" role="status" aria-live="polite"></p><progress id="tccust-sync-progress" hidden max="100" value="0"></progress></div>';
 		} else {

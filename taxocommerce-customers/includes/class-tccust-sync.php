@@ -191,6 +191,7 @@ final class TCCUST_Sync {
 			wp_send_json_error( array( 'message' => __( 'WooCommerce did not return a paginated order list.', 'taxocommerce-customers' ) ), 500 );
 		}
 		$started = microtime( true );
+		$processed_this_batch = 0;
 		$batch_ids = $orders->orders;
 		// Limit query size to small batches for hosting without SSH.
 		foreach ( $batch_ids as $order_id ) {
@@ -203,11 +204,12 @@ final class TCCUST_Sync {
 				$result = 'skipped';
 			}
 			++$state[ $result ];
+			++$processed_this_batch;
 		}
 		// A page must be fully consumed before advancing to avoid missing buyers
 		// when a CPU-bounded worker hits its time limit.
 		$processed = $state['linked'] + $state['skipped'] + $state['conflict'] + $state['error'];
-		$done_page = count( $batch_ids ) <= $limit && ( microtime( true ) - $started ) <= 8;
+		$done_page = $processed_this_batch === count( $batch_ids );
 		if ( ! $done_page ) {
 			// Progress must not pretend a partially consumed page is complete.
 			wp_send_json_error( array( 'message' => __( 'A WooCommerce page exceeded the processing limit. Select a lower speed and retry.', 'taxocommerce-customers' ) ), 429 );
