@@ -234,6 +234,7 @@ function tcsocial_programador_create_job($content_id, $provider, $timestamp, $te
         $scheduled = wp_schedule_single_event($timestamp, 'tcsocial_programador_run_job', $args, true);
         if (is_wp_error($scheduled) || !$scheduled) {
             // No indicar éxito si WordPress no ha creado el evento.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Estado de fallo de una tarea propia: persistencia inmediata necesaria para no informar éxito falso.
             $wpdb->update(
                 $table,
                 array(
@@ -459,6 +460,7 @@ function tcsocial_programador_handle_retry()
         );
         $scheduled = wp_schedule_single_event($run_at, 'tcsocial_programador_run_job', array($schedule_id), true);
         if (is_wp_error($scheduled) || !$scheduled) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Guardado inmediato de rechazo de reintento en tabla propia.
             $wpdb->update(
                 tcsocial_programador_table(),
                 array('status' => 'failed', 'error_message' => 'WP-Cron ha rechazado el reintento.', 'updated_at' => current_time('mysql')),
