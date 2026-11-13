@@ -674,15 +674,23 @@ final class TCSUP_Admin {
 					<button class="button button-primary"><?php esc_html_e( 'Apply', 'taxocommerce-suppliers' ); ?></button>
 				</div>
 				<div class="tcsup-scroll"><table class="widefat striped">
-					<thead><tr><th><input type="checkbox" id="tcsup-select-page" aria-label="<?php echo esc_attr__( 'Select all rows on this page', 'taxocommerce-suppliers' ); ?>"></th><th><?php esc_html_e( 'Supplier', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'External identity', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Product', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Market', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Supplier price', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Stock', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Decision', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Sync', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Woo ID', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Actions', 'taxocommerce-suppliers' ); ?></th></tr></thead>
+					<thead><tr><th><input type="checkbox" id="tcsup-select-page" aria-label="<?php echo esc_attr__( 'Select all rows on this page', 'taxocommerce-suppliers' ); ?>"></th><th><?php esc_html_e( 'Supplier', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'External identity', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Product', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Supplier product', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Market', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Supplier price', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Stock', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Decision', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Sync', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Woo ID', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Actions', 'taxocommerce-suppliers' ); ?></th></tr></thead>
 					<tbody>
-					<?php if ( ! $rows ) : ?><tr><td colspan="11"><?php esc_html_e( 'No supplier rows match the current filters.', 'taxocommerce-suppliers' ); ?></td></tr><?php endif; ?>
+					<?php if ( ! $rows ) : ?><tr><td colspan="12"><?php esc_html_e( 'No supplier rows match the current filters.', 'taxocommerce-suppliers' ); ?></td></tr><?php endif; ?>
 					<?php foreach ( $rows as $row ) : ?>
 						<tr>
 							<td><input type="checkbox" name="row_ids[]" value="<?php echo esc_attr( $row['id'] ); ?>"></td>
 							<td><strong><?php echo esc_html( $row['proveedor'] ); ?></strong></td>
 							<td><code><?php echo esc_html( $row['proveedor_id_externo'] ); ?></code><br><small><?php echo esc_html( $row['sku'] ); ?></small></td>
 							<td><strong><?php echo esc_html( $row['nombre'] ); ?></strong><br><small><?php echo esc_html( $row['marca'] ); ?></small></td>
+							<?php
+							// Use the same supplier product URL priority as the existing Purchasing tab.
+							$supplier_url = esc_url( trim( (string) ( $row['url_origen'] ?? '' ) ) );
+							if ( '' === $supplier_url ) {
+								$supplier_url = esc_url( trim( (string) ( $row['url_canonica'] ?? '' ) ) );
+							}
+							?>
+							<td><?php if ( '' !== $supplier_url ) : ?><a class="button button-small" href="<?php echo esc_url( $supplier_url ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Purchase', 'taxocommerce-suppliers' ); ?></a><?php else : ?>—<?php endif; ?></td>
 							<td><?php echo esc_html( $row['pais_origen'] ?: '—' ); ?></td>
 							<td><?php echo esc_html( ( '' !== (string) $row['precio_con_iva'] ? $row['precio_con_iva'] : $row['precio_sin_iva'] ) . ' ' . $row['moneda'] ); ?></td>
 							<td><?php echo esc_html( '' !== (string) $row['stock_cantidad'] ? $row['stock_cantidad'] : $row['stock_estado'] ); ?></td>

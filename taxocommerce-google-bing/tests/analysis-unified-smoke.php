@@ -35,7 +35,10 @@ function update_option( $name, $value, $autoload = null ) {
 }
 function wp_date( $format, $timestamp ) { return gmdate( $format, $timestamp ); }
 function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
-function wp_nonce_url( $url, $action ) { return $url . '&_wpnonce=' . rawurlencode( $action ); }
+// Match WordPress: wp_nonce_url() returns an HTML-escaped URL, which is
+// invalid if injected directly by JavaScript .attr('href', rawAjaxUrl).
+function wp_nonce_url( $url, $action ) { return $url . '&amp;_wpnonce=' . rawurlencode( $action ); }
+function wp_create_nonce( $action ) { return 'test_nonce_' . $action; }
 function sanitize_text_field( $value ) { return strip_tags( (string) $value ); }
 function wp_strip_all_tags( $html ) { return strip_tags( (string) $html ); }
 function add_query_arg( $args, $url ) { return $url . '?' . http_build_query( $args ); }
@@ -69,6 +72,19 @@ function seo_analista_lazy_render_partial( $report, $days ) {
         $GLOBALS['invocations']['other']++;
         echo '<section>Informe especializado ' . esc_html( $report ) . '</section>';
     }
+}
+// The one-click Competition report introduced in Insights 1.1.54 builds
+// and saves before rendering. Stub its owned helpers in this offline test.
+function taxocommerce_insights_competitive_build_report( $days ) {
+    return array(
+        'schema' => array( 'name' => 'seo_analista_competitive_report', 'version' => 2 ),
+        'period_days' => (int) $days,
+        'opportunities' => array(),
+    );
+}
+function taxocommerce_insights_competitive_save_report( $report ) {
+    $GLOBALS['mock_options']['taxocommerce_insights_competitive_report_v2'] = $report;
+    return true;
 }
 function taxocommerce_insights_competitive_render_panel( $days ) {
     $GLOBALS['invocations']['competition']++;
@@ -158,6 +174,13 @@ insights_check( false === $GLOBALS['last_autoload'], 'latest market plan is neve
 insights_check( $export === taxocommerce_insights_last_plan_export(), 'market plan stored for standalone download' );
 insights_check( ! empty( $result['data']['plan_saved_at_display'] ), 'latest JSON date returned' );
 insights_check( false !== strpos( taxocommerce_insights_plan_json_download_url(), 'admin-post.php?action=taxocommerce_insights_plan_json_download' ), 'signed download retained' );
+// AJAX JSON must carry literal ampersands: HTML entities cannot be assigned
+// directly to href with jQuery .attr(), or WordPress receives amp;_wpnonce.
+$plan_url = taxocommerce_insights_plan_json_download_url();
+insights_check( false === strpos( $plan_url, '&amp;' ) && false === strpos( $plan_url, '&#038;' ), 'plan URL uses raw query separators' );
+parse_str( (string) parse_url( $plan_url, PHP_URL_QUERY ), $plan_params );
+insights_check( 'test_nonce_taxocommerce_insights_plan_json_download' === ( $plan_params['_wpnonce'] ?? '' ), 'plan nonce parsed as _wpnonce' );
+insights_check( 'taxocommerce_insights_plan_json_download' === ( $plan_params['action'] ?? '' ), 'plan download action preserved' );
 
 $_POST = array( 'report' => 'resumen', 'days' => '60' );
 try {
@@ -166,6 +189,16 @@ try {
 }
 insights_check( true === $GLOBALS['last_response']['success'], 'specialist report still available' );
 insights_check( 60 === taxocommerce_insights_last_report_export( 'resumen', 60 )['period_days'], 'specialist report saved' );
+// Report URL returned inside the AJAX JSON must be usable by the same
+// session without an HTML entity decoding step.
+$report_url = (string) ( $GLOBALS['last_response']['data']['report_download_url'] ?? '' );
+insights_check( false !== $report_url && '' !== $report_url, 'AJAX supplies signed report URL' );
+insights_check( false === strpos( $report_url, '&amp;' ) && false === strpos( $report_url, '&#038;' ), 'AJAX report URL contains no HTML entities' );
+parse_str( (string) parse_url( $report_url, PHP_URL_QUERY ), $report_params );
+insights_check( 'test_nonce_taxocommerce_insights_report_json_download' === ( $report_params['_wpnonce'] ?? '' ), 'report nonce parsed as _wpnonce' );
+insights_check( 'resumen' === ( $report_params['report'] ?? '' ) && '60' === (string) ( $report_params['days'] ?? '' ), 'report and period preserved in download' );
+insights_check( 'taxocommerce_insights_report_json_download' === ( $report_params['action'] ?? '' ), 'report download action preserved' );
+insights_check( false !== strpos( $report_url, '&_wpnonce=' ), 'JavaScript href receives a literal ampersand before nonce' );
 insights_check( ! isset( $GLOBALS['last_response']['data']['plan_export'] ), 'specialist report does not export market plan' );
 insights_check( $export === taxocommerce_insights_last_plan_export(), 'specialist does not replace last market plan' );
 insights_check( 0 === $GLOBALS['invocations']['decision_plan'], 'specialist report did not trigger editorial plan' );

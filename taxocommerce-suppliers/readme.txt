@@ -4,12 +4,15 @@ Tags: woocommerce, suppliers, csv, inventory, prices
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.23
+Stable tag: 0.2.24
 License: GPLv2 or later
 
 CSV-only supplier catalogue management for the TaxoCommerce family.
 
 == Description ==
+
+Version 0.2.24 adds a direct link to each supplier's product page in the Inventory table, without requiring a WooCommerce order. Uses the original supplier URL or a canonical fallback when available; does not change any supplier or WooCommerce data.
+
 
 Version 0.2.23 adds a searchable, paginated global price-history inventory and CPU-batched CSV import/export. CSV exports preserve supplier identity, date, cost, regular/sale/effective prices and source; imports append history only after identity and duplicate checks, and never overwrite WooCommerce or supplier catalogue prices.
 
@@ -29,7 +32,7 @@ Included:
 * Reusable CSV mapping templates.
 * Generic canonical CSV import format and price-only update format; no provider templates preinstalled.
 * Compatibility with existing regional CSV feed parsing without preloading third-party supplier presets.
-* Intermediate inventory with pending, review, accepted, and discarded decisions.
+* Intermediate inventory with pending, review, accepted, and discarded decisions, including a direct link to the supplier product when available.
 * WooCommerce product linking/creation on acceptance.
 * Supplier price correction and optional WooCommerce price updates.
 * Append-only supplier and selling-price snapshots, with a read-only history viewer for each inventory row.
@@ -55,6 +58,9 @@ Explicitly excluded:
 4. The plugin installs its own supplier price history table automatically; history starts at the first captured observation.
 
 == Changelog ==
+
+= 0.2.24 =
+* Link to the supplier's product page directly from Inventory, with safe external navigation and canonical URL fallback. Issue #2610.
 
 = 0.2.23 =
 * Global historical price inventory with supplier/product/date filters, previous price and change; batch CSV export/import with duplicate protection. Issue #2600.
