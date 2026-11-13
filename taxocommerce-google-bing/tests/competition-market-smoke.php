@@ -102,6 +102,16 @@ check_market( false !== strpos( $source, "check_admin_referer( 'taxocommerce_ins
 check_market( false !== strpos( $source, "tgb_tab' => 'analysis'" ), 'post/redirect returns to Insights tab' );
 
 check_market( 1 === count( $GLOBALS['test_options'][TAXOCOMMERCE_INSIGHTS_COMPETITIVE_HISTORY_OPTION] ), 'history kept' );
+// The admin-post redirect must re-open the saved panel instead of the generic
+// Analysis menu. No remote provider calls may be triggered by page restoration.
+$analysis_screen = file_get_contents( __DIR__ . '/../taxocommerce-google-bing.php' );
+check_market( false !== strpos( $source, "'analysis_open' => 'competencia'" ), 'generate and settings preserve selected report' );
+check_market( false !== strpos( $source, "'analysis_days' => $days" ), 'redirect uses Analysis period argument' );
+check_market( false !== strpos( $source, "'#seo-analista-lazy-result'" ), 'return targets report container' );
+check_market( false !== strpos( $analysis_screen, "'competencia' === $open_report" ), 'Analysis restores the selected report' );
+check_market( false !== strpos( $analysis_screen, 'taxocommerce_insights_competitive_render_panel( $days );' ), 'return paints saved snapshot' );
+check_market( false === strpos( $analysis_screen, 'taxocommerce_insights_competitive_build_report( $days );' ), 'return never regenerates the report' );
+check_market( false !== strpos( $source, 'name="analysis_days"' ), 'settings form preserves report period' );
 // Data is optional; report must still work with no external Merchant evidence.
 $report['sources']['merchant_competitive_visibility']['status'] = 'unavailable';
 check_market( 'unavailable' === $report['sources']['merchant_competitive_visibility']['status'], 'missing data explicit' );
