@@ -187,4 +187,5 @@ try {
 } catch ( RuntimeException $e ) {
     check( strpos( $e->getMessage(), 'No hay un informe' ) !== false, 'Expired report requires a fresh run' );
 }
+require __DIR__ . '/core-native-code-rules-smoke.php';
 echo 'PASS: ' . $GLOBALS['count'] . " Core Autocheck export/permission/UI assertions.\n";
