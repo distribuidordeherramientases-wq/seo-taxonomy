@@ -263,7 +263,7 @@ def existing_file_hash(ftp, name):
 
 
 def upload_plugin(ftp, target, slug, files, required):
-    # Issues #2290 and #2644 authorize first installation only to the named sites.
+    # Issues #2290, #2644 and #2651 authorize first installation only to their named sites.
     # Accounting is allowed solely on STAGING, never Focazul or PRO.
     new_plugin_install = False
     try:
@@ -271,7 +271,7 @@ def upload_plugin(ftp, target, slug, files, required):
     except ftplib.error_perm as exc:
         if not str(exc).startswith("550"):
             raise
-        if (slug == "taxocommerce-tasks" and target in ("staging", "focazul")) or (
+        if (slug in ("taxocommerce-tasks", "taxocommerce-customers") and target in ("staging", "focazul")) or (
             slug == "taxocommerce-accounting" and target == "staging"
         ):
             plugin_parent = remote_plugin_dir(target, slug).rsplit(slug + "/", 1)[0]
@@ -279,7 +279,7 @@ def upload_plugin(ftp, target, slug, files, required):
             ftp.mkd(slug)
             ftp.cwd(slug)
             new_plugin_install = True
-            issue = "#2644" if slug == "taxocommerce-accounting" else "#2290"
+            issue = {"taxocommerce-accounting": "#2644", "taxocommerce-tasks": "#2290", "taxocommerce-customers": "#2651"}[slug]
             print(f"INSTALL {target}/{slug}: explicitly authorized by Issue {issue}")
         elif not required:
             print(f"SKIP {slug}: plugin directory absent on this WordPress")
@@ -287,6 +287,12 @@ def upload_plugin(ftp, target, slug, files, required):
         else:
             raise RuntimeError(f"{slug}: installed plugin directory is inaccessible") from exc
     root = ftp.pwd()
+    if new_plugin_install:
+        # A new directory must receive the COMPLETE installable plugin, not
+        # only the files changed since the last successful workflow baseline.
+        files = plugin_source_files(slug)
+        if slug + ".php" not in files:
+            raise RuntimeError(f"{slug}: first-install entrypoint missing from tracked sources")
     # Preexisting plugins must have the entrypoint; never repair unknown installs.
     if not new_plugin_install and existing_file_hash(ftp, slug + ".php") is None:
         if not required:
