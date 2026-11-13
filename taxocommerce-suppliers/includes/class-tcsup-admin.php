@@ -31,6 +31,7 @@ final class TCSUP_Admin {
 		add_action( 'admin_post_tcsup_settings', array( __CLASS__, 'handle_settings' ) );
 		TCSUP_History_Transfer::boot();
 		TCSUP_Profiles::boot();
+		TCSUP_Profiles_Transfer::boot();
 	}
 
 	public static function capability() {
@@ -76,6 +77,24 @@ final class TCSUP_Admin {
 				'duplicates' => __( 'Duplicates: ', 'taxocommerce-suppliers' ),
 				'unmatched' => __( 'Unmatched: ', 'taxocommerce-suppliers' ),
 				'invalid' => __( 'Invalid: ', 'taxocommerce-suppliers' ),
+				'serverError' => __( 'Server request failed.', 'taxocommerce-suppliers' ),
+			) );
+		}
+		if ( 'providers' === self::active_tab() ) {
+			wp_enqueue_script( 'tcsup-profiles-transfer', TAXOCOMMERCE_SUPPLIERS_URL . 'assets/profiles-transfer.js', array(), TAXOCOMMERCE_SUPPLIERS_VERSION, true );
+			wp_localize_script( 'tcsup-profiles-transfer', 'tcsupProfilesStrings', array(
+				'exporting' => __( 'Exporting supplier records...', 'taxocommerce-suppliers' ),
+				'exportDone' => __( 'Exported supplier records: ', 'taxocommerce-suppliers' ),
+				'importing' => __( 'Importing supplier records...', 'taxocommerce-suppliers' ),
+				'importDone' => __( 'Import completed. ', 'taxocommerce-suppliers' ),
+				'added' => __( 'Created: ', 'taxocommerce-suppliers' ),
+				'updated' => __( 'Updated: ', 'taxocommerce-suppliers' ),
+				'unchanged' => __( 'Unchanged: ', 'taxocommerce-suppliers' ),
+				'unmatched' => __( 'Unknown: ', 'taxocommerce-suppliers' ),
+				'invalid' => __( 'Invalid: ', 'taxocommerce-suppliers' ),
+				'stopping' => __( 'Stopping import after the current batch...', 'taxocommerce-suppliers' ),
+				'stopped' => __( 'Import stopped. Completed batches are retained.', 'taxocommerce-suppliers' ),
+				'sampleErrors' => __( 'First invalid or unmatched rows: ', 'taxocommerce-suppliers' ),
 				'serverError' => __( 'Server request failed.', 'taxocommerce-suppliers' ),
 			) );
 		}

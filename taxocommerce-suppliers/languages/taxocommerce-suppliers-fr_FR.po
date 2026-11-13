@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Suppliers 0.2.26\n"
+"Project-Id-Version: TaxoCommerce Suppliers 0.2.27\n"
 "Language: fr_FR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1959,3 +1959,72 @@ msgstr "Cliquez sur Créer une fiche ou Modifier pour saisir la raison sociale, 
 
 msgid "Eliminar ficha borra únicamente los datos de contacto. Si el proveedor continúa en el inventario, seguirá visible y se podrá volver a rellenar. Eliminar la ficha no borra ni modifica importaciones, productos, precios o pedidos."
 msgstr "Supprimer la fiche efface uniquement les coordonnées. Si le fournisseur figure toujours dans l’inventaire, il reste visible et sa fiche peut être remplie à nouveau. Les importations, produits, prix et commandes ne sont ni supprimés ni modifiés."
+
+msgid "Exporting supplier records..."
+msgstr "Exportation des fiches fournisseurs..."
+
+msgid "Exported supplier records: "
+msgstr "Fiches fournisseurs exportées : "
+
+msgid "Importing supplier records..."
+msgstr "Importation des fiches fournisseurs..."
+
+msgid "Import completed. "
+msgstr "Importation terminée. "
+
+msgid "Created: "
+msgstr "Créées : "
+
+msgid "Updated: "
+msgstr "Mises à jour : "
+
+msgid "Unchanged: "
+msgstr "Sans modification : "
+
+msgid "Unknown: "
+msgstr "Inconnus : "
+
+msgid "Stopping import after the current batch..."
+msgstr "Arrêt de l’importation après le lot actuel..."
+
+msgid "Import stopped. Completed batches are retained."
+msgstr "Importation arrêtée. Les lots terminés sont conservés."
+
+msgid "First invalid or unmatched rows: "
+msgstr "Premières lignes invalides ou sans correspondance : "
+
+msgid "Bulk import / export of supplier records"
+msgstr "Importation / exportation groupée des fiches fournisseurs"
+
+msgid "Export all inventory suppliers as an editable CSV, including blank records. Import the same CSV to create or replace their private contact details; products, prices and orders never change."
+msgstr "Exportez tous les fournisseurs en CSV modifiable, y compris les fiches vides. Réimportez-le pour créer ou modifier les coordonnées privées ; produits, prix et commandes restent inchangés."
+
+msgid "Export supplier records CSV"
+msgstr "Exporter les fiches CSV"
+
+msgid "Supplier records CSV file"
+msgstr "Fichier CSV des fiches fournisseurs"
+
+msgid "Import supplier records CSV"
+msgstr "Importer les fiches CSV"
+
+msgid "Cancel import"
+msgstr "Arrêter l’importation"
+
+msgid "Only suppliers already present in Inventory can be imported. Blank CSV cells replace existing values. Export a backup first. Files up to 50 MB (or the server limit) are processed in small batches without cron."
+msgstr "Seuls les fournisseurs de l’inventaire peuvent être importés. Les cellules vides remplacent les valeurs existantes. Exportez une sauvegarde. Les fichiers jusqu’à 50 Mo (ou la limite du serveur) sont traités par lots sans cron."
+
+msgid "Invalid supplier records CSV or the file exceeds 50 MB."
+msgstr "CSV des fiches invalide ou fichier supérieur à 50 Mo."
+
+msgid "The CSV columns do not match the supplier record export. Download a fresh CSV first."
+msgstr "Les colonnes CSV ne correspondent pas à l’export des fiches. Téléchargez un nouveau CSV."
+
+msgid "Invalid or expired supplier import session."
+msgstr "Session d’importation des fournisseurs invalide ou expirée."
+
+msgid "Supplier import is already running."
+msgstr "Une importation de fournisseurs est déjà en cours."
+
+msgid "Para editar muchas fichas, descarga el CSV desde Gestión de proveedores. El archivo incluye también proveedores sin ficha. Rellena las columnas conservando los nombres de proveedor y vuelve a importarlo. Se validan las identidades existentes; los nombres desconocidos se omiten. Los campos vacíos sobrescriben los valores anteriores. La importación se procesa por bloques y permite detenerse sin revertir los bloques ya completados."
+msgstr "Pour modifier plusieurs fiches, exportez le CSV depuis Gestion des fournisseurs. Il comprend les fournisseurs sans fiche. Complétez les colonnes sans changer les noms puis réimportez-le. Les fournisseurs inconnus sont ignorés. Les cellules vides écrasent les valeurs précédentes. L’importation est effectuée par lots et peut être arrêtée sans annuler les lots terminés."

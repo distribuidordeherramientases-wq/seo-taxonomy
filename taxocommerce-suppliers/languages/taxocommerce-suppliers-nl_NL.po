@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Suppliers 0.2.26\n"
+"Project-Id-Version: TaxoCommerce Suppliers 0.2.27\n"
 "Language: nl_NL\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1958,3 +1958,72 @@ msgstr "Klik op Fiche aanmaken of Bewerken om bedrijfsnaam, fiscaal nummer, cont
 
 msgid "Eliminar ficha borra únicamente los datos de contacto. Si el proveedor continúa en el inventario, seguirá visible y se podrá volver a rellenar. Eliminar la ficha no borra ni modifica importaciones, productos, precios o pedidos."
 msgstr "Fiche verwijderen wist alleen de contactgegevens. Zolang de leverancier in de voorraad staat, blijft deze zichtbaar en kan de fiche opnieuw worden ingevuld. Importen, producten, prijzen en bestellingen blijven ongewijzigd."
+
+msgid "Exporting supplier records..."
+msgstr "Leveranciersfiches exporteren..."
+
+msgid "Exported supplier records: "
+msgstr "Geëxporteerde leveranciersfiches: "
+
+msgid "Importing supplier records..."
+msgstr "Leveranciersfiches importeren..."
+
+msgid "Import completed. "
+msgstr "Import voltooid. "
+
+msgid "Created: "
+msgstr "Aangemaakt: "
+
+msgid "Updated: "
+msgstr "Bijgewerkt: "
+
+msgid "Unchanged: "
+msgstr "Ongewijzigd: "
+
+msgid "Unknown: "
+msgstr "Onbekend: "
+
+msgid "Stopping import after the current batch..."
+msgstr "Import stopt na de huidige batch..."
+
+msgid "Import stopped. Completed batches are retained."
+msgstr "Import gestopt. Voltooide batches blijven behouden."
+
+msgid "First invalid or unmatched rows: "
+msgstr "Eerste ongeldige of niet-overeenkomende rijen: "
+
+msgid "Bulk import / export of supplier records"
+msgstr "Bulkimport / -export van leveranciersfiches"
+
+msgid "Export all inventory suppliers as an editable CSV, including blank records. Import the same CSV to create or replace their private contact details; products, prices and orders never change."
+msgstr "Exporteer alle leveranciers naar een bewerkbare CSV, ook lege fiches. Importeer deze CSV om privécontactgegevens aan te maken of bij te werken; producten, prijzen en bestellingen blijven ongewijzigd."
+
+msgid "Export supplier records CSV"
+msgstr "Leveranciersfiches als CSV exporteren"
+
+msgid "Supplier records CSV file"
+msgstr "CSV-bestand met leveranciersfiches"
+
+msgid "Import supplier records CSV"
+msgstr "Leveranciersfiches uit CSV importeren"
+
+msgid "Cancel import"
+msgstr "Import stoppen"
+
+msgid "Only suppliers already present in Inventory can be imported. Blank CSV cells replace existing values. Export a backup first. Files up to 50 MB (or the server limit) are processed in small batches without cron."
+msgstr "Alleen leveranciers uit de voorraad kunnen worden geïmporteerd. Lege CSV-cellen vervangen bestaande waarden. Exporteer eerst een back-up. Bestanden tot 50 MB (of de serverlimiet) worden in batches zonder cron verwerkt."
+
+msgid "Invalid supplier records CSV or the file exceeds 50 MB."
+msgstr "Ongeldige leveranciers-CSV of bestand groter dan 50 MB."
+
+msgid "The CSV columns do not match the supplier record export. Download a fresh CSV first."
+msgstr "De CSV-kolommen komen niet overeen met de fiche-export. Download eerst een nieuwe CSV."
+
+msgid "Invalid or expired supplier import session."
+msgstr "Ongeldige of verlopen leveranciersimportsessie."
+
+msgid "Supplier import is already running."
+msgstr "Er wordt al een leveranciersimport verwerkt."
+
+msgid "Para editar muchas fichas, descarga el CSV desde Gestión de proveedores. El archivo incluye también proveedores sin ficha. Rellena las columnas conservando los nombres de proveedor y vuelve a importarlo. Se validan las identidades existentes; los nombres desconocidos se omiten. Los campos vacíos sobrescriben los valores anteriores. La importación se procesa por bloques y permite detenerse sin revertir los bloques ya completados."
+msgstr "Om veel fiches te bewerken exporteert u de CSV vanuit Leveranciersbeheer, inclusief leveranciers zonder fiche. Vul de kolommen in zonder leveranciersnamen te wijzigen en importeer het bestand opnieuw. Onbekende namen worden overgeslagen. Lege cellen overschrijven oude waarden. De import loopt in batches en kan worden gestopt zonder afgeronde batches terug te draaien."

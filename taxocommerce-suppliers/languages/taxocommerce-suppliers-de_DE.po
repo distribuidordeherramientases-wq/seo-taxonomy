@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Suppliers 0.2.26\n"
+"Project-Id-Version: TaxoCommerce Suppliers 0.2.27\n"
 "Language: de_DE\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1959,3 +1959,72 @@ msgstr "Mit Profil erstellen oder Bearbeiten können Firmenname, Steuernummer, V
 
 msgid "Eliminar ficha borra únicamente los datos de contacto. Si el proveedor continúa en el inventario, seguirá visible y se podrá volver a rellenar. Eliminar la ficha no borra ni modifica importaciones, productos, precios o pedidos."
 msgstr "Profil löschen entfernt nur Kontaktdaten. Solange der Lieferant im Bestand vorhanden ist, bleibt er sichtbar und das Profil kann erneut ausgefüllt werden. Importe, Produkte, Preise und Bestellungen bleiben unverändert."
+
+msgid "Exporting supplier records..."
+msgstr "Lieferantenprofile werden exportiert..."
+
+msgid "Exported supplier records: "
+msgstr "Exportierte Lieferantenprofile: "
+
+msgid "Importing supplier records..."
+msgstr "Lieferantenprofile werden importiert..."
+
+msgid "Import completed. "
+msgstr "Import abgeschlossen. "
+
+msgid "Created: "
+msgstr "Erstellt: "
+
+msgid "Updated: "
+msgstr "Aktualisiert: "
+
+msgid "Unchanged: "
+msgstr "Unverändert: "
+
+msgid "Unknown: "
+msgstr "Unbekannt: "
+
+msgid "Stopping import after the current batch..."
+msgstr "Import wird nach dem aktuellen Stapel beendet..."
+
+msgid "Import stopped. Completed batches are retained."
+msgstr "Import beendet. Abgeschlossene Stapel bleiben erhalten."
+
+msgid "First invalid or unmatched rows: "
+msgstr "Erste ungültige oder nicht zugeordnete Zeilen: "
+
+msgid "Bulk import / export of supplier records"
+msgstr "Massenimport / -export von Lieferantenprofilen"
+
+msgid "Export all inventory suppliers as an editable CSV, including blank records. Import the same CSV to create or replace their private contact details; products, prices and orders never change."
+msgstr "Exportieren Sie alle Lieferanten als bearbeitbare CSV einschließlich leerer Profile. Importieren Sie die CSV zur Pflege privater Kontaktdaten; Produkte, Preise und Bestellungen bleiben unverändert."
+
+msgid "Export supplier records CSV"
+msgstr "Lieferantenprofile als CSV exportieren"
+
+msgid "Supplier records CSV file"
+msgstr "CSV-Datei der Lieferantenprofile"
+
+msgid "Import supplier records CSV"
+msgstr "Lieferantenprofile aus CSV importieren"
+
+msgid "Cancel import"
+msgstr "Import abbrechen"
+
+msgid "Only suppliers already present in Inventory can be imported. Blank CSV cells replace existing values. Export a backup first. Files up to 50 MB (or the server limit) are processed in small batches without cron."
+msgstr "Nur Lieferanten aus dem Bestand können importiert werden. Leere CSV-Zellen überschreiben bestehende Werte. Exportieren Sie zunächst ein Backup. Dateien bis 50 MB (oder Serverlimit) werden ohne Cron stapelweise verarbeitet."
+
+msgid "Invalid supplier records CSV or the file exceeds 50 MB."
+msgstr "Ungültige Lieferanten-CSV oder Datei größer als 50 MB."
+
+msgid "The CSV columns do not match the supplier record export. Download a fresh CSV first."
+msgstr "Die CSV-Spalten stimmen nicht mit dem Profil-Export überein. Laden Sie eine neue CSV herunter."
+
+msgid "Invalid or expired supplier import session."
+msgstr "Ungültige oder abgelaufene Lieferanten-Importsitzung."
+
+msgid "Supplier import is already running."
+msgstr "Ein Lieferantenimport wird bereits verarbeitet."
+
+msgid "Para editar muchas fichas, descarga el CSV desde Gestión de proveedores. El archivo incluye también proveedores sin ficha. Rellena las columnas conservando los nombres de proveedor y vuelve a importarlo. Se validan las identidades existentes; los nombres desconocidos se omiten. Los campos vacíos sobrescriben los valores anteriores. La importación se procesa por bloques y permite detenerse sin revertir los bloques ya completados."
+msgstr "Für viele Profile exportieren Sie die CSV aus der Lieferantenverwaltung, einschließlich Lieferanten ohne Profil. Füllen Sie die Spalten aus und lassen Sie die Lieferantennamen unverändert. Unbekannte Namen werden übersprungen. Leere Zellen überschreiben alte Werte. Der Import läuft in Stapeln und kann ohne Rücknahme abgeschlossener Stapel gestoppt werden."

@@ -245,6 +245,7 @@ final class TCSUP_Profiles {
 					?>
 				</div></div>
 			<?php endif; ?>
+			<?php TCSUP_Profiles_Transfer::render_controls(); ?>
 		</section>
 
 		<?php if ( '' !== $supplier ) : ?>
