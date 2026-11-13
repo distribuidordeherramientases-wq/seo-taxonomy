@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Suppliers 0.2.26\n"
+"Project-Id-Version: TaxoCommerce Suppliers 0.2.27\n"
 "Language: es_ES\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1959,3 +1959,72 @@ msgstr "Pulsa Crear ficha o Editar para registrar razón social, NIF, contactos 
 
 msgid "Eliminar ficha borra únicamente los datos de contacto. Si el proveedor continúa en el inventario, seguirá visible y se podrá volver a rellenar. Eliminar la ficha no borra ni modifica importaciones, productos, precios o pedidos."
 msgstr "Eliminar ficha borra únicamente los datos de contacto. Si el proveedor continúa en el inventario, seguirá visible y se podrá volver a rellenar. Eliminar la ficha no borra ni modifica importaciones, productos, precios o pedidos."
+
+msgid "Exporting supplier records..."
+msgstr "Exportando fichas de proveedores..."
+
+msgid "Exported supplier records: "
+msgstr "Fichas de proveedores exportadas: "
+
+msgid "Importing supplier records..."
+msgstr "Importando fichas de proveedores..."
+
+msgid "Import completed. "
+msgstr "Importación completada. "
+
+msgid "Created: "
+msgstr "Creadas: "
+
+msgid "Updated: "
+msgstr "Actualizadas: "
+
+msgid "Unchanged: "
+msgstr "Sin cambios: "
+
+msgid "Unknown: "
+msgstr "Desconocidos: "
+
+msgid "Stopping import after the current batch..."
+msgstr "Deteniendo la importación tras el bloque actual..."
+
+msgid "Import stopped. Completed batches are retained."
+msgstr "Importación detenida. Se conservan los bloques completados."
+
+msgid "First invalid or unmatched rows: "
+msgstr "Primeras filas inválidas o sin proveedor: "
+
+msgid "Bulk import / export of supplier records"
+msgstr "Importación / exportación masiva de fichas de proveedores"
+
+msgid "Export all inventory suppliers as an editable CSV, including blank records. Import the same CSV to create or replace their private contact details; products, prices and orders never change."
+msgstr "Exporta todos los proveedores del inventario a CSV editable, incluidos los que no tienen ficha. Importa ese CSV para crear o actualizar sus datos privados de contacto; nunca se modifican productos, precios ni pedidos."
+
+msgid "Export supplier records CSV"
+msgstr "Exportar fichas CSV"
+
+msgid "Supplier records CSV file"
+msgstr "Archivo CSV de fichas de proveedores"
+
+msgid "Import supplier records CSV"
+msgstr "Importar fichas CSV"
+
+msgid "Cancel import"
+msgstr "Detener importación"
+
+msgid "Only suppliers already present in Inventory can be imported. Blank CSV cells replace existing values. Export a backup first. Files up to 50 MB (or the server limit) are processed in small batches without cron."
+msgstr "Solo se admiten proveedores presentes en Inventario. Las celdas vacías sustituyen los valores actuales. Exporta antes una copia de seguridad. Se admiten archivos de hasta 50 MB (o el límite del servidor), por bloques y sin cron."
+
+msgid "Invalid supplier records CSV or the file exceeds 50 MB."
+msgstr "CSV de fichas inválido o archivo superior a 50 MB."
+
+msgid "The CSV columns do not match the supplier record export. Download a fresh CSV first."
+msgstr "Las columnas CSV no coinciden con la exportación de fichas. Descarga un CSV nuevo."
+
+msgid "Invalid or expired supplier import session."
+msgstr "Sesión de importación de proveedores inválida o caducada."
+
+msgid "Supplier import is already running."
+msgstr "Ya se está procesando una importación de proveedores."
+
+msgid "Para editar muchas fichas, descarga el CSV desde Gestión de proveedores. El archivo incluye también proveedores sin ficha. Rellena las columnas conservando los nombres de proveedor y vuelve a importarlo. Se validan las identidades existentes; los nombres desconocidos se omiten. Los campos vacíos sobrescriben los valores anteriores. La importación se procesa por bloques y permite detenerse sin revertir los bloques ya completados."
+msgstr "Para editar muchas fichas, descarga el CSV desde Gestión de proveedores. El archivo incluye también proveedores sin ficha. Rellena las columnas conservando los nombres de proveedor y vuelve a importarlo. Se validan las identidades existentes; los nombres desconocidos se omiten. Los campos vacíos sobrescriben los valores anteriores. La importación se procesa por bloques y permite detenerse sin revertir los bloques ya completados."

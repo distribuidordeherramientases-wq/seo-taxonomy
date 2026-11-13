@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Suppliers 0.2.26\n"
+"Project-Id-Version: TaxoCommerce Suppliers 0.2.27\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -1957,4 +1957,73 @@ msgid "Pulsa Crear ficha o Editar para registrar razón social, NIF, contactos c
 msgstr ""
 
 msgid "Eliminar ficha borra únicamente los datos de contacto. Si el proveedor continúa en el inventario, seguirá visible y se podrá volver a rellenar. Eliminar la ficha no borra ni modifica importaciones, productos, precios o pedidos."
+msgstr ""
+
+msgid "Exporting supplier records..."
+msgstr ""
+
+msgid "Exported supplier records: "
+msgstr ""
+
+msgid "Importing supplier records..."
+msgstr ""
+
+msgid "Import completed. "
+msgstr ""
+
+msgid "Created: "
+msgstr ""
+
+msgid "Updated: "
+msgstr ""
+
+msgid "Unchanged: "
+msgstr ""
+
+msgid "Unknown: "
+msgstr ""
+
+msgid "Stopping import after the current batch..."
+msgstr ""
+
+msgid "Import stopped. Completed batches are retained."
+msgstr ""
+
+msgid "First invalid or unmatched rows: "
+msgstr ""
+
+msgid "Bulk import / export of supplier records"
+msgstr ""
+
+msgid "Export all inventory suppliers as an editable CSV, including blank records. Import the same CSV to create or replace their private contact details; products, prices and orders never change."
+msgstr ""
+
+msgid "Export supplier records CSV"
+msgstr ""
+
+msgid "Supplier records CSV file"
+msgstr ""
+
+msgid "Import supplier records CSV"
+msgstr ""
+
+msgid "Cancel import"
+msgstr ""
+
+msgid "Only suppliers already present in Inventory can be imported. Blank CSV cells replace existing values. Export a backup first. Files up to 50 MB (or the server limit) are processed in small batches without cron."
+msgstr ""
+
+msgid "Invalid supplier records CSV or the file exceeds 50 MB."
+msgstr ""
+
+msgid "The CSV columns do not match the supplier record export. Download a fresh CSV first."
+msgstr ""
+
+msgid "Invalid or expired supplier import session."
+msgstr ""
+
+msgid "Supplier import is already running."
+msgstr ""
+
+msgid "Para editar muchas fichas, descarga el CSV desde Gestión de proveedores. El archivo incluye también proveedores sin ficha. Rellena las columnas conservando los nombres de proveedor y vuelve a importarlo. Se validan las identidades existentes; los nombres desconocidos se omiten. Los campos vacíos sobrescriben los valores anteriores. La importación se procesa por bloques y permite detenerse sin revertir los bloques ya completados."
 msgstr ""
