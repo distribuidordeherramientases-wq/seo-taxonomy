@@ -592,7 +592,7 @@ function taxocommerce_insights_competitive_render_panel( $days = 28 ) {
     submit_button( __( 'Guardar configuración', 'taxocommerce-google-bing' ), 'secondary', 'submit', false );
     echo '</form><hr>';
     echo '<p class="description">' . esc_html__( 'El informe utiliza la configuración guardada. No ejecuta conexiones al abrir esta pantalla.', 'taxocommerce-google-bing' ) . '</p>';
-    echo '<form id="taxocommerce-insights-competition-generate" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+    echo '<form id="taxocommerce-insights-competition-generate" data-refresh-merchant="' . esc_attr( (string) (int) (bool) array_intersect( $settings['signals'], array( 'popular', 'visibility' ) ) ) . '" data-refresh-trends="' . esc_attr( (string) (int) in_array( 'trends', $settings['signals'], true ) ) . '" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
     echo '<input type="hidden" name="action" value="taxocommerce_insights_competition_generate">';
     echo '<input type="hidden" name="taxocommerce_competition_refresh_nonce" value="' . esc_attr( wp_create_nonce( 'taxocommerce_insights_competition_sources' ) ) . '">';
     echo '<input type="hidden" name="analista_days" value="' . esc_attr( (string) $days ) . '">';
