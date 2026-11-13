@@ -61,7 +61,7 @@ jobs:
       - name: Validate independent Autotest Code Check for the entire new family
         run: |
           set -euo pipefail
-          for plugin in auditor campaigns connections core database dependiente distribution facturacion faqs google-bing images import-export logistica redirects scrappers social suppliers tasks templates vocabulary; do
+          for plugin in auditor campaigns connections core customers database dependiente distribution facturacion faqs google-bing images import-export logistica redirects scrappers social suppliers tasks templates vocabulary; do
             php -l "taxocommerce-${plugin}/includes/class-taxocommerce-autotest-code.php"
             php .github/tests/autotest-code-vendor-smoke.php "${plugin}"
             node --check "taxocommerce-${plugin}/assets/autotest-code.js"
@@ -125,6 +125,9 @@ jobs:
           php -l taxocommerce-tasks/includes/class-tctasks-manuals.php
           php -l taxocommerce-tasks/tests/standalone-bootstrap-smoke.php
           php taxocommerce-tasks/tests/standalone-bootstrap-smoke.php
+          php -l taxocommerce-customers/tests/standalone-bootstrap-smoke.php
+          php taxocommerce-customers/tests/standalone-bootstrap-smoke.php
+          node --check taxocommerce-customers/assets/admin.js
           php -l taxocommerce-tasks/includes/class-tctasks-calendar.php
           php -l taxocommerce-tasks/tests/calendar-duration-smoke.php
           php taxocommerce-tasks/tests/calendar-duration-smoke.php
