@@ -21,7 +21,7 @@ foreach ( array( 'es_ES', 'en_US', 'fr_FR', 'de_DE', 'nl_NL' ) as $locale ) {
         throw new RuntimeException( 'Unexpected MO header in ' . $locale );
     }
     $count = $header['count'];
-    $required_translations = array( 'Páginas', 'Crear CSV por bloques', 'Detener importación actual', 'Descargar CSV terminado', 'No se pudo crear el CSV temporal.' );
+    $required_translations = array( 'Páginas', 'Crear CSV por bloques', 'Detener importación actual', 'Descargar CSV terminado', 'No se pudo crear el CSV temporal.', 'Importar ZIP de Media', 'El ZIP no contiene media.csv.', 'Media · imágenes', 'Qué se transporta' );
     $seen_translations = array();
     if ( $count > ( strlen( $data ) - 28 ) / 16 ) {
         throw new RuntimeException( 'Invalid MO table size in ' . $locale );
