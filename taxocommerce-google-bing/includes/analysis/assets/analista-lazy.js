@@ -177,6 +177,9 @@ jQuery(function ($) {
         if (form.attr('data-refresh-trends') === '1') {
             steps.push('trends');
         }
+        if (form.attr('data-refresh-visibility') === '1') {
+            steps.push('visibility:0');
+        }
         if (!steps.length) {
             return;
         }
@@ -202,9 +205,13 @@ jQuery(function ($) {
                 continueToReport();
                 return;
             }
-            var source = steps[position++];
-            message.text('Consultando ' + (source === 'merchant' ? 'Merchant' : 'Google Trends') +
-                ' (' + position + '/' + steps.length + ')…');
+            var stage = steps[position++];
+            var parts = stage.split(':');
+            var source = parts[0];
+            var step = parts.length > 1 ? Number(parts[1]) || 0 : 0;
+            var label = source === 'merchant' ? 'Merchant Best Sellers' :
+                (source === 'visibility' ? 'Merchant Visibilidad' : 'Google Trends');
+            message.text('Consultando ' + label + ' (' + position + '/' + steps.length + ')…');
             $.ajax({
                 url: config.ajaxUrl,
                 type: 'POST',
@@ -213,13 +220,19 @@ jQuery(function ($) {
                 data: {
                     action: 'taxocommerce_insights_competitive_source_refresh',
                     nonce: nonce,
-                    source: source
+                    source: source,
+                    step: step,
+                    days: config.days
                 }
             }).done(function (response) {
                 var result = response && response.data ? response.data : {};
                 if (response && response.success) {
-                    message.text(source + ': ' + (result.status || 'sin estado') +
+                    message.text(label + ': ' + (result.status || 'sin estado') +
                         (result.message ? ' · ' + result.message : ''));
+                    if (source === 'visibility' && result.next_step !== null &&
+                        typeof result.next_step !== 'undefined' && result.next_step < 3) {
+                        steps.push('visibility:' + result.next_step);
+                    }
                 } else {
                     message.text(source + ': no se pudo completar la consulta. El informe conservará los datos disponibles.');
                 }
