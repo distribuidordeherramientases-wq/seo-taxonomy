@@ -9,7 +9,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-require_once __DIR__ . '/class-taxocommerce-auditor-code-review-rules.php';
+require_once __DIR__ . '/class-taxocommerce-code-review-rules.php';
 
 final class TaxoCommerce_Auditor_Autotest_Code {
     const ACTION = 'taxocommerce_auditor_code_check';
