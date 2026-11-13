@@ -1,3 +1,7 @@
+= 1.1.59 (2026-11-13) =
+* Keep Competition visible after Generate or Save configuration, restoring the saved snapshot at the selected period without repeating market API calls.
+* Preserve all other Analysis reports, JSON export, independent security nonces and unavailable-source statuses. Issue #2639.
+
 = 1.1.58 (2026-11-13) =
 * Configurable market analysis: WooCommerce categories, user-supplied competitors and suppliers, selectable signals and market modes.
 * Merchant-only verified domain visibility, explicit unavailable supplier data and secured manual settings. Issue #2633.
