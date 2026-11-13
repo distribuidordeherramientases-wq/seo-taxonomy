@@ -120,6 +120,11 @@ function tca_insert( $data ) {
         'status' => 'draft', 'notes' => '',
         'created_at' => current_time( 'mysql' ), 'updated_at' => current_time( 'mysql' ),
     ) );
+    // Manual entries must have distinct source identities; unlike Woo orders they
+    // have no external document ID. Never share the UNIQUE (source,source_id) key.
+    if ( 'manual' === $data['source'] && ! absint( $data['source_id'] ) ) {
+        $data['source_id'] = absint( hexdec( substr( str_replace( '-', '', wp_generate_uuid4() ), 0, 12 ) ) );
+    }
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to the plugin's own ledger table.
     $saved = $wpdb->insert( tca_table(), $data );
     return $saved ? (int) $wpdb->insert_id : 0;
@@ -430,6 +435,23 @@ function tca_autocheck( $rows ) {
         'pass' => count( array_filter( $tests, static function ( $v ) { return 'pass' === $v; } ) ),
         'fail' => count( array_filter( $tests, static function ( $v ) { return 'fail' === $v; } ) ) );
 }
+function tca_autocheck_download() {
+    if ( ! tca_capable() ) wp_die( esc_html__( 'Insufficient permissions.', 'taxocommerce-accounting' ) );
+    check_admin_referer( 'tca_autocheck_download' );
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately above.
+    $year = isset( $_GET['year'] ) ? absint( $_GET['year'] ) : (int) current_time( 'Y' );
+    if ( $year < 2000 || $year > 2100 ) wp_die( esc_html__( 'Invalid year.', 'taxocommerce-accounting' ) );
+    $report = tca_autocheck( tca_rows( $year ) );
+    nocache_headers();
+    header( 'Content-Type: application/json; charset=utf-8' );
+    header( 'X-Content-Type-Options: nosniff' );
+    header( 'Content-Disposition: attachment; filename="accounting-autocheck-' . $year . '.json"' );
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON response (not HTML).
+    echo wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE );
+    exit;
+}
+add_action( 'admin_post_tca_autocheck_download', 'tca_autocheck_download' );
+
 function tca_admin() {
     if ( ! tca_capable() ) wp_die( esc_html__( 'Insufficient permissions.', 'taxocommerce-accounting' ) );
     $tabs = array(
@@ -512,7 +534,8 @@ function tca_admin() {
         echo '<p>' . esc_html( $report['pass'] ) . ' PASS / ' . esc_html( $report['fail'] ) . ' FAIL</p><table class="widefat striped">';
         foreach ( $report['tests'] as $test => $state ) echo '<tr><td>' . esc_html( $test ) . '</td><td>' . esc_html( strtoupper( $state ) ) . '</td></tr>';
         echo '</table><p>' . esc_html__( 'Failure of draft/review checks means fiscal data needs validation, not that the plugin runtime has failed.', 'taxocommerce-accounting' ) . '</p>';
-        echo '<p><button type="button" class="button" onclick="navigator.clipboard && navigator.clipboard.writeText(' . esc_attr( wp_json_encode( $report ) ) . ')">' . esc_html__( 'Copy JSON results', 'taxocommerce-accounting' ) . '</button></p>';
+        $autocheck_url = wp_nonce_url( add_query_arg( array( 'action' => 'tca_autocheck_download', 'year' => $year ), admin_url( 'admin-post.php' ) ), 'tca_autocheck_download' );
+        echo '<p><a class="button button-secondary" href="' . esc_url( $autocheck_url ) . '">' . esc_html__( 'Download Autocheck JSON', 'taxocommerce-accounting' ) . '</a></p>';
     } else {
         echo '<h2>' . esc_html__( 'User guide', 'taxocommerce-accounting' ) . '</h2>';
         echo '<p>' . esc_html__( '1. Set the start date; 2. import paid WooCommerce orders page by page; 3. enter actual supplier invoices and expenses; 4. verify tax classification and the issued invoice before validating an entry; 5. review months and export the ledger for your accountant.', 'taxocommerce-accounting' ) . '</p>';
