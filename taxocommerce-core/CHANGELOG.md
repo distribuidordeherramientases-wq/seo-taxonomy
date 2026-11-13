@@ -1,3 +1,12 @@
+## [0.4.83] — 2026-11-13 — Correcciones de revisión manual WordPress.org
+
+- Eliminadas las instalaciones, activaciones y desactivaciones directas de otros plugins desde Core. Las tarjetas conservan la consulta de estado y el acceso a acciones **nativas de WordPress**, con nonces y permisos; los ZIP locales pueden descargarse con autenticación y cargarse desde la pantalla oficial de WordPress.
+- Reemplazados estilos CSS dinámicos por reglas estáticas con el mismo ámbito en `assets/admin.css`; se mantiene el comportamiento visual del menú familiar.
+- `country_request()` ya no lee POST directamente: delega en el validador compartido después de los nonces de cada operación. GET es solo lectura.
+- Garantizado el cierre de buffer en `finally` para JSON de Anomalías, incluso cuando su generación falla.
+- Sustituidos los hooks `seo_reports_*` de Core por nombres `taxocommerce_core_*`, eliminadas exclusiones ligadas exclusivamente a Distribuidor de Herramientas. El resto de exclusiones genéricas se conserva. Pueden personalizarse mediante los nuevos filtros.
+- Pruebas de regresión ajustadas para demostrar que Code Check sigue detectando futuras violaciones sin silenciarlas. No se altera la funcionalidad del catálogo, la estructura de datos, otros plugins ni producción. Issue #2625.
+
 ## [0.4.82] — 2026-11-13 — Semáforo y JSON clasificado en Code Check
 
 - Presenta errores confirmados en rojo, advertencias de revisión en naranja, archivos sin incidencias en verde y resultados incompletos en gris. Cada categoría se identifica también por texto, sin depender únicamente del color.

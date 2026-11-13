@@ -20,23 +20,27 @@ $tc_rules = static function ( $relative, $group ) use ( $tc_code_root ) {
 };
 
 $tc_core_php = $tc_rules( 'includes/class-taxocommerce-core.php', 'wordpress' );
-check( in_array( 'review_plugin_installation', $tc_core_php, true ), 'Core ZIP installation is flagged for review' );
-check( in_array( 'review_plugin_lifecycle_activate_plugin', $tc_core_php, true ), 'Core activate_plugin() is reported' );
-check( in_array( 'review_plugin_lifecycle_deactivate_plugins', $tc_core_php, true ), 'Core deactivate_plugins() is reported' );
+check( ! in_array( 'review_plugin_installation', $tc_core_php, true ), 'Core no longer directly installs extensions' );
+check( ! in_array( 'review_plugin_lifecycle_activate_plugin', $tc_core_php, true ), 'Activation is delegated to WordPress' );
+check( ! in_array( 'review_plugin_lifecycle_deactivate_plugins', $tc_core_php, true ), 'Deactivation is delegated to WordPress' );
 
 $tc_core_security = $tc_rules( 'includes/class-taxocommerce-core.php', 'security' );
-check( in_array( 'review_file_upload', $tc_core_security, true ), 'WordPress.org upload input concern is reported' );
-check( in_array( 'review_upload_tmp_name', $tc_core_security, true ), 'WordPress.org temporary upload path concern is reported' );
-check( in_array( 'review_dynamic_inline_style', $tc_core_security, true ), 'WordPress.org dynamic inline CSS concern is reported' );
+check( ! in_array( 'review_file_upload', $tc_core_security, true ), 'WordPress handles the uploaded ZIP' );
+check( ! in_array( 'review_upload_tmp_name', $tc_core_security, true ), 'No temporary ZIP path is processed by Core' );
+check( ! in_array( 'review_dynamic_inline_style', $tc_core_security, true ), 'Static Core CSS replaces dynamic styles' );
 
-$tc_hierarchy = $tc_rules( 'includes/class-taxocommerce-core-hierarchy.php', 'security' );
-check( in_array( 'review_request_nonce', $tc_hierarchy, true ), 'Hierarchy country_request() POST requires contextual nonce review' );
+$tc_hierarchy = TaxoCommerce_Core_Autotest_Code::analyze( 'includes/class-taxocommerce-core-hierarchy.php' );
+$tc_country_source = file_get_contents( $tc_code_root . '/includes/class-taxocommerce-core-hierarchy.php' );
+check( false !== strpos( $tc_country_source, "TaxoCommerce_Core_Country::read_posted( 'tc_country' )" ), 'Verified POST country lookup uses shared helper' );
+check( false === strpos( $tc_country_source, '$source = $write ? $_POST : $_GET;' ), 'Country helper no longer reads POST without its own visible nonce' );
 
 $tc_hooks = $tc_rules( 'includes/class-taxocommerce-core-anomalies.php', 'wordpress' );
-check( in_array( 'review_nonprefixed_hook', $tc_hooks, true ), 'Three unprefixed seo_reports_* hooks are found' );
+check( ! in_array( 'review_nonprefixed_hook', $tc_hooks, true ), 'Core anomalies use unique prefixed hooks' );
+$tc_hooks_json = $tc_rules( 'includes/class-taxocommerce-core-anomalies-json.php', 'wordpress' );
+check( ! in_array( 'review_nonprefixed_hook', $tc_hooks_json, true ), 'Core JSON anomalies use the same prefixed hooks' );
 
 $tc_buffer = $tc_rules( 'includes/class-taxocommerce-core-anomalies-full-json.php', 'wordpress' );
-check( ! in_array( 'review_unclosed_output_buffer', $tc_buffer, true ), 'Balanced ob_start in try/finally is not a confirmed leak' );
+check( ! in_array( 'review_unclosed_output_buffer', $tc_buffer, true ), 'Anomalies buffer is closed in finally' );
 
 $tc_root = realpath( $tc_code_root );
 $tc_analyze = static function ( $source, $group ) use ( $tc_root ) {
@@ -109,15 +113,14 @@ $tc_declarations = array_column( $tc_arch['declarations'], 'name' );
 check( ! in_array( 'render', $tc_declarations, true ), 'A class method after interpolated SQL is not a generic global render function' );
 check( ! in_array( 'summarize', $tc_declarations, true ), 'Interpolated strings do not close class scope in source analysis' );
 
-// Each result is local, includes its rule and line, and does not claim the
-// official WordPress Plugin Check was executed.
-$tc_details = TaxoCommerce_Core_Autotest_Code::analyze(
-	'includes/class-taxocommerce-core.php'
+// New rules still report a real introduced violation and its source location.
+$tc_details = TaxoCommerce_Core_Autotest_Code::analyze_source(
+    "<?php defined( 'ABSPATH' ) || exit; function taxocommerce_core_bad_zip() { activate_plugin( 'other/other.php' ); }",
+    'includes/fixture.php',
+    $tc_root
 );
-$tc_found_evidence = array_filter( $tc_details['security']['evidence'], static function ( $entry ) {
-	return 'review_dynamic_inline_style' === $entry['rule'];
+$tc_findings = array_filter( $tc_details['wordpress']['evidence'], static function ( $entry ) {
+    return 'review_plugin_lifecycle_activate_plugin' === $entry['rule'];
 } );
-$tc_found_evidence = array_values( $tc_found_evidence );
-check( ! empty( $tc_found_evidence ) && ! empty( $tc_found_evidence[0]['line'] ), 'Findings include source line numbers' );
-check( 'local_static_review' === $tc_found_evidence[0]['origin'], 'Findings identify local analyzer origin' );
-check( 'review' === $tc_found_evidence[0]['severity'], 'Context-sensitive issue remains a review warning' );
+$tc_findings = array_values( $tc_findings );
+check( ! empty( $tc_findings ) && isset( $tc_findings[0]['line'] ), 'Native review still reports future unapproved lifecycle calls' );
