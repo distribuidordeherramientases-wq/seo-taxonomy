@@ -316,7 +316,7 @@ final class TaxoCommerce_Core_Code_Review_Rules {
 			$braces = 1;
 			$end = $opening;
 			for ( $j = $opening + 1; $j < $length; ++$j ) {
-				if ( '{' === $tokens[ $j ] ) {
+				if ( '{' === $tokens[ $j ] || ( is_array( $tokens[ $j ] ) && in_array( $tokens[ $j ][0], array( T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES ), true ) ) ) {
 					++$braces;
 				} elseif ( '}' === $tokens[ $j ] ) {
 					--$braces;
