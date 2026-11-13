@@ -672,3 +672,9 @@ msgstr "Eigen tabellen bewaren privé-CRM-velden en bestel-ID-verwijzingen. De H
 
 msgid "You do not have permission to manage customer records."
 msgstr "U heeft geen toestemming om klantfiches te beheren."
+
+msgid "Autocheck"
+msgstr "Zelfcontrole"
+
+msgid "Fecha de ejecución:"
+msgstr "Uitvoerdatum:"

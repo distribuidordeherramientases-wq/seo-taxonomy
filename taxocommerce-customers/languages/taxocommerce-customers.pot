@@ -671,3 +671,9 @@ msgstr ""
 
 msgid "You do not have permission to manage customer records."
 msgstr ""
+
+msgid "Autocheck"
+msgstr ""
+
+msgid "Fecha de ejecución:"
+msgstr ""

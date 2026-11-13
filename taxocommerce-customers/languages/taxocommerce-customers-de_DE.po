@@ -672,3 +672,9 @@ msgstr "Eigene Tabellen speichern private CRM-Felder und Bestell-ID-Referenzen. 
 
 msgid "You do not have permission to manage customer records."
 msgstr "Sie dürfen Kundendaten nicht verwalten."
+
+msgid "Autocheck"
+msgstr "Selbsttest"
+
+msgid "Fecha de ejecución:"
+msgstr "Ausführungsdatum:"

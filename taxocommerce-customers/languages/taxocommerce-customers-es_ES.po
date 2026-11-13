@@ -672,3 +672,9 @@ msgstr "Tablas propias guardan los campos privados del CRM y referencias de IDs 
 
 msgid "You do not have permission to manage customer records."
 msgstr "No tienes permisos para gestionar fichas de clientes."
+
+msgid "Autocheck"
+msgstr "Autocomprobación"
+
+msgid "Fecha de ejecución:"
+msgstr "Fecha de ejecución:"

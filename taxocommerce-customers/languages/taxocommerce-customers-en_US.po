@@ -672,3 +672,9 @@ msgstr "WordPress custom tables store private CRM fields and compact order ID re
 
 msgid "You do not have permission to manage customer records."
 msgstr "You do not have permission to manage customer records."
+
+msgid "Autocheck"
+msgstr "Autocheck"
+
+msgid "Fecha de ejecución:"
+msgstr "Execution date:"
