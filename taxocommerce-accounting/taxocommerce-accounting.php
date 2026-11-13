@@ -17,6 +17,9 @@ defined( 'ABSPATH' ) || exit;
 define( 'TCA_VERSION', '0.1.0' );
 define( 'TCA_DB_VERSION', '1' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
+add_action( 'init', static function () {
+    load_plugin_textdomain( 'taxocommerce-accounting', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+}, 5 );
 
 /** Own data; no dependency on any TaxoCommerce module. */
 function tca_table() {
