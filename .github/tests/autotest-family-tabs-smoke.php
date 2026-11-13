@@ -56,6 +56,20 @@ foreach ( $plugins as $slug ) {
         fwrite( STDERR, 'Dynamic gettext textdomain in ' . $slug . PHP_EOL );
         exit( 1 );
     }
+    // Core must render both choices inside its existing Autocheck dashboard, not above the header.
+    if ( 'core' === $slug ) {
+        $core_screen = (string) file_get_contents( $root . '/includes/class-taxocommerce-core-auto-test.php' );
+        $shell = strpos( $core_screen, 'id="tc-core-autotest"' );
+        $main_nav = strpos( $core_screen, 'Navegación de TaxoCommerce Core' );
+        $subtabs = strpos( $core_screen, 'Autotest_Code::render_subtabs()' );
+        $functional_form = strpos( $core_screen, 'tc_autotest_manual_run' );
+        if ( false === $shell || false === $main_nav || false === $subtabs || false === $functional_form
+            || ! ( $shell < $main_nav && $main_nav < $subtabs && $subtabs < $functional_form )
+            || false === strpos( $core_screen, "if ( ! \\TaxoCommerce_Core_Autotest_Code::render_subtabs() ) :" ) ) {
+            fwrite( STDERR, 'Core Code Check must appear inside Autocheck after its main navigation, independently of Functional Check.' . PHP_EOL );
+            exit( 1 );
+        }
+    }
     // Each plugin must actually call the subtab renderer in its functional screen.
     $candidates = array_merge(
         glob( $root . '/includes/*.php' ) ?: array(),
