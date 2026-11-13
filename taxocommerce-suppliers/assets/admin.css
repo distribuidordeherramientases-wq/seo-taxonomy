@@ -11,3 +11,12 @@
 #tcsup-history-progress{display:block;width:100%;max-width:550px;height:14px;margin:10px 0}
 #tcsup-history-progress[hidden]{display:none}
 @media(max-width:782px){.tcsup-history-filters label,.tcsup-history-controls label{width:100%}.tcsup-history-filters input,.tcsup-history-controls input{max-width:100%;width:100%}}
+
+/* CPU-batched private supplier records CSV controls. */
+.tcsup-profiles-transfer{margin:22px 0 6px;border-top:1px solid #dcdcde;padding-top:18px}
+.tcsup-profiles-transfer h3{margin:0 0 8px}
+.tcsup-profiles-transfer .tcsup-history-controls form{display:flex;align-items:flex-end;flex-wrap:wrap;gap:12px}
+.tcsup-profiles-transfer .tcsup-history-controls form label{display:flex;flex-direction:column;gap:6px}
+#tcsup-profiles-progress{display:block;width:100%;max-width:550px;height:14px;margin:10px 0}
+#tcsup-profiles-progress[hidden]{display:none}
+#tcsup-profiles-errors{margin:8px 0;overflow-wrap:anywhere}

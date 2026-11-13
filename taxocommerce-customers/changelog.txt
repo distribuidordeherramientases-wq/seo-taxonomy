@@ -1,0 +1,2 @@
+= 0.1.0 (2026-11-13) =
+* Initial standalone customers CRM for WooCommerce registered/guest purchasers and manual contacts, with batch CSV and private notes.

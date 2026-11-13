@@ -30,6 +30,7 @@ PLUGINS = {
     "system-check": ("dashicons-shield", "Comprueba el estado de WordPress, el servidor y los plugins."),
     "templates": ("dashicons-layout", "Gestiona plantillas, enrutado de páginas y reglas de presentación."),
     "tasks": ("dashicons-clipboard", "Private task management, calendar and indicators."),
+    "customers": ("dashicons-groups", "Private customer directory and contact management."),
 }
 
 def main():

@@ -158,6 +158,93 @@ jQuery(function ($) {
         }
     });
 
+    // The competitor report is a separate POST form injected by the lazy
+    // renderer. Delegation also works when its card is opened through AJAX.
+    // One bounded request per source, then the existing nonce-protected POST.
+    $(document).on('submit', '#taxocommerce-insights-competition-generate', function (event) {
+        var form = $(this);
+        if (form.data('refreshComplete')) {
+            return;
+        }
+        var nonce = form.find('[name="taxocommerce_competition_refresh_nonce"]').val();
+        if (!config.ajaxUrl || !nonce) {
+            return; // Non-JS / unavailable AJAX fallback: existing POST.
+        }
+        var steps = [];
+        if (form.attr('data-refresh-merchant') === '1') {
+            steps.push('merchant');
+        }
+        if (form.attr('data-refresh-trends') === '1') {
+            steps.push('trends');
+        }
+        if (form.attr('data-refresh-visibility') === '1') {
+            steps.push('visibility:0');
+        }
+        if (!steps.length) {
+            return;
+        }
+        event.preventDefault();
+        if (form.data('refreshRunning')) {
+            return;
+        }
+        form.data('refreshRunning', true);
+        var button = form.find('[type="submit"]');
+        var message = form.find('#taxocommerce-insights-competition-refresh-status');
+        button.prop('disabled', true);
+        var position = 0;
+        function continueToReport() {
+            form.data('refreshComplete', true);
+            button.prop('disabled', false);
+            // Native submit bypasses the jQuery handler, retaining the
+            // existing WordPress admin-post nonce and redirect behaviour.
+            form.get(0).submit();
+        }
+        function nextSource() {
+            if (position >= steps.length) {
+                message.text('Fuentes consultadas. Preparando informe…');
+                continueToReport();
+                return;
+            }
+            var stage = steps[position++];
+            var parts = stage.split(':');
+            var source = parts[0];
+            var step = parts.length > 1 ? Number(parts[1]) || 0 : 0;
+            var label = source === 'merchant' ? 'Merchant Best Sellers' :
+                (source === 'visibility' ? 'Merchant Visibilidad' : 'Google Trends');
+            message.text('Consultando ' + label + ' (' + position + '/' + steps.length + ')…');
+            $.ajax({
+                url: config.ajaxUrl,
+                type: 'POST',
+                dataType: 'json',
+                timeout: 100000,
+                data: {
+                    action: 'taxocommerce_insights_competitive_source_refresh',
+                    nonce: nonce,
+                    source: source,
+                    step: step,
+                    days: config.days
+                }
+            }).done(function (response) {
+                var result = response && response.data ? response.data : {};
+                if (response && response.success) {
+                    message.text(label + ': ' + (result.status || 'sin estado') +
+                        (result.message ? ' · ' + result.message : ''));
+                    if (source === 'visibility' && result.next_step !== null &&
+                        typeof result.next_step !== 'undefined' && result.next_step < 3) {
+                        steps.push('visibility:' + result.next_step);
+                    }
+                } else {
+                    message.text(source + ': no se pudo completar la consulta. El informe conservará los datos disponibles.');
+                }
+                nextSource();
+            }).fail(function () {
+                message.text(source + ': error de comunicación. Se conservarán los datos disponibles.');
+                nextSource();
+            });
+        }
+        nextSource();
+    });
+
     // Complete JSON: one authenticated request per section. No browser Blob,
     // no WP-Cron and no server-wide CPU percentage estimates.
     var exportStart = $('#tgb-chunked-json-start');

@@ -4,13 +4,22 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.58
+Stable tag: 1.1.61
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 External connections, manual provider data downloads, and market intelligence for WooCommerce.
 
 == Description ==
+
+Version 1.1.61 ensures Merchant competitive visibility remains available when Best Sellers is used internally to obtain official Google category IDs but is not selected for display in the report. The unselected indicator is marked clearly without hiding competitive visibility.
+
+
+Version 1.1.60 refreshes selected competitive-market sources in bounded sequential AJAX requests: one Merchant Best Sellers page, the existing cached/rate-limited Trends sync, and up to three separate Google-category visibility requests. Reports include source diagnostics and do not regenerate on display. External data remains subject to Merchant account permissions, eligibility and Google availability.
+
+
+Version 1.1.59 restores the Competition analysis panel after generating an official-source report or saving its configuration. The administrator returns to the saved report, keeping the chosen reporting period, without running Merchant or Trends requests again.
+
 
 Version 1.1.58 makes the Competition report configurable per store: market scope, WooCommerce category filters, explicit company/supplier lists, and selected official-source indicators. Selected supplier identities are not presented as verified commercial data; no competitor sites are crawled.
 

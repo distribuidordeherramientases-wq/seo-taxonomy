@@ -1,3 +1,17 @@
+## [0.2.27] — 2026-11-13 — Importación/exportación masiva de fichas de proveedores
+
+- CSV de la pestaña Gestión de proveedores con los 18 campos canónicos, incluyendo observaciones privadas; exporta también los proveedores sin ficha para facilitar su cumplimentación masiva.
+- Importación por bloques de 25/50/100/200/350 fichas con límite temporal de 7 s por petición, progreso, cancelación, errores y rechazo de nombres ausentes en inventario. Máximo 50 MiB o límite inferior del alojamiento.
+- Los valores vacíos sustituyen los anteriores, por lo que se recomienda exportar una copia antes de importar. No se crean proveedores ajenos al inventario ni se modifican productos, costes, existencias o pedidos.
+- CSV UTF-8 con BOM para Excel; los textos exportados se protegen frente a fórmulas de hoja de cálculo. Compatible con los idiomas ES/EN/FR/DE/NL.
+
+## [0.2.26] — 2026-11-13 — Gestión dinámica de proveedores
+
+- Nueva pestaña de gestión con listado y búsqueda de proveedores derivados de `seo_proveedores_productos`, actualizado automáticamente tras importar nuevos CSV.
+- Fichas de empresa, identificación fiscal, teléfono, correo, web, comercial, dirección, plazo de entrega y observaciones internas libres; altas, edición y eliminación de la ficha con permisos y nonce.
+- Tabla independiente `seo_proveedores_fichas` (migración automática). La ficha no altera el nombre del proveedor, productos, inventario, precios ni pedidos. Las bajas no afectan a las fuentes del catálogo.
+- Actualiza documentación, pruebas de regresión y catálogos locales ES/EN/FR/DE/NL.
+
 ## [0.2.25] — 2026-11-13 — Code Check equiparado a Core 0.4.82 (#2626)
 
 - Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.

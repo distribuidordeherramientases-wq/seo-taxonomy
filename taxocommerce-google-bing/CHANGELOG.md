@@ -1,3 +1,21 @@
+## [1.1.61] — 2026-11-13 — Competidores: visibilidad independiente de la casilla Productos populares (#2643)
+
+- La consulta de visibilidad Merchant utiliza las categorías oficiales verificadas del snapshot independientemente de que se muestre el indicador de productos populares.
+- Si el administrador selecciona solo visibilidad, los productos populares no aparecen como resultados seleccionados; se identifica correctamente el estado del indicador.
+- Amplía las pruebas de regresión para selección independiente de indicadores, sin cambiar credenciales ni llamadas de red.
+
+## [1.1.60] — 2026-11-13 — Competidores: adquisición de fuentes verificable por bloques (#2643)
+
+- Al generar Competidores, actualiza por AJAX las fuentes elegidas: una página de Merchant Best Sellers, el conector Trends con sus límites y hasta tres categorías oficiales de visibilidad Merchant, cada una en una petición separada. No hay llamadas remotas al cargar la pantalla ni acceso a sitios de terceros.
+- Reutiliza credenciales y conectores existentes; no fuerza Google Trends ni elimina cachés anteriores. Guarda diagnósticos de ausencia de configuración, errores, información incompleta y disponibilidad de fuente en el JSON y la pantalla.
+- La vista final utiliza resultados ya obtenidos; mantiene filtros, competidores libres, exportación, histórico y el resto de informes. La elegibilidad Merchant y disponibilidad real de Trends dependen de Google.
+
+## [1.1.59] — 2026-11-13 — Competidores: conservar panel tras generar y guardar (#2639)
+
+- Corrige la redirección de formularios admin-post de Competidores para conservar `analysis_days` y reabrir el informe seleccionado directamente desde el snapshot guardado.
+- Muestra confirmación de generación o guardado y mantiene visibles las opciones y el resultado sin repetir llamadas Merchant/Trends.
+- Se conservan otros informes, exportación JSON y fuentes sin datos como N/D; no cambia la autenticación ni se modifican datos de otros plugins.
+
 ## [1.1.58] — 2026-11-13 — Competidores: configuración comercial por tienda (#2633)
 
 - Añade configuración propia para mercado actual, nichos o ambos, categorías WooCommerce, señales seleccionadas y listas libres de competidores/proveedores; sin dominios predefinidos en el nuevo informe.

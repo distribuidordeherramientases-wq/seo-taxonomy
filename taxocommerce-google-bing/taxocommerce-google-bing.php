@@ -3,7 +3,7 @@
  * Plugin Name: TaxoCommerce Insights
  * Plugin URI: https://asociacionfocazul.com/taxocommerce-google-bing/
  * Description: External connections, provider data downloads, and the restored legacy Analysis dashboard.
- * Version: 1.1.58
+ * Version: 1.1.61
  * Release Date: 2026-11-13
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -19,7 +19,7 @@ require_once __DIR__ . '/includes/admin-branding.php';
 require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
 \TaxoCommerce_Insights_Autotest_Code::boot();
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.58' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.61' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
@@ -354,7 +354,24 @@ function taxocommerce_google_bing_analysis_screen() {
     echo '</div>';
     echo '<div id="seo-analista-lazy-status" class="seo-analista-lazy-status" aria-live="polite"></div>';
     echo '<div id="seo-analista-lazy-result" class="seo-analista-lazy-result">';
-    echo '<div class="seo-analista-lazy-empty">' . '<strong>' . esc_html__( 'Ningún informe cargado.', 'taxocommerce-google-bing' ) . '</strong>' . '<p>' . esc_html__( 'Pulsa uno de los botones anteriores para ejecutar solo ese análisis.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only navigation state after a nonce-validated admin-post action.
+    $open_report = isset( $_GET['analysis_open'] ) ? sanitize_key( wp_unslash( $_GET['analysis_open'] ) ) : '';
+    $return_notice = isset( $_GET['analista_notice'] ) ? sanitize_key( wp_unslash( $_GET['analista_notice'] ) ) : '';
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
+    if ( 'competencia' === $open_report && function_exists( 'taxocommerce_insights_competitive_render_panel' ) ) {
+        // Render saved data only. Do not call the AJAX generator, Merchant, Trends,
+        // or any other data acquisition merely to restore the visible panel.
+        echo '<div class="tgb-analysis-report" data-report="competencia">';
+        if ( 'competitive_generated' === $return_notice ) {
+            echo '<div class="notice notice-success inline"><p>' . esc_html__( 'Informe competitivo generado y guardado.', 'taxocommerce-google-bing' ) . '</p></div>';
+        } elseif ( 'market_settings_saved' === $return_notice ) {
+            echo '<div class="notice notice-success inline"><p>' . esc_html__( 'Configuración del análisis guardada.', 'taxocommerce-google-bing' ) . '</p></div>';
+        }
+        taxocommerce_insights_competitive_render_panel( $days );
+        echo '</div>';
+    } else {
+        echo '<div class="seo-analista-lazy-empty">' . '<strong>' . esc_html__( 'Ningún informe cargado.', 'taxocommerce-google-bing' ) . '</strong>' . '<p>' . esc_html__( 'Pulsa uno de los botones anteriores para ejecutar solo ese análisis.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
+    }
     echo '</div></div>';
 }
 

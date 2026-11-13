@@ -30,6 +30,8 @@ final class TCSUP_Admin {
 		add_action( 'admin_post_tcsup_images_update', array( 'TCSUP_Products', 'handle_images_update' ) );
 		add_action( 'admin_post_tcsup_settings', array( __CLASS__, 'handle_settings' ) );
 		TCSUP_History_Transfer::boot();
+		TCSUP_Profiles::boot();
+		TCSUP_Profiles_Transfer::boot();
 	}
 
 	public static function capability() {
@@ -78,6 +80,24 @@ final class TCSUP_Admin {
 				'serverError' => __( 'Server request failed.', 'taxocommerce-suppliers' ),
 			) );
 		}
+		if ( 'providers' === self::active_tab() ) {
+			wp_enqueue_script( 'tcsup-profiles-transfer', TAXOCOMMERCE_SUPPLIERS_URL . 'assets/profiles-transfer.js', array(), TAXOCOMMERCE_SUPPLIERS_VERSION, true );
+			wp_localize_script( 'tcsup-profiles-transfer', 'tcsupProfilesStrings', array(
+				'exporting' => __( 'Exporting supplier records...', 'taxocommerce-suppliers' ),
+				'exportDone' => __( 'Exported supplier records: ', 'taxocommerce-suppliers' ),
+				'importing' => __( 'Importing supplier records...', 'taxocommerce-suppliers' ),
+				'importDone' => __( 'Import completed. ', 'taxocommerce-suppliers' ),
+				'added' => __( 'Created: ', 'taxocommerce-suppliers' ),
+				'updated' => __( 'Updated: ', 'taxocommerce-suppliers' ),
+				'unchanged' => __( 'Unchanged: ', 'taxocommerce-suppliers' ),
+				'unmatched' => __( 'Unknown: ', 'taxocommerce-suppliers' ),
+				'invalid' => __( 'Invalid: ', 'taxocommerce-suppliers' ),
+				'stopping' => __( 'Stopping import after the current batch...', 'taxocommerce-suppliers' ),
+				'stopped' => __( 'Import stopped. Completed batches are retained.', 'taxocommerce-suppliers' ),
+				'sampleErrors' => __( 'First invalid or unmatched rows: ', 'taxocommerce-suppliers' ),
+				'serverError' => __( 'Server request failed.', 'taxocommerce-suppliers' ),
+			) );
+		}
 		wp_enqueue_style(
 			'taxocommerce-suppliers-admin',
 			TAXOCOMMERCE_SUPPLIERS_URL . 'assets/admin.css',
@@ -102,7 +122,7 @@ final class TCSUP_Admin {
 	private static function active_tab() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation.
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'import';
-		return in_array( $tab, array( 'import', 'templates', 'inventory', 'prices', 'history', 'images', 'purchasing', 'manual', 'autotest' ), true ) ? $tab : 'import';
+		return in_array( $tab, array( 'import', 'templates', 'inventory', 'prices', 'history', 'images', 'purchasing', 'providers', 'manual', 'autotest' ), true ) ? $tab : 'import';
 	}
 
 	public static function render() {
@@ -129,6 +149,7 @@ final class TCSUP_Admin {
 					'history'   => __( 'Price history', 'taxocommerce-suppliers' ),
 					'images'     => __( 'External Images', 'taxocommerce-suppliers' ),
 					'purchasing' => __( 'Purchasing', 'taxocommerce-suppliers' ),
+					'providers' => __( 'Supplier management', 'taxocommerce-suppliers' ),
 					'manual' => __( 'Manual', 'taxocommerce-suppliers' ),
 					'autotest' => __( 'Autocheck', 'taxocommerce-suppliers' ),
 				);
@@ -162,6 +183,9 @@ final class TCSUP_Admin {
 					break;
 				case 'purchasing':
 					TCSUP_Purchasing::render();
+					break;
+				case 'providers':
+					TCSUP_Profiles::render();
 					break;
 				case 'manual':
 					TCSUP_Manual::render();
