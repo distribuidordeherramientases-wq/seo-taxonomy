@@ -965,31 +965,31 @@ msgstr "2. Primeros pasos"
 msgid ""
 "Activa WooCommerce y TaxoCommerce Dependiente. Core es opcional; solo agrupa"
 " el acceso a los plugins."
-msgstr ""
+msgstr "Activa WooCommerce y TaxoCommerce Dependiente. Core es opcional; solo agrupa el acceso a los plugins."
 
 #: includes/class-tcd-manual.php:145
 msgid ""
 "Abre Sales Assistant (Dependiente) y comprueba el estado, la lección actual "
 "y los recuentos."
-msgstr ""
+msgstr "Abre Sales Assistant (Dependiente) y comprueba el estado, la lección actual y los recuentos."
 
 #: includes/class-tcd-manual.php:146
 msgid ""
 "Selecciona una prioridad de trabajo entre 1 (suave) y 5 (máxima). El valor 3"
 " es el predeterminado."
-msgstr ""
+msgstr "Selecciona una prioridad de trabajo entre 1 (suave) y 5 (máxima). El valor 3 es el predeterminado."
 
 #: includes/class-tcd-manual.php:147
 msgid ""
 "Pulsa Iniciar o reanudar; Dependiente prepara primero la foto fija de cada "
 "lección y después aprende y evalúa."
-msgstr ""
+msgstr "Pulsa Iniciar o reanudar; Dependiente prepara primero la foto fija de cada lección y después aprende y evalúa."
 
 #: includes/class-tcd-manual.php:148
 msgid ""
 "Cuando la búsqueda esté preparada, prueba el shortcode moderno en una página"
 " de pruebas antes de sustituir el buscador público."
-msgstr ""
+msgstr "Cuando la búsqueda esté preparada, prueba el shortcode moderno en una página de pruebas antes de sustituir el buscador público."
 
 #: includes/class-tcd-manual.php:150
 msgid ""
@@ -997,7 +997,7 @@ msgid ""
 "mantener abierta la pantalla. Si WP-Cron no se ejecuta o la web apenas "
 "recibe tráfico, la cola puede retrasarse: comprueba el Log de aprendizaje y "
 "la planificación del servidor."
-msgstr ""
+msgstr "El proceso usa tareas programadas de WordPress y puede continuar sin mantener abierta la pantalla. Si WP-Cron no se ejecuta o la web apenas recibe tráfico, la cola puede retrasarse: comprueba el Log de aprendizaje y la planificación del servidor."
 
 #: includes/class-tcd-manual.php:154
 msgid "3. Aprendizaje, prioridad y controles"
@@ -1031,7 +1031,7 @@ msgstr "Revisar correcciones y reevaluar:"
 msgid ""
 "si una lección no supera la calidad, vuelve a comprobar los casos fallidos "
 "después de corregirlos."
-msgstr ""
+msgstr "si una lección no supera la calidad, vuelve a comprobar los casos fallidos después de corregirlos."
 
 #: includes/class-tcd-manual.php:160
 msgid "Reiniciar aprendizaje completo:"
@@ -1043,7 +1043,7 @@ msgid ""
 "Dependiente. No borra los productos originales, pero puede perder progreso y"
 " conocimiento generado. Utilízalo solo cuando corresponda y con copia de "
 "seguridad."
-msgstr ""
+msgstr "inicia un nuevo curso y borra datos de aprendizaje generados por Dependiente. No borra los productos originales, pero puede perder progreso y conocimiento generado. Utilízalo solo cuando corresponda y con copia de seguridad."
 
 #: includes/class-tcd-manual.php:162
 msgid "Cómo leer el progreso"
@@ -1055,7 +1055,7 @@ msgid ""
 "aprendidos, los no aprendidos y el examen. Una foto fija sellada representa "
 "el catálogo estudiado en ese momento: no se modifica automáticamente cuando "
 "cambia el catálogo en mitad de una lección."
-msgstr ""
+msgstr "La tabla de lecciones distingue la creación de la foto fija, los elementos aprendidos, los no aprendidos y el examen. Una foto fija sellada representa el catálogo estudiado en ese momento: no se modifica automáticamente cuando cambia el catálogo en mitad de una lección."
 
 #: includes/class-tcd-manual.php:167
 msgid "4. Las diez lecciones (L1-L10)"
@@ -1065,7 +1065,7 @@ msgstr "4. Las diez lecciones (L1-L10)"
 msgid ""
 "Cada lección aprende una fuente diferente. Sus resultados son independientes"
 " y deben superar los controles de calidad definidos antes de continuar."
-msgstr ""
+msgstr "Cada lección aprende una fuente diferente. Sus resultados son independientes y deben superar los controles de calidad definidos antes de continuar."
 
 #: includes/class-tcd-manual.php:171
 msgid "Fuente"
@@ -1086,7 +1086,7 @@ msgid ""
 "petición; es Dependiente quien se encarga de buscar los productos. En la "
 "pantalla principal puedes consultar el estado del curso lingüístico y "
 "desplegar sus fases."
-msgstr ""
+msgstr "Después de aprender el catálogo, el Intérprete trabaja con gramática, expresiones, verbos, erratas, sinónimos y contexto. Limpia e interpreta la petición; es Dependiente quien se encarga de buscar los productos. En la pantalla principal puedes consultar el estado del curso lingüístico y desplegar sus fases."
 
 #: includes/class-tcd-manual.php:189
 msgid "M12: mantenimiento y feedback"
@@ -1098,7 +1098,7 @@ msgid ""
 "revisiones incrementales. Las consultas, clics y aclaraciones pueden aportar"
 " evidencia, pero un único clic no activa una regla nueva: se exige "
 "repetición y validación."
-msgstr ""
+msgstr "M12 actualiza conocimiento cuando cambian productos o contenidos y realiza revisiones incrementales. Las consultas, clics y aclaraciones pueden aportar evidencia, pero un único clic no activa una regla nueva: se exige repetición y validación."
 
 #: includes/class-tcd-manual.php:194
 msgid "6. Calidad, auditoría y correcciones"
@@ -1110,34 +1110,34 @@ msgid ""
 "lección, junto con los aciertos Top 1, Top 3 y Top 8. Un resultado por "
 "debajo del umbral no equivale a que el proceso esté averiado; indica que la "
 "lección aún no ha superado el examen."
-msgstr ""
+msgstr "En la columna Calidad verás el porcentaje obtenido y el mínimo de la lección, junto con los aciertos Top 1, Top 3 y Top 8. Un resultado por debajo del umbral no equivale a que el proceso esté averiado; indica que la lección aún no ha superado el examen."
 
 #: includes/class-tcd-manual.php:196
 msgid "Qué hacer si una lección no aprueba"
-msgstr ""
+msgstr "Qué hacer si una lección no aprueba"
 
 #: includes/class-tcd-manual.php:198
 msgid ""
 "Abre JSON auditoría y CSV examen; identifica si el problema está en los "
 "datos fuente, una ambigüedad real o el propio motor de ranking."
-msgstr ""
+msgstr "Abre JSON auditoría y CSV examen; identifica si el problema está en los datos fuente, una ambigüedad real o el propio motor de ranking."
 
 #: includes/class-tcd-manual.php:199
 msgid ""
 "Consulta CSV datos para revisar las anomalías detectadas en la lección."
-msgstr ""
+msgstr "Consulta CSV datos para revisar las anomalías detectadas en la lección."
 
 #: includes/class-tcd-manual.php:200
 msgid ""
 "Corrige los productos, categorías, contenidos o Vocabulary solo cuando el "
 "diagnóstico lo justifique."
-msgstr ""
+msgstr "Corrige los productos, categorías, contenidos o Vocabulary solo cuando el diagnóstico lo justifique."
 
 #: includes/class-tcd-manual.php:201
 msgid ""
 "Pulsa Revisar correcciones y reevaluar. Evita reiniciar las diez lecciones "
 "para solucionar un examen fallido."
-msgstr ""
+msgstr "Pulsa Revisar correcciones y reevaluar. Evita reiniciar las diez lecciones para solucionar un examen fallido."
 
 #: includes/class-tcd-manual.php:202
 msgid ""
@@ -1145,17 +1145,17 @@ msgid ""
 "el mínimo de la lección en Dependiente. Después de guardar, si el resultado "
 "anterior ya alcanza ese mínimo, usa Aceptar la lección y continuar. Los "
 "fallos y la puntuación real se conservan."
-msgstr ""
+msgstr "Si aceptas conscientemente los errores pendientes de tu catálogo, configura el mínimo de la lección en Dependiente. Después de guardar, si el resultado anterior ya alcanza ese mínimo, usa Aceptar la lección y continuar. Los fallos y la puntuación real se conservan."
 
 #: includes/class-tcd-manual.php:207
 msgid "7. Utilizar el buscador en la tienda"
-msgstr ""
+msgstr "7. Utilizar el buscador en la tienda"
 
 #: includes/class-tcd-manual.php:208
 msgid ""
 "Inserta el shortcode siguiente en una página o bloque de shortcode de "
 "WordPress:"
-msgstr ""
+msgstr "Inserta el shortcode siguiente en una página o bloque de shortcode de WordPress:"
 
 #: includes/class-tcd-manual.php:210
 msgid ""
@@ -1163,62 +1163,62 @@ msgid ""
 "solicitar hasta dos aclaraciones cerradas cuando la intención es ambigua. Si"
 " no existe confianza suficiente, no debe presentar un producto concreto como"
 " si la recomendación fuera segura."
-msgstr ""
+msgstr "El buscador interpreta una consulta, recupera productos publicados y puede solicitar hasta dos aclaraciones cerradas cuando la intención es ambigua. Si no existe confianza suficiente, no debe presentar un producto concreto como si la recomendación fuera segura."
 
 #: includes/class-tcd-manual.php:211
 msgid ""
 "El shortcode antiguo [taxocommerce_dependiente] puede seguir perteneciendo "
 "al plugin anterior en producción. El moderno no sustituye automáticamente al"
 " buscador anterior; comprueba primero el comportamiento en staging."
-msgstr ""
+msgstr "El shortcode antiguo [taxocommerce_dependiente] puede seguir perteneciendo al plugin anterior en producción. El moderno no sustituye automáticamente al buscador anterior; comprueba primero el comportamiento en staging."
 
 #: includes/class-tcd-manual.php:215
 msgid "8. Conocimiento: exportar, analizar e importar"
-msgstr ""
+msgstr "8. Conocimiento: exportar, analizar e importar"
 
 #: includes/class-tcd-manual.php:216
 msgid ""
 "La pestaña Conocimiento / Importar–Exportar permite descargar conocimiento "
 "portable y fusionarlo con otra instalación. Transporta reglas y memoria "
 "reutilizable; no es una copia integral de todo el estado."
-msgstr ""
+msgstr "La pestaña Conocimiento / Importar–Exportar permite descargar conocimiento portable y fusionarlo con otra instalación. Transporta reglas y memoria reutilizable; no es una copia integral de todo el estado."
 
 #: includes/class-tcd-manual.php:218
 msgid ""
 "Descarga el JSON de conocimiento portable si necesitas conservar o trasladar"
 " aprendizaje."
-msgstr ""
+msgstr "Descarga el JSON de conocimiento portable si necesitas conservar o trasladar aprendizaje."
 
 #: includes/class-tcd-manual.php:219
 msgid ""
 "Antes de importar otro archivo, usa Analizar compatibilidad para revisar su "
 "contenido sin escribir datos."
-msgstr ""
+msgstr "Antes de importar otro archivo, usa Analizar compatibilidad para revisar su contenido sin escribir datos."
 
 #: includes/class-tcd-manual.php:220
 msgid ""
 "Detén el aprendizaje, revisa el informe y utiliza Importar y fusionar solo "
 "cuando quieras incorporar esas reglas y memoria."
-msgstr ""
+msgstr "Detén el aprendizaje, revisa el informe y utiliza Importar y fusionar solo cuando quieras incorporar esas reglas y memoria."
 
 #: includes/class-tcd-manual.php:222
 msgid "Abrir Conocimiento / Importar–Exportar"
-msgstr ""
+msgstr "Abrir Conocimiento / Importar–Exportar"
 
 #: includes/class-tcd-manual.php:226
 msgid "9. Backup y restauración"
-msgstr ""
+msgstr "9. Backup y restauración"
 
 #: includes/class-tcd-manual.php:227
 msgid ""
 "Backup / Restaurar descarga una copia NDJSON de las tablas y estados propios"
 " incluidos en su manifiesto. A diferencia del conocimiento portable, "
 "restaurar sustituye las tablas y opciones cubiertas por el backup."
-msgstr ""
+msgstr "Backup / Restaurar descarga una copia NDJSON de las tablas y estados propios incluidos en su manifiesto. A diferencia del conocimiento portable, restaurar sustituye las tablas y opciones cubiertas por el backup."
 
 #: includes/class-tcd-manual.php:228
 msgid "Antes de restaurar:"
-msgstr ""
+msgstr "Antes de restaurar:"
 
 #: includes/class-tcd-manual.php:228
 msgid ""
@@ -1226,19 +1226,19 @@ msgid ""
 "verificada de la base de datos de WordPress. Analiza el archivo y revisa la "
 "cobertura indicada en la pestaña; no presupongas que incluye los productos "
 "originales ni todos los datos de otros módulos."
-msgstr ""
+msgstr "detén el aprendizaje, descarga una copia de Dependiente y realiza una copia verificada de la base de datos de WordPress. Analiza el archivo y revisa la cobertura indicada en la pestaña; no presupongas que incluye los productos originales ni todos los datos de otros módulos."
 
 #: includes/class-tcd-manual.php:229
 msgid "Abrir Backup / Restaurar"
-msgstr ""
+msgstr "Abrir Backup / Restaurar"
 
 #: includes/class-tcd-manual.php:233
 msgid "10. Log de aprendizaje y Auto Test"
-msgstr ""
+msgstr "10. Log de aprendizaje y Auto Test"
 
 #: includes/class-tcd-manual.php:234
 msgid "Log de aprendizaje"
-msgstr ""
+msgstr "Log de aprendizaje"
 
 #: includes/class-tcd-manual.php:235
 msgid ""
@@ -1246,7 +1246,7 @@ msgid ""
 "Puedes actualizarlo, activar la actualización periódica, descargarlo o "
 "vaciarlo sin borrar el aprendizaje. El archivo de diagnóstico rota "
 "automáticamente y está limitado a 1 MiB."
-msgstr ""
+msgstr "Permite seguir lotes, lecturas, progreso, bloqueos, mensajes y errores. Puedes actualizarlo, activar la actualización periódica, descargarlo o vaciarlo sin borrar el aprendizaje. El archivo de diagnóstico rota automáticamente y está limitado a 1 MiB."
 
 #: includes/class-tcd-manual.php:237
 msgid ""
@@ -1254,33 +1254,33 @@ msgid ""
 " calidad, intérprete, búsqueda, mantenimiento y transferencias). Distingue "
 "correctamente entre pruebas aprobadas, fallidas, omitidas y no ejecutadas. "
 "No reentrena ni restaura copias."
-msgstr ""
+msgstr "Ejecuta comprobaciones de solo lectura por grupos (arranque, datos, fuentes, calidad, intérprete, búsqueda, mantenimiento y transferencias). Distingue correctamente entre pruebas aprobadas, fallidas, omitidas y no ejecutadas. No reentrena ni restaura copias."
 
 #: includes/class-tcd-manual.php:238
 msgid "Abrir Log de aprendizaje"
-msgstr ""
+msgstr "Abrir Log de aprendizaje"
 
 #: includes/class-tcd-manual.php:240
 msgid "Abrir Auto Test"
-msgstr ""
+msgstr "Abrir Auto Test"
 
 #: includes/class-tcd-manual.php:244
 msgid "11. Preguntas habituales"
-msgstr ""
+msgstr "11. Preguntas habituales"
 
 #: includes/class-tcd-manual.php:245
 msgid "¿Tengo que dejar abierta la pantalla?"
-msgstr ""
+msgstr "¿Tengo que dejar abierta la pantalla?"
 
 #: includes/class-tcd-manual.php:246
 msgid ""
 "No. El trabajo se programa en segundo plano, siempre que WP-Cron o el "
 "programador del servidor lo ejecuten."
-msgstr ""
+msgstr "No. El trabajo se programa en segundo plano, siempre que WP-Cron o el programador del servidor lo ejecuten."
 
 #: includes/class-tcd-manual.php:247
 msgid "¿Qué ocurre si una lección obtiene menos del mínimo?"
-msgstr ""
+msgstr "¿Qué ocurre si una lección obtiene menos del mínimo?"
 
 #: includes/class-tcd-manual.php:248
 msgid ""
@@ -1289,11 +1289,11 @@ msgid ""
 "esa lección entre 0 y 100 %. Debes confirmar expresamente la aceptación si "
 "el examen anterior ya alcanza ese mínimo. El resultado real y las "
 "incidencias continúan visibles."
-msgstr ""
+msgstr "Revisa el diagnóstico y reevalúa después de las correcciones. Si decides aceptar los errores de origen de tu catálogo, puedes ajustar el mínimo de esa lección entre 0 y 100 %. Debes confirmar expresamente la aceptación si el examen anterior ya alcanza ese mínimo. El resultado real y las incidencias continúan visibles."
 
 #: includes/class-tcd-manual.php:249
 msgid "¿Importar conocimiento es lo mismo que restaurar un backup?"
-msgstr ""
+msgstr "¿Importar conocimiento es lo mismo que restaurar un backup?"
 
 #: includes/class-tcd-manual.php:250
 msgid ""
