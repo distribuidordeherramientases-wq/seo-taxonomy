@@ -324,3 +324,26 @@ body.tcc-family-admin .tcc-guide-article h3{font-size:17px;line-height:1.35;marg
 					.taxocommerce-hierarchy-admin .nav-tab{padding:10px 11px}
 					.tc-hierarchy-panel .widefat{display:block;overflow-x:auto}
 				}
+
+
+/* Core Code Check: accessible status groups, not a WordPress.org certification. */
+#tc-core-autotest .tc-cc-report{margin:18px 0;display:grid;gap:14px}
+#tc-core-autotest .tc-cc-section{padding:14px 16px;border:1px solid #dcdcde;border-left:5px solid #64748b;border-radius:6px;background:#fff}
+#tc-core-autotest .tc-cc-section--error{border-left-color:#b42318}
+#tc-core-autotest .tc-cc-section--warning{border-left-color:#b76e00}
+#tc-core-autotest .tc-cc-section--pass{border-left-color:#188038}
+#tc-core-autotest .tc-cc-section--unchecked{border-left-color:#64748b}
+#tc-core-autotest .tc-cc-section h3{margin:0 0 10px;font-size:15px}
+#tc-core-autotest .tc-cc-indicator{display:inline-flex;align-items:center;gap:8px;font-weight:650;color:#475569}
+#tc-core-autotest .tc-cc-indicator--error{color:#b42318}
+#tc-core-autotest .tc-cc-indicator--warning{color:#965c00}
+#tc-core-autotest .tc-cc-indicator--pass{color:#196e3a}
+#tc-core-autotest .tc-cc-dot{display:inline-block;width:11px;height:11px;border-radius:50%;background:currentColor;flex:none}
+#tc-core-autotest .tc-cc-count{font-weight:400;color:#50575e}
+#tc-core-autotest .tc-cc-entries{display:grid;gap:7px;max-height:580px;overflow:auto}
+#tc-core-autotest .tc-cc-entry{padding:9px 12px;border:1px solid #e3e5e8;border-radius:5px;background:#fafafa;overflow-wrap:anywhere}
+#tc-core-autotest .tc-cc-entry strong{margin-right:8px}
+#tc-core-autotest .tc-cc-entry code{margin-left:8px;white-space:normal;overflow-wrap:anywhere}
+#tc-core-autotest .tc-cc-entry p{margin:5px 0 0}
+#tc-core-autotest .tc-cc-legacy{margin:18px 0}
+#tc-core-autotest .tc-cc-legacy summary{cursor:pointer;font-weight:600}
