@@ -287,12 +287,18 @@ function tca_handle() {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Ledger approval must inspect the latest stored record.
         $entry = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d LIMIT 1', tca_table(), $id ) );
         if ( ! $entry || 'draft' !== $entry->status ) tca_redirect( 'summary', 'invalid' );
-        // Imported orders must be reconciled with an invoice before approval.
+        // Imported orders and refunds require the original/credit-note reference.
         $doc = tca_input( 'document_no' );
-        if ( 'woocommerce' === $entry->source && '' === $doc ) tca_redirect( 'sales', 'invalid' );
-        if ( 'review' === $entry->treatment ) tca_redirect( 'summary', 'review' );
-        $data = array( 'status' => 'validated', 'updated_at' => current_time( 'mysql' ) );
+        if ( in_array( $entry->source, array( 'woocommerce', 'wc_refund' ), true ) && '' === $doc ) tca_redirect( 'sales', 'invalid' );
+        $treatment = sanitize_key( tca_input( 'treatment' ) );
+        if ( ! in_array( $treatment, array( 'domestic', 'intra', 'reverse', 'exempt' ), true ) ) tca_redirect( 'summary', 'review' );
+        $data = array( 'status' => 'validated', 'treatment' => $treatment, 'updated_at' => current_time( 'mysql' ) );
         if ( '' !== $doc ) $data['document_no'] = $doc;
+        if ( in_array( $entry->kind, array( 'purchase', 'expense', 'asset', 'intra' ), true ) ) {
+            $deductible = tca_decimal( tca_input( 'deductible_pct' ) );
+            if ( null === $deductible || $deductible < 0 || $deductible > 100 ) tca_redirect( 'received', 'invalid' );
+            $data['deductible_pct'] = $deductible;
+        }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Immutable post-approval fiscal record, own ledger.
         $wpdb->update( tca_table(), $data, array( 'id' => $id, 'status' => 'draft' ) );
         tca_redirect( 'summary', 'validated' );
@@ -437,10 +443,20 @@ function tca_table_rows( $rows, $kind = '' ) {
         echo '<tr><td>' . esc_html( $row->fiscal_date ) . '</td><td>' . esc_html( $row->document_no ) . '</td><td>' . esc_html( $row->party ) . '</td><td>' . esc_html( $row->concept ) . '</td>';
         echo '<td>' . esc_html( tca_money( $row->amount_base ) ) . '</td><td>' . esc_html( tca_money( $row->amount_tax ) ) . '</td><td>' . esc_html( tca_money( $row->amount_total ) ) . '</td>';
         echo '<td>' . esc_html( $row->status . ' / ' . $row->treatment ) . '</td><td>';
-        if ( 'draft' === $row->status && 'review' !== $row->treatment ) {
+        if ( 'draft' === $row->status ) {
             tca_form_open( 'validate' );
             echo '<input type="hidden" name="entry_id" value="' . esc_attr( $row->id ) . '">';
-            if ( 'woocommerce' === $row->source ) echo '<input name="document_no" aria-label="' . esc_attr__( 'Issued invoice number', 'taxocommerce-accounting' ) . '" placeholder="' . esc_attr__( 'Invoice number', 'taxocommerce-accounting' ) . '" required>';
+            if ( in_array( $row->source, array( 'woocommerce', 'wc_refund' ), true ) ) {
+                echo '<input name="document_no" aria-label="' . esc_attr__( 'Issued invoice number', 'taxocommerce-accounting' ) . '" placeholder="' . esc_attr__( 'Invoice number', 'taxocommerce-accounting' ) . '" required>';
+            }
+            echo '<label>' . esc_html__( 'VAT treatment', 'taxocommerce-accounting' ) . ' <select name="treatment" required>';
+            foreach ( array( 'review' => 'Requires review', 'domestic' => 'Domestic VAT (verify)', 'intra' => 'Intra-EU', 'reverse' => 'Reverse charge', 'exempt' => 'Exempt' ) as $key => $label ) {
+                echo '<option value="' . esc_attr( $key ) . '" ' . selected( $row->treatment, $key, false ) . '>' . esc_html( tca_label( $label ) ) . '</option>';
+            }
+            echo '</select></label>';
+            if ( in_array( $row->kind, array( 'purchase', 'expense', 'asset', 'intra' ), true ) ) {
+                echo '<label>' . esc_html__( 'Deductible VAT percentage (review first)', 'taxocommerce-accounting' ) . ' <input type="number" min="0" max="100" step="0.01" name="deductible_pct" value="' . esc_attr( $row->deductible_pct ) . '" required></label>';
+            }
             submit_button( __( 'Validate', 'taxocommerce-accounting' ), 'secondary small', 'submit', false );
             echo '</form>';
         } else {
