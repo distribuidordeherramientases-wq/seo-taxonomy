@@ -711,9 +711,7 @@ final class TaxoCommerce_Core_Hierarchy {
 			$value = TaxoCommerce_Core_Country::read_posted( 'tc_country' );
 			return is_string( $value ) ? TaxoCommerce_Core_Country::normalize( $value ) : '';
 		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET country selector.
-		$value = isset( $_GET['tc_country'] ) && is_string( $_GET['tc_country'] )
-			? sanitize_text_field( wp_unslash( $_GET['tc_country'] ) ) : '';
+		$value = isset( $_GET['tc_country'] ) && is_string( $_GET['tc_country'] ) ? sanitize_text_field( wp_unslash( $_GET['tc_country'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation selector, never persisted or mutated.
 		return TaxoCommerce_Core_Country::normalize( $value );
 	}
 
