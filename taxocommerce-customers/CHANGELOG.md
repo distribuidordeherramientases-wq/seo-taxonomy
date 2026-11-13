@@ -8,3 +8,5 @@
 - Importación/exportación masiva CSV por bloques, cinco velocidades, progreso y detención.
 - Autotest funcional y chequeo estático de código, manuales y catálogos ES/EN/FR/DE/NL.
 - Datos aislados en tablas propias. Sin publicaciones en el frontend, sin automatizar campañas ni consentimientos.
+
+- Primera instalación por FTPS autorizada solo en STAGING y Focazul; no se permite crear el plugin en producción. Se transfieren todos los archivos instalables verificados.
