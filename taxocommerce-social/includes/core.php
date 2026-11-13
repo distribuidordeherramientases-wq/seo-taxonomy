@@ -169,7 +169,7 @@ function tcsocial_network_default_settings()
                 'refresh_token_enc'        => '',
                 'token_expires_at'         => 0,
                 'refresh_token_expires_at' => 0,
-                'scope'                    => 'boards:read pins:read pins:write',
+                'scope'                    => 'boards:read boards:write pins:read pins:write',
                 'board_id'                 => '',
                 'board_name'               => '',
                 'boards'                   => array(),
