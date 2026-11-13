@@ -189,6 +189,45 @@ try {
 }
 require __DIR__ . '/core-native-code-rules-smoke.php';
 
+$tc_sections = TaxoCommerce_Core_Autotest_Code::classified_findings( array(
+    'status' => 'completed',
+    'files' => array( 'bad.php', 'review.php', 'clean.php', 'skip.php' ),
+    'results' => array(
+        'bad.php' => array(
+            'php' => array( 'status' => 'fail', 'evidence' => array( array( 'rule' => 'php_parse_error', 'line' => 4 ) ) ),
+            'wordpress' => array( 'status' => 'pass', 'evidence' => array() ),
+            'security' => array( 'status' => 'pass', 'evidence' => array() ),
+        ),
+        'review.php' => array(
+            'php' => array( 'status' => 'pass', 'evidence' => array() ),
+            'wordpress' => array( 'status' => 'warning', 'evidence' => array( array( 'rule' => 'review_plugin_installation', 'line' => 89, 'severity' => 'review' ) ) ),
+            'security' => array( 'status' => 'pass', 'evidence' => array() ),
+        ),
+        'clean.php' => array(
+            'php' => array( 'status' => 'pass', 'evidence' => array() ),
+            'wordpress' => array( 'status' => 'pass', 'evidence' => array() ),
+            'security' => array( 'status' => 'pass', 'evidence' => array() ),
+        ),
+        'skip.php' => array(
+            'php' => array( 'status' => 'skip', 'evidence' => array() ),
+            'wordpress' => array( 'status' => 'skip', 'evidence' => array() ),
+            'security' => array( 'status' => 'skip', 'evidence' => array() ),
+        ),
+    ),
+) );
+check( 1 === $tc_sections['counts']['errors'], 'One confirmed syntax error is red' );
+check( 1 === $tc_sections['counts']['warnings'], 'One WordPress review warning is orange' );
+check( 1 === $tc_sections['counts']['clean'], 'One fully checked file is green' );
+check( 3 === $tc_sections['counts']['unchecked'], 'Skipped checks remain grey, not green' );
+check( 4 === $tc_sections['errors'][0]['line'], 'Error source line is retained' );
+check( 89 === $tc_sections['warnings'][0]['line'], 'Warning source line is retained' );
+check( '' !== $tc_sections['warnings'][0]['recommendation'], 'Warnings include a concrete review action' );
+check( '' !== $tc_sections['errors'][0]['description'], 'Errors include a user-facing description' );
+check( 'review_plugin_installation' === $tc_sections['warnings'][0]['rule'], 'Original rule name is retained' );
+$tc_missing = TaxoCommerce_Core_Autotest_Code::classified_findings( array( 'files' => array( 'missing.php' ), 'results' => array() ) );
+check( 1 === $tc_missing['counts']['unchecked'] && 0 === $tc_missing['counts']['clean'], 'Not-scanned files never appear green' );
+
+
 $code_overview = TaxoCommerce_Core_Autotest_Code::summary( array(
     'status' => 'completed',
     'files' => array( 'foo.php' ),
