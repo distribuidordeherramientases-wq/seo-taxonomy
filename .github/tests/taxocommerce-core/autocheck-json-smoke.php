@@ -8,6 +8,14 @@ class TaxoCommerce_Core_User_Guide {
     const PAGE_SLUG = 'taxocommerce-core-user-guide';
 }
 
+/** The standalone JSON test does not load Core's full dashboard dependencies. */
+class TaxoCommerce_Core_Dashboard {
+    public static function render_header_nav( $active_tab = 'overview' ) {
+        echo '<header class="tcc-hero">TaxoCommerce Core</header>';
+        echo '<nav class="nav-tab-wrapper">Core navigation: ' . esc_html( $active_tab ) . '</nav>';
+    }
+}
+
 $GLOBALS['allowed'] = true;
 $GLOBALS['nonce_ok'] = true;
 $GLOBALS['transient_reads'] = 0;
@@ -127,6 +135,9 @@ ob_start();
 TaxoCommerce_Core_Auto_Test::render();
 $html = ob_get_clean();
 check( strpos( $html, 'Descargar resultados (JSON)' ) !== false, 'Download button visible when suite has run' );
+check( strpos( $html, 'tcc-hero' ) !== false, 'Functional report reuses the shared Core header' );
+check( strpos( $html, 'Core navigation: autocheck' ) !== false, 'Core Autocheck remains the selected main tab' );
+check( strpos( $html, 'Functionality Check' ) !== false && strpos( $html, 'Code Check' ) !== false, 'Both check tabs rendered after shared hero' );
 check( strpos( $html, 'taxocommerce_core_export_auto_test_json' ) !== false, 'Download button submits to authenticated handler' );
 check( strpos( $html, 'tc_autotest_export_nonce' ) !== false, 'Download button has its own nonce' );
 check( strpos( $html, 'No se pudieron cargar las páginas' ) !== false, 'Failure displayed in UI' );
