@@ -3,7 +3,7 @@
  * Plugin Name: TaxoCommerce Social
  * Plugin URI: https://asociacionfocazul.com/taxocommerce-social/
  * Description: Social network connections, publishing templates and calendar for the TaxoCommerce family.
- * Version: 0.1.18
+ * Version: 0.1.19
  * Release Date: 2026-11-13
  * Requires at least: 6.7
  * Requires PHP: 7.4
@@ -20,7 +20,7 @@ require_once __DIR__ . '/includes/admin-branding.php';
 require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
 \TaxoCommerce_Social_Autotest_Code::boot();
 
-define( 'TAXOCOMMERCE_SOCIAL_VERSION', '0.1.18' );
+define( 'TAXOCOMMERCE_SOCIAL_VERSION', '0.1.19' );
 define( 'TAXOCOMMERCE_SOCIAL_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SOCIAL_URL', plugin_dir_url( __FILE__ ) );
 
@@ -31,6 +31,7 @@ require_once TAXOCOMMERCE_SOCIAL_PATH . 'includes/linkedin.php';
 require_once TAXOCOMMERCE_SOCIAL_PATH . 'includes/pinterest.php';
 require_once TAXOCOMMERCE_SOCIAL_PATH . 'includes/x.php';
 require_once TAXOCOMMERCE_SOCIAL_PATH . 'includes/programador.php';
+require_once TAXOCOMMERCE_SOCIAL_PATH . 'includes/csv-cancel.php';
 require_once TAXOCOMMERCE_SOCIAL_PATH . 'includes/calendar.php';
 require_once TAXOCOMMERCE_SOCIAL_PATH . 'includes/admin.php';
 require_once TAXOCOMMERCE_SOCIAL_PATH . 'includes/class-manual.php';
