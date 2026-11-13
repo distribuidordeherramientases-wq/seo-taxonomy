@@ -1,3 +1,10 @@
+## [0.4.81] — 2026-11-13 — Visibilidad real de los hallazgos de Code Check
+
+- Distingue archivos analizados, cantidad de incidencias y número de reglas activadas. PHP `pass` no oculta las advertencias de WordPress y seguridad.
+- Estado global `review` si existen hallazgos; `fail` para errores detectados y `incomplete` si faltan archivos, hay resultados omitidos o el inventario se ha truncado.
+- Muestra todas las evidencias incluidas en el informe (antes la pantalla recortaba a 8 por sección) y un listado por regla; JSON incorpora resumen reproducible. Mantiene el chequeo local sin ejecutar Plugin Check de WordPress.
+- Pruebas de regresión de estados, totales e inventario incompleto; Issue #2621.
+
 ## [0.4.80] — 2026-11-13 — Reglas nativas de revisión de código en Core
 
 - Ampliado el Code Check local con señales de los siete grupos señalados por WordPress.org: instalación/activación/desactivación, buffers, nonces/permisos, entradas y subidas, escapes/estilos inline y prefijos para elementos globales y hooks; añade detección de sesiones PHP y consultas SQL dinámicas.

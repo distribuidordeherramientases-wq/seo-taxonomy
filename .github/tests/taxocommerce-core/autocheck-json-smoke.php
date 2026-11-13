@@ -188,4 +188,32 @@ try {
     check( strpos( $e->getMessage(), 'No hay un informe' ) !== false, 'Expired report requires a fresh run' );
 }
 require __DIR__ . '/core-native-code-rules-smoke.php';
+
+$code_overview = TaxoCommerce_Core_Autotest_Code::summary( array(
+    'status' => 'completed',
+    'files' => array( 'foo.php' ),
+    'results' => array(
+        'foo.php' => array(
+            'php' => array( 'status' => 'pass', 'evidence' => array() ),
+            'wordpress' => array( 'status' => 'warning', 'evidence' => array( array( 'rule' => 'review_plugin_installation', 'line' => 33 ) ) ),
+            'security' => array( 'status' => 'warning', 'evidence' => array( array( 'rule' => 'review_request_nonce', 'line' => 44 ) ) ),
+        ),
+    ),
+) );
+check( 'review' === $code_overview['status'], 'PHP pass cannot conceal native WordPress and security findings' );
+check( 2 === $code_overview['findings'] && 2 === $code_overview['distinct_rules'], 'Summary counts actual evidence, not checked files' );
+check( 1 === $code_overview['by_group']['wordpress'] && 1 === $code_overview['by_group']['security'], 'Summary retains independent categories' );
+check( 'incomplete' === TaxoCommerce_Core_Autotest_Code::summary( array( 'status' => 'running', 'files' => array( 'a.php' ) ) )['status'], 'Partial scan can never pass' );
+check( 'incomplete' === TaxoCommerce_Core_Autotest_Code::summary( array(
+    'status' => 'completed',
+    'files' => array( 'a.php' ),
+    'inventory_truncated' => true,
+    'results' => array( 'a.php' => array( 'php' => array( 'status' => 'pass' ), 'wordpress' => array( 'status' => 'pass' ), 'security' => array( 'status' => 'pass' ) ) ),
+) )['status'], 'Truncated inventory cannot pass' );
+check( 'pass' === TaxoCommerce_Core_Autotest_Code::summary( array(
+    'status' => 'completed',
+    'files' => array( 'a.php' ),
+    'results' => array( 'a.php' => array( 'php' => array( 'status' => 'pass' ), 'wordpress' => array( 'status' => 'pass' ), 'security' => array( 'status' => 'pass' ) ) ),
+) )['status'], 'No findings in all completed files passes implemented checks only' );
+
 echo 'PASS: ' . $GLOBALS['count'] . " Core Autocheck export/permission/UI assertions.\n";

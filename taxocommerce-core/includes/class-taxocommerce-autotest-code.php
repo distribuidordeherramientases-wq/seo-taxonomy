@@ -85,7 +85,7 @@ final class TaxoCommerce_Core_Autotest_Code {
     }
 
     private static function finding( $status, $evidence = array() ) {
-        return array( 'status' => $status, 'evidence' => array_slice( $evidence, 0, 25 ) );
+        return array( 'status' => $status, 'evidence' => array_slice( $evidence, 0, 150 ) );
     }
 
     public static function analyze( $relative ) {
@@ -385,8 +385,71 @@ final class TaxoCommerce_Core_Autotest_Code {
         if ( $state['cursor'] >= $total ) {
             $state['status'] = 'completed';
         }
+        $state['summary'] = self::summary( $state );
         $state['updated_at'] = gmdate( 'c' );
         return $state;
+    }
+
+    /**
+     * Summarise actual findings, not the number of scanned PHP files.
+     *
+     * A PHP syntax pass must never conceal WordPress/security review warnings.
+     * An incomplete inventory cannot be presented as an overall pass.
+     *
+     * @param array $state Stored Code Check state.
+     * @return array Summary of the checked files and visible findings.
+     */
+    public static function summary( $state ) {
+        $summary = array(
+            'files_scanned' => 0,
+            'files_total' => count( $state['files'] ?? array() ),
+            'findings' => 0,
+            'rules' => array(),
+            'by_group' => array( 'php' => 0, 'wordpress' => 0, 'security' => 0 ),
+            'failed' => 0,
+            'skipped' => 0,
+            'review_files' => 0,
+            'status' => 'incomplete',
+        );
+        foreach ( $state['results'] ?? array() as $checks ) {
+            ++$summary['files_scanned'];
+            $flagged = false;
+            foreach ( array( 'php', 'wordpress', 'security' ) as $group ) {
+                $item = $checks[ $group ] ?? array();
+                if ( 'fail' === ( $item['status'] ?? '' ) ) {
+                    ++$summary['failed'];
+                    $flagged = true;
+                }
+                if ( 'skip' === ( $item['status'] ?? '' ) ) {
+                    ++$summary['skipped'];
+                }
+                foreach ( $item['evidence'] ?? array() as $evidence ) {
+                    if ( ! isset( $evidence['rule'] ) ) {
+                        continue;
+                    }
+                    ++$summary['findings'];
+                    ++$summary['by_group'][ $group ];
+                    $rule = (string) $evidence['rule'];
+                    $summary['rules'][ $rule ] = ( $summary['rules'][ $rule ] ?? 0 ) + 1;
+                    $flagged = true;
+                }
+            }
+            if ( $flagged ) {
+                ++$summary['review_files'];
+            }
+        }
+        ksort( $summary['rules'] );
+        $summary['distinct_rules'] = count( $summary['rules'] );
+        if ( $summary['failed'] ) {
+            $summary['status'] = 'fail';
+        } elseif ( 'completed' === ( $state['status'] ?? '' )
+            && ! $summary['skipped']
+            && ! empty( $summary['files_total'] )
+            && $summary['files_scanned'] === $summary['files_total']
+            && empty( $state['inventory_truncated'] ) ) {
+            $summary['status'] = $summary['findings'] ? 'review' : 'pass';
+        }
+        return $summary;
     }
 
     public static function handle() {
@@ -451,6 +514,7 @@ final class TaxoCommerce_Core_Autotest_Code {
         if ( ! is_array( $state ) || ! $state['results'] ) {
             wp_die( esc_html__( 'Run Code Check first.', 'taxocommerce-core' ) );
         }
+        $state['summary'] = self::summary( $state );
         $json = wp_json_encode( $state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
         if ( ! is_string( $json ) ) {
             wp_die( esc_html__( 'Unable to create JSON.', 'taxocommerce-core' ) );
@@ -516,6 +580,31 @@ final class TaxoCommerce_Core_Autotest_Code {
         submit_button( __( 'Run Code Check', 'taxocommerce-core' ), 'primary', 'submit', false );
         echo '</form>';
         if ( is_array( $state ) ) {
+            $summary = self::summary( $state );
+            $label = 'fail' === $summary['status']
+                ? __( 'Errors detected', 'taxocommerce-core' )
+                : ( 'review' === $summary['status']
+                    ? __( 'Review required: warnings found', 'taxocommerce-core' )
+                    : ( 'pass' === $summary['status']
+                        ? __( 'No findings in implemented checks (not a WordPress.org certification)', 'taxocommerce-core' )
+                        : __( 'Incomplete: not all files were checked', 'taxocommerce-core' ) ) );
+            echo '<div class="notice notice-' . ( 'fail' === $summary['status'] ? 'error' : 'warning' ) . ' inline"><p><strong>'
+                . esc_html( $label ) . '</strong></p>';
+            echo '<p>' . esc_html__( 'Files analysed:', 'taxocommerce-core' ) . ' ' . esc_html( (string) $summary['files_scanned'] )
+                . '/' . esc_html( (string) $summary['files_total'] ) . ' · '
+                . esc_html__( 'Findings:', 'taxocommerce-core' ) . ' ' . esc_html( (string) $summary['findings'] ) . ' · '
+                . esc_html__( 'Distinct rules:', 'taxocommerce-core' ) . ' ' . esc_html( (string) $summary['distinct_rules'] ) . '</p>';
+            echo '<p>PHP: ' . esc_html( (string) $summary['by_group']['php'] )
+                . ' · WordPress: ' . esc_html( (string) $summary['by_group']['wordpress'] )
+                . ' · ' . esc_html__( 'Security:', 'taxocommerce-core' ) . ' ' . esc_html( (string) $summary['by_group']['security'] ) . '</p>';
+            if ( $summary['rules'] ) {
+                echo '<details><summary>' . esc_html__( 'All rules with findings', 'taxocommerce-core' ) . '</summary><ul>';
+                foreach ( $summary['rules'] as $rule => $occurrences ) {
+                    echo '<li><code>' . esc_html( $rule ) . '</code> (' . esc_html( (string) $occurrences ) . ')</li>';
+                }
+                echo '</ul></details>';
+            }
+            echo '<p>' . esc_html__( 'Native static indicators only. Official Plugin Check, live security and older PHP versions have not been executed here.', 'taxocommerce-core' ) . '</p></div>';
             echo '<p>' . esc_html__( 'Progress', 'taxocommerce-core' ) . ': '
                 . esc_html( (string) $state['cursor'] ) . '/' . esc_html( (string) count( $state['files'] ) )
                 . ' · ' . esc_html( $state['status'] ) . '</p>';
@@ -544,7 +633,7 @@ final class TaxoCommerce_Core_Autotest_Code {
                     foreach ( array( 'php', 'wordpress', 'security' ) as $section ) {
                         $item = $checks[ $section ] ?? array( 'status' => 'skip', 'evidence' => array() );
                         echo '<td><strong>' . esc_html( $item['status'] ) . '</strong>';
-                        foreach ( array_slice( $item['evidence'], 0, 8 ) as $finding ) {
+                        foreach ( $item['evidence'] as $finding ) {
                             $rule = isset( $finding['rule'] ) ? $finding['rule'] : 'unknown';
                             echo '<div><code>' . esc_html( $rule ) . '</code>';
                             if ( isset( $finding['origin'] ) ) {

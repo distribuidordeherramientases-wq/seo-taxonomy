@@ -1,3 +1,6 @@
+= 0.4.81 (2026-11-13) =
+* Core Code Check now reports the actual number of findings and rule types, displays all captured evidence and shows Review Required instead of an apparent pass when PHP succeeds but WordPress/security findings exist. JSON gains a consistent summary, without invoking any external plugin. Incomplete or truncated scans never pass. Issue #2621.
+
 = 0.4.80 (2026-11-13) =
 * Extend Core's own PHP/WordPress/security Code Check with local, token-based WordPress.org manual-review criteria, source lines, PHP sessions and SQL indicators. No Plugin Check dependency or network requests. Preserve CPU batches and JSON export; regression tests cover reported source locations and distinguish contextual warnings from confirmed failures. Issue #2619.
 * Fix false duplicate-symbol reports after interpolated PHP strings; retain official Plugin Check status as not executed.
