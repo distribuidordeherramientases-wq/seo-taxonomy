@@ -820,7 +820,18 @@ final class TaxoCommerce_Core {
 	 * @return string
 	 */
 	public function family_body_class( $classes ) {
-		return $this->is_family_admin_screen() ? $classes . ' tcc-family-admin' : $classes;
+		if ( ! $this->is_family_admin_screen() ) {
+			return $classes;
+		}
+		global $submenu;
+		$items = isset( $submenu['taxocommerce-core'] ) ? (array) $submenu['taxocommerce-core'] : array();
+		$internal = array( 'taxocommerce-core', 'taxocommerce-core-content', 'taxocommerce-core-hierarchy', 'taxocommerce-core-menu', 'taxocommerce-core-user-guide' );
+		foreach ( $items as $item ) {
+			if ( is_array( $item ) && isset( $item[2] ) && ! in_array( (string) $item[2], $internal, true ) ) {
+				return $classes . ' tcc-family-admin';
+			}
+		}
+		return $classes . ' tcc-family-admin tcc-family-no-extension-menu';
 	}
 
 	/**
