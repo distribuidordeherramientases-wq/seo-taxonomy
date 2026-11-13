@@ -352,7 +352,7 @@ function tca_export() {
         foreach ( $fields as $field ) $values[] = tca_csv_guard( $row->$field );
         fputcsv( $out, $values );
     }
-    fclose( $out );
+    // php://output is closed by PHP at the end of this request.
     exit;
 }
 add_action( 'admin_post_tca_export', 'tca_export' );
@@ -365,10 +365,56 @@ function tca_form_open( $operation ) {
     echo '<input type="hidden" name="action" value="tca_action"><input type="hidden" name="operation" value="' . esc_attr( $operation ) . '">';
     wp_nonce_field( 'tca_action' );
 }
+/**
+ * All dynamic UI labels use static gettext literals, so WordPress can
+ * discover their translations and Plugin Check can validate their usage.
+ */
+function tca_label( $label ) {
+    $labels = array(
+        'Date' => __( 'Date', 'taxocommerce-accounting' ),
+        'Document' => __( 'Document', 'taxocommerce-accounting' ),
+        'Party' => __( 'Party', 'taxocommerce-accounting' ),
+        'Concept' => __( 'Concept', 'taxocommerce-accounting' ),
+        'Base' => __( 'Base', 'taxocommerce-accounting' ),
+        'VAT' => __( 'VAT', 'taxocommerce-accounting' ),
+        'Total' => __( 'Total', 'taxocommerce-accounting' ),
+        'Status' => __( 'Status', 'taxocommerce-accounting' ),
+        'Action' => __( 'Action', 'taxocommerce-accounting' ),
+        'Invoice number' => __( 'Invoice number', 'taxocommerce-accounting' ),
+        'Supplier' => __( 'Supplier', 'taxocommerce-accounting' ),
+        'Tax identification' => __( 'Tax identification', 'taxocommerce-accounting' ),
+        'Taxable base' => __( 'Taxable base', 'taxocommerce-accounting' ),
+        'Input VAT amount' => __( 'Input VAT amount', 'taxocommerce-accounting' ),
+        'Deductible VAT percentage (review first)' => __( 'Deductible VAT percentage (review first)', 'taxocommerce-accounting' ),
+        'Notes / document reference' => __( 'Notes / document reference', 'taxocommerce-accounting' ),
+        'Requires review' => __( 'Requires review', 'taxocommerce-accounting' ),
+        'Domestic VAT (verify)' => __( 'Domestic VAT (verify)', 'taxocommerce-accounting' ),
+        'Intra-EU' => __( 'Intra-EU', 'taxocommerce-accounting' ),
+        'Reverse charge' => __( 'Reverse charge', 'taxocommerce-accounting' ),
+        'Exempt' => __( 'Exempt', 'taxocommerce-accounting' ),
+        'Summary' => __( 'Summary', 'taxocommerce-accounting' ),
+        'Sales' => __( 'Sales', 'taxocommerce-accounting' ),
+        'Received invoices' => __( 'Received invoices', 'taxocommerce-accounting' ),
+        'Expenses' => __( 'Expenses', 'taxocommerce-accounting' ),
+        'Assets' => __( 'Assets', 'taxocommerce-accounting' ),
+        'Tax returns' => __( 'Tax returns', 'taxocommerce-accounting' ),
+        'Exports' => __( 'Exports', 'taxocommerce-accounting' ),
+        'Settings' => __( 'Settings', 'taxocommerce-accounting' ),
+        'Autocheck' => __( 'Autocheck', 'taxocommerce-accounting' ),
+        'Manual' => __( 'Manual', 'taxocommerce-accounting' ),
+        'Month' => __( 'Month', 'taxocommerce-accounting' ),
+        'Purchases / expenses' => __( 'Purchases / expenses', 'taxocommerce-accounting' ),
+        'Output VAT' => __( 'Output VAT', 'taxocommerce-accounting' ),
+        'Deductible input VAT' => __( 'Deductible input VAT', 'taxocommerce-accounting' ),
+        'Difference' => __( 'Difference', 'taxocommerce-accounting' ),
+        'Pending review' => __( 'Pending review', 'taxocommerce-accounting' ),
+    );
+    return isset( $labels[ $label ] ) ? $labels[ $label ] : (string) $label;
+}
 function tca_table_rows( $rows, $kind = '' ) {
     echo '<div style="overflow-x:auto"><table class="widefat striped"><thead><tr>';
     foreach ( array( 'Date', 'Document', 'Party', 'Concept', 'Base', 'VAT', 'Total', 'Status', 'Action' ) as $label ) {
-        echo '<th>' . esc_html__( $label, 'taxocommerce-accounting' ) . '</th>';
+        echo '<th>' . esc_html( tca_label( $label ) ) . '</th>';
     }
     echo '</tr></thead><tbody>';
     $count = 0;
@@ -408,7 +454,7 @@ function tca_new_invoice_form( $kind ) {
     );
     echo '<input type="hidden" name="kind" value="' . esc_attr( $kind ) . '">';
     foreach ( $fields as $id => $spec ) {
-        echo '<tr><th><label for="tca-' . esc_attr( $id ) . '">' . esc_html__( $spec[0], 'taxocommerce-accounting' ) . '</label></th><td>';
+        echo '<tr><th><label for="tca-' . esc_attr( $id ) . '">' . esc_html( tca_label( $spec[0] ) ) . '</label></th><td>';
         echo '<input class="regular-text" id="tca-' . esc_attr( $id ) . '" name="' . esc_attr( $id ) . '" type="' . esc_attr( $spec[1] ) . '" value="' . esc_attr( $spec[2] ) . '"';
         if ( 'number' === $spec[1] ) echo ' step="0.01" min="0"';
         if ( in_array( $id, array( 'fiscal_date', 'document_no', 'party', 'amount_base', 'amount_tax' ), true ) ) echo ' required';
@@ -416,7 +462,7 @@ function tca_new_invoice_form( $kind ) {
     }
     echo '<tr><th><label for="tca-treatment">' . esc_html__( 'VAT treatment', 'taxocommerce-accounting' ) . '</label></th><td><select id="tca-treatment" name="treatment">';
     foreach ( array( 'review' => 'Requires review', 'domestic' => 'Domestic VAT (verify)', 'intra' => 'Intra-EU', 'reverse' => 'Reverse charge', 'exempt' => 'Exempt' ) as $key => $label ) {
-        echo '<option value="' . esc_attr( $key ) . '">' . esc_html__( $label, 'taxocommerce-accounting' ) . '</option>';
+        echo '<option value="' . esc_attr( $key ) . '">' . esc_html( tca_label( $label ) ) . '</option>';
     }
     echo '</select></td></tr></table>';
     submit_button( __( 'Save draft', 'taxocommerce-accounting' ) );
@@ -483,7 +529,7 @@ function tca_admin() {
     $notice = isset( $_GET['notice'] ) ? sanitize_key( wp_unslash( $_GET['notice'] ) ) : '';
     if ( $notice ) echo '<div class="notice notice-info"><p>' . esc_html( $notice ) . '</p></div>';
     echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Accounting sections', 'taxocommerce-accounting' ) . '">';
-    foreach ( $tabs as $key => $label ) echo '<a class="nav-tab ' . ( $tab === $key ? 'nav-tab-active' : '' ) . '" href="' . esc_url( tca_admin_url( $key, array( 'year' => $year ) ) ) . '">' . esc_html__( $label, 'taxocommerce-accounting' ) . '</a>';
+    foreach ( $tabs as $key => $label ) echo '<a class="nav-tab ' . ( $tab === $key ? 'nav-tab-active' : '' ) . '" href="' . esc_url( tca_admin_url( $key, array( 'year' => $year ) ) ) . '">' . esc_html( tca_label( $label ) ) . '</a>';
     echo '</nav><div style="margin-top:18px">';
     echo '<p><strong>' . esc_html__( 'Financial year:', 'taxocommerce-accounting' ) . '</strong> ' . esc_html( $year ) . ' &nbsp; ';
     echo '<a href="' . esc_url( tca_admin_url( $tab, array( 'year' => $year - 1 ) ) ) . '">←</a> &nbsp; <a href="' . esc_url( tca_admin_url( $tab, array( 'year' => $year + 1 ) ) ) . '">→</a></p>';
@@ -491,7 +537,7 @@ function tca_admin() {
     if ( 'summary' === $tab || 'models' === $tab ) {
         $months = range( 1, 12 );
         echo '<h2>' . esc_html__( 'Monthly fiscal summary (validated domestic entries only)', 'taxocommerce-accounting' ) . '</h2><table class="widefat striped"><thead><tr>';
-        foreach ( array( 'Month', 'Sales', 'Purchases / expenses', 'Output VAT', 'Deductible input VAT', 'Difference', 'Pending review' ) as $heading ) echo '<th>' . esc_html__( $heading, 'taxocommerce-accounting' ) . '</th>';
+        foreach ( array( 'Month', 'Sales', 'Purchases / expenses', 'Output VAT', 'Deductible input VAT', 'Difference', 'Pending review' ) as $heading ) echo '<th>' . esc_html( tca_label( $heading ) ) . '</th>';
         echo '</tr></thead><tbody>';
         foreach ( $months as $m ) {
             $key = sprintf( '%04d-%02d', $year, $m );
@@ -511,6 +557,7 @@ function tca_admin() {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination key.
         $page = isset( $_GET['sync_page'] ) ? max( 1, absint( $_GET['sync_page'] ) ) : 1;
         echo '<input type="hidden" name="sync_page" value="' . esc_attr( (string) $page ) . '">';
+        /* translators: %d: the WooCommerce sales-import batch page number. */
         submit_button( sprintf( __( 'Import page %d (up to 25 orders)', 'taxocommerce-accounting' ), $page ), 'primary', 'submit', false );
         echo '</form>';
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only next-page link.
