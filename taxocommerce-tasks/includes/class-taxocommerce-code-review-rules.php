@@ -212,9 +212,12 @@ final class TaxoCommerce_Tasks_Code_Review_Rules {
 	/** A collision-resistant prefix, not generic PHP or WordPress names. */
 	private static function prefixed( $name ) {
 		$name = strtolower( $name );
-		return 0 === strpos( $name, 'taxocommerce_core' )
-			|| 0 === strpos( $name, 'taxo_commerce_core' )
-			|| 0 === strpos( $name, 'taxococa' );
+		// Accept established TaxoCommerce family prefixes in standalone plugins.
+		return 0 === strpos( $name, 'taxocommerce_' )
+			|| 0 === strpos( $name, 'taxo_commerce_' )
+			|| 0 === strpos( $name, 'tci_' )
+			|| 0 === strpos( $name, 'tcs_' )
+			|| 0 === strpos( $name, 'tctasks_' );
 	}
 
 	private static function next( $tokens, $from ) {
