@@ -171,15 +171,15 @@ function tca_sync_sales( $page = 1 ) {
         if ( ! $order instanceof WC_Order ) continue;
         $date = $order->get_date_created();
         if ( ! $date || $date->date( 'Y-m-d' ) < $settings['start_date'] ) continue;
-        if ( tca_find_source( 'woocommerce', $order->get_id() ) ) {
-            ++$skipped;
-            continue;
-        }
+        $already_imported = tca_find_source( 'woocommerce', $order->get_id() );
         $currency = (string) $order->get_currency();
         $tax = round( (float) $order->get_total_tax(), 2 );
         $total = round( (float) $order->get_total(), 2 );
         $country = (string) $order->get_billing_country();
         $treatment = $currency === $settings['currency'] && $country === $settings['country'] ? 'domestic' : 'review';
+        if ( $already_imported ) {
+            ++$skipped;
+        } else {
         $inserted = tca_insert( array(
             'source' => 'woocommerce', 'source_id' => $order->get_id(),
             'kind' => 'sale', 'fiscal_date' => $date->date( 'Y-m-d' ),
@@ -192,6 +192,9 @@ function tca_sync_sales( $page = 1 ) {
             'notes' => __( 'Unverified order: reconcile the issued invoice, taxes and possible refunds before approval.', 'taxocommerce-accounting' ),
         ) );
         if ( $inserted ) ++$created;
+        }
+        // A refund may be issued after the original sale was imported.
+        // Never skip refund discovery simply because the order already exists.
         foreach ( $order->get_refunds() as $refund ) {
             if ( ! $refund instanceof WC_Order_Refund || tca_find_source( 'wc_refund', $refund->get_id() ) ) continue;
             $refund_date = $refund->get_date_created();
