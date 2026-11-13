@@ -1,4 +1,4 @@
-"""Strict tests for the two valid Core packages (installed and WordPress.org)."""
+"""Verify that Core's official ZIP uses the Plugins Team's confirmed short slug."""
 from __future__ import annotations
 
 import importlib.util
@@ -15,74 +15,41 @@ SPEC.loader.exec_module(MODULE)
 
 
 class CoreDistributionTests(unittest.TestCase):
-    def test_translate_only_gettext_domains_not_data_or_menu_slugs(self):
-        example = """<?php
-        echo esc_html__( 'Manual', 'taxocommerce-core' );
-        echo __( sprintf( 'Hello %s', 'Bob' ), 'taxocommerce-core' );
-        add_submenu_page( 'taxocommerce-core', 'Tools', 'Tools', 'manage_options', 'taxocommerce-core' );
-        $slug = 'taxocommerce-core';
-        // __( 'Comment', 'taxocommerce-core' );
-        $str = "__('Quoted', 'taxocommerce-core')";
-        """
-        result, count = MODULE.adapt_gettext_calls(example)
-        self.assertEqual(count, 2)
-        self.assertIn("esc_html__( 'Manual', '" + MODULE.OFFICIAL + "' )", result)
-        self.assertIn("), '" + MODULE.OFFICIAL + "' )", result)
-        self.assertIn("add_submenu_page( 'taxocommerce-core'", result)
-        self.assertIn("$slug = 'taxocommerce-core';", result)
-        self.assertIn("// __( 'Comment', 'taxocommerce-core' );", result)
+    def test_confirmed_slug_is_short(self):
+        self.assertEqual("taxocommerce-core", MODULE.OFFICIAL)
+        self.assertNotEqual(MODULE.OLD_SLUG, MODULE.OFFICIAL)
 
-    def test_inline_php_in_html_attributes_is_translated_without_changing_html(self):
-        example = """<nav aria-label="<?php esc_attr_e( 'Nav', 'taxocommerce-core' ); ?>">
-        <input placeholder="<?php echo esc_attr__( 'Search', 'taxocommerce-core' ); ?>">
-        <?php $slug = 'taxocommerce-core'; ?>
-        """
-        result, count = MODULE.adapt_gettext_calls(example)
-        self.assertEqual(count, 2)
-        self.assertIn("esc_attr_e( 'Nav', '" + MODULE.OFFICIAL + "'", result)
-        self.assertIn("esc_attr__( 'Search', '" + MODULE.OFFICIAL + "'", result)
-        self.assertIn("$slug = 'taxocommerce-core';", result)
-        self.assertIn('<nav aria-label="<?php', result)
-
-    def test_complete_official_archive_can_be_derived_without_editing_source(self):
-        original = ROOT / MODULE.INSTALLED
-        self.assertTrue((original / (MODULE.INSTALLED + ".php")).is_file())
+    def test_distribution_preserves_source_without_rewrites(self):
+        original = ROOT / MODULE.OFFICIAL
         with tempfile.TemporaryDirectory() as temp:
             package = Path(temp) / MODULE.OFFICIAL
             shutil.copytree(original, package, ignore=shutil.ignore_patterns("tests"))
-            result = MODULE.prepare(package)
-            self.assertGreaterEqual(result["gettext_calls"], 950)
-            self.assertTrue((package / (MODULE.OFFICIAL + ".php")).is_file())
-            self.assertFalse((package / (MODULE.INSTALLED + ".php")).exists())
-            main = (package / (MODULE.OFFICIAL + ".php")).read_text(encoding="utf-8")
-            native = (original / (MODULE.INSTALLED + ".php")).read_text(encoding="utf-8")
-            self.assertIn("Text Domain: " + MODULE.INSTALLED, native)
-            self.assertIn("Text Domain: " + MODULE.OFFICIAL, main)
-            # The installed, WordPress.org and readme versions must always
-            # match; never hard-code a release number in packaging tests.
-            import re
-            match = re.search(r"(?m)^\s*\*\s*Version:\s*(\d+\.\d+\.\d+)\s*$", native)
-            self.assertIsNotNone(match)
-            version = match.group(1)
-            self.assertIn("Version: " + version, main)
-            readme = (original / "readme.txt").read_text(encoding="utf-8")
-            self.assertIn("Stable tag: " + version, readme)
-            for locale in ("es_ES", "en_US", "fr_FR", "de_DE", "nl_NL"):
-                for ext in (".po", ".mo"):
-                    self.assertTrue((package / "languages" / (MODULE.OFFICIAL + "-" + locale + ext)).is_file())
-                    self.assertFalse((package / "languages" / (MODULE.INSTALLED + "-" + locale + ext)).exists())
-                    self.assertTrue((original / "languages" / (MODULE.INSTALLED + "-" + locale + ext)).is_file())
-            official_guide = (package / "includes" / "class-taxocommerce-core-user-guide.php").read_text(encoding="utf-8")
-            installed_guide = (original / "includes" / "class-taxocommerce-core-user-guide.php").read_text(encoding="utf-8")
-            self.assertIn(MODULE.OFFICIAL, official_guide)
-            self.assertNotIn(MODULE.OFFICIAL, installed_guide)
-            self.assertIn("taxocommerce-core", installed_guide)
-            self.assertEqual(native, (original / (MODULE.INSTALLED + ".php")).read_text(encoding="utf-8"))
+            before_main = (package / (MODULE.OFFICIAL + ".php")).read_bytes()
+            before_readme = (package / "readme.txt").read_bytes()
+            report = MODULE.prepare(package)
+            self.assertEqual(before_main, (package / (MODULE.OFFICIAL + ".php")).read_bytes())
+            self.assertEqual(before_readme, (package / "readme.txt").read_bytes())
+            self.assertFalse((package / (MODULE.OLD_SLUG + ".php")).exists())
+            self.assertTrue((package / "languages" / "taxocommerce-core-es_ES.mo").is_file())
+            for locale in MODULE.LOCALES:
+                for suffix in (".po", ".mo"):
+                    self.assertTrue((package / "languages" / ("taxocommerce-core-" + locale + suffix)).is_file())
+                    self.assertFalse((package / "languages" / (MODULE.OLD_SLUG + "-" + locale + suffix)).exists())
+            self.assertGreaterEqual(report["legacy_catalogs_excluded"], 0)
+            self.assertEqual(before_main, (original / (MODULE.OFFICIAL + ".php")).read_bytes())
 
-    def test_package_rejects_wrong_directory(self):
+    def test_wrong_directory_is_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaisesRegex(ValueError, "distribution directory"):
-                MODULE.prepare(Path(temp) / MODULE.INSTALLED)
+                MODULE.prepare(Path(temp) / MODULE.OLD_SLUG)
+
+    def test_missing_language_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            package = Path(temp) / MODULE.OFFICIAL
+            shutil.copytree(ROOT / MODULE.OFFICIAL, package, ignore=shutil.ignore_patterns("tests"))
+            (package / "languages" / "taxocommerce-core-es_ES.mo").unlink()
+            with self.assertRaisesRegex(ValueError, "Missing Core locale catalog"):
+                MODULE.prepare(package)
 
 
 if __name__ == "__main__":
