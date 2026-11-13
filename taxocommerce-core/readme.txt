@@ -34,7 +34,7 @@ TaxoCommerce Core provides a modular foundation for WordPress and WooCommerce ca
 * Autonomous native Code Check: bounded PHP syntax, WordPress structure, source-level security and manual WordPress.org review signals (nonces, capabilities, uploads, lifecycle, buffers, inline CSS, prefixes, sessions and SQL). Includes source location and JSON export; does not run or require the official Plugin Check. Findings remain review warnings, not a certification.
 * Read-only Autocheck with authenticated JSON download of the last user-specific report, including site URL, Core version, pass/fail/skipped results and detailed messages for independent comparison between installations.
 
-Editorial guidance does not create or modify content automatically. Only authorised administrators can upload an optional extension ZIP through Core.
+Editorial guidance does not create or modify content automatically. Only authorised administrators can install optional extension ZIPs through WordPress' native Plugins > Add Plugin screen. Core can provide an authenticated download of a previously stored local ZIP.
 
 == Languages ==
 
