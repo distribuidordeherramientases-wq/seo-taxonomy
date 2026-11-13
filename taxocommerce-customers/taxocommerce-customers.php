@@ -42,12 +42,12 @@ add_action( 'init', static function () {
 	if ( is_readable( $official_pack . '.mo' ) || is_readable( $official_pack . '.l10n.php' ) ) {
 		return;
 	}
-	$catalog = TCCUST_DIR . 'languages/' . $domain . '-' . $locale . '.mo';
+	$catalog = __DIR__ . '/languages/' . $domain . '-' . $locale . '.mo';
 	if ( ! is_readable( $catalog ) ) {
 		$fallback = array( 'es' => 'es_ES', 'en' => 'en_US', 'fr' => 'fr_FR', 'de' => 'de_DE', 'nl' => 'nl_NL' );
 		$lang = strtolower( substr( $locale, 0, 2 ) );
 		if ( isset( $fallback[ $lang ] ) ) {
-			$catalog = TCCUST_DIR . 'languages/' . $domain . '-' . $fallback[ $lang ] . '.mo';
+			$catalog = __DIR__ . '/languages/' . $domain . '-' . $fallback[ $lang ] . '.mo';
 		}
 	}
 	if ( is_readable( $catalog ) ) {

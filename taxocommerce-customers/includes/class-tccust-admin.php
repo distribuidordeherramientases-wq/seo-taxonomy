@@ -104,7 +104,7 @@ final class TCCUST_Admin {
 			'directory' => __( 'Customer directory', 'taxocommerce-customers' ),
 			'transfer' => __( 'Import / Export', 'taxocommerce-customers' ),
 			'manual' => __( 'Manuals', 'taxocommerce-customers' ),
-			'autotest' => __( 'Autotest', 'taxocommerce-customers' ),
+			'autotest' => __( 'Autocheck', 'taxocommerce-customers' ),
 		);
 		echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Customer management tabs', 'taxocommerce-customers' ) . '">';
 		foreach ( $tabs as $key => $label ) {

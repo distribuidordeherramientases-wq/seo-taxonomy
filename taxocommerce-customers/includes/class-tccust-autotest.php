@@ -53,6 +53,12 @@ final class TCCUST_Autotest {
 			'executed_at' => gmdate( 'c' ),
 			'plugin' => 'taxocommerce-customers',
 			'version' => TCCUST_VERSION,
+			'rows' => $rows,
+			'totals' => array(
+				'pass' => count( array_filter( $rows, static function ( $row ) { return 'pass' === $row['status']; } ) ),
+				'info' => count( array_filter( $rows, static function ( $row ) { return 'info' === $row['status']; } ) ),
+				'error' => count( array_filter( $rows, static function ( $row ) { return 'error' === $row['status']; } ) ),
+			),
 			'summary' => array(
 				'pass' => count( array_filter( $rows, static function ( $row ) { return 'pass' === $row['status']; } ) ),
 				'info' => count( array_filter( $rows, static function ( $row ) { return 'info' === $row['status']; } ) ),
@@ -98,7 +104,7 @@ final class TCCUST_Autotest {
 		submit_button( __( 'Run Autotest', 'taxocommerce-customers' ), 'primary', 'submit', false );
 		echo '</form>';
 		if ( is_array( $report ) ) {
-			echo '<p><strong>' . esc_html__( 'Last execution', 'taxocommerce-customers' ) . ': ' . esc_html( $report['executed_at'] )
+			echo '<p><strong>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-customers' ) . ': ' . esc_html( $report['executed_at'] )
 				. '</strong> · ' . esc_html( $report['summary']['pass'] ) . ' ' . esc_html__( 'Passed', 'taxocommerce-customers' )
 				. ' · ' . esc_html( $report['summary']['info'] ) . ' ' . esc_html__( 'Information', 'taxocommerce-customers' )
 				. ' · ' . esc_html( $report['summary']['error'] ) . ' ' . esc_html__( 'Errors', 'taxocommerce-customers' ) . '</p>';
