@@ -9,6 +9,8 @@
  */
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/class-taxocommerce-core-code-review-rules.php';
+
 final class TaxoCommerce_Core_Autotest_Code {
     const ACTION = 'taxocommerce_core_code_check';
     const EXPORT_ACTION = 'taxocommerce_core_code_check_json';
@@ -155,7 +157,7 @@ final class TaxoCommerce_Core_Autotest_Code {
         $namespace = '';
         $n = count( $tokens );
         foreach ( $tokens as $i => $token ) {
-            if ( '{' === $token ) {
+            if ( '{' === $token || ( is_array( $token ) && in_array( $token[0], array( T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES ), true ) ) ) {
                 ++$depth;
                 if ( $new_class ) {
                     $class_depth[] = $depth;
@@ -307,6 +309,13 @@ final class TaxoCommerce_Core_Autotest_Code {
                 }
             }
         }
+        // Native WordPress.org review signals complement (never replace) the
+        // existing PHP, WordPress, and security indicators. No other plugin,
+        // executable, network service or WordPress Plugin Check is invoked.
+        $local = TaxoCommerce_Core_Code_Review_Rules::scan( $source, $relative );
+        $php = array_merge( $php, $local['php'] );
+        $wp = array_merge( $wp, $local['wordpress'] );
+        $security = array_merge( $security, $local['security'] );
         return array(
             'php' => self::finding( $php ? ( 'php_parse_error' === $php[0]['rule'] ? 'fail' : 'warning' ) : 'pass', $php ),
             'wordpress' => self::finding( $wp ? 'warning' : 'pass', $wp ),
@@ -405,6 +414,8 @@ final class TaxoCommerce_Core_Autotest_Code {
                 'files' => $files,
                 'symbols' => array(),
                 'results' => array(),
+                'native_static_review' => 'enabled',
+                'native_rules_revision' => 1,
                 'official_pcp' => 'not_executed',
                 'runtime_security' => 'not_verified',
                 'older_php_versions' => 'not_tested',
@@ -536,6 +547,9 @@ final class TaxoCommerce_Core_Autotest_Code {
                         foreach ( array_slice( $item['evidence'], 0, 8 ) as $finding ) {
                             $rule = isset( $finding['rule'] ) ? $finding['rule'] : 'unknown';
                             echo '<div><code>' . esc_html( $rule ) . '</code>';
+                            if ( isset( $finding['origin'] ) ) {
+                                echo ' <small>(' . esc_html( $finding['origin'] ) . ')</small>';
+                            }
                             if ( isset( $finding['line'] ) ) {
                                 echo ' #' . esc_html( (string) absint( $finding['line'] ) );
                             }
