@@ -85,7 +85,7 @@ final class TaxoCommerce_Core_Autotest_Code {
     }
 
     private static function finding( $status, $evidence = array() ) {
-        return array( 'status' => $status, 'evidence' => array_slice( $evidence, 0, 25 ) );
+        return array( 'status' => $status, 'evidence' => array_slice( $evidence, 0, 150 ) );
     }
 
     public static function analyze( $relative ) {
