@@ -1,3 +1,7 @@
+= 1.1.60 (2026-11-13) =
+* Refresh selected external competitive sources through sequential, bounded requests: Merchant Best Sellers, existing rate-limited Trends sync, and one verified Google category per Merchant Visibility step.
+* Keep explicit source diagnostics in saved reports and JSON, preserve cached snapshots and manual report generation. Issue #2643.
+
 = 1.1.59 (2026-11-13) =
 * Keep Competition visible after Generate or Save configuration, restoring the saved snapshot at the selected period without repeating market API calls.
 * Preserve all other Analysis reports, JSON export, independent security nonces and unavailable-source statuses. Issue #2639.
