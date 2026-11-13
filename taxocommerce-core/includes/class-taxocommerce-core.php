@@ -657,23 +657,6 @@ final class TaxoCommerce_Core {
 	}
 
 	/**
-	 * Returns installed plugin data for a family extension.
-	 *
-	 * @param string $plugin_file Plugin basename.
-	 * @return array
-	 */
-	private function installed_plugin_data( $plugin_file ) {
-		if ( ! function_exists( 'get_plugins' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		}
-
-		$plugins = get_plugins();
-		return isset( $plugins[ $plugin_file ] ) && is_array( $plugins[ $plugin_file ] )
-			? $plugins[ $plugin_file ]
-			: array();
-	}
-
-	/**
 	 * Whether a family extension is active.
 	 *
 	 * @param string $plugin_file Plugin basename.
@@ -685,27 +668,6 @@ final class TaxoCommerce_Core {
 		}
 
 		return is_plugin_active( $plugin_file );
-	}
-
-	/**
-	 * Redirects to the extension registry after an action.
-	 *
-	 * @param string $result  Result key.
-	 * @param string $message Message.
-	 * @return void
-	 */
-	private function redirect_extension_result( $result, $message ) {
-		$url = add_query_arg(
-			array(
-				'page'       => 'taxocommerce-core',
-				'tc_result'  => sanitize_key( $result ),
-				'tc_message' => sanitize_text_field( $message ),
-			),
-			admin_url( 'admin.php' )
-		);
-
-		wp_safe_redirect( $url . '#tcc-extensions' );
-		exit;
 	}
 
 	/**
