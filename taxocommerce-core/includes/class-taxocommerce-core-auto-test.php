@@ -882,16 +882,12 @@ final class TaxoCommerce_Core_Auto_Test {
         $report = get_transient( self::REPORT_PREFIX . get_current_user_id() );
         $totals = is_array( $report ) && isset( $report['totals'], $report['rows'] ) ? $report['totals'] : null;
         ?>
-        <div class="wrap tcc-family-screen" id="tc-core-autotest">
-            <header class="tcc-page-header"><div class="tcc-page-header__content">
-                <p>TaxoCommerce Core</p><h1><?php esc_html_e( 'Autocheck', 'taxocommerce-core' ); ?></h1>
-                <p><?php esc_html_e( 'Comprueba las funciones principales de esta instalación después de actualizar Core.', 'taxocommerce-core' ); ?></p>
-            </div></header>
-            <nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Navegación de TaxoCommerce Core', 'taxocommerce-core' ); ?>">
-                <a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core' ) ); ?>"><?php esc_html_e( 'Overview', 'taxocommerce-core' ); ?></a>
-                <a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=' . TaxoCommerce_Core_User_Guide::PAGE_SLUG ) ); ?>"><?php esc_html_e( 'User Guide', 'taxocommerce-core' ); ?></a>
-                <a class="nav-tab nav-tab-active" aria-current="page" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'autocheck' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Autocheck', 'taxocommerce-core' ); ?></a>
-            </nav>
+        <div class="wrap tcc-dashboard tcc-family-screen" id="tc-core-autotest">
+            <?php
+            // Core's own hero, version/history and navigation remain identical
+            // on Overview, Functionality Check and Code Check.
+            TaxoCommerce_Core_Dashboard::render_header_nav( 'autocheck' );
+            ?>
             <?php
             // The functional and source-code checks share Core's screen and navigation.
             // Switching to Code Check must not run the functional suite.

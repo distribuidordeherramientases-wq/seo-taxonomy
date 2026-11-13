@@ -1,3 +1,6 @@
+= 0.4.79 (2026-11-13) =
+* Keep the exact Core dashboard header and version history on both Autocheck subtabs. Place independent Functionality Check and Code Check below the persistent navigation; retain bounded code analysis and JSON downloads. No changes to the review findings or store data.
+
 = 0.4.78 (2026-11-11) =
 * Fix local Plugin Check on existing stores: Core in taxocommerce-core/ uses its matching native gettext domain and five bundled catalogs. Build the public WordPress.org distribution from the same sources with its assigned long folder, entrypoint, gettext domain and catalogs, strictly checking both packages. Issue #2565.
 

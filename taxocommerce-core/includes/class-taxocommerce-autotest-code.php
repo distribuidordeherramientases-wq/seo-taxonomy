@@ -463,7 +463,7 @@ final class TaxoCommerce_Core_Autotest_Code {
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection.
         $code = isset( $_GET['tc_autotest_section'] ) && 'code' === sanitize_key( wp_unslash( $_GET['tc_autotest_section'] ) );
-        $base = remove_query_arg( 'tc_autotest_section' );
+        $base = remove_query_arg( 'tc_autotest_section', admin_url( 'admin.php?page=taxocommerce-core&tab=autocheck' ) );
         echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Autotest sections', 'taxocommerce-core' ) . '">';
         echo '<a class="nav-tab' . ( $code ? '' : ' nav-tab-active' ) . '" href="' . esc_url( $base ) . '">'
             . esc_html__( 'Functionality Check', 'taxocommerce-core' ) . '</a>';
@@ -488,7 +488,7 @@ final class TaxoCommerce_Core_Autotest_Code {
     public static function render() {
         $state = self::state();
         $speeds = self::speeds();
-        echo '<section class="wrap tc-autotest-code">';
+        echo '<section class="tc-autotest-code tcc-family-panel">';
         echo '<h2>' . esc_html__( 'Code Check', 'taxocommerce-core' ) . '</h2>';
         echo '<p>' . esc_html__( 'PHP syntax, WordPress structure and security indicators for this plugin only. No other checker is required. Findings do not replace official Plugin Check or a security audit.', 'taxocommerce-core' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
