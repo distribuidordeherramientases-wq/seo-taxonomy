@@ -1,3 +1,9 @@
+## [1.1.59] — 2026-11-13 — Competidores: conservar panel tras generar y guardar (#2639)
+
+- Corrige la redirección de formularios admin-post de Competidores para conservar `analysis_days` y reabrir el informe seleccionado directamente desde el snapshot guardado.
+- Muestra confirmación de generación o guardado y mantiene visibles las opciones y el resultado sin repetir llamadas Merchant/Trends.
+- Se conservan otros informes, exportación JSON y fuentes sin datos como N/D; no cambia la autenticación ni se modifican datos de otros plugins.
+
 ## [1.1.58] — 2026-11-13 — Competidores: configuración comercial por tienda (#2633)
 
 - Añade configuración propia para mercado actual, nichos o ambos, categorías WooCommerce, señales seleccionadas y listas libres de competidores/proveedores; sin dominios predefinidos en el nuevo informe.
