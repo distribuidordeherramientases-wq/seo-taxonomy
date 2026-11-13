@@ -96,7 +96,7 @@ final class TaxoCommerce_Core_Hierarchy {
 		$ids = isset( $_POST['targets'] ) && is_array( $_POST['targets'] )
 			? array_map( 'absint', wp_unslash( $_POST['targets'] ) ) : array();
 		$result = TaxoCommerce_Core_Hierarchy_Classic::replace( $this, $type, $source, $ids, $this->country_request( true ) );
-		$this->redirect_with_result( $result, 'relation' );
+		$this->redirect_with_result( $result, 'relation', $source );
 	}
 
 	/** Search only free product categories via AJAX. */
@@ -389,7 +389,7 @@ final class TaxoCommerce_Core_Hierarchy {
 		$target_id = isset( $_POST['target_id'] ) ? absint( $_POST['target_id'] ) : 0;
 
 		$result = $this->delete_relation( $type, $source_id, $target_id );
-		$this->redirect_with_result( $result, 'unlink' );
+		$this->redirect_with_result( $result, 'unlink', $source_id );
 	}
 
 	/**
@@ -717,10 +717,11 @@ final class TaxoCommerce_Core_Hierarchy {
 		return TaxoCommerce_Core_Country::normalize( $value );
 	}
 
-	private function redirect_with_result( $result, $context ) {
+	private function redirect_with_result( $result, $context, $source_id = 0 ) {
 		$tab = 'role' === $context ? 'roles' : 'hierarchy';
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended -- Navigation GET is read-only; write handlers already verified action nonces.
-		$focus = 'hierarchy' === $tab && isset( $_POST['source_id'] ) ? absint( $_POST['source_id'] ) : 0;
+		// The caller verified the mutation nonce and supplies the already
+		// sanitized source ID; never read unverified POST during redirects.
+		$focus = 'hierarchy' === $tab ? absint( $source_id ) : 0;
 		$args = array(
 			'page'       => 'taxocommerce-core-hierarchy',
             'tc_country' => $this->country_request( true ),
