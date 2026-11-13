@@ -1,3 +1,11 @@
+## [0.1.21] — 2026-11-13 — Edición y cancelación desde el calendario (#2663)
+
+- Añade controles **Editar** y **Cancelar** a cada evento programado en la vista mensual y en la vista compacta; no es necesario utilizar CSV.
+- La cancelación exige confirmación y anula solo la programación seleccionada, también si su fecha ya pasó y permanece en la agenda; conserva la entrada/landing y las demás redes.
+- La edición reprograma la fecha y hora futuras utilizando los mecanismos existentes del módulo propietario. Los eventos de campañas se gestionan mediante sus propias funciones si el plugin Campaigns está instalado, sin dependencia obligatoria.
+- La verificación de permisos, nonce, identificadores y marca temporal evita actuar sobre una programación que se haya cambiado desde la visualización del calendario.
+- Pruebas independientes de cancelación, reprogramación, comprobación de origen y aislamiento entre redes.
+
 ## [0.1.20] — 2026-11-13 — Importador único con reconocimiento de cancelaciones (#2660)
 
 - El importador CSV existente reconoce ahora los archivos con la columna `accion=cancelar` y los deriva a la previsualización segura de cancelaciones. Las fechas vencidas no se rechazan como nuevas programaciones.
