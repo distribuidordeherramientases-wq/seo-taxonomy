@@ -39,6 +39,7 @@ function update_option( $key, $value, $autoload = null ) {
 }
 function add_action( $action, $callback ) { ++$GLOBALS['test_calls']['actions']; }
 class TaxoCommerce_Google_Bing_Merchant {
+    public static function account() { return '123456789'; }
     public static function snapshots() {
         return array( 'popular' => array( 'complete' => true,
             'updated_at' => '2026-11-12T00:00:00Z',
@@ -70,8 +71,26 @@ check_market( false === strpos( $source, 'SerpApi' ), 'no paid SERP calls in rep
 check_market( false !== strpos( $lazy, 'taxocommerce_insights_competitive_render_panel($days)' ), 'competition tab uses manual snapshot' );
 require_once __DIR__ . '/../includes/analysis/analista-competitivo.php';
 check_market( 0 === $GLOBALS['test_calls']['visibility'], 'opening file has no remote Merchant calls' );
+$categories = taxocommerce_insights_competitive_google_categories();
+check_market( array( 922 ) === $categories, 'category IDs sourced from Best Sellers' );
+// Visibility is fetched via a separate authenticated request, not during render.
+$signature = md5( '123456789|28|922' );
+$GLOBALS['test_options']['taxocommerce_insights_competitive_visibility_progress_v1'] = array(
+    'signature' => $signature,
+    'status' => 'available',
+    'complete' => true,
+    'rows' => array(
+        array( 'domain' => 'competitor.example', 'category_id' => 922,
+            'is_own' => false, 'rank' => 2, 'overlap' => 0.35, 'higher_position' => 0.4 ),
+        array( 'domain' => 'shop.example.test', 'category_id' => 922,
+            'is_own' => true, 'rank' => 3 ),
+    ),
+    'errors' => array(),
+);
 $report = taxocommerce_insights_competitive_build_report( 28 );
-check_market( 1 === $GLOBALS['test_calls']['visibility'], 'official Merchant called on explicit generate only' );
+check_market( 0 === $GLOBALS['test_calls']['visibility'], 'report generation never performs repeated Merchant requests' );
+check_market( 'available' === $report['sources']['merchant_competitive_visibility']['status'], 'staged visibility reused' );
+check_market( true === $report['sources']['merchant_competitive_visibility']['complete'], 'staged visibility marked complete' );
 check_market( 2 === $report['schema']['version'], 'new structured report version' );
 check_market( 1 === $report['summary']['competitor_count'], 'own domain excluded from competitors' );
 check_market( array() === $report['configuration']['competitors'], 'no hardcoded competitors in new report' );
@@ -102,6 +121,18 @@ check_market( false !== strpos( $source, "check_admin_referer( 'taxocommerce_ins
 check_market( false !== strpos( $source, "tgb_tab' => 'analysis'" ), 'post/redirect returns to Insights tab' );
 
 check_market( 1 === count( $GLOBALS['test_options'][TAXOCOMMERCE_INSIGHTS_COMPETITIVE_HISTORY_OPTION] ), 'history kept' );
+check_market( false !== strpos( $source, "wp_ajax_taxocommerce_insights_competitive_source_refresh" ), 'secure AJAX refresh registered' );
+check_market( false !== strpos( $source, "check_ajax_referer( 'taxocommerce_insights_competition_sources'" ), 'refresh nonce validated' );
+check_market( false !== strpos( $source, "current_user_can( 'manage_options' )" ), 'refresh requires admin capability' );
+check_market( false !== strpos( $source, "TaxoCommerce_Google_Bing_Merchant::sync( 'popular', " ), 'best sellers updated through Merchant connector' );
+check_market( false !== strpos( $source, "seo_google_trends_sync( false )" ), 'Trends uses existing rate-limited connector' );
+check_market( false !== strpos( $source, 'TaxoCommerce_Google_Bing_Merchant::competitive_visibility( array( $categories[ $step ] ), $day_count )' ), 'one visibility category per request' );
+$refresh_js = file_get_contents( __DIR__ . '/../includes/analysis/assets/analista-lazy.js' );
+check_market( false !== strpos( $refresh_js, "steps.push('merchant')" ), 'Merchant stage queued' );
+check_market( false !== strpos( $refresh_js, "steps.push('trends')" ), 'Trends stage queued' );
+check_market( false !== strpos( $refresh_js, "steps.push('visibility:0')" ), 'visibility category stages queued' );
+check_market( false !== strpos( $refresh_js, "form.get(0).submit()" ), 'existing secure generation POST retained' );
+
 // The admin-post redirect must re-open the saved panel instead of the generic
 // Analysis menu. No remote provider calls may be triggered by page restoration.
 $analysis_screen = file_get_contents( __DIR__ . '/../taxocommerce-google-bing.php' );
