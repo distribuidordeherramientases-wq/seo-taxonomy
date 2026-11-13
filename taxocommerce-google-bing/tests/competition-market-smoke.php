@@ -85,7 +85,7 @@ $configured_report = taxocommerce_insights_competitive_build_report( 28 );
 check_market( 1 === count( $configured_report['selected_competitors'] ), 'explicit competitor list recorded' );
 check_market( 'available' === $configured_report['selected_competitors'][0]['status'], 'merchant matches configured company domain' );
 check_market( 'not_connected' === $configured_report['selected_suppliers'][0]['status'], 'supplier data not invented' );
-check_market( 0 === count( $configured_report['market_context'] ), 'trends omitted in current-market mode' );
+check_market( 0 === count( $configured_report['market_context'] ), 'unchecked Trends not reported' );
 check_market( 0 === count( $configured_report['own_acceleration'] ), 'unchecked GSC not reported' );
 check_market( 1 === $report['summary']['merchant_missing_count'], 'feed gap counted' );
 check_market( 1 === $report['summary']['trends_count'], 'Trends reused' );
