@@ -28,8 +28,6 @@ if (!function_exists('taxocommerce_core_anomalies_json_excluded_post_slugs')) {
                     'inicio',
                     'nosotros',
                     'nuestro-servicio',
-                    'proveedores-de-distribuidor-de-herramientas-es',
-                    'densl-suministro-profesional-de-equipamiento-de-seguridad-vial-bajo-presupuesto',
                     'soluciones',
                     'productos-genericos-de-ferreteria',
                 )
