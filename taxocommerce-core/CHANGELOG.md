@@ -1,3 +1,10 @@
+## [0.4.84] — 2026-11-13 — Paquete de publicación con slug oficial
+
+- Adaptación del empaquetador de WordPress.org al slug confirmado por el equipo revisor: `taxocommerce-core`.
+- El ZIP público mantiene el mismo archivo principal, dominio gettext y código que Core instalado; deja de construir una variante de nombre largo con traducciones reescritas.
+- Excluye los catálogos del slug antiguo y añade validación explícita de estructura, versiones y cinco idiomas. El control oficial sigue ejecutándose en CI con 0 errores y 0 warnings como requisito de publicación.
+- No modifica los servicios ni las tablas de otros plugins, no toca producción. Issue #2625.
+
 ## [0.4.83] — 2026-11-13 — Correcciones de revisión manual WordPress.org
 
 - Eliminadas las instalaciones, activaciones y desactivaciones directas de otros plugins desde Core. Las tarjetas conservan la consulta de estado y el acceso a acciones **nativas de WordPress**, con nonces y permisos; los ZIP locales pueden descargarse con autenticación y cargarse desde la pantalla oficial de WordPress.
