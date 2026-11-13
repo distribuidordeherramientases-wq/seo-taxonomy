@@ -226,19 +226,26 @@ final class TCSocial_Auto_Test {
         global $wpdb;
         $prefix = '_seo_social_schedule_';
         $like = $wpdb->esc_like( $prefix ) . '%';
-        $time_condition = $future_only ? ' AND CAST(pm.meta_value AS UNSIGNED) > %d' : '';
-        $args = array( $wpdb->postmeta, $wpdb->posts, $like );
         if ( $future_only ) {
-            $args[] = time();
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Consulta de lectura acotada de agenda propia.
+            $rows = $wpdb->get_results( $wpdb->prepare(
+                "SELECT pm.post_id, pm.meta_key, pm.meta_value FROM %i pm
+                 INNER JOIN %i p ON p.ID = pm.post_id
+                 WHERE pm.meta_key LIKE %s AND p.post_status = 'publish'
+                   AND CAST(pm.meta_value AS UNSIGNED) > %d
+                 ORDER BY CAST(pm.meta_value AS UNSIGNED) ASC LIMIT %d",
+                $wpdb->postmeta, $wpdb->posts, $like, time(), 100
+            ) );
+        } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Consulta de lectura acotada de agenda propia.
+            $rows = $wpdb->get_results( $wpdb->prepare(
+                "SELECT pm.post_id, pm.meta_key, pm.meta_value FROM %i pm
+                 INNER JOIN %i p ON p.ID = pm.post_id
+                 WHERE pm.meta_key LIKE %s AND p.post_status = 'publish'
+                 ORDER BY CAST(pm.meta_value AS UNSIGNED) ASC LIMIT %d",
+                $wpdb->postmeta, $wpdb->posts, $like, 100
+            ) );
         }
-        $args[] = 100;
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fragmento fijo local, sin entrada de usuario.
-        $sql = "SELECT pm.post_id, pm.meta_key, pm.meta_value FROM %i pm
-                INNER JOIN %i p ON p.ID = pm.post_id
-                WHERE pm.meta_key LIKE %s AND p.post_status = 'publish'{$time_condition}
-                ORDER BY CAST(pm.meta_value AS UNSIGNED) ASC LIMIT %d";
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Diagnóstico de agenda propia, consulta de solo lectura y limitada.
-        $rows = $wpdb->get_results( $wpdb->prepare( $sql, $args ) );
         return is_array( $rows ) ? $rows : array();
     }
 
