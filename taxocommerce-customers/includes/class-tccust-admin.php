@@ -24,7 +24,6 @@ final class TCCUST_Admin {
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ) );
 		add_action( 'admin_post_tccust_save', array( __CLASS__, 'save' ) );
 		add_action( 'admin_post_tccust_delete', array( __CLASS__, 'delete' ) );
-		add_action( 'taxocommerce_core_register_modules', array( __CLASS__, 'register_module' ) );
 	}
 
 	public static function register_module( $core ) {
@@ -34,6 +33,7 @@ final class TCCUST_Admin {
 				'version' => TCCUST_VERSION,
 				'status' => 'active',
 				'description' => __( 'Private customer and purchaser management.', 'taxocommerce-customers' ),
+				'admin_url' => admin_url( 'admin.php?page=taxocommerce-customers' ),
 			) );
 		}
 	}
