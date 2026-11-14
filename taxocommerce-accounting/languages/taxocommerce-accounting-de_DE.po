@@ -240,3 +240,51 @@ msgstr "WooCommerce-Verkäufe / Erstattungen"
 
 msgid "Year contains over 400 entries; use the exports for full reporting. This dashboard is limited."
 msgstr "Year contains over 400 entries; use the exports for full reporting. This dashboard is limited."
+
+msgid "Invoice storage is unavailable."
+msgstr "Der Rechnungsspeicher ist nicht verfügbar."
+
+msgid "Secure invoice encryption is unavailable."
+msgstr "Die sichere Rechnungsverschlüsselung ist nicht verfügbar."
+
+msgid "Invoice cannot be decrypted or has been modified."
+msgstr "Die Rechnung kann nicht entschlüsselt werden oder wurde verändert."
+
+msgid "Purchase entry not found."
+msgstr "Kaufbuchung nicht gefunden."
+
+msgid "Select a PDF smaller than 10 MB."
+msgstr "Wähle eine PDF-Datei unter 10 MB."
+
+msgid "Select a valid PDF invoice."
+msgstr "Wähle eine gültige PDF-Rechnung."
+
+msgid "Supplier invoice PDF"
+msgstr "PDF-Lieferantenrechnung"
+
+msgid "Document pending"
+msgstr "Beleg ausstehend"
+
+msgid "Attach supplier PDF (up to 10 MB)"
+msgstr "Lieferanten-PDF anhängen (max. 10 MB)"
+
+msgid "Upload PDF"
+msgstr "PDF hochladen"
+
+msgid "Invoice document not found."
+msgstr "Rechnungsdokument nicht gefunden."
+
+msgid "Supplier invoice PDF securely attached to the purchase."
+msgstr "PDF-Lieferantenrechnung sicher dem Kauf zugeordnet."
+
+msgid "Select a valid PDF smaller than 10 MB."
+msgstr "Wähle eine gültige PDF-Datei unter 10 MB."
+
+msgid "Could not store the encrypted supplier invoice. No accounting data was changed."
+msgstr "Die verschlüsselte Lieferantenrechnung konnte nicht gespeichert werden. Buchungsdaten wurden nicht geändert."
+
+msgid "The purchase record was not found."
+msgstr "Der Kaufeintrag wurde nicht gefunden."
+
+msgid "Supplier PDF originals can be attached to saved purchase and expense rows. Downloads require WordPress authentication. The files are encrypted at rest using the current site salts; preserve those salts in backups. CSV/JSON exports do not include PDFs."
+msgstr "Original-PDFs von Lieferanten können gespeicherten Käufen und Ausgaben angehängt werden. Downloads erfordern eine WordPress-Anmeldung. Die Dateien werden mit den aktuellen Site-Salts verschlüsselt; diese müssen gesichert werden. CSV/JSON-Exporte enthalten keine PDFs."
