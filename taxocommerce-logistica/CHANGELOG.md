@@ -1,3 +1,9 @@
+## [0.2.21] — 2026-11-14 — Informes de Autocheck homogéneos (#2682)
+
+- Informes con estructura común a Import-Export: versión, fecha UTC, duración, WordPress, PHP, resúmenes, grupos, estado, etiqueta, mensaje y tiempo por prueba.
+- Los JSON nuevos normalizan metadatos y los informes ya guardados se normalizan únicamente al leerlos; se preservan los campos originales.
+- Vista uniforme: resumen, estados y tiempos. Se conserva Code Check autónomo, permisos y descarga JSON. Sin cambios en reglas, pedidos, costes de envío ni tablas.
+
 ## [0.2.20] — 2026-11-14 — Autocheck uniforme sin ANTES/DESPUÉS (#2679)
 
 - Autocheck funcional con «Ejecutar Autocheck» y «Descargar resultados (JSON)»; retiradas comparaciones visibles y botones por fases/grupos.
