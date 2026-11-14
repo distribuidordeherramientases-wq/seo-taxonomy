@@ -37,7 +37,7 @@ final class TCCUST_CSV_Export {
 	}
 
 	private static function private_path( $path ) {
-		$temp = realpath( get_temp_dir() );
+		$temp = TCCUST_CSV::secure_temp_dir();
 		$file = realpath( $path );
 		return $temp && $file
 			&& dirname( $file ) === untrailingslashit( $temp )
@@ -80,8 +80,12 @@ final class TCCUST_CSV_Export {
 		if ( $old ) {
 			self::cleanup( $old );
 		}
+		$temp = TCCUST_CSV::secure_temp_dir();
+		if ( ! $temp ) {
+			wp_send_json_error( array( 'message' => __( 'Cannot create private export file.', 'taxocommerce-customers' ) ), 500 );
+		}
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_tempnam -- Atomic private temporary file name outside document root.
-		$path = tempnam( get_temp_dir(), 'tccust-export-' );
+		$path = tempnam( $temp, 'tccust-export-' );
 		if ( false === $path ) {
 			wp_send_json_error( array( 'message' => __( 'Cannot create private export file.', 'taxocommerce-customers' ) ), 500 );
 		}
