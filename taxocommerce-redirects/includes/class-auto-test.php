@@ -98,6 +98,38 @@ final class Auto_Test {
         return ( $before ? self::BEFORE_KEY : self::LAST_KEY ) . get_current_blog_id();
     }
 
+    /**
+     * Canonical, backwards-compatible functional report fields.
+     * Never writes to the database and never exposes private site URLs.
+     *
+     * @param array $report Stored or newly generated report.
+     * @return array Normalized report with historical keys preserved.
+     */
+    public static function standardize_report( $report ) {
+        if ( ! is_array( $report ) ) {
+            return array();
+        }
+        $names = self::groups();
+        foreach ( (array) ( $report['rows'] ?? array() ) as $index => $row ) {
+            if ( ! is_array( $row ) ) {
+                continue;
+            }
+            $group_id = (string) ( $row['group_id'] ?? $row['group'] ?? '' );
+            $row['group_id'] = $group_id;
+            $row['group_name'] = (string) ( $names[ $group_id ] ?? $row['group'] ?? $group_id );
+            $row['label'] = (string) ( $row['label'] ?? $row['name'] ?? '' );
+            $row['message'] = (string) ( $row['message'] ?? $row['detail'] ?? '' );
+            $row['ms'] = absint( $row['ms'] ?? 0 );
+            $report['rows'][ $index ] = $row;
+        }
+        $report['wordpress'] = (string) ( $report['wordpress'] ?? $report['wordpress_version'] ?? $report['wp_version'] ?? '' );
+        $report['php'] = (string) ( $report['php'] ?? $report['php_version'] ?? '' );
+        $report['date'] = (string) ( $report['date'] ?? $report['date_utc'] ?? $report['executed_at'] ?? '' );
+        $report['executed_at'] = (string) ( $report['executed_at'] ?? $report['date_utc'] ?? $report['date'] );
+        $report['timestamp'] = absint( $report['timestamp'] ?? strtotime( $report['executed_at'] ) );
+        return $report;
+    }
+
     public static function suite( $group = 'all', $override = null ) {
         $groups = self::groups();
         $group = 'all' === $group || isset( $groups[ $group ] ) ? $group : 'all';
@@ -131,14 +163,14 @@ final class Auto_Test {
             ++$totals[ $result['status'] ];
         }
         global $wp_version;
-        return array(
+        return self::standardize_report( array(
             'schema' => 1, 'phase' => 'check', 'group' => $group,
             'site_hash' => self::site_hash(), 'version' => Plugin::VERSION,
             'wp_version' => isset( $wp_version ) ? (string) $wp_version : '',
             'php_version' => PHP_VERSION, 'date_utc' => gmdate( 'c' ), 'executed_at' => gmdate( 'c' ),
             'duration_ms' => (int) round( ( microtime( true ) - $start ) * 1000 ),
             'totals' => $totals, 'rows' => $rows,
-        );
+        ) );
     }
 
     public static function compare( $before, $after ) {
@@ -421,7 +453,7 @@ final class Auto_Test {
     private static function stored( $before ) {
         $report = get_user_meta( get_current_user_id(), self::key( $before ), true );
         return is_array( $report ) && ! empty( $report['rows'] ) && ! empty( $report['site_hash'] )
-            && hash_equals( self::site_hash(), (string) $report['site_hash'] ) ? $report : array();
+            && hash_equals( self::site_hash(), (string) $report['site_hash'] ) ? self::standardize_report( $report ) : array();
     }
 
     private static function url() {
