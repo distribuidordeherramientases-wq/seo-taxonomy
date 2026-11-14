@@ -65,13 +65,13 @@ tcc_assert( ! isset( $result['other_company'] ), 'Non-family ZIP must be exclude
 tcc_assert( count( $result ) === count( array_unique( array_column( $result, 'org_slug' ) ) ), 'No duplicate family package slugs' );
 
 $source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-core.php' );
-tcc_assert( false !== strpos( $source, "check_admin_referer( 'taxocommerce_core_install_local_extension' )" ), 'ZIP install has a nonce' );
-tcc_assert( false !== strpos( $source, "current_user_can( 'install_plugins' )" ), 'ZIP install checks WP capability' );
-tcc_assert( false !== strpos( $source, "new Plugin_Upgrader( " ), 'ZIP install uses native Plugin_Upgrader' );
-tcc_assert( false !== strpos( $source, "name=\"extension_id\"" ), 'ZIP installs from the Core card' );
+tcc_assert( false !== strpos( $source, "'activate-plugin_' . $plugin_file" ), 'Inactive plugins use protected native WP activation' );
+tcc_assert( false !== strpos( $source, "admin_url( 'plugin-install.php?tab=upload' )" ), 'ZIP installation uses native WordPress upload screen' );
+tcc_assert( false !== strpos( $source, "'taxocommerce_core_download_extension'" ), 'Family ZIPs can be downloaded from the Core card' );
+tcc_assert( false === strpos( $source, 'new Plugin_Upgrader(' ), 'No custom installer is reintroduced after WordPress.org review' );
 
 foreach ( glob( $package_dir . '/*.zip' ) as $file ) unlink( $file );
 rmdir( $package_dir );
 rmdir( dirname( $package_dir ) );
 rmdir( $GLOBALS['tcc_test_uploads'] );
-echo "PASS: dynamic Core family discovery, deduplication, ZIP catalog and native install contracts\n";
+echo "PASS: dynamic Core family discovery, deduplication, ZIP discovery and native WordPress action links\n";
