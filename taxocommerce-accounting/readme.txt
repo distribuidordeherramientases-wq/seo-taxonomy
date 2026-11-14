@@ -24,6 +24,7 @@ TaxoCommerce Accounting records fiscal data without changing WooCommerce orders,
 * Inspect monthly fiscal balances using validated domestic records only.
 * Review indicative Model 303 figures and export internal CSV or JSON.
 * Hacienda workspace: nine sub-tabs for four VAT books and Models 303, 390, 347, 349 and 200. Each sub-tab offers an authenticated internal working CSV/JSON download and an official AEAT information/filing link. Model 303 has a quarter selector; Model 390 shows indicative annual domestic figures. The new Hacienda VAT reports aggregate all ledger entries without the dashboard's 400-row display cap.
+* Relevant VAT book and Model 303 tabs link to the AEAT's own EMPTY official XLSX workbook templates (legal-entity and general variants, published 2026). They are linked directly from AEAT; TaxoCommerce does not prefill these templates or claim automatic Pre303 compatibility.
 * Run a read-only functional Autocheck with explicit incomplete-data errors.
 * Standalone administration if TaxoCommerce Core is absent; nested TaxoCommerce administration when present.
 * Uses a dedicated prefix-aware database table and WooCommerce's public order APIs (including HPOS).
