@@ -5,7 +5,7 @@
  */
 if ( 'cli' !== PHP_SAPI ) { exit( 1 ); }
 define( 'ABSPATH', __DIR__ );
-define( 'TAXOCOMMERCE_FAQS_VERSION', '0.1.11' );
+define( 'TAXOCOMMERCE_FAQS_VERSION', '0.1.20' );
 define( 'HOUR_IN_SECONDS', 3600 );
 function tc_faq_at_check( $ok, $name ) {
 	if ( ! $ok ) { fwrite( STDERR, 'FAIL FAQ Auto Test: ' . $name . PHP_EOL ); exit( 1 ); }
@@ -33,6 +33,11 @@ function add_query_arg( $key, $value = null, $url = '' ) { return ( $url ?: admi
 function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $value ) ); }
 function wp_unslash( $value ) { return $value; }
 function wp_nonce_field( $action, $name ) { echo '<input type="hidden" name="' . esc_attr( $name ) . '" value="test">'; }
+function disabled( $check, $current = true, $echo = true ) {
+    $value = $check === $current ? ' disabled="disabled"' : '';
+    if ( $echo ) { echo $value; }
+    return $value;
+}
 require dirname( __DIR__ ) . '/includes/class-taxocommerce-autotest-code.php';
 require dirname( __DIR__ ) . '/includes/class-taxocommerce-faqs-auto-test.php';
 
@@ -80,9 +85,18 @@ tc_faq_at_check( false !== strpos( $admin, 'taxocommerce_faqs_save' ), 'FAQ CRUD
 ob_start();
 TaxoCommerce_FAQs_Auto_Test::render();
 $html = ob_get_clean();
-tc_faq_at_check( false !== strpos( $html, 'Guardar estado ANTES' ), 'baseline button' );
-tc_faq_at_check( false !== strpos( $html, 'Comprobar DESPUÉS' ), 'after button' );
-tc_faq_at_check( false !== strpos( $html, 'Autocheck' ), 'consistent test name' );
+tc_faq_at_check( false !== strpos( $html, 'Ejecutar Autocheck' ), 'single-run button' );
+tc_faq_at_check( false !== strpos( $html, 'Descargar resultados (JSON)' ), 'latest-result JSON download' );
+tc_faq_at_check( false === strpos( $html, 'Guardar estado ANTES' ), 'legacy baseline button removed from UI' );
+tc_faq_at_check( false === strpos( $html, 'Comprobar DESPUÉS' ), 'legacy comparison button removed from UI' );
+tc_faq_at_check( false === strpos( $html, 'Referencia ANTES' ), 'legacy comparison panel removed from UI' );
+tc_faq_at_check( false !== strpos( $html, 'Functionality Check' ), 'functionality subtab preserved' );
+tc_faq_at_check( false !== strpos( $html, 'Code Check' ), 'code subtab preserved' );
+tc_faq_at_check( 2 === substr_count( $html, '<form ' ), 'single execution and single download forms' );
+tc_faq_at_check( false !== strpos( $html, 'disabled="disabled"' ), 'JSON disabled until a report exists' );
+$autotest = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-faqs-auto-test.php' );
+tc_faq_at_check( false !== strpos( $autotest, "self::run_suite( 'all' )" ), 'server ignores obsolete partial/phase parameters' );
+tc_faq_at_check( false !== strpos( $autotest, "self::meta_key( 'latest' )" ), 'latest report continues per-user per-site' );
 tc_faq_at_check( substr_count( $html, '<details' ) === count( $groups ), 'groups rendered' );
 
-echo 'FAQ Auto Test smoke passed: 25 checks, comparison, UI, permissions and no FAQ writes.' . PHP_EOL;
+echo 'FAQ Auto Test smoke passed: 25 checks, compatible comparison helper, unified UI, protected JSON and no FAQ writes.' . PHP_EOL;
