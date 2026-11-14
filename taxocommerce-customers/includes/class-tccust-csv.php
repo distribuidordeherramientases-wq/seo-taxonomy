@@ -68,8 +68,26 @@ final class TCCUST_CSV {
 		return 'tccust_csv_' . get_current_user_id();
 	}
 
+	/**
+	 * Never store customer CSV files below the public WordPress document root.
+	 * get_temp_dir() can fall back to wp-content on restricted shared hosting.
+	 */
+	public static function secure_temp_dir() {
+		$temp = realpath( get_temp_dir() );
+		if ( ! $temp || ! is_writable( $temp ) ) {
+			return null;
+		}
+		foreach ( array( ABSPATH, WP_CONTENT_DIR ) as $root ) {
+			$root = realpath( $root );
+			if ( $root && ( $temp === $root || 0 === strpos( $temp, $root . DIRECTORY_SEPARATOR ) ) ) {
+				return null;
+			}
+		}
+		return $temp;
+	}
+
 	public static function private_upload_dir( $directory ) {
-		$temp = untrailingslashit( get_temp_dir() );
+		$temp = untrailingslashit( self::secure_temp_dir() );
 		$directory['path'] = $temp;
 		$directory['basedir'] = $temp;
 		$directory['subdir'] = '';
@@ -107,6 +125,9 @@ final class TCCUST_CSV {
 
 	public static function start() {
 		self::authorize();
+		if ( ! self::secure_temp_dir() ) {
+			wp_send_json_error( array( 'message' => __( 'Cannot store temporary CSV.', 'taxocommerce-customers' ) ), 500 );
+		}
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce was validated via authorize().
 		if ( ! isset( $_FILES['customers_csv'] ) || ! is_array( $_FILES['customers_csv'] ) ) {
 			wp_send_json_error( array( 'message' => __( 'CSV file missing.', 'taxocommerce-customers' ) ), 400 );
