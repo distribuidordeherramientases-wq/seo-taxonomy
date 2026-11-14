@@ -82,7 +82,7 @@ final class TCA_Provider_Invoices {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Access-denial index for directory browsing.
             file_put_contents( $directory . '/index.php', '<?php // Silence is golden.' );
         }
-        if ( ! is_dir( $directory ) || ! is_readable( $directory ) || ( $create && ! is_writable( $directory ) ) ) {
+        if ( ! is_dir( $directory ) || ! is_readable( $directory ) || ( $create && ! wp_is_writable( $directory ) ) ) {
             return new WP_Error( 'tca_invoice_storage', __( 'Invoice storage is unavailable.', 'taxocommerce-accounting' ) );
         }
         return $directory;
@@ -181,7 +181,7 @@ final class TCA_Provider_Invoices {
         }
         $tab = array( 'purchase' => 'received', 'expense' => 'expenses', 'asset' => 'assets', 'intra' => 'intra' )[ $entry->kind ];
         $year = (int) substr( $entry->fiscal_date, 0, 4 );
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified immediately above.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated upload metadata (name, size, type, magic signature and is_uploaded_file); raw temporary upload paths must not be sanitized.
         $file = isset( $_FILES['tca_invoice_pdf'] ) && is_array( $_FILES['tca_invoice_pdf'] ) ? $_FILES['tca_invoice_pdf'] : array();
         $result = self::save_pdf( $id, $file );
         $notice = is_wp_error( $result ) ? $result->get_error_code() : 'invoice_uploaded';
@@ -277,7 +277,7 @@ final class TCA_Provider_Invoices {
         $placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholder string is generated internally from integer IDs.
         $sql = "SELECT id, entry_id, original_name, size_bytes, uploaded_at FROM %i WHERE entry_id IN ({$placeholders}) ORDER BY id ASC";
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private administrator archive listing.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Query contains only placeholders generated from integer IDs and is fully prepared by wpdb.
         $files = $wpdb->get_results( $wpdb->prepare( $sql, array_merge( array( self::table() ), $ids ) ) );
         $result = array();
         foreach ( (array) $files as $file ) {
