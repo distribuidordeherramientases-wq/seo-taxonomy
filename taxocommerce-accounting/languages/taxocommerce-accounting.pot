@@ -238,3 +238,51 @@ msgstr ""
 
 msgid "Year contains over 400 entries; use the exports for full reporting. This dashboard is limited."
 msgstr ""
+
+msgid "Invoice storage is unavailable."
+msgstr ""
+
+msgid "Secure invoice encryption is unavailable."
+msgstr ""
+
+msgid "Invoice cannot be decrypted or has been modified."
+msgstr ""
+
+msgid "Purchase entry not found."
+msgstr ""
+
+msgid "Select a PDF smaller than 10 MB."
+msgstr ""
+
+msgid "Select a valid PDF invoice."
+msgstr ""
+
+msgid "Supplier invoice PDF"
+msgstr ""
+
+msgid "Document pending"
+msgstr ""
+
+msgid "Attach supplier PDF (up to 10 MB)"
+msgstr ""
+
+msgid "Upload PDF"
+msgstr ""
+
+msgid "Invoice document not found."
+msgstr ""
+
+msgid "Supplier invoice PDF securely attached to the purchase."
+msgstr ""
+
+msgid "Select a valid PDF smaller than 10 MB."
+msgstr ""
+
+msgid "Could not store the encrypted supplier invoice. No accounting data was changed."
+msgstr ""
+
+msgid "The purchase record was not found."
+msgstr ""
+
+msgid "Supplier PDF originals can be attached to saved purchase and expense rows. Downloads require WordPress authentication. The files are encrypted at rest using the current site salts; preserve those salts in backups. CSV/JSON exports do not include PDFs."
+msgstr ""

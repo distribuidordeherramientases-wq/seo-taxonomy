@@ -240,3 +240,51 @@ msgstr "WooCommerce-verkopen / terugbetalingen"
 
 msgid "Year contains over 400 entries; use the exports for full reporting. This dashboard is limited."
 msgstr "Year contains over 400 entries; use the exports for full reporting. This dashboard is limited."
+
+msgid "Invoice storage is unavailable."
+msgstr "De opslag voor facturen is niet beschikbaar."
+
+msgid "Secure invoice encryption is unavailable."
+msgstr "Veilige versleuteling van facturen is niet beschikbaar."
+
+msgid "Invoice cannot be decrypted or has been modified."
+msgstr "De factuur kan niet worden ontsleuteld of is gewijzigd."
+
+msgid "Purchase entry not found."
+msgstr "Inkoopboeking niet gevonden."
+
+msgid "Select a PDF smaller than 10 MB."
+msgstr "Selecteer een PDF kleiner dan 10 MB."
+
+msgid "Select a valid PDF invoice."
+msgstr "Selecteer een geldige PDF-factuur."
+
+msgid "Supplier invoice PDF"
+msgstr "PDF-leveranciersfactuur"
+
+msgid "Document pending"
+msgstr "Document ontbreekt"
+
+msgid "Attach supplier PDF (up to 10 MB)"
+msgstr "Leveranciers-PDF bijvoegen (max. 10 MB)"
+
+msgid "Upload PDF"
+msgstr "PDF uploaden"
+
+msgid "Invoice document not found."
+msgstr "Factuurdocument niet gevonden."
+
+msgid "Supplier invoice PDF securely attached to the purchase."
+msgstr "PDF-leveranciersfactuur veilig aan de aankoop gekoppeld."
+
+msgid "Select a valid PDF smaller than 10 MB."
+msgstr "Selecteer een geldige PDF kleiner dan 10 MB."
+
+msgid "Could not store the encrypted supplier invoice. No accounting data was changed."
+msgstr "De versleutelde leveranciersfactuur kon niet worden opgeslagen. Er zijn geen boekhoudgegevens gewijzigd."
+
+msgid "The purchase record was not found."
+msgstr "De inkoopboeking is niet gevonden."
+
+msgid "Supplier PDF originals can be attached to saved purchase and expense rows. Downloads require WordPress authentication. The files are encrypted at rest using the current site salts; preserve those salts in backups. CSV/JSON exports do not include PDFs."
+msgstr "Originele PDF's van leveranciers kunnen worden gekoppeld aan opgeslagen inkopen en uitgaven. Downloads vereisen WordPress-authenticatie. Bestanden worden versleuteld met de huidige sitesalts; bewaar deze in back-ups. CSV/JSON-exports bevatten geen PDF's."

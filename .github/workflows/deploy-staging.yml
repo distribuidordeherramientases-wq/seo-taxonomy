@@ -126,6 +126,11 @@ jobs:
           php taxocommerce-tasks/tests/standalone-bootstrap-smoke.php
           php -l taxocommerce-customers/tests/standalone-bootstrap-smoke.php
           php taxocommerce-customers/tests/standalone-bootstrap-smoke.php
+          php -l taxocommerce-accounting/taxocommerce-accounting.php
+          php -l taxocommerce-accounting/includes/class-tca-provider-invoices.php
+          php -l taxocommerce-accounting/tests/provider-invoice-pdf-smoke.php
+          php taxocommerce-accounting/tests/provider-invoice-pdf-smoke.php
+          php taxocommerce-accounting/tests/smoke.php
           node --check taxocommerce-customers/assets/admin.js
           php -l taxocommerce-tasks/includes/class-tctasks-calendar.php
           php -l taxocommerce-tasks/tests/calendar-duration-smoke.php

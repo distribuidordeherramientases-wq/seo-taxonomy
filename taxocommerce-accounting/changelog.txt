@@ -1,2 +1,5 @@
+= 0.1.1 (2026-11-14) =
+* Secure, encrypted attachment of original supplier PDF invoices to manually entered purchases, expenses, assets and intra-EU records. Restricted uploads/downloads, preserved accounting ledger and no automatic tax document parsing. Issue #2681.
+
 = 0.1.0 =
 * First standalone WooCommerce accounting ledger; draft sales, manual supplier expenses, internal monthly VAT figures and CSV/JSON exports.
