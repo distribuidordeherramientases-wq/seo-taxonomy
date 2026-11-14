@@ -1,5 +1,14 @@
 # TaxoCommerce Customers — Historial
 
+## 0.1.1 — 2026-11-14
+
+- Privacidad: supresión de los campos personales replicados en CRM y marcador técnico con hash HMAC no reversible; los nuevos eventos de compra no restauran esos datos.
+- Permisos: capacidades independientes para gestión, importación, exportación, borrado y lectura de notas privadas; concedidas a administrador y gestor de tienda en activación/actualización.
+- Sincronización histórica: siempre mediante clic explícito; reanudación por posición dentro de página con tamaño fijo para evitar saltos al cambiar de velocidad.
+- CSV: exportación privada en archivo temporal del servidor por bloques, descarga firmada, comprobación de permisos, protección CSV injection y limpieza tras descargar/cancelar.
+- Regresión: nuevas comprobaciones de supresión, no repoblación y exportación sin Blob del navegador.
+- Se mantienen pedidos, usuarios, pagos y consentimientos bajo sus sistemas propietarios. Producción excluida del despliegue.
+
 ## 0.1.0 — 2026-11-13
 
 - Nuevo plugin CRM autónomo: compradores registrados e invitados de WooCommerce, contactos manuales de correo y WhatsApp.
