@@ -4,7 +4,7 @@ Tags: social-media, scheduling, pinterest, publishing, calendar
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.22
+Stable tag: 0.1.23
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,9 @@ The plugin interacts with selected social network services when an administrator
 Social publishing sends authorized content and associated account data to the selected external social network. Store tokens securely, review provider policies and avoid including personal information in generated posts without permission. Disconnect accounts when the integration is not required.
 
 == Changelog ==
+
+= 0.1.23 =
+* Adopt future orphaned WP-Cron events after the legacy plugin is deactivated without duplicating jobs; protect cancelled, paused, and rescheduled events from unintended publication. Data stays in existing tables/options.
 
 = 0.1.22 =
 * Compact calendar actions: edit date/time, pause or resume Social schedules, and delete the selected schedule without deleting the post; preserve optional Campaigns ownership.
