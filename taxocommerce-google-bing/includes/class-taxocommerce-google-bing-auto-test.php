@@ -737,7 +737,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
             <?php if ( $last ) : ?>
                 <p class="tgb-at-last">
                     <strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-google-bing' ); ?></strong>
-                    <?php echo esc_html( (string) ( $last['date'] ?? '' ) ); ?>
+                    <?php echo esc_html( (string) ( $last['executed_at'] ?? '' ) ); ?>
                     · <?php echo esc_html( 'v' . (string) ( $last['version'] ?? '' ) ); ?>
                     · <?php echo esc_html( absint( $last['duration_ms'] ?? 0 ) . ' ms' ); ?>
                 </p>
@@ -745,9 +745,9 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
                 <p class="description"><?php esc_html_e( 'Todavía no se ha ejecutado el Autocheck en este sitio.', 'taxocommerce-google-bing' ); ?></p>
             <?php endif; ?>
             <div class="tgb-at-totals" aria-label="<?php esc_attr_e( 'Resultados del último chequeo', 'taxocommerce-google-bing' ); ?>">
-                <div><strong><?php echo esc_html( absint( $totals['pass'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'Correctas', 'taxocommerce-google-bing' ); ?></span></div>
+                <div><strong><?php echo esc_html( absint( $totals['pass'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'Correctos', 'taxocommerce-google-bing' ); ?></span></div>
                 <div class="tgb-at-danger"><strong><?php echo esc_html( absint( $totals['fail'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'Errores', 'taxocommerce-google-bing' ); ?></span></div>
-                <div><strong><?php echo esc_html( absint( $totals['skip'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'No verificadas / no aplicables', 'taxocommerce-google-bing' ); ?></span></div>
+                <div><strong><?php echo esc_html( absint( $totals['skip'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'Omitidos / externos', 'taxocommerce-google-bing' ); ?></span></div>
                 <div><strong><?php echo esc_html( absint( $totals['not_run'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'No ejecutadas', 'taxocommerce-google-bing' ); ?></span></div>
             </div>
             <?php foreach ( $groups as $group_id => $title ) : ?>
@@ -767,7 +767,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
                         <div class="tgb-at-row">
                             <span class="tgb-at-dot tgb-at-dot--<?php echo esc_attr( $row['status'] ); ?>" aria-hidden="true"></span>
                             <div>
-                                <strong><?php echo esc_html( $entry[1] ); ?> <small><?php echo esc_html( $id ); ?></small></strong>
+                                <strong><?php echo esc_html( (string) ( $row['label'] ?? $entry[1] ) ); ?> <small><?php echo esc_html( $id ); ?></small></strong>
                                 <p><?php echo esc_html( (string) $row['message'] ); ?></p>
                                 <small><?php echo esc_html( absint( $row['ms'] ) . ' ms' ); ?></small>
                             </div>
