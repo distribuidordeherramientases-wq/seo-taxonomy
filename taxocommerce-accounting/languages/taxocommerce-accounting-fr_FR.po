@@ -240,3 +240,51 @@ msgstr "Ventes et remboursements WooCommerce"
 
 msgid "Year contains over 400 entries; use the exports for full reporting. This dashboard is limited."
 msgstr "Year contains over 400 entries; use the exports for full reporting. This dashboard is limited."
+
+msgid "Invoice storage is unavailable."
+msgstr "Le stockage des factures est indisponible."
+
+msgid "Secure invoice encryption is unavailable."
+msgstr "Le chiffrement sécurisé des factures est indisponible."
+
+msgid "Invoice cannot be decrypted or has been modified."
+msgstr "Impossible de déchiffrer la facture, ou le fichier a été modifié."
+
+msgid "Purchase entry not found."
+msgstr "Écriture d'achat introuvable."
+
+msgid "Select a PDF smaller than 10 MB."
+msgstr "Sélectionnez un PDF de moins de 10 Mo."
+
+msgid "Select a valid PDF invoice."
+msgstr "Sélectionnez une facture PDF valide."
+
+msgid "Supplier invoice PDF"
+msgstr "Facture PDF du fournisseur"
+
+msgid "Document pending"
+msgstr "Document manquant"
+
+msgid "Attach supplier PDF (up to 10 MB)"
+msgstr "Joindre le PDF du fournisseur (10 Mo max.)"
+
+msgid "Upload PDF"
+msgstr "Téléverser le PDF"
+
+msgid "Invoice document not found."
+msgstr "Document de facture introuvable."
+
+msgid "Supplier invoice PDF securely attached to the purchase."
+msgstr "Facture PDF du fournisseur jointe à l'achat de manière sécurisée."
+
+msgid "Select a valid PDF smaller than 10 MB."
+msgstr "Sélectionnez un PDF valide de moins de 10 Mo."
+
+msgid "Could not store the encrypted supplier invoice. No accounting data was changed."
+msgstr "Impossible d'enregistrer la facture fournisseur chiffrée. Aucune donnée comptable n'a été modifiée."
+
+msgid "The purchase record was not found."
+msgstr "L'écriture d'achat est introuvable."
+
+msgid "Supplier PDF originals can be attached to saved purchase and expense rows. Downloads require WordPress authentication. The files are encrypted at rest using the current site salts; preserve those salts in backups. CSV/JSON exports do not include PDFs."
+msgstr "Les PDF originaux des fournisseurs peuvent être joints aux achats et dépenses enregistrés. Les téléchargements nécessitent une authentification WordPress. Les fichiers sont chiffrés avec les sels du site actuel ; conservez-les dans les sauvegardes. Les exports CSV/JSON n'incluent pas les PDF."
