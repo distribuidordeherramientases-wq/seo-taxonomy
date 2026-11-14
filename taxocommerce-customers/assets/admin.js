@@ -85,12 +85,14 @@
 	const exportButton = document.getElementById('tccust-csv-export');
 	const stopButton = document.getElementById('tccust-csv-stop');
 	const issues = document.getElementById('tccust-csv-issues');
+	const exportAllowed = !exportButton.disabled;
+	const importAllowed = !form.querySelector('button[type="submit"]').disabled;
 	let busy = false, stopped = false, token = '';
 
 	function busyState(state, importing) {
 		busy = state;
-		exportButton.disabled = state;
-		form.querySelectorAll('input, select, button').forEach(function (el) { el.disabled = state; });
+		exportButton.disabled = state || !exportAllowed;
+		form.querySelectorAll('input, select, button').forEach(function (el) { el.disabled = state || !importAllowed; });
 		stopButton.hidden = !state || !importing;
 	}
 	function speed() { return Number(form.querySelector('[name="size"]').value) || 100; }
