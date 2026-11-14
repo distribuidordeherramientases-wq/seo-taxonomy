@@ -253,9 +253,10 @@ function tcsocial_calendar_current_schedule($source, $content_id, $provider, $ca
  * @param int    $campaign_id Campaign owner ID.
  * @param int    $expected_timestamp Original exact timestamp.
  * @param int    $new_timestamp New timestamp for editing only.
+ * @param string $new_status Desired schedule state: programada or pausada.
  * @return true|WP_Error
  */
-function tcsocial_calendar_change_schedule($operation, $source, $content_id, $provider, $campaign_id, $expected_timestamp, $new_timestamp = 0)
+function tcsocial_calendar_change_schedule($operation, $source, $content_id, $provider, $campaign_id, $expected_timestamp, $new_timestamp = 0, $new_status = 'programada')
 {
     $content_id = absint($content_id);
     $campaign_id = absint($campaign_id);
@@ -294,8 +295,22 @@ function tcsocial_calendar_change_schedule($operation, $source, $content_id, $pr
         return true;
     }
 
-    if ($new_timestamp <= time() + 30) {
+    $new_status = sanitize_key($new_status);
+    if (!in_array($new_status, array('programada', 'pausada'), true)) {
+        return new WP_Error('invalid_state', __('Estado de programación no válido.', 'taxocommerce-social'));
+    }
+    if ('campaign' === $source && 'pausada' === $new_status) {
+        return new WP_Error('unsupported_campaign_state', __('La pausa de campañas se gestiona desde el módulo de campañas.', 'taxocommerce-social'));
+    }
+    // Keep an already expired date when pausing; resuming always requires
+    // a future date. Any intentional date change must also be in the future.
+    if (($new_status === 'programada' || $new_timestamp !== $expected_timestamp)
+        && $new_timestamp <= time() + 30) {
         return new WP_Error('invalid_date', __('Selecciona una fecha y hora futuras.', 'taxocommerce-social'));
+    }
+
+    if ('social' === $source && 'pausada' === $new_status) {
+        return tcsocial_network_pause_scheduled_publication($content_id, $provider, $new_timestamp);
     }
 
     if ('campaign' === $source) {
@@ -309,7 +324,8 @@ function tcsocial_calendar_change_schedule($operation, $source, $content_id, $pr
     if (is_wp_error($result)) {
         return $result;
     }
-    if (!tcsocial_calendar_current_schedule($source, $content_id, $provider, $campaign_id)) {
+    if (!tcsocial_calendar_current_schedule($source, $content_id, $provider, $campaign_id)
+        || ('social' === $source && 'programada' !== tcsocial_network_get_schedule_state($content_id, $provider))) {
         return new WP_Error('save_failed', __('No se ha podido verificar la reprogramación.', 'taxocommerce-social'));
     }
     return true;
@@ -335,6 +351,7 @@ function tcsocial_calendar_handle_manage()
     $month = isset($_POST['calendar_month']) ? sanitize_text_field(wp_unslash($_POST['calendar_month'])) : '';
     $filter = isset($_POST['calendar_filter']) ? sanitize_key(wp_unslash($_POST['calendar_filter'])) : '';
     $date_value = isset($_POST['calendar_datetime']) ? sanitize_text_field(wp_unslash($_POST['calendar_datetime'])) : '';
+    $status_value = isset($_POST['calendar_status']) ? sanitize_key(wp_unslash($_POST['calendar_status'])) : '';
 
     check_admin_referer('tcsocial_calendar_manage_' . $source . '_' . $content_id . '_' . $provider . '_' . $campaign_id . '_' . $expected);
 
@@ -349,7 +366,7 @@ function tcsocial_calendar_handle_manage()
     }
 
     if (!isset($result)) {
-        $result = tcsocial_calendar_change_schedule($operation, $source, $content_id, $provider, $campaign_id, $expected, $new_timestamp);
+        $result = tcsocial_calendar_change_schedule($operation, $source, $content_id, $provider, $campaign_id, $expected, $new_timestamp, $status_value);
     }
 
     $message = is_wp_error($result) ? 'error' : ('cancel' === $operation ? 'cancelled' : 'updated');
@@ -368,7 +385,7 @@ add_action('admin_post_tcsocial_calendar_manage', 'tcsocial_calendar_handle_mana
  * @param array $event The resolved agenda event.
  * @return void
  */
-function tcsocial_calendar_render_event_actions($event)
+function tcsocial_calendar_render_event_actions($event, $view = 'calendar')
 {
     if (empty($event['can_manage']) || !current_user_can('manage_options')) {
         return;
@@ -383,7 +400,8 @@ function tcsocial_calendar_render_event_actions($event)
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navigation/filter value only.
     $filter = isset($_GET['social_calendar_provider']) ? sanitize_key(wp_unslash($_GET['social_calendar_provider'])) : '';
 
-    echo '<div class="seo-social-calendar-actions">';
+    $is_compact = 'compact' === $view;
+    echo '<div class="seo-social-calendar-actions' . ($is_compact ? ' is-compact' : '') . '">';
     echo '<details><summary class="button button-small">' . esc_html__('Editar', 'taxocommerce-social') . '</summary>';
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     echo '<input type="hidden" name="action" value="tcsocial_calendar_manage">';
@@ -397,12 +415,24 @@ function tcsocial_calendar_render_event_actions($event)
     echo '<input type="hidden" name="calendar_filter" value="' . esc_attr($filter) . '">';
     wp_nonce_field($nonce_action);
     echo '<label>' . esc_html__('Nueva fecha y hora', 'taxocommerce-social') . '<input type="datetime-local" name="calendar_datetime" value="' . esc_attr(wp_date('Y-m-d\TH:i', $expected, wp_timezone())) . '" required></label>';
+    if ('social' === $source) {
+        $is_paused = 'pausada' === ($event['status'] ?? '');
+        echo '<label>' . esc_html__('Estado', 'taxocommerce-social') . '<select name="calendar_status">';
+        echo '<option value="programada"' . selected(!$is_paused, true, false) . '>' . esc_html__('Programada', 'taxocommerce-social') . '</option>';
+        echo '<option value="pausada"' . selected($is_paused, true, false) . '>' . esc_html__('Pausada', 'taxocommerce-social') . '</option>';
+        echo '</select></label>';
+        echo '<p>' . esc_html__('Pausada conserva la fecha, pero impide la publicación automática. Para reanudar, elige una fecha futura.', 'taxocommerce-social') . '</p>';
+    } else {
+        echo '<input type="hidden" name="calendar_status" value="programada">';
+        echo '<p>' . esc_html__('Estado: programada. Las campañas se gestionan desde su módulo.', 'taxocommerce-social') . '</p>';
+    }
+
     if ('campaign' === $source) {
         echo '<p>' . esc_html__('Las campañas mantienen su hora fija y sus fechas permitidas.', 'taxocommerce-social') . '</p>';
     }
     echo '<button type="submit" class="button button-primary button-small">' . esc_html__('Guardar cambios', 'taxocommerce-social') . '</button></form></details>';
 
-    echo '<details><summary class="button button-small">' . esc_html__('Cancelar', 'taxocommerce-social') . '</summary>';
+    echo '<details><summary class="button button-small">' . esc_html__('Borrar programación', 'taxocommerce-social') . '</summary>';
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     echo '<input type="hidden" name="action" value="tcsocial_calendar_manage">';
     echo '<input type="hidden" name="calendar_operation" value="cancel">';
@@ -415,7 +445,7 @@ function tcsocial_calendar_render_event_actions($event)
     echo '<input type="hidden" name="calendar_filter" value="' . esc_attr($filter) . '">';
     wp_nonce_field($nonce_action);
     echo '<p>' . esc_html__('Se cancelará solo esta programación, sin borrar el contenido ni otras redes.', 'taxocommerce-social') . '</p>';
-    echo '<button type="submit" class="button button-secondary button-small">' . esc_html__('Confirmar cancelación', 'taxocommerce-social') . '</button></form></details>';
+    echo '<button type="submit" class="button button-secondary button-small">' . esc_html__('Confirmar borrado', 'taxocommerce-social') . '</button></form></details>';
     echo '</div>';
 }
 
@@ -631,8 +661,8 @@ function tcsocial_calendar_render_admin()
             } else {
                 echo '<span>' . esc_html((string) $event['title']) . '</span>';
             }
-            echo '<small>' . esc_html((string) $event['type_label']) . '</small>';
-            tcsocial_calendar_render_event_actions($event);
+            echo '<small>' . esc_html((string) $event['type_label']) . ' · ' . esc_html(('pausada' === $event['status']) ? __('Pausada', 'taxocommerce-social') : __('Programada', 'taxocommerce-social')) . '</small>';
+            tcsocial_calendar_render_event_actions($event, 'compact');
             echo '</div>';
         }
         echo '</div></div>';

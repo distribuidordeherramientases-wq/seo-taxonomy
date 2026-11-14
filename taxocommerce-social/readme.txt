@@ -4,7 +4,7 @@ Tags: social-media, scheduling, pinterest, publishing, calendar
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.21
+Stable tag: 0.1.22
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,9 @@ The plugin interacts with selected social network services when an administrator
 Social publishing sends authorized content and associated account data to the selected external social network. Store tokens securely, review provider policies and avoid including personal information in generated posts without permission. Disconnect accounts when the integration is not required.
 
 == Changelog ==
+
+= 0.1.22 =
+* Compact calendar actions: edit date/time, pause or resume Social schedules, and delete the selected schedule without deleting the post; preserve optional Campaigns ownership.
 
 = 0.1.21 =
 * Calendar event-level Edit and Cancel controls with confirmation, strict original-date checks, and optional Campaigns integration.
