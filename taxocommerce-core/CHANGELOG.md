@@ -1,3 +1,12 @@
+## [0.4.85] — 2026-11-14 — Descubrimiento automático de plugins de la familia (#2669)
+
+- El catálogo de Core integra automáticamente los plugins TaxoCommerce realmente instalados según `get_plugins()`, tanto activos como inactivos; no es necesario actualizar Core para nuevos plugins.
+- El descubrimiento exige prefijo de carpeta `taxocommerce-*` y nombre identificable como TaxoCommerce, excluye el propio Core y software ajeno, evita duplicados y mantiene intacto el catálogo histórico y los filtros de terceros.
+- Detecta ZIPs `taxocommerce-*.zip` del directorio de paquetes local ya soportado (`uploads/taxocommerce-core/plugins`), incluyendo extensiones nuevas todavía no instaladas; muestra su ficha y conserva descarga ZIP, carga mediante el instalador nativo de WordPress, búsqueda en WordPress.org y activación/desactivación nativa con nonce.
+- Las tarjetas de Accounting y Customers instalados/inactivos se reconocen sin activar primero los plugins; Suppliers conserva una sola tarjeta.
+- No se reintroduce un instalador propio prohibido por las revisiones de WordPress.org; no se instalan ni activan plugins automáticamente. Pruebas aisladas de inventario, casos negativos y ZIPs locales.
+- Solo se modifica TaxoCommerce Core y su prueba de regresión. Despliegue del mismo Core en STAGING y Focazul; producción no autorizada.
+
 ## [0.4.84] — 2026-11-13 — Paquete de publicación con slug oficial
 
 - Adaptación del empaquetador de WordPress.org al slug confirmado por el equipo revisor: `taxocommerce-core`.

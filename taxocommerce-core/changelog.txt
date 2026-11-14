@@ -1,3 +1,6 @@
+= 0.4.85 (2026-11-14) =
+* Auto-discover active and inactive TaxoCommerce plugins using WordPress get_plugins and local ZIP filenames, deduplicate built-in suppliers and register new Accounting/Customers cards without Core updates. Keep native WordPress install and activation screens (WordPress.org-compatible). Issue #2669.
+
 = 0.4.84 (2026-11-13) =
 * Fix WordPress.org release packaging to use the confirmed official taxocommerce-core slug, main PHP filename, text domain and five gettext catalogs. Remove obsolete long-slug packaging transformation, ensure the published ZIP contains the same Core code validated in staging, and add regression checks. Issue #2625.
 
