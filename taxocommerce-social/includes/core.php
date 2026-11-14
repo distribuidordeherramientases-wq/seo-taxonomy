@@ -947,6 +947,11 @@ function tcsocial_network_reconcile_future_events()
         if (!$content_id || !$timestamp || !tcsocial_network_get_provider($provider)) {
             continue;
         }
+        // A paused record remains visible in the agenda, but must not be
+        // recreated as a WP-Cron job by the automatic reconciliation.
+        if ('pausada' === tcsocial_network_get_schedule_state($content_id, $provider)) {
+            continue;
+        }
         $args = array($content_id, $provider);
         if (
             wp_next_scheduled('tcsocial_network_publish_manual_scheduled', $args)
@@ -990,6 +995,69 @@ function tcsocial_network_get_scheduled_timestamp($content_id, $provider)
 }
 
 /**
+ * Pause state is stored separately from the timestamp. It intentionally does
+ * not use _seo_social_schedule_ so agenda queries never treat it as an event.
+ *
+ * @param string $provider Network key.
+ * @return string
+ */
+function tcsocial_network_schedule_state_meta_key($provider)
+{
+    return '_tcsocial_schedule_state_' . sanitize_key($provider);
+}
+
+/**
+ * Return a persisted state for a still-recorded publication schedule.
+ *
+ * @param int    $content_id Content ID.
+ * @param string $provider Network key.
+ * @return string programada, pausada, or empty if absent.
+ */
+function tcsocial_network_get_schedule_state($content_id, $provider)
+{
+    $content_id = absint($content_id);
+    if (!tcsocial_network_get_scheduled_timestamp($content_id, $provider)) {
+        return '';
+    }
+    $state = get_post_meta($content_id, tcsocial_network_schedule_state_meta_key($provider), true);
+    return 'pausada' === $state ? 'pausada' : 'programada';
+}
+
+/**
+ * Pause one social schedule while keeping its date visible/editable.
+ * Cancels current and legacy WP-Cron events. No content is published.
+ *
+ * @param int    $content_id Content ID.
+ * @param string $provider Network key.
+ * @param int    $timestamp Exact desired schedule timestamp.
+ * @return true|WP_Error
+ */
+function tcsocial_network_pause_scheduled_publication($content_id, $provider, $timestamp)
+{
+    $content_id = absint($content_id);
+    $provider = sanitize_key($provider);
+    $timestamp = absint($timestamp);
+    if (!$timestamp || !tcsocial_network_get_provider($provider) || !tcsocial_network_get_scheduled_timestamp($content_id, $provider)) {
+        return new WP_Error('invalid_schedule', __('La programación ya no existe.', 'taxocommerce-social'));
+    }
+
+    // Record pause BEFORE clearing the hook: a concurrent callback must not publish.
+    update_post_meta($content_id, tcsocial_network_schedule_state_meta_key($provider), 'pausada');
+    if ($timestamp !== tcsocial_network_get_scheduled_timestamp($content_id, $provider)) {
+        update_post_meta($content_id, tcsocial_network_schedule_meta_key($provider), $timestamp);
+    }
+    $args = array($content_id, $provider);
+    wp_clear_scheduled_hook('tcsocial_network_publish_manual_scheduled', $args);
+    wp_clear_scheduled_hook('seo_social_network_publish_manual_scheduled', $args);
+
+    if ('pausada' !== tcsocial_network_get_schedule_state($content_id, $provider)
+        || $timestamp !== tcsocial_network_get_scheduled_timestamp($content_id, $provider)) {
+        return new WP_Error('pause_failed', __('No se ha podido guardar la pausa.', 'taxocommerce-social'));
+    }
+    return true;
+}
+
+/**
  * Programa o reprograma una publicacion concreta.
  *
  * @param int    $content_id
@@ -1030,6 +1098,7 @@ function tcsocial_network_set_scheduled_publication($content_id, $provider, $tim
 
     wp_clear_scheduled_hook('seo_social_network_publish_manual_scheduled', $args);
     update_post_meta($content_id, tcsocial_network_schedule_meta_key($provider), $timestamp);
+    delete_post_meta($content_id, tcsocial_network_schedule_state_meta_key($provider));
 
     return true;
 }
@@ -1043,7 +1112,9 @@ function tcsocial_network_clear_scheduled_publication($content_id, $provider)
     $content_id = absint($content_id);
     $provider = sanitize_key($provider);
     wp_clear_scheduled_hook('tcsocial_network_publish_manual_scheduled', array($content_id, $provider));
+    wp_clear_scheduled_hook('seo_social_network_publish_manual_scheduled', array($content_id, $provider));
     delete_post_meta($content_id, tcsocial_network_schedule_meta_key($provider));
+    delete_post_meta($content_id, tcsocial_network_schedule_state_meta_key($provider));
 }
 
 /**
@@ -1512,6 +1583,10 @@ function tcsocial_network_schedule_news_publication($content_id, $provider, $req
  */
 function tcsocial_network_publish_manual_scheduled($content_id, $provider)
 {
+    // Defense in depth: an already-running cron callback must honour a pause.
+    if ('pausada' === tcsocial_network_get_schedule_state($content_id, $provider)) {
+        return;
+    }
     $result = tcsocial_network_publish_content($content_id, $provider);
     if (is_wp_error($result)) {
         // Conservar la fecha vencida para que Autocheck pueda denunciar el
@@ -1899,7 +1974,7 @@ function tcsocial_network_scheduler_exportable_agenda_rows()
             $provider,
             wp_date('Y-m-d H:i', $timestamp, wp_timezone()),
             wp_timezone_string(),
-            'programada',
+            tcsocial_network_get_schedule_state((int) $row->post_id, $provider),
             ('post' === (string) $row->post_type && function_exists('tcsocial_network_news_is_priority') && tcsocial_network_news_is_priority((int) $row->post_id)) ? 'si' : '',
         );
     }
