@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.84
+Stable tag: 0.4.85
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,8 +27,8 @@ TaxoCommerce Core provides a modular foundation for WordPress and WooCommerce ca
 * Architecture reporting with unique counts, explicit manual refresh and local 15-minute caching.
 * Read-only editorial guidance for products, categories, posts and pages based on useful content and product identity.
 * Process and extension registries with bounded technical logs for independent modules.
-* The Core Extensions catalog lists all 19 current independent TaxoCommerce modules even when absent or inactive, including Tasks; each card reports its actual WordPress installation and activation status. Retired Connections is incorporated in Insights and is not offered separately.
-* Optional extension discovery for the other TaxoCommerce modules. Activation, deactivation and ZIP installation are performed by the administrator through WordPress native plugin screens. A securely downloaded local ZIP can be uploaded through Plugins > Add Plugin > Upload Plugin.
+* The Core Extensions catalog preserves its built-in family entries and automatically detects new installed TaxoCommerce plugins (including inactive plugins) using the native WordPress plugin inventory. It also discovers locally uploaded family ZIP packages even when not yet installed. Each card reports the actual installation and activation status; existing entries are deduplicated.
+* Discovery, activation, deactivation, family ZIP downloads and links to the native WordPress installer are available from each Core extension card. Installation and activation still use the permission-checked native WordPress plugin screens; no custom ZIP installer is included.
 * Built-in, read-only User Guide tab containing a user manual and a technical manual for Core.
 * Complete read-only JSON download from Core > Content > Anomalies, including all structural, editorial, category, hub and optional FAQ finding sections from the live report. The existing editorial-only JSON remains separate.
 * Autonomous native Code Check: bounded PHP syntax, WordPress structure, source-level security and manual WordPress.org review signals (nonces, capabilities, uploads, lifecycle, buffers, inline CSS, prefixes, sessions and SQL). Includes source location and JSON export; does not run or require the official Plugin Check. Findings remain review warnings, not a certification.
