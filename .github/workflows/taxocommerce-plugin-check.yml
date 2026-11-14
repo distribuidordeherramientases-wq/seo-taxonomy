@@ -80,6 +80,7 @@ jobs:
                   name.split("/", 1)[0]
                   for name in diff
                   if name.startswith("taxocommerce-") and "/" in name
+                  and (Path(name.split("/", 1)[0]) / (name.split("/", 1)[0] + ".php")).is_file()
               })
           for slug in selected:
               if not valid.fullmatch(slug):
