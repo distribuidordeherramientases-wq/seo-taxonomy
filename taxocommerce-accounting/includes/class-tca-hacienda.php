@@ -171,8 +171,8 @@ final class TCA_Hacienda {
         list( $start, $end ) = self::dates( $year );
         $scope = in_array( $scope, array( 'all', 'issued', 'received', 'assets', 'intra' ), true ) ? $scope : 'all';
         // The two queries use fixed, literal SQL and bind every data value.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private, read-only ledger count.
         if ( $count ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only count of the plugin's own ledger, no WordPress API equivalent.
             return (int) $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT COUNT(*) FROM %i WHERE fiscal_date BETWEEN %s AND %s AND
