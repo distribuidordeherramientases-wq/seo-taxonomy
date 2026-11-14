@@ -916,9 +916,9 @@ function tcsocial_network_publish_scheduled($content_id, $provider)
 add_action('tcsocial_network_publish_scheduled', 'tcsocial_network_publish_scheduled', 10, 2);
 
 /**
- * Recupera solo eventos FUTUROS de la agenda que ya no tengan ejecutor.
- * No ejecuta tareas vencidas ni modifica el calendario de fechas; los eventos
- * heredados de un motor todavía disponible se respetan para evitar duplicados.
+ * Adopta eventos FUTUROS de las tablas compartidas cuando el monolítico ya no
+ * carga su ejecutor. No cambia fechas, no reenvía vencidos ni crea duplicados.
+ * Mantiene los eventos heredados mientras su ejecutor siga activo.
  */
 function tcsocial_network_reconcile_future_events()
 {
@@ -953,19 +953,39 @@ function tcsocial_network_reconcile_future_events()
             continue;
         }
         $args = array($content_id, $provider);
-        if (
-            wp_next_scheduled('tcsocial_network_publish_manual_scheduled', $args)
-            || (has_action('seo_social_network_publish_manual_scheduled')
-                && wp_next_scheduled('seo_social_network_publish_manual_scheduled', $args))
-        ) {
+        $own_hook = 'tcsocial_network_publish_manual_scheduled';
+        $old_hook = 'seo_social_network_publish_manual_scheduled';
+        $old_event = wp_next_scheduled($old_hook, $args);
+        $old_handler = has_action($old_hook);
+
+        if (wp_next_scheduled($own_hook, $args)) {
+            // The current module already owns an executor. Discard only an
+            // orphan legacy event, never another module's live executor.
+            if ($old_event && !$old_handler) {
+                wp_clear_scheduled_hook($old_hook, $args);
+            }
             continue;
         }
-        // No restaurar una tarea que la red ya haya registrado como publicada.
+        if ($old_event && $old_handler) {
+            // Temporary coexistence: do not create a second publisher.
+            continue;
+        }
+
+        // An earlier remote request might already have succeeded. Never
+        // retry pending/published attempts automatically.
         $latest = tcsocial_network_get_latest_publication($content_id, $provider);
         if ($latest && in_array($latest->status, array('pending', 'published'), true)) {
             continue;
         }
-        wp_schedule_single_event($timestamp, 'tcsocial_network_publish_manual_scheduled', $args, true);
+
+        $scheduled = wp_schedule_single_event($timestamp, $own_hook, $args, true);
+        if (is_wp_error($scheduled) || !$scheduled) {
+            // Do not remove the existing event if takeover fails.
+            continue;
+        }
+        if ($old_event && !$old_handler) {
+            wp_clear_scheduled_hook($old_hook, $args);
+        }
         if (++$repaired >= 20) {
             break;
         }
@@ -1583,10 +1603,17 @@ function tcsocial_network_schedule_news_publication($content_id, $provider, $req
  */
 function tcsocial_network_publish_manual_scheduled($content_id, $provider)
 {
-    // Defense in depth: an already-running cron callback must honour a pause.
-    if ('pausada' === tcsocial_network_get_schedule_state($content_id, $provider)) {
+    $content_id = absint($content_id);
+    $provider = sanitize_key($provider);
+    $scheduled_at = tcsocial_network_get_scheduled_timestamp($content_id, $provider);
+
+    // Never send an orphaned, cancelled, rescheduled or paused event. A
+    // past-due job can still execute normally when its schedule is intact.
+    if (!$scheduled_at || $scheduled_at > time() + 30
+        || 'pausada' === tcsocial_network_get_schedule_state($content_id, $provider)) {
         return;
     }
+
     $result = tcsocial_network_publish_content($content_id, $provider);
     if (is_wp_error($result)) {
         // Conservar la fecha vencida para que Autocheck pueda denunciar el
