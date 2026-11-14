@@ -87,7 +87,7 @@ final class TCA_Hacienda {
         if ( $quarter >= 1 && $quarter <= 4 ) {
             $start_month = ( ( $quarter - 1 ) * 3 ) + 1;
             $end_month = $start_month + 2;
-            $last_day = cal_days_in_month( CAL_GREGORIAN, $end_month, $year );
+            $last_day = (int) gmdate( 't', gmmktime( 0, 0, 0, $end_month, 1, $year ) );
             return array(
                 sprintf( '%04d-%02d-01', $year, $start_month ),
                 sprintf( '%04d-%02d-%02d', $year, $end_month, $last_day ),
