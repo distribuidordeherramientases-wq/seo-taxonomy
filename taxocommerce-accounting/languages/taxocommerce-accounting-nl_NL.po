@@ -288,3 +288,111 @@ msgstr "De inkoopboeking is niet gevonden."
 
 msgid "Supplier PDF originals can be attached to saved purchase and expense rows. Downloads require WordPress authentication. The files are encrypted at rest using the current site salts; preserve those salts in backups. CSV/JSON exports do not include PDFs."
 msgstr "Originele PDF's van leveranciers kunnen worden gekoppeld aan opgeslagen inkopen en uitgaven. Downloads vereisen WordPress-authenticatie. Bestanden worden versleuteld met de huidige sitesalts; bewaar deze in back-ups. CSV/JSON-exports bevatten geen PDF's."
+
+msgid "Hacienda"
+msgstr "Belastingdienst"
+
+msgid "Issued invoices book"
+msgstr "Register uitgaande facturen"
+
+msgid "Sales and refunds registered in the local ledger. Verify invoice series, dates, tax details and corrections."
+msgstr "Geregistreerde verkopen en terugbetalingen. Controleer factuurreeksen, data, btw en correcties."
+
+msgid "Received invoices book"
+msgstr "Register ontvangen facturen"
+
+msgid "Supplier invoices and expenses. Confirm deductible VAT and retain the original purchase documents."
+msgstr "Leveranciersfacturen en kosten. Controleer aftrekbare btw en bewaar de originele bewijsstukken."
+
+msgid "Investment goods book"
+msgstr "Register investeringsgoederen"
+
+msgid "Review capital goods separately; adjustments and asset-specific information are not calculated."
+msgstr "Controleer investeringsgoederen afzonderlijk; correcties en specifieke activagegevens worden niet berekend."
+
+msgid "Intra-EU operations book"
+msgstr "Register intracommunautaire transacties"
+
+msgid "Review transactions classified as intra-EU. Check VAT ID, transaction type and country before filing."
+msgstr "Controleer intracommunautaire transacties, btw-nummer, transactietype en land vóór indiening."
+
+msgid "Model 303 — VAT"
+msgstr "Model 303 — btw"
+
+msgid "Indicative quarterly domestic VAT balance only. Special regimes, non-domestic transactions, adjustments and the official return boxes are missing."
+msgstr "Alleen indicatief kwartaalsaldo binnenlandse btw. Bijzondere regelingen, buitenlandse transacties, correcties en officiële velden ontbreken."
+
+msgid "Model 390 — annual VAT"
+msgstr "Model 390 — jaaroverzicht btw"
+
+msgid "Indicative annual domestic VAT summary. Exemptions, carryovers, official totals and filing eligibility require separate verification."
+msgstr "Indicatief jaaroverzicht binnenlandse btw. Vrijstellingen, verrekeningen, officiële totalen en indienplicht moeten worden gecontroleerd."
+
+msgid "Model 347 — third-party transactions"
+msgstr "Model 347 — transacties met derden"
+
+msgid "Raw sales and purchase movements for reconciliation. The statutory thresholds, exclusions, counterparties and declaration records are NOT calculated."
+msgstr "Ruwe inkoop- en verkooptransacties voor controle. Wettelijke drempels, uitsluitingen, tegenpartijen en officiële aangifteregels worden NIET berekend."
+
+msgid "Model 349 — intra-EU transactions"
+msgstr "Model 349 — intracommunautaire transacties"
+
+msgid "Only transactions tagged as intra-EU are listed. Fiscal operation keys, partner VAT IDs, required periodicity and official files are not produced."
+msgstr "Alleen als intracommunautair gemarkeerde transacties worden getoond. Fiscale codes, gevalideerde btw-nummers, perioden en officiële bestanden worden niet gemaakt."
+
+msgid "Model 200 — corporate income tax"
+msgstr "Model 200 — vennootschapsbelasting"
+
+msgid "Only raw transactions are available. A balance sheet, profit and loss account, tax adjustments and applicability checks are not implemented."
+msgstr "Alleen ruwe transacties beschikbaar. Balans, winst-en-verliesrekening, fiscale correcties en toetsing van de indienplicht ontbreken."
+
+msgid "Hacienda — tax reports and records"
+msgstr "Belastingdienst — fiscale rapporten en registers"
+
+msgid "These are internal working reports, NOT official AEAT tax forms. They are not accepted for submission. The filing obligations depend on the business and tax regime."
+msgstr "Interne werkrapporten, GEEN officiële AEAT-formulieren en niet indienbaar. Verplichtingen hangen af van bedrijf en belastingregime."
+
+msgid "Tax documents"
+msgstr "Belastingdocumenten"
+
+msgid "VAT quarter"
+msgstr "Btw-kwartaal"
+
+msgid "Matching accounting entries"
+msgstr "Bijbehorende boekingen"
+
+msgid "More than 20,000 entries match. Download is blocked rather than silently omitting data."
+msgstr "Meer dan 20.000 boekingen. Download geblokkeerd om gegevensverlies zonder melding te voorkomen."
+
+msgid "Download working data (not for filing)"
+msgstr "Werkgegevens downloaden (niet indienbaar)"
+
+msgid "Open official AEAT information and filing"
+msgstr "Officiële AEAT-informatie en indienprocedure openen"
+
+msgid "To file a return, use the official AEAT procedure and verify all fields and fiscal obligations. No data is transmitted automatically."
+msgstr "Gebruik de officiële AEAT-procedure en controleer alle velden en fiscale verplichtingen. Er worden geen gegevens automatisch verzonden."
+
+msgid "No accounting entries for this period."
+msgstr "Geen boekingen in deze periode."
+
+msgid "Only validated domestic operations are included in the indicative VAT figures. Drafts and other regimes require review. This is not a complete tax return."
+msgstr "Indicatieve btw bevat alleen gevalideerde binnenlandse transacties. Concepten en andere regimes vereisen controle. Geen volledige aangifte."
+
+msgid "Preview shows 20 entries. Download to inspect the complete matching register."
+msgstr "Voorbeeld toont 20 boekingen. Download voor het volledige register."
+
+msgid "Invalid tax report selection."
+msgstr "Ongeldige keuze van fiscaal rapport."
+
+msgid "PREPARATORY WORKING DATA — NOT AN OFFICIAL AEAT RETURN OR VALID FILING FILE."
+msgstr "VOORBEREIDENDE GEGEVENS — GEEN OFFICIËLE AEAT-AANGIFTE OF GELDIG INDIENBESTAND."
+
+msgid "Official AEAT blank workbook templates (not filled by TaxoCommerce):"
+msgstr "Officiële lege AEAT-boektemplates (niet ingevuld door TaxoCommerce):"
+
+msgid "Download AEAT XLSX template — legal entities"
+msgstr "AEAT-XLSX-template downloaden — rechtspersonen"
+
+msgid "Download AEAT XLSX template — general"
+msgstr "AEAT-XLSX-template downloaden — algemeen"

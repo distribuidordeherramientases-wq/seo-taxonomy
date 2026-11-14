@@ -288,3 +288,111 @@ msgstr "No se ha encontrado el registro de compra."
 
 msgid "Supplier PDF originals can be attached to saved purchase and expense rows. Downloads require WordPress authentication. The files are encrypted at rest using the current site salts; preserve those salts in backups. CSV/JSON exports do not include PDFs."
 msgstr "Puedes adjuntar PDF originales del proveedor a compras y gastos guardados. Las descargas requieren autenticación de WordPress. Los archivos se almacenan cifrados mediante las claves salt actuales del sitio; consérvalas en las copias de seguridad. Las exportaciones CSV/JSON no incluyen los PDF."
+
+msgid "Hacienda"
+msgstr "Hacienda"
+
+msgid "Issued invoices book"
+msgstr "Libro de facturas expedidas"
+
+msgid "Sales and refunds registered in the local ledger. Verify invoice series, dates, tax details and corrections."
+msgstr "Ventas y devoluciones registradas. Comprueba series, fechas, impuestos y rectificaciones."
+
+msgid "Received invoices book"
+msgstr "Libro de facturas recibidas"
+
+msgid "Supplier invoices and expenses. Confirm deductible VAT and retain the original purchase documents."
+msgstr "Facturas de proveedores y gastos. Comprueba el IVA deducible y conserva los justificantes originales."
+
+msgid "Investment goods book"
+msgstr "Libro de bienes de inversión"
+
+msgid "Review capital goods separately; adjustments and asset-specific information are not calculated."
+msgstr "Revisa los bienes de inversión por separado; no se calculan regularizaciones ni información específica de activos."
+
+msgid "Intra-EU operations book"
+msgstr "Libro de operaciones intracomunitarias"
+
+msgid "Review transactions classified as intra-EU. Check VAT ID, transaction type and country before filing."
+msgstr "Revisa las operaciones intracomunitarias. Comprueba NIF-IVA, tipo de operación y país antes de declarar."
+
+msgid "Model 303 — VAT"
+msgstr "Modelo 303 — IVA"
+
+msgid "Indicative quarterly domestic VAT balance only. Special regimes, non-domestic transactions, adjustments and the official return boxes are missing."
+msgstr "Solo balance trimestral orientativo del IVA nacional. Faltan regímenes especiales, operaciones exteriores, regularizaciones y casillas oficiales."
+
+msgid "Model 390 — annual VAT"
+msgstr "Modelo 390 — resumen anual de IVA"
+
+msgid "Indicative annual domestic VAT summary. Exemptions, carryovers, official totals and filing eligibility require separate verification."
+msgstr "Resumen anual orientativo del IVA nacional. Las exenciones, compensaciones, totales oficiales y obligación de presentar requieren revisión."
+
+msgid "Model 347 — third-party transactions"
+msgstr "Modelo 347 — operaciones con terceros"
+
+msgid "Raw sales and purchase movements for reconciliation. The statutory thresholds, exclusions, counterparties and declaration records are NOT calculated."
+msgstr "Movimientos de ventas y compras para conciliar. NO se calculan umbrales legales, exclusiones, terceros ni registros oficiales."
+
+msgid "Model 349 — intra-EU transactions"
+msgstr "Modelo 349 — operaciones intracomunitarias"
+
+msgid "Only transactions tagged as intra-EU are listed. Fiscal operation keys, partner VAT IDs, required periodicity and official files are not produced."
+msgstr "Se listan solo operaciones marcadas intracomunitarias. No se generan claves fiscales, NIF-IVA verificados, periodicidad ni ficheros oficiales."
+
+msgid "Model 200 — corporate income tax"
+msgstr "Modelo 200 — impuesto sobre sociedades"
+
+msgid "Only raw transactions are available. A balance sheet, profit and loss account, tax adjustments and applicability checks are not implemented."
+msgstr "Solo se dispone de movimientos. No están implementados balance, cuenta de resultados, ajustes fiscales ni comprobación de obligaciones."
+
+msgid "Hacienda — tax reports and records"
+msgstr "Hacienda — informes y libros fiscales"
+
+msgid "These are internal working reports, NOT official AEAT tax forms. They are not accepted for submission. The filing obligations depend on the business and tax regime."
+msgstr "Son informes internos de trabajo, NO modelos oficiales de la AEAT. No pueden presentarse. Las obligaciones dependen de la entidad y su régimen fiscal."
+
+msgid "Tax documents"
+msgstr "Documentos fiscales"
+
+msgid "VAT quarter"
+msgstr "Trimestre de IVA"
+
+msgid "Matching accounting entries"
+msgstr "Registros contables correspondientes"
+
+msgid "More than 20,000 entries match. Download is blocked rather than silently omitting data."
+msgstr "Hay más de 20.000 registros. La descarga se bloquea para no omitir datos sin avisar."
+
+msgid "Download working data (not for filing)"
+msgstr "Descargar datos preparatorios (no presentables)"
+
+msgid "Open official AEAT information and filing"
+msgstr "Abrir información y trámite oficial de la AEAT"
+
+msgid "To file a return, use the official AEAT procedure and verify all fields and fiscal obligations. No data is transmitted automatically."
+msgstr "Para presentar una declaración, utiliza el trámite oficial de la AEAT y verifica todas las casillas y obligaciones. No se envían datos automáticamente."
+
+msgid "No accounting entries for this period."
+msgstr "No hay registros contables en este periodo."
+
+msgid "Only validated domestic operations are included in the indicative VAT figures. Drafts and other regimes require review. This is not a complete tax return."
+msgstr "El IVA orientativo solo incluye operaciones nacionales validadas. Los borradores y otros regímenes requieren revisión. No es una declaración completa."
+
+msgid "Preview shows 20 entries. Download to inspect the complete matching register."
+msgstr "La vista previa muestra 20 registros. Descarga para revisar el registro completo."
+
+msgid "Invalid tax report selection."
+msgstr "Selección de informe fiscal no válida."
+
+msgid "PREPARATORY WORKING DATA — NOT AN OFFICIAL AEAT RETURN OR VALID FILING FILE."
+msgstr "DATOS PREPARATORIOS — NO SON UNA DECLARACIÓN OFICIAL NI UN FICHERO VÁLIDO PARA LA AEAT."
+
+msgid "Official AEAT blank workbook templates (not filled by TaxoCommerce):"
+msgstr "Plantillas oficiales de libros de la AEAT (sin rellenar por TaxoCommerce):"
+
+msgid "Download AEAT XLSX template — legal entities"
+msgstr "Descargar plantilla AEAT XLSX — personas jurídicas"
+
+msgid "Download AEAT XLSX template — general"
+msgstr "Descargar plantilla AEAT XLSX — general"

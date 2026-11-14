@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.1
+ * Version: 0.1.2
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.1' );
+define( 'TCA_VERSION', '0.1.2' );
 define( 'TCA_DB_VERSION', '2' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
@@ -32,6 +32,7 @@ add_action( 'init', static function () {
 }, 5 );
 
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-provider-invoices.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-hacienda.php';
 
 /** Own data; no dependency on any TaxoCommerce module. */
 function tca_table() {
@@ -427,6 +428,7 @@ function tca_label( $label ) {
         'Expenses' => __( 'Expenses', 'taxocommerce-accounting' ),
         'Assets' => __( 'Assets', 'taxocommerce-accounting' ),
         'Tax returns' => __( 'Tax returns', 'taxocommerce-accounting' ),
+        'Hacienda' => __( 'Hacienda', 'taxocommerce-accounting' ),
         'Exports' => __( 'Exports', 'taxocommerce-accounting' ),
         'Settings' => __( 'Settings', 'taxocommerce-accounting' ),
         'Autocheck' => __( 'Autocheck', 'taxocommerce-accounting' ),
@@ -553,11 +555,13 @@ function tca_admin() {
     $tabs = array(
         'summary' => 'Summary', 'sales' => 'Sales', 'received' => 'Received invoices',
         'expenses' => 'Expenses', 'assets' => 'Assets', 'intra' => 'Intra-EU',
-        'models' => 'Tax returns', 'exports' => 'Exports', 'settings' => 'Settings',
+        'hacienda' => 'Hacienda', 'exports' => 'Exports', 'settings' => 'Settings',
         'autocheck' => 'Autocheck', 'manual' => 'Manual',
     );
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab/year filters.
     $tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'summary';
+    // The former Tax returns URL remains functional after the UI consolidation.
+    if ( 'models' === $tab ) $tab = 'hacienda';
     if ( ! isset( $tabs[ $tab ] ) ) $tab = 'summary';
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only year selector.
     $year = isset( $_GET['year'] ) ? absint( $_GET['year'] ) : (int) current_time( 'Y' );
@@ -585,7 +589,7 @@ function tca_admin() {
     echo '<p><strong>' . esc_html__( 'Financial year:', 'taxocommerce-accounting' ) . '</strong> ' . esc_html( $year ) . ' &nbsp; ';
     echo '<a href="' . esc_url( tca_admin_url( $tab, array( 'year' => $year - 1 ) ) ) . '">←</a> &nbsp; <a href="' . esc_url( tca_admin_url( $tab, array( 'year' => $year + 1 ) ) ) . '">→</a></p>';
 
-    if ( 'summary' === $tab || 'models' === $tab ) {
+    if ( 'summary' === $tab ) {
         $months = range( 1, 12 );
         echo '<h2>' . esc_html__( 'Monthly fiscal summary (validated domestic entries only)', 'taxocommerce-accounting' ) . '</h2><table class="widefat striped"><thead><tr>';
         foreach ( array( 'Month', 'Sales', 'Purchases / expenses', 'Output VAT', 'Deductible input VAT', 'Difference', 'Pending review' ) as $heading ) echo '<th>' . esc_html( tca_label( $heading ) ) . '</th>';
@@ -596,11 +600,9 @@ function tca_admin() {
             echo '<tr><td>' . esc_html( $key ) . '</td><td>' . esc_html( tca_money( $v['sales'] ) ) . '</td><td>' . esc_html( tca_money( $v['purchase'] ) ) . '</td><td>' . esc_html( tca_money( $v['tax_out'] ) ) . '</td><td>' . esc_html( tca_money( $v['tax_in'] ) ) . '</td><td>' . esc_html( tca_money( $v['tax_out'] - $v['tax_in'] ) ) . '</td><td>' . esc_html( (string) $v['pending'] ) . '</td></tr>';
         }
         echo '</tbody></table>';
-        if ( 'models' === $tab ) {
-            echo '<h2>' . esc_html__( 'Model 303 — preliminary working figures', 'taxocommerce-accounting' ) . '</h2><p>' . esc_html__( 'The simplified amounts above are NOT an official Model 303, and do not include reverse charge, imports, exemptions, regional VAT regimes, carryovers or corrections. Do not submit them to the tax authority without professional review.', 'taxocommerce-accounting' ) . '</p>';
-            echo '<p>' . esc_html__( 'Other tax forms (390, 347, 349, 200) require their own eligibility rules and are not generated in this first version.', 'taxocommerce-accounting' ) . '</p>';
-        }
         if ( count( $rows ) >= 400 ) echo '<p class="notice notice-warning">' . esc_html__( 'Year contains over 400 entries; use the exports for full reporting. This dashboard is limited.', 'taxocommerce-accounting' ) . '</p>';
+    } elseif ( 'hacienda' === $tab ) {
+        TCA_Hacienda::render( $year );
     } elseif ( 'sales' === $tab ) {
         echo '<h2>' . esc_html__( 'WooCommerce sales / refunds', 'taxocommerce-accounting' ) . '</h2>';
         echo '<p>' . esc_html__( 'Imports only paid-status orders dated after the configured start. All imported records remain drafts until invoice and VAT verification; repeated imports do not duplicate them.', 'taxocommerce-accounting' ) . '</p>';
