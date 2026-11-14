@@ -9,7 +9,7 @@ if ( 'cli' !== PHP_SAPI ) {
 }
 $repo = dirname( __DIR__, 2 );
 $plugins = array(
-    'auditor', 'campaigns', 'connections', 'core', 'database', 'dependiente',
+    'auditor', 'campaigns', 'core', 'database', 'dependiente',
     'distribution', 'facturacion', 'faqs', 'google-bing', 'images',
     'import-export', 'logistica', 'redirects', 'scrappers', 'social',
     'suppliers', 'system-check', 'tasks', 'templates', 'vocabulary',
@@ -104,4 +104,4 @@ foreach ( $plugins as $slug ) {
         exit( 1 );
     }
 }
-echo 'PASS: 21 autonomous TaxoCommerce Autotest screens, functional and code tabs.' . PHP_EOL;
+echo 'PASS: 20 autonomous TaxoCommerce Autotest screens, functional and code tabs.' . PHP_EOL;

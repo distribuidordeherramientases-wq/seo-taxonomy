@@ -573,7 +573,106 @@ final class TaxoCommerce_Core {
 		 *
 		 * @param array $extensions Family extensions.
 		 */
-		return (array) apply_filters( 'taxocommerce_core_family_extensions', $extensions );
+		$extensions = (array) apply_filters( 'taxocommerce_core_family_extensions', $extensions );
+
+		return $this->discover_family_extensions( $extensions );
+	}
+
+	/**
+	 * Extend the backward-compatible catalog using WordPress's actual plugins.
+	 *
+	 * This is intentionally read-only: inactive plugins cannot register hooks.
+	 * Family ZIPs in Core's existing package directory are also discoverable
+	 * before installation. Never infer available plugins from unrelated folders.
+	 *
+	 * @param array $extensions Existing built-in and registered extensions.
+	 * @return array
+	 */
+	private function discover_family_extensions( $extensions ) {
+		if ( ! function_exists( 'get_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		$known_files = array();
+		$known_slugs = array();
+		foreach ( $extensions as $entry ) {
+			$entry = (array) $entry;
+			$plugin_file = (string) ( $entry['plugin_file'] ?? '' );
+			if ( '' !== $plugin_file ) {
+				$known_files[ $plugin_file ] = true;
+			}
+			$slug = sanitize_key( (string) ( $entry['org_slug'] ?? '' ) );
+			if ( '' !== $slug ) {
+				$known_slugs[ $slug ] = true;
+			}
+		}
+
+		foreach ( (array) get_plugins() as $plugin_file => $plugin_data ) {
+			$plugin_file = (string) $plugin_file;
+			if ( ! preg_match( '~^(taxocommerce-[a-z0-9-]+)/[^/]+\\.php$~', $plugin_file, $matches ) ) {
+				continue;
+			}
+			$slug = $matches[1];
+			$name = trim( (string) ( $plugin_data['Name'] ?? '' ) );
+			// The folder prefix alone is insufficient: unrelated software is excluded.
+			if ( 'taxocommerce-core' === $slug || 0 !== stripos( $name, 'TaxoCommerce' ) ) {
+				continue;
+			}
+			if ( isset( $known_files[ $plugin_file ] ) || isset( $known_slugs[ $slug ] ) ) {
+				continue;
+			}
+			$id = sanitize_key( str_replace( '-', '_', substr( $slug, strlen( 'taxocommerce-' ) ) ) );
+			if ( '' === $id || isset( $extensions[ $id ] ) ) {
+				continue;
+			}
+			$extensions[ $id ] = array(
+				'id'            => $id,
+				'name'          => $name,
+				'plugin_file'   => $plugin_file,
+				'org_slug'      => $slug,
+				'search_term'   => $name,
+				'wordpress_org' => false,
+				'description'   => (string) ( $plugin_data['Description'] ?? '' ),
+			);
+			$known_files[ $plugin_file ] = true;
+			$known_slugs[ $slug ] = true;
+		}
+
+		$directory = $this->local_package_directory();
+		if ( '' === $directory || ! is_dir( $directory ) ) {
+			return $extensions;
+		}
+		$packages = glob( trailingslashit( $directory ) . 'taxocommerce-*.zip' );
+		if ( ! is_array( $packages ) ) {
+			return $extensions;
+		}
+		// Protect administration screens from directories with excessive files.
+		foreach ( array_slice( $packages, 0, 100 ) as $package ) {
+			$filename = basename( $package );
+			if ( ! preg_match( '/^(taxocommerce-[a-z0-9-]+)\\.zip$/', $filename, $matches ) ) {
+				continue;
+			}
+			$slug = $matches[1];
+			if ( 'taxocommerce-core' === $slug || isset( $known_slugs[ $slug ] )
+				|| is_link( $package ) || ! is_file( $package ) || ! is_readable( $package ) ) {
+				continue;
+			}
+			$id = sanitize_key( str_replace( '-', '_', substr( $slug, strlen( 'taxocommerce-' ) ) ) );
+			if ( '' === $id || isset( $extensions[ $id ] ) ) {
+				continue;
+			}
+			$extensions[ $id ] = array(
+				'id'            => $id,
+				'name'          => 'TaxoCommerce ' . ucwords( str_replace( '-', ' ', substr( $slug, strlen( 'taxocommerce-' ) ) ) ),
+				'plugin_file'   => $slug . '/' . $slug . '.php',
+				'org_slug'      => $slug,
+				'search_term'   => 'TaxoCommerce ' . str_replace( '-', ' ', substr( $slug, strlen( 'taxocommerce-' ) ) ),
+				'wordpress_org' => false,
+				'description'   => __( 'ZIP local disponible', 'taxocommerce-core' ),
+			);
+			$known_slugs[ $slug ] = true;
+		}
+		return $extensions;
 	}
 
 	/**

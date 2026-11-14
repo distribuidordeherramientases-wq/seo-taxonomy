@@ -1,3 +1,16 @@
+## [0.1.24] — 2026-11-14 — Informes de Autocheck homogéneos (#2682)
+
+- Informes funcionales de Redirects, Insights y Logistics con estructura común a Import-Export: versión, fecha UTC, duración, WordPress, PHP, resúmenes, grupos, estado, etiqueta, mensaje y tiempo por prueba.
+- Los JSON nuevos normalizan metadatos y los informes ya guardados se normalizan únicamente al leerlos; se preservan sus campos originales para compatibilidad.
+- Vista funcional uniforme: resúmenes, colores, estados, grupos y tiempos. Se conservan las dos subpestañas, el Code Check autónomo, permisos y acciones de descarga.
+- Sin cambios en motores, reglas, pedidos, conexiones, información comercial ni tablas. Pruebas de regresión y WordPress Plugin Check.
+
+## [0.1.23] — 2026-11-14 — Autocheck funcional unificado (#2673)
+
+- Interfaz simplificada al patrón de la familia: «Ejecutar Autocheck» y «Descargar resultados (JSON)»; retirados los botones y paneles ANTES/DESPUÉS y los botones por grupo.
+- Se mantienen las 26 verificaciones funcionales, los resultados por administrador y sitio, los permisos, nonce y el chequeo de código autónomo en su subpestaña.
+- Los controladores históricos siguen compatibles para preservar datos y contratos anteriores. Sin cambios en reglas 301/302, importación, motor ni tablas SEO.
+
 ## [0.1.22] — 2026-11-13 — Cadenas directas y sugerencia de categoría (#2647)
 
 - El motor resuelve redirecciones encadenadas hacia el destino terminal en una sola respuesta HTTP, conservando el código original y la protección frente a ciclos. No altera registros durante las visitas.

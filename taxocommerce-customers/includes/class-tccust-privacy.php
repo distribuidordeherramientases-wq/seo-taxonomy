@@ -81,16 +81,21 @@ final class TCCUST_Privacy {
 			$deleted = TCCUST_DB::delete( $id );
 			return array( 'items_removed' => false !== $deleted, 'items_retained' => false, 'messages' => array(), 'done' => true );
 		}
-		// The WooCommerce-linked identity remains for order integrity; optional
-		// CRM notes and contact preferences are erased. WooCommerce data uses its
-		// own separate retention policy and eraser.
-		$changed = TCCUST_DB::save( array(
-			'whatsapp' => '', 'etiquetas' => '', 'canal_preferido' => '', 'observaciones' => ''
-		), $customer );
+		// Orders and tax records remain under WooCommerce's own retention policy.
+		// The CRM has no independent basis to keep duplicate billing details.
+		if ( ! empty( $customer['erased_at'] ) ) {
+			return array(
+				'items_removed' => false,
+				'items_retained' => true,
+				'messages' => array( __( 'Only a minimal WooCommerce relationship is retained in the CRM.', 'taxocommerce-customers' ) ),
+				'done' => true,
+			);
+		}
+		$changed = TCCUST_DB::redact( $customer );
 		return array(
 			'items_removed' => (bool) $changed,
 			'items_retained' => true,
-			'messages' => array( __( 'WooCommerce-related buyer identity is retained while orders are subject to store retention requirements.', 'taxocommerce-customers' ) ),
+			'messages' => array( __( 'CRM personal information was anonymized; WooCommerce orders retain their own legal retention rules.', 'taxocommerce-customers' ) ),
 			'done' => true,
 		);
 	}

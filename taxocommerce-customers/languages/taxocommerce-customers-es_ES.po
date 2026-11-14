@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Customers 0.1.0\n"
+"Project-Id-Version: TaxoCommerce Customers 0.1.1\n"
 "Language: es_ES\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -678,3 +678,30 @@ msgstr "Autocomprobación"
 
 msgid "Fecha de ejecución:"
 msgstr "Fecha de ejecución:"
+
+msgid "Only a minimal WooCommerce relationship is retained in the CRM."
+msgstr "Solo se conserva una relación técnica mínima con WooCommerce en el CRM."
+
+msgid "CRM personal information was anonymized; WooCommerce orders retain their own legal retention rules."
+msgstr "Se han anonimizado los datos personales del CRM; los pedidos de WooCommerce mantienen sus propias normas de conservación."
+
+msgid "This CRM record has been anonymized following a privacy request. The WooCommerce order references are retained."
+msgstr "Esta ficha del CRM se ha anonimizado tras una solicitud de privacidad. Se conservan las referencias a los pedidos de WooCommerce."
+
+msgid "Anonymized CRM records cannot be repopulated."
+msgstr "Las fichas anonimizadas del CRM no pueden volver a rellenarse."
+
+msgid "Cannot create private export file."
+msgstr "No se puede crear el archivo privado de exportación."
+
+msgid "Cannot write private export file."
+msgstr "No se puede escribir en el archivo privado de exportación."
+
+msgid "Export session is already processing."
+msgstr "Ya se está procesando esta exportación."
+
+msgid "Cannot query CRM records."
+msgstr "No se pueden consultar las fichas del CRM."
+
+msgid "Cannot read private export file."
+msgstr "No se puede leer el archivo privado de exportación."

@@ -10,7 +10,7 @@ final class TCCUST_Admin {
 	const PAGE = 'taxocommerce-customers';
 
 	public static function can_manage() {
-		return current_user_can( 'manage_woocommerce' ) || current_user_can( 'manage_options' );
+		return current_user_can( 'manage_taxocommerce_customers' ) || current_user_can( 'manage_options' );
 	}
 
 	public static function guard() {
@@ -39,7 +39,7 @@ final class TCCUST_Admin {
 	}
 
 	public static function menu() {
-		$capability = current_user_can( 'manage_woocommerce' ) ? 'manage_woocommerce' : 'manage_options';
+		$capability = 'manage_taxocommerce_customers';
 		if ( function_exists( 'taxocommerce_core' ) ) {
 			add_submenu_page(
 				'taxocommerce-core',
@@ -265,6 +265,10 @@ final class TCCUST_Admin {
 			echo '<div class="notice notice-error inline"><p>' . esc_html__( 'Customer not found.', 'taxocommerce-customers' ) . '</p></div>';
 			return;
 		}
+		if ( $customer && ! empty( $customer['erased_at'] ) ) {
+			echo '<section id="tccust-record" class="tccust-panel"><p>' . esc_html__( 'This CRM record has been anonymized following a privacy request. The WooCommerce order references are retained.', 'taxocommerce-customers' ) . '</p></section>';
+			return;
+		}
 		$locked = $customer && 'manual' !== $customer['source'];
 		echo '<section id="tccust-record" class="tccust-panel"><h2>';
 		echo esc_html( $customer ? __( 'Edit customer record', 'taxocommerce-customers' ) : __( 'New manual contact', 'taxocommerce-customers' ) );
@@ -283,11 +287,13 @@ final class TCCUST_Admin {
 			echo '<option value="' . esc_attr( $key ) . '"' . selected( $customer['canal_preferido'] ?? '', $key, false ) . '>' . esc_html( $label ) . '</option>';
 		}
 		echo '</select></label></div>';
-		echo '<p><label for="tccust-notes"><strong>' . esc_html__( 'Private notes and incidents', 'taxocommerce-customers' ) . '</strong></label></p>';
-		echo '<textarea class="large-text" id="tccust-notes" rows="7" maxlength="10000" name="observaciones">' . esc_textarea( $customer['observaciones'] ?? '' ) . '</textarea>';
+		if ( current_user_can( 'view_taxocommerce_private_notes' ) ) {
+			echo '<p><label for="tccust-notes"><strong>' . esc_html__( 'Private notes and incidents', 'taxocommerce-customers' ) . '</strong></label></p>';
+			echo '<textarea class="large-text" id="tccust-notes" rows="7" maxlength="10000" name="observaciones">' . esc_textarea( $customer['observaciones'] ?? '' ) . '</textarea>';
+		}
 		submit_button( __( 'Save record', 'taxocommerce-customers' ) );
 		echo '</form>';
-		if ( $customer ) {
+		if ( $customer && current_user_can( 'erase_taxocommerce_customer_data' ) ) {
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 			echo '<input type="hidden" name="action" value="tccust_delete"><input type="hidden" name="id" value="' . esc_attr( $customer['id'] ) . '">';
 			wp_nonce_field( 'tccust_delete' );
@@ -348,11 +354,20 @@ final class TCCUST_Admin {
 		if ( $id && ! $existing ) {
 			self::redirect( 'invalid' );
 		}
+		if ( $existing && ! empty( $existing['erased_at'] ) ) {
+			wp_die( esc_html__( 'Anonymized CRM records cannot be repopulated.', 'taxocommerce-customers' ) );
+		}
+		if ( ! current_user_can( 'view_taxocommerce_private_notes' ) ) {
+			$posted['observaciones'] = $existing['observaciones'] ?? '';
+		}
 		$data = self::valid_data( $posted, $existing );
 		if ( false === $data ) {
 			self::redirect( 'invalid', $id );
 		}
 		$duplicate = null !== $data['email_key'] ? TCCUST_DB::find_email( $data['email_key'] ) : null;
+		if ( ! $existing && null !== $data['email_key'] && TCCUST_DB::find_erased_email( $data['email_key'] ) ) {
+			self::redirect( 'duplicate', $id );
+		}
 		if ( $duplicate && ( ! $existing || absint( $duplicate['id'] ) !== $id ) ) {
 			self::redirect( 'duplicate', $id );
 		}
@@ -366,6 +381,9 @@ final class TCCUST_Admin {
 
 	public static function delete() {
 		self::guard();
+		if ( ! current_user_can( 'erase_taxocommerce_customer_data' ) ) {
+			wp_die( esc_html__( 'Insufficient permissions.', 'taxocommerce-customers' ) );
+		}
 		check_admin_referer( 'tccust_delete' );
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce checked above.
 		$posted = map_deep( wp_unslash( $_POST ), 'sanitize_text_field' );

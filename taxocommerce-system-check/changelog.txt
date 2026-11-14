@@ -1,3 +1,6 @@
+= 0.2.37 =
+* Add manual Core family-validation pilot: functional cases then code inspection, adaptive load control, stop/resume and two KPI columns. Other modules remain not integrated. Issue #2685.
+
 = 0.2.36 (2026-11-13) =
 * Code Check añade las reglas nativas de Core 0.4.82, clasificación por errores/avisos/limpios/no verificados, recomendaciones y JSON, conservando sus chequeos especiales de PHP mínimo, rutas, duplicidades y seguridad y sin modificar el Autocheck funcional. Issue #2626.
 

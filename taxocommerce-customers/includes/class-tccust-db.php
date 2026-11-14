@@ -7,7 +7,7 @@
 defined( 'ABSPATH' ) || exit;
 
 final class TCCUST_DB {
-	const VERSION = '1.0.0';
+	const VERSION = '1.1.0';
 
 	public static function customers_table() {
 		global $wpdb;
@@ -31,6 +31,8 @@ final class TCCUST_DB {
 			woo_user_id BIGINT UNSIGNED NULL,
 			email VARCHAR(190) NOT NULL DEFAULT '',
 			email_key VARCHAR(190) NULL,
+			email_digest CHAR(64) NULL,
+			erased_at DATETIME NULL,
 			source VARCHAR(16) NOT NULL DEFAULT 'manual',
 			nombre VARCHAR(150) NOT NULL DEFAULT '',
 			apellidos VARCHAR(150) NOT NULL DEFAULT '',
@@ -50,6 +52,7 @@ final class TCCUST_DB {
 			PRIMARY KEY  (id),
 			UNIQUE KEY woo_user_id (woo_user_id),
 			UNIQUE KEY email_key (email_key),
+			KEY email_digest (email_digest),
 			KEY source (source),
 			KEY nombre (nombre)
 		) {$charset};";
@@ -63,6 +66,23 @@ final class TCCUST_DB {
 		) {$charset};";
 		dbDelta( $sql_customers );
 		dbDelta( $sql_links );
+		// Grant granular CRM capabilities to standard privileged roles only.
+		// Other roles may be delegated individual permissions by an administrator.
+		foreach ( array( 'administrator', 'shop_manager' ) as $role_name ) {
+			$role = get_role( $role_name );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( array(
+				'manage_taxocommerce_customers',
+				'import_taxocommerce_customers',
+				'export_taxocommerce_customers',
+				'erase_taxocommerce_customer_data',
+				'view_taxocommerce_private_notes',
+			) as $capability ) {
+				$role->add_cap( $capability );
+			}
+		}
 		update_option( 'tccust_schema_version', self::VERSION, false );
 	}
 
@@ -88,6 +108,61 @@ final class TCCUST_DB {
 	public static function email_key( $email ) {
 		$email = strtolower( trim( sanitize_email( (string) $email ) ) );
 		return '' === $email || ! is_email( $email ) ? null : $email;
+	}
+
+	/**
+	 * A keyed one-way digest is used only to keep erased WooCommerce identities
+	 * from being repopulated by future checkout events. It is not an email.
+	 */
+	public static function email_digest( $email ) {
+		$key = self::email_key( $email );
+		return null === $key ? null : hash_hmac( 'sha256', $key, wp_salt( 'auth' ) );
+	}
+
+	/**
+	 * Look up an erased identity without storing its address in this CRM.
+	 */
+	public static function find_erased_email( $email ) {
+		$digest = self::email_digest( $email );
+		if ( null === $digest ) {
+			return null;
+		}
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Erased-identity lookup must use current state.
+		return $wpdb->get_row(
+			$wpdb->prepare( 'SELECT * FROM %i WHERE email_digest=%s AND erased_at IS NOT NULL LIMIT 1', self::customers_table(), $digest ),
+			ARRAY_A
+		);
+	}
+
+	/**
+	 * Remove every CRM-owned copy of personal data while retaining only
+	 * the technical WooCommerce link and the non-reversible email digest.
+	 */
+	public static function redact( $customer ) {
+		if ( ! is_array( $customer ) || empty( $customer['id'] ) ) {
+			return 0;
+		}
+		$fields = array(
+			'email' => '',
+			'email_key' => null,
+			'email_digest' => self::email_digest( $customer['email_key'] ?: $customer['email'] ),
+			'erased_at' => current_time( 'mysql' ),
+			'nombre' => '',
+			'apellidos' => '',
+			'empresa' => '',
+			'telefono' => '',
+			'whatsapp' => '',
+			'direccion' => '',
+			'codigo_postal' => '',
+			'localidad' => '',
+			'provincia' => '',
+			'pais' => '',
+			'canal_preferido' => '',
+			'etiquetas' => '',
+			'observaciones' => '',
+		);
+		return self::save( $fields, $customer );
 	}
 
 	public static function find( $id ) {

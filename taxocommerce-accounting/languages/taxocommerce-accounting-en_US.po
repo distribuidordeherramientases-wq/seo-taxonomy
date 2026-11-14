@@ -239,3 +239,159 @@ msgstr "WooCommerce sales / refunds"
 
 msgid "Year contains over 400 entries; use the exports for full reporting. This dashboard is limited."
 msgstr "Year contains over 400 entries; use the exports for full reporting. This dashboard is limited."
+
+msgid "Invoice storage is unavailable."
+msgstr "Invoice storage is unavailable."
+
+msgid "Secure invoice encryption is unavailable."
+msgstr "Secure invoice encryption is unavailable."
+
+msgid "Invoice cannot be decrypted or has been modified."
+msgstr "Invoice cannot be decrypted or has been modified."
+
+msgid "Purchase entry not found."
+msgstr "Purchase entry not found."
+
+msgid "Select a PDF smaller than 10 MB."
+msgstr "Select a PDF smaller than 10 MB."
+
+msgid "Select a valid PDF invoice."
+msgstr "Select a valid PDF invoice."
+
+msgid "Supplier invoice PDF"
+msgstr "Supplier invoice PDF"
+
+msgid "Document pending"
+msgstr "Document pending"
+
+msgid "Attach supplier PDF (up to 10 MB)"
+msgstr "Attach supplier PDF (up to 10 MB)"
+
+msgid "Upload PDF"
+msgstr "Upload PDF"
+
+msgid "Invoice document not found."
+msgstr "Invoice document not found."
+
+msgid "Supplier invoice PDF securely attached to the purchase."
+msgstr "Supplier invoice PDF securely attached to the purchase."
+
+msgid "Select a valid PDF smaller than 10 MB."
+msgstr "Select a valid PDF smaller than 10 MB."
+
+msgid "Could not store the encrypted supplier invoice. No accounting data was changed."
+msgstr "Could not store the encrypted supplier invoice. No accounting data was changed."
+
+msgid "The purchase record was not found."
+msgstr "The purchase record was not found."
+
+msgid "Supplier PDF originals can be attached to saved purchase and expense rows. Downloads require WordPress authentication. The files are encrypted at rest using the current site salts; preserve those salts in backups. CSV/JSON exports do not include PDFs."
+msgstr "Supplier PDF originals can be attached to saved purchase and expense rows. Downloads require WordPress authentication. The files are encrypted at rest using the current site salts; preserve those salts in backups. CSV/JSON exports do not include PDFs."
+
+msgid "Hacienda"
+msgstr "Tax Agency"
+
+msgid "Issued invoices book"
+msgstr "Issued invoices book"
+
+msgid "Sales and refunds registered in the local ledger. Verify invoice series, dates, tax details and corrections."
+msgstr "Sales and refunds registered in the local ledger. Verify invoice series, dates, tax details and corrections."
+
+msgid "Received invoices book"
+msgstr "Received invoices book"
+
+msgid "Supplier invoices and expenses. Confirm deductible VAT and retain the original purchase documents."
+msgstr "Supplier invoices and expenses. Confirm deductible VAT and retain the original purchase documents."
+
+msgid "Investment goods book"
+msgstr "Investment goods book"
+
+msgid "Review capital goods separately; adjustments and asset-specific information are not calculated."
+msgstr "Review capital goods separately; adjustments and asset-specific information are not calculated."
+
+msgid "Intra-EU operations book"
+msgstr "Intra-EU operations book"
+
+msgid "Review transactions classified as intra-EU. Check VAT ID, transaction type and country before filing."
+msgstr "Review transactions classified as intra-EU. Check VAT ID, transaction type and country before filing."
+
+msgid "Model 303 — VAT"
+msgstr "Model 303 — VAT"
+
+msgid "Indicative quarterly domestic VAT balance only. Special regimes, non-domestic transactions, adjustments and the official return boxes are missing."
+msgstr "Indicative quarterly domestic VAT balance only. Special regimes, non-domestic transactions, adjustments and the official return boxes are missing."
+
+msgid "Model 390 — annual VAT"
+msgstr "Model 390 — annual VAT"
+
+msgid "Indicative annual domestic VAT summary. Exemptions, carryovers, official totals and filing eligibility require separate verification."
+msgstr "Indicative annual domestic VAT summary. Exemptions, carryovers, official totals and filing eligibility require separate verification."
+
+msgid "Model 347 — third-party transactions"
+msgstr "Model 347 — third-party transactions"
+
+msgid "Raw sales and purchase movements for reconciliation. The statutory thresholds, exclusions, counterparties and declaration records are NOT calculated."
+msgstr "Raw sales and purchase movements for reconciliation. The statutory thresholds, exclusions, counterparties and declaration records are NOT calculated."
+
+msgid "Model 349 — intra-EU transactions"
+msgstr "Model 349 — intra-EU transactions"
+
+msgid "Only transactions tagged as intra-EU are listed. Fiscal operation keys, partner VAT IDs, required periodicity and official files are not produced."
+msgstr "Only transactions tagged as intra-EU are listed. Fiscal operation keys, partner VAT IDs, required periodicity and official files are not produced."
+
+msgid "Model 200 — corporate income tax"
+msgstr "Model 200 — corporate income tax"
+
+msgid "Only raw transactions are available. A balance sheet, profit and loss account, tax adjustments and applicability checks are not implemented."
+msgstr "Only raw transactions are available. A balance sheet, profit and loss account, tax adjustments and applicability checks are not implemented."
+
+msgid "Hacienda — tax reports and records"
+msgstr "Hacienda — tax reports and records"
+
+msgid "These are internal working reports, NOT official AEAT tax forms. They are not accepted for submission. The filing obligations depend on the business and tax regime."
+msgstr "These are internal working reports, NOT official AEAT tax forms. They are not accepted for submission. The filing obligations depend on the business and tax regime."
+
+msgid "Tax documents"
+msgstr "Tax documents"
+
+msgid "VAT quarter"
+msgstr "VAT quarter"
+
+msgid "Matching accounting entries"
+msgstr "Matching accounting entries"
+
+msgid "More than 20,000 entries match. Download is blocked rather than silently omitting data."
+msgstr "More than 20,000 entries match. Download is blocked rather than silently omitting data."
+
+msgid "Download working data (not for filing)"
+msgstr "Download working data (not for filing)"
+
+msgid "Open official AEAT information and filing"
+msgstr "Open official AEAT information and filing"
+
+msgid "To file a return, use the official AEAT procedure and verify all fields and fiscal obligations. No data is transmitted automatically."
+msgstr "To file a return, use the official AEAT procedure and verify all fields and fiscal obligations. No data is transmitted automatically."
+
+msgid "No accounting entries for this period."
+msgstr "No accounting entries for this period."
+
+msgid "Only validated domestic operations are included in the indicative VAT figures. Drafts and other regimes require review. This is not a complete tax return."
+msgstr "Only validated domestic operations are included in the indicative VAT figures. Drafts and other regimes require review. This is not a complete tax return."
+
+msgid "Preview shows 20 entries. Download to inspect the complete matching register."
+msgstr "Preview shows 20 entries. Download to inspect the complete matching register."
+
+msgid "Invalid tax report selection."
+msgstr "Invalid tax report selection."
+
+msgid "PREPARATORY WORKING DATA — NOT AN OFFICIAL AEAT RETURN OR VALID FILING FILE."
+msgstr "PREPARATORY WORKING DATA — NOT AN OFFICIAL AEAT RETURN OR VALID FILING FILE."
+
+msgid "Official AEAT blank workbook templates (not filled by TaxoCommerce):"
+msgstr "Official AEAT blank workbook templates (not filled by TaxoCommerce):"
+
+msgid "Download AEAT XLSX template — legal entities"
+msgstr "Download AEAT XLSX template — legal entities"
+
+msgid "Download AEAT XLSX template — general"
+msgstr "Download AEAT XLSX template — general"

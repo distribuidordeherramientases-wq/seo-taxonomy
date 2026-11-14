@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.0
+Stable tag: 0.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,14 +18,18 @@ TaxoCommerce Accounting records fiscal data without changing WooCommerce orders,
 * Configure a per-store first commercial date. All earlier test orders are excluded from new sales imports.
 * Manually import paid-status WooCommerce orders in bounded batches of 25, with deduplicated draft entries.
 * Capture supplier purchase invoices, business expenses, capital assets and special cross-border operations manually.
+* Attach one or more original supplier PDF invoices to each saved purchase-side record (purchases, expenses, assets and intra-EU operations). Store original PDF bytes encrypted; authenticated, nonce-protected downloads only, never a public media URL. Maximum 10 MB per PDF.
+* Invoices are uploaded manually after the purchase record exists. This is a secure document archive, NOT automatic invoice parsing, OCR, remote supplier integration or fiscal verification.
 * Store taxable base, input/output VAT, total, tax classification, deductible percentage, document number and supplier data.
 * Inspect monthly fiscal balances using validated domestic records only.
 * Review indicative Model 303 figures and export internal CSV or JSON.
+* Hacienda workspace: nine sub-tabs for four VAT books and Models 303, 390, 347, 349 and 200. Each sub-tab offers an authenticated internal working CSV/JSON download and an official AEAT information/filing link. Model 303 has a quarter selector; Model 390 shows indicative annual domestic figures. The new Hacienda VAT reports aggregate all ledger entries without the dashboard's 400-row display cap.
+* Relevant VAT book and Model 303 tabs link to the AEAT's own EMPTY official XLSX workbook templates (legal-entity and general variants, published 2026). They are linked directly from AEAT; TaxoCommerce does not prefill these templates or claim automatic Pre303 compatibility.
 * Run a read-only functional Autocheck with explicit incomplete-data errors.
 * Standalone administration if TaxoCommerce Core is absent; nested TaxoCommerce administration when present.
 * Uses a dedicated prefix-aware database table and WooCommerce's public order APIs (including HPOS).
 
-Important: The financial overview is preliminary, NOT an official VAT form, an accounting system with double-entry books, tax/legal advice or a replacement for invoices. No forms are filed or submitted to the Spanish Tax Agency. Ensure applicability and deductible VAT with a qualified advisor before approving.
+Important: Hacienda's downloads are conspicuously labelled **PREPARATORY / NOT OFFICIAL** and are NOT an AEAT-compatible 303/390/347/349/200 electronic declaration or Pre303/LSI XLSX. These views do not perform tax ID validation, full accounting, partner threshold/exclusion checks, filing-calendar eligibility, or complete VAT regime calculations. No data is sent to AEAT; reports are for accountant review only. The financial overview is preliminary, NOT an official VAT form, an accounting system with double-entry books, tax/legal advice or a replacement for invoices. No forms are filed or submitted to the Spanish Tax Agency. Ensure applicability and deductible VAT with a qualified advisor before approving.
 
 == Installation ==
 
@@ -34,11 +38,20 @@ Important: The financial overview is preliminary, NOT an official VAT form, an a
 3. Configure your first real commercial date in Settings before importing orders.
 4. Import paid WooCommerce orders page by page. Entries remain drafts.
 5. Record actual supplier invoices and expense receipts manually.
-6. Check financial and tax treatment; validate eligible records, then inspect reports and exports.
+6. From the purchase/expense row, attach the original supplier PDF, then verify that its filename appears with a protected download link.
+7. Under Hacienda select the applicable tax/book sub-tab and the year (plus quarter for 303); download the working CSV/JSON and use the official AEAT link for the separate authenticated filing process. Verify applicability and correct records independently before filing.
+8. Check financial and tax treatment; validate eligible records, then inspect reports and exports. A paper-only invoice may still be tracked as pending digital documentation.
 
-All entries are retained when the plugin is deactivated or uninstalled; this protects fiscal records.
+All entries and their encrypted invoice PDF files are retained when the plugin is deactivated or uninstalled; this protects fiscal records. PDF files are encrypted using a key derived from WordPress authentication salts: back up the uploads folder, the plugin tables and the unchanged WordPress salts together. If salts change without a coordinated document re-encryption, old PDFs become unreadable. CSV/JSON ledger exports contain metadata/amounts only, not original PDF documents. The installed server must support OpenSSL and writable WordPress uploads.
 
 == Frequently Asked Questions ==
+
+= Can I submit Hacienda working CSV/JSON downloads to AEAT? =
+No. They are internal preparatory reports, NOT valid return files or official Excel books. AEAT uses specific model-by-model schemas and identification; the tabs include external links to AEAT for official preparation and submission. For Model 303, eligible taxpayers may import an AEAT-format XLSX VAT book via Pre303/LSI; TaxoCommerce does not generate that official XLSX yet. SII provides web services for eligible taxpayers, but this plugin does not connect to them.
+
+
+= Can supplier PDF invoices be attached and recovered? =
+Yes. Upload a PDF of up to 10 MB to an existing manual purchase or expense entry. The original is encrypted in the store-specific WordPress uploads directory, and access uses the administrator account with nonce protection. It is not published to the Media Library or included in exports. No PDF data is extracted automatically.
 
 = Does it automatically modify or issue WooCommerce invoices? =
 No. Invoice emission and series remain with the shop's existing invoicing solution.
@@ -54,9 +67,17 @@ No. Input VAT defaults to 0% deductible and records start in draft. A qualified 
 
 == Changelog ==
 
+= 0.1.2 =
+* Added Hacienda dashboard with nine sub-tabs, secure non-fileable CSV/JSON preparatory exports, 303 quarter and 390 annual domestic summaries without the old 400-entry limit, links to AEAT and compatibility with the old Tax returns URL. No tax submission. Issue #2687.
+
+
+= 0.1.1 =
+* Attach, archive and download original supplier PDF invoices per purchase/expense record through private encrypted storage; preserve old ledger and exports. Issue #2681.
+
+
 = 0.1.0 =
 * Initial standalone accounting register, fiscal summaries, draft WooCommerce import, manual invoices, CSV/JSON exports and functional Autocheck.
 
 == Privacy ==
 
-Stores customer names, invoice numbers and supplier tax identifiers in an administrator-only database table. Does not transmit data externally.
+Stores customer names, invoice numbers and supplier tax identifiers in an administrator-only database table, plus encrypted supplier PDF evidence in WordPress uploads. PDF ciphertext may reside in web-accessible filesystem paths but never exposes the original document without the encryption key. Downloads require manager capability and nonce. Does not transmit data externally.
