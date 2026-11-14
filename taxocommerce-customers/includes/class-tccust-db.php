@@ -66,6 +66,23 @@ final class TCCUST_DB {
 		) {$charset};";
 		dbDelta( $sql_customers );
 		dbDelta( $sql_links );
+		// Grant granular CRM capabilities to standard privileged roles only.
+		// Other roles may be delegated individual permissions by an administrator.
+		foreach ( array( 'administrator', 'shop_manager' ) as $role_name ) {
+			$role = get_role( $role_name );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( array(
+				'manage_taxocommerce_customers',
+				'import_taxocommerce_customers',
+				'export_taxocommerce_customers',
+				'erase_taxocommerce_customer_data',
+				'view_taxocommerce_private_notes',
+			) as $capability ) {
+				$role->add_cap( $capability );
+			}
+		}
 		update_option( 'tccust_schema_version', self::VERSION, false );
 	}
 
