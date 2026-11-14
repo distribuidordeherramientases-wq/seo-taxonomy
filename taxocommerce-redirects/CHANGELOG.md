@@ -1,3 +1,9 @@
+## [0.1.23] — 2026-11-14 — Autocheck funcional unificado (#2673)
+
+- Interfaz simplificada al patrón de la familia: «Ejecutar Autocheck» y «Descargar resultados (JSON)»; retirados los botones y paneles ANTES/DESPUÉS y los botones por grupo.
+- Se mantienen las 26 verificaciones funcionales, los resultados por administrador y sitio, los permisos, nonce y el chequeo de código autónomo en su subpestaña.
+- Los controladores históricos siguen compatibles para preservar datos y contratos anteriores. Sin cambios en reglas 301/302, importación, motor ni tablas SEO.
+
 ## [0.1.22] — 2026-11-13 — Cadenas directas y sugerencia de categoría (#2647)
 
 - El motor resuelve redirecciones encadenadas hacia el destino terminal en una sola respuesta HTTP, conservando el código original y la protección frente a ciclos. No altera registros durante las visitas.

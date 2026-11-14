@@ -5,7 +5,7 @@
  */
 namespace TaxoCommerce\Redirects;
 define( 'ABSPATH', __DIR__ );
-final class Plugin { const VERSION = '0.1.6'; }
+final class Plugin { const VERSION = '0.1.23'; }
 function home_url( $path = '/' ) { return 'https://example.test' . $path; }
 function get_current_blog_id() { return 1; }
 require dirname( __DIR__ ) . '/includes/class-auto-test.php';
@@ -59,4 +59,11 @@ assertion( null === Auto_Test::compare( $before, $after ), 'Only AFTER compares'
 $after['phase'] = 'after';
 $before['group'] = 'engine';
 assertion( null === Auto_Test::compare( $before, $after ), 'Reject partial baselines' );
+$view_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-auto-test.php' );
+assertion( false !== strpos( $view_source, "self::run_button( 'all', 'check', __( 'Ejecutar Autocheck'" ), 'Single one-click functional check' );
+assertion( false !== strpos( $view_source, "self::export_button( false, __( 'Descargar resultados (JSON)'" ), 'Latest JSON export visible' );
+assertion( false === strpos( $view_source, "self::run_button( 'all', 'before'" ), 'No BEFORE button' );
+assertion( false === strpos( $view_source, "self::run_button( 'all', 'after'" ), 'No AFTER button' );
+assertion( false === strpos( $view_source, "self::run_button( $group, 'check'" ), 'No per-group execution buttons' );
+assertion( false !== strpos( $view_source, 'TaxoCommerce_Redirects_Autotest_Code::render_subtabs' ), 'Code Check subtab kept' );
 echo 'Redirects Auto Test smoke passed.' . PHP_EOL;
