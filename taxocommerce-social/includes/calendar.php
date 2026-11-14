@@ -253,6 +253,7 @@ function tcsocial_calendar_current_schedule($source, $content_id, $provider, $ca
  * @param int    $campaign_id Campaign owner ID.
  * @param int    $expected_timestamp Original exact timestamp.
  * @param int    $new_timestamp New timestamp for editing only.
+ * @param string $new_status Desired schedule state: programada or pausada.
  * @return true|WP_Error
  */
 function tcsocial_calendar_change_schedule($operation, $source, $content_id, $provider, $campaign_id, $expected_timestamp, $new_timestamp = 0, $new_status = 'programada')
