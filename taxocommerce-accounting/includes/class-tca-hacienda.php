@@ -218,8 +218,8 @@ final class TCA_Hacienda {
         if ( ! isset( $sections[ $selected ] ) ) {
             $selected = '303';
         }
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only VAT quarter filter.
         $default_quarter = ( (int) current_time( 'Y' ) === (int) $year ) ? (int) ceil( (int) current_time( 'n' ) / 3 ) : 4;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only quarter used exclusively as a GET navigation filter.
         $quarter = isset( $_GET['quarter'] ) && is_scalar( $_GET['quarter'] ) ? absint( wp_unslash( $_GET['quarter'] ) ) : $default_quarter;
         if ( $quarter < 1 || $quarter > 4 ) {
             $quarter = 1;
