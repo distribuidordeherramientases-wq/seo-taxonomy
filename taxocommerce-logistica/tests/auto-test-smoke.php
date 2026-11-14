@@ -148,5 +148,13 @@ verify_log( null === TaxoCommerce_Logistica_Auto_Test::compare( $before, $after 
 $after['phase'] = 'after';
 $before['group'] = 'pricing';
 verify_log( null === TaxoCommerce_Logistica_Auto_Test::compare( $before, $after ), 'Partial baseline rejected' );
+
+$view_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-auto-test.php' );
+verify_log( false !== strpos( $view_source, "self::run_button( 'all', 'check', __( 'Ejecutar Autocheck'" ), 'Run button' );
+verify_log( false !== strpos( $view_source, "self::download_button( 'latest', __( 'Descargar resultados (JSON)'" ), 'JSON download button' );
+verify_log( false === strpos( $view_source, "self::run_button( 'all', 'before'" ), 'No BEFORE control' );
+verify_log( false === strpos( $view_source, "self::run_button( 'all', 'after'" ), 'No AFTER control' );
+verify_log( false !== strpos( $view_source, 'TaxoCommerce_Logistica_Autotest_Code::render_subtabs' ), 'Code check subtab' );
+
 require __DIR__ . '/i18n-catalog-smoke.php';
 echo 'Logistics Auto Test smoke passed.' . PHP_EOL;

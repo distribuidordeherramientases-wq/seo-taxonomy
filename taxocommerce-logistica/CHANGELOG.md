@@ -1,3 +1,9 @@
+## [0.2.20] — 2026-11-14 — Autocheck uniforme sin ANTES/DESPUÉS (#2679)
+
+- Autocheck funcional con «Ejecutar Autocheck» y «Descargar resultados (JSON)»; retiradas comparaciones visibles y botones por fases/grupos.
+- Conserva todas las pruebas funcionales, informes privados, permisos, nonce y la subpestaña Code Check con motor propio.
+- Sin cambios en pedidos, cálculos, tarifas, WooCommerce ni importaciones. Sin despliegue en producción.
+
 ## [0.2.19] — 2026-11-13 — Code Check equiparado a Core 0.4.82 (#2626)
 
 - Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.
