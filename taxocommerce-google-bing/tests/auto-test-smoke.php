@@ -1,7 +1,7 @@
 <?php
 /** Standalone regression for grouped pre/post Insights Auto Test. */
 define('ABSPATH', __DIR__);
-define('TAXOCOMMERCE_GOOGLE_BING_VERSION','1.1.11');
+define('TAXOCOMMERCE_GOOGLE_BING_VERSION','1.1.62');
 function home_url($path='/'){return 'https://example.test'.$path;}
 function current_time($format){return '2026-10-29 12:00:00';}
 function get_current_blog_id(){return 1;}
@@ -29,4 +29,11 @@ $after['site_hash']='another';
 assert_auto(null===TaxoCommerce_Google_Bing_Auto_Test::compare_reports($before,$after),'cross-site comparison blocked');
 $after['site_hash']='same';$after['phase']='check';
 assert_auto(null===TaxoCommerce_Google_Bing_Auto_Test::compare_reports($before,$after),'non-after comparison blocked');
+$view_source=file_get_contents(dirname(__DIR__).'/includes/class-taxocommerce-google-bing-auto-test.php');
+assert_auto(false!==strpos($view_source,"self::run_form( 'all', 'check', __( 'Ejecutar Autocheck'"),'one click check');
+assert_auto(false!==strpos($view_source,"self::export_form( 'last', __( 'Descargar resultados (JSON)'"),'last JSON available');
+assert_auto(false===strpos($view_source,"self::run_form( 'all', 'before'"),'no before button');
+assert_auto(false===strpos($view_source,"self::run_form( 'all', 'after'"),'no after button');
+assert_auto(false===strpos($view_source,"self::run_form( $group_id, 'check'"),'no per-group buttons');
+assert_auto(false!==strpos($view_source,'TaxoCommerce_Insights_Autotest_Code::render_subtabs'),'code check subtab kept');
 echo 'Insights Auto Test smoke passed.'.PHP_EOL;
