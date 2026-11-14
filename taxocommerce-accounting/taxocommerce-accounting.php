@@ -428,6 +428,7 @@ function tca_label( $label ) {
         'Expenses' => __( 'Expenses', 'taxocommerce-accounting' ),
         'Assets' => __( 'Assets', 'taxocommerce-accounting' ),
         'Tax returns' => __( 'Tax returns', 'taxocommerce-accounting' ),
+        'Hacienda' => __( 'Hacienda', 'taxocommerce-accounting' ),
         'Exports' => __( 'Exports', 'taxocommerce-accounting' ),
         'Settings' => __( 'Settings', 'taxocommerce-accounting' ),
         'Autocheck' => __( 'Autocheck', 'taxocommerce-accounting' ),
