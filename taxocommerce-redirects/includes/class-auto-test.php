@@ -119,14 +119,14 @@ final class Auto_Test {
             $row['group_name'] = (string) ( $names[ $group_id ] ?? $row['group'] ?? $group_id );
             $row['label'] = (string) ( $row['label'] ?? $row['name'] ?? '' );
             $row['message'] = (string) ( $row['message'] ?? $row['detail'] ?? '' );
-            $row['ms'] = absint( $row['ms'] ?? 0 );
+            $row['ms'] = max( 0, (int) ( $row['ms'] ?? 0 ) );
             $report['rows'][ $index ] = $row;
         }
         $report['wordpress'] = (string) ( $report['wordpress'] ?? $report['wordpress_version'] ?? $report['wp_version'] ?? '' );
         $report['php'] = (string) ( $report['php'] ?? $report['php_version'] ?? '' );
         $report['date'] = (string) ( $report['date'] ?? $report['date_utc'] ?? $report['executed_at'] ?? '' );
         $report['executed_at'] = (string) ( $report['executed_at'] ?? $report['date_utc'] ?? $report['date'] );
-        $report['timestamp'] = absint( $report['timestamp'] ?? strtotime( $report['executed_at'] ) );
+        $report['timestamp'] = max( 0, (int) ( $report['timestamp'] ?? strtotime( $report['executed_at'] ) ) );
         return $report;
     }
 
