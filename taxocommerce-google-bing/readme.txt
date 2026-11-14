@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.61
+Stable tag: 1.1.62
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -79,6 +79,10 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.62 =
+* Simplified Insights functional Autocheck to run once and download last JSON, with independent Code Check retained.
+
 
 = 1.1.49 =
 * Corrected Analysis button contrast: Create report and Run full report are visible with blue backgrounds; individual JSON downloads remain legible when unavailable. Kept the five-column desktop layout and fixed individual AJAX progress labels without changing report calculations or exports.
