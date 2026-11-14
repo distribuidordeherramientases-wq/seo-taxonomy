@@ -130,6 +130,9 @@ jobs:
           php -l taxocommerce-accounting/includes/class-tca-provider-invoices.php
           php -l taxocommerce-accounting/tests/provider-invoice-pdf-smoke.php
           php taxocommerce-accounting/tests/provider-invoice-pdf-smoke.php
+          php -l taxocommerce-accounting/includes/class-tca-hacienda.php
+          php -l taxocommerce-accounting/tests/hacienda-workspace-smoke.php
+          php taxocommerce-accounting/tests/hacienda-workspace-smoke.php
           php taxocommerce-accounting/tests/smoke.php
           node --check taxocommerce-customers/assets/admin.js
           php -l taxocommerce-tasks/includes/class-tctasks-calendar.php
