@@ -1609,8 +1609,10 @@ function tcsocial_network_publish_manual_scheduled($content_id, $provider)
 
     // Never send an orphaned, cancelled, rescheduled or paused event. A
     // past-due job can still execute normally when its schedule is intact.
-    if (!$scheduled_at || $scheduled_at > time() + 30
-        || 'pausada' === tcsocial_network_get_schedule_state($content_id, $provider)) {
+    if (!$scheduled_at || $scheduled_at > time() + 30) {
+        return;
+    }
+    if ('pausada' === tcsocial_network_get_schedule_state($content_id, $provider)) {
         return;
     }
 
