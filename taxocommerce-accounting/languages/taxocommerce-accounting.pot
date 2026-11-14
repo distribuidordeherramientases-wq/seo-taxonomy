@@ -385,3 +385,12 @@ msgstr ""
 
 msgid "PREPARATORY WORKING DATA — NOT AN OFFICIAL AEAT RETURN OR VALID FILING FILE."
 msgstr ""
+
+msgid "Official AEAT blank workbook templates (not filled by TaxoCommerce):"
+msgstr ""
+
+msgid "Download AEAT XLSX template — legal entities"
+msgstr ""
+
+msgid "Download AEAT XLSX template — general"
+msgstr ""
