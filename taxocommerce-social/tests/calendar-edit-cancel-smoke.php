@@ -190,4 +190,12 @@ check(isset($GLOBALS['test_campaigns']['56|203|pinterest']) && isset($GLOBALS['t
 
 $past_edit = tcsocial_calendar_change_schedule('edit', 'social', 101, 'pinterest', 0, $GLOBALS['test_social']['101|pinterest'], strtotime('2020-01-01 UTC'));
 check(is_wp_error($past_edit), 'Cannot reprogram into the past.');
+$core_source = file_get_contents(dirname(__DIR__) . '/includes/core.php');
+check(is_string($core_source) && false !== strpos($core_source, "function tcsocial_network_get_schedule_state("), 'Social schedule state reader exists.');
+check(false !== strpos($core_source, "function tcsocial_network_pause_scheduled_publication("), 'Real social pause mutator exists.');
+check(false !== strpos($core_source, "if ('pausada' === tcsocial_network_get_schedule_state("), 'WP-Cron reconciliation and callback guard both check persisted pause.');
+check(substr_count($core_source, "if ('pausada' === tcsocial_network_get_schedule_state(") >= 2, 'Both reconciliation and publication callback check pause.');
+check(false !== strpos($core_source, "delete_post_meta($content_id, tcsocial_network_schedule_state_meta_key($provider));"), 'Deleting/rescheduling clears paused flag.');
+check(false !== strpos($core_source, "tcsocial_network_get_schedule_state((int) $row->post_id, $provider)"), 'Agenda export reflects real pause state.');
+
 echo "OK: compact buttons, editable date/status, pause/resume, deletion, exact owner, stale guards, old dates, campaign isolation.\n";
