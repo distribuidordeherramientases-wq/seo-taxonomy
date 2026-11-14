@@ -170,30 +170,39 @@ final class TCA_Hacienda {
         global $wpdb;
         list( $start, $end ) = self::dates( $year );
         $scope = in_array( $scope, array( 'all', 'issued', 'received', 'assets', 'intra' ), true ) ? $scope : 'all';
-        $select = $count ? 'COUNT(*)' : 'id, source, source_id, kind, fiscal_date, document_no, party, tax_id, concept, amount_base, amount_tax, amount_total, deductible_pct, currency, treatment, status, notes';
-        // The SELECT projection is a fixed trusted literal, never user-supplied.
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $select is exactly one of two static literals.
-        $sql = "SELECT {$select} FROM %i WHERE fiscal_date BETWEEN %s AND %s AND
-            ( %s = 'all'
-              OR ( %s = 'issued' AND kind IN ('sale', 'refund') )
-              OR ( %s = 'received' AND kind IN ('purchase', 'expense') )
-              OR ( %s = 'assets' AND kind = 'asset' )
-              OR ( %s = 'intra' AND ( kind = 'intra' OR treatment = 'intra' ) )
-            )";
-        $args = array( tca_table(), $start, $end, $scope, $scope, $scope, $scope, $scope );
-        if ( ! $count ) {
-            $sql .= ' ORDER BY fiscal_date ASC, id ASC LIMIT %d OFFSET %d';
-            $args[] = absint( $limit );
-            $args[] = absint( $offset );
-        }
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Query built from a fixed projection and fixed prepared WHERE; $args are fully bound below.
-        $prepared = $wpdb->prepare( $sql, $args );
+        // The two queries use fixed, literal SQL and bind every data value.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private, read-only ledger count.
         if ( $count ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only ledger count.
-            return (int) $wpdb->get_var( $prepared );
+            return (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM %i WHERE fiscal_date BETWEEN %s AND %s AND
+                    ( %s = 'all'
+                      OR ( %s = 'issued' AND kind IN ('sale', 'refund') )
+                      OR ( %s = 'received' AND kind IN ('purchase', 'expense') )
+                      OR ( %s = 'assets' AND kind = 'asset' )
+                      OR ( %s = 'intra' AND ( kind = 'intra' OR treatment = 'intra' ) )
+                    )",
+                    tca_table(), $start, $end, $scope, $scope, $scope, $scope, $scope
+                )
+            );
         }
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Limited, paginated read-only fiscal data.
-        return (array) $wpdb->get_results( $prepared );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Limited, paginated read-only ledger query.
+        return (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, source, source_id, kind, fiscal_date, document_no, party,
+                    tax_id, concept, amount_base, amount_tax, amount_total,
+                    deductible_pct, currency, treatment, status, notes
+                FROM %i WHERE fiscal_date BETWEEN %s AND %s AND
+                ( %s = 'all'
+                  OR ( %s = 'issued' AND kind IN ('sale', 'refund') )
+                  OR ( %s = 'received' AND kind IN ('purchase', 'expense') )
+                  OR ( %s = 'assets' AND kind = 'asset' )
+                  OR ( %s = 'intra' AND ( kind = 'intra' OR treatment = 'intra' ) )
+                ) ORDER BY fiscal_date ASC, id ASC LIMIT %d OFFSET %d",
+                tca_table(), $start, $end, $scope, $scope, $scope, $scope, $scope,
+                absint( $limit ), absint( $offset )
+            )
+        );
     }
 
     /**
