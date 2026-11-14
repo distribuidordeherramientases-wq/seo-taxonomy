@@ -113,6 +113,38 @@ final class TaxoCommerce_Logistica_Auto_Test {
         return $reflection->invokeArgs( null, $args );
     }
 
+    /**
+     * Canonical, backwards-compatible functional report fields.
+     * Never writes to the database and never exposes private site URLs.
+     *
+     * @param array $report Stored or newly generated report.
+     * @return array Normalized report with historical keys preserved.
+     */
+    public static function standardize_report( $report ) {
+        if ( ! is_array( $report ) ) {
+            return array();
+        }
+        $names = self::groups();
+        foreach ( (array) ( $report['rows'] ?? array() ) as $index => $row ) {
+            if ( ! is_array( $row ) ) {
+                continue;
+            }
+            $group_id = (string) ( $row['group_id'] ?? $row['group'] ?? '' );
+            $row['group_id'] = $group_id;
+            $row['group_name'] = (string) ( $names[ $group_id ] ?? $row['group'] ?? $group_id );
+            $row['label'] = (string) ( $row['label'] ?? $row['name'] ?? '' );
+            $row['message'] = (string) ( $row['message'] ?? $row['detail'] ?? '' );
+            $row['ms'] = absint( $row['ms'] ?? 0 );
+            $report['rows'][ $index ] = $row;
+        }
+        $report['wordpress'] = (string) ( $report['wordpress'] ?? $report['wordpress_version'] ?? $report['wp_version'] ?? '' );
+        $report['php'] = (string) ( $report['php'] ?? $report['php_version'] ?? '' );
+        $report['date'] = (string) ( $report['date'] ?? $report['date_utc'] ?? $report['executed_at'] ?? '' );
+        $report['executed_at'] = (string) ( $report['executed_at'] ?? $report['date_utc'] ?? $report['date'] );
+        $report['timestamp'] = absint( $report['timestamp'] ?? strtotime( $report['executed_at'] ) );
+        return $report;
+    }
+
     public static function run_suite( $group = 'all', $override = null ) {
         $groups = self::groups();
         $group = 'all' === $group || isset( $groups[ $group ] ) ? $group : 'all';
@@ -148,7 +180,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
             ++$totals[ $outcome['status'] ];
         }
         global $wp_version;
-        return array(
+        return self::standardize_report( array(
             'schema' => 1,
             'phase' => 'check',
             'group' => $group,
@@ -162,7 +194,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
             'duration_ms' => (int) round( ( microtime( true ) - $started ) * 1000 ),
             'totals' => $totals,
             'rows' => $rows,
-        );
+        ) );
     }
 
     public static function compare( $before, $after ) {
@@ -513,7 +545,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
     private static function stored( $kind ) {
         $report = get_user_meta( get_current_user_id(), self::key( $kind ), true );
         return is_array( $report ) && ! empty( $report['site_hash'] ) && ! empty( $report['rows'] )
-            && hash_equals( self::site_hash(), (string) $report['site_hash'] ) ? $report : array();
+            && hash_equals( self::site_hash(), (string) $report['site_hash'] ) ? self::standardize_report( $report ) : array();
     }
 
     private static function url() {
