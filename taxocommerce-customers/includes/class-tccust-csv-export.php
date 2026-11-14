@@ -16,6 +16,7 @@ final class TCCUST_CSV_Export {
 		add_action( 'wp_ajax_tccust_csv_export', array( __CLASS__, 'batch' ) );
 		add_action( 'wp_ajax_tccust_csv_export_cancel', array( __CLASS__, 'cancel' ) );
 		add_action( 'admin_post_tccust_csv_download', array( __CLASS__, 'download' ) );
+		add_action( 'tccust_csv_export_expire', array( __CLASS__, 'expire' ), 10, 1 );
 	}
 
 	private static function authorized() {
@@ -41,6 +42,20 @@ final class TCCUST_CSV_Export {
 		return $temp && $file
 			&& dirname( $file ) === untrailingslashit( $temp )
 			&& 0 === strpos( basename( $file ), 'tccust-export-' );
+	}
+
+	/**
+	 * Best-effort private-file expiry if the administrator abandons a download.
+	 * This is housekeeping only: export and download never depend on WP-Cron.
+	 */
+	public static function expire( $path ) {
+		if ( ! self::private_path( $path ) ) {
+			return;
+		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_filemtime -- Check private temp file age before removing.
+		if ( filemtime( $path ) <= time() - HOUR_IN_SECONDS ) {
+			wp_delete_file( $path );
+		}
 	}
 
 	private static function cleanup( $state ) {
@@ -88,6 +103,8 @@ final class TCCUST_CSV_Export {
 			'token' => $token, 'path' => $path, 'cursor' => 0,
 			'processed' => 0, 'total' => $total, 'ready' => false,
 		), HOUR_IN_SECONDS );
+		// Recover abandoned private exports even when no second export is opened.
+		wp_schedule_single_event( time() + HOUR_IN_SECONDS + MINUTE_IN_SECONDS, 'tccust_csv_export_expire', array( $path ) );
 		wp_send_json_success( array( 'token' => $token, 'total' => $total ) );
 	}
 
