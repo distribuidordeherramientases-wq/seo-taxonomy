@@ -1,3 +1,11 @@
+## [0.2.37] — 2026-11-14 — Piloto de validación de familia con carga adaptativa (#2685)
+
+- Plugin Validation añade indicadores separados de funcionalidades y código y un orquestador manual de cinco velocidades.
+- La primera integración ejecuta casos de lectura del autocheck Core por lotes y después reutiliza el escáner de código del propio Core por archivos. No ejecuta el test de escritura UAT.
+- Pausa, reanudación, resultados parciales por usuario y ajuste adaptativo con tiempo, memoria y CPU PHP disponible. Los demás módulos figuran como no integrados hasta su validación.
+- Seguridad: capacidad manage_options y nonce por acción AJAX. Sin tareas automáticas, sin alteración del monolítico ni de los motores de otros plugins.
+- Prueba de regresión: tests/family-runner-pilot-smoke.php. Pendientes validación en WordPress real y extensión a los demás módulos.
+
 ## [0.2.36] — 2026-11-13 — Code Check homogéneo con Core 0.4.82 (#2626)
 
 - Code Check añade las reglas nativas de Core 0.4.82, clasificación por errores/avisos/limpios/no verificados, recomendaciones y JSON, conservando sus chequeos especiales de PHP mínimo, rutas, duplicidades y seguridad y sin modificar el Autocheck funcional. Issue #2626.
