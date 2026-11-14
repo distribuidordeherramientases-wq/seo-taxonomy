@@ -3,8 +3,8 @@
  * Plugin Name: TaxoCommerce Customers
  * Plugin URI: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/staging/taxocommerce-customers
  * Description: Private customer directory and CRM for WooCommerce buyers, guests and manually added contacts, with batch CSV import/export.
- * Version: 0.1.0
- * Release Date: 2026-11-13
+ * Version: 0.1.1
+ * Release Date: 2026-11-14
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: David Perez
@@ -15,7 +15,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCCUST_VERSION', '0.1.0' );
+define( 'TCCUST_VERSION', '0.1.1' );
 define( 'TCCUST_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TCCUST_URL', plugin_dir_url( __FILE__ ) );
 
@@ -30,6 +30,14 @@ require_once TCCUST_DIR . 'includes/admin-branding.php';
 require_once TCCUST_DIR . 'includes/class-taxocommerce-autotest-code.php';
 
 register_activation_hook( __FILE__, array( 'TCCUST_DB', 'install' ) );
+
+// Upgrade existing stores once, before menu capability checks; no per-request
+// table scan or dependency on a TaxoCommerce Core activation hook.
+add_action( 'init', static function () {
+	if ( TCCUST_DB::VERSION !== (string) get_option( 'tccust_schema_version', '' ) ) {
+		TCCUST_DB::install();
+	}
+}, 20 );
 
 /* Prefer official WordPress language packs; load bundled PO/MO catalogs locally. */
 add_action( 'init', static function () {
