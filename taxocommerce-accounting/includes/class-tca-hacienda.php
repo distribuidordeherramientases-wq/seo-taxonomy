@@ -219,7 +219,8 @@ final class TCA_Hacienda {
             $selected = '303';
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only VAT quarter filter.
-        $quarter = isset( $_GET['quarter'] ) && is_scalar( $_GET['quarter'] ) ? absint( wp_unslash( $_GET['quarter'] ) ) : 1;
+        $default_quarter = ( (int) current_time( 'Y' ) === (int) $year ) ? (int) ceil( (int) current_time( 'n' ) / 3 ) : 4;
+        $quarter = isset( $_GET['quarter'] ) && is_scalar( $_GET['quarter'] ) ? absint( wp_unslash( $_GET['quarter'] ) ) : $default_quarter;
         if ( $quarter < 1 || $quarter > 4 ) {
             $quarter = 1;
         }
@@ -273,6 +274,11 @@ final class TCA_Hacienda {
             }
         }
         echo '</p>';
+        if ( in_array( $selected, array( 'issued', 'received', 'assets', 'intra', '303' ), true ) ) {
+            echo '<p><strong>' . esc_html__( 'Official AEAT blank workbook templates (not filled by TaxoCommerce):', 'taxocommerce-accounting' ) . '</strong> ';
+            echo '<a class="button" target="_blank" rel="noopener noreferrer" href="https://sede.agenciatributaria.gob.es/static_files/Sede/Tema/IVA/Fact_registro/Libros/PLANTILLA_LIBROS_Pers_Juridicas.xlsx">' . esc_html__( 'Download AEAT XLSX template — legal entities', 'taxocommerce-accounting' ) . '</a> ';
+            echo '<a class="button" target="_blank" rel="noopener noreferrer" href="https://sede.agenciatributaria.gob.es/static_files/Sede/Tema/IVA/Fact_registro/Libros/PLANTILLA_LIBROS_UNIFICADOS.xlsx">' . esc_html__( 'Download AEAT XLSX template — general', 'taxocommerce-accounting' ) . '</a></p>';
+        }
         echo '<p><a class="button" target="_blank" rel="noopener noreferrer" href="' . esc_url( $section['url'] ) . '">' . esc_html__( 'Open official AEAT information and filing', 'taxocommerce-accounting' ) . '</a></p>';
         echo '<p>' . esc_html__( 'To file a return, use the official AEAT procedure and verify all fields and fiscal obligations. No data is transmitted automatically.', 'taxocommerce-accounting' ) . '</p>';
     }
