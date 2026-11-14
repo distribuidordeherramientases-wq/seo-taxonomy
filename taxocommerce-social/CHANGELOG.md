@@ -1,3 +1,12 @@
+## [0.1.22] — 2026-11-14 — Edición de fecha y estado en Vista compacta (#2667)
+
+- La Vista compacta muestra directamente los botones **Editar** y **Borrar programación** en cada fila gestionable, con formularios desplegables y diseño adaptado a móvil.
+- Editar permite cambiar fecha y hora y seleccionar **Programada** o **Pausada** para las programaciones propias de Social. Borrar cancela la tarea de envío sin borrar la entrada o página ni afectar a otras redes.
+- La pausa se guarda de manera persistente junto a la fecha de agenda. Se eliminan los eventos de WP-Cron actuales y heredados, se evita su restauración automática y se bloquea la ejecución si la pausa sigue activa.
+- Reanudar exige una fecha futura y restaura la programación de WordPress. El exportador de la agenda indica si el registro está programada o pausada.
+- Las campañas opcionales conservan su gestión propia: edición de fecha y borrado; no se presenta una pausa ficticia. Se preservan comprobaciones de permisos, nonce, origen, red y fecha original.
+- Prueba de regresión para estado de pausa/reanudación, aislamiento entre redes y controles compactos.
+
 ## [0.1.21] — 2026-11-13 — Edición y cancelación desde el calendario (#2663)
 
 - Añade controles **Editar** y **Cancelar** a cada evento programado en la vista mensual y en la vista compacta; no es necesario utilizar CSV.
