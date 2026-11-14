@@ -80,7 +80,15 @@ class TCSM_Test_DB {
     public $last_publication = null;
     public function esc_like($value) { return $value; }
     public function prepare($query) { return $query; }
-    public function get_results($sql) { return $this->rows; }
+    public function get_results($sql) {
+        if (false === strpos($sql, 'CAST(pm.meta_value AS UNSIGNED) > %d')) {
+            throw new RuntimeException('The fixture expects a future-only SQL query.');
+        }
+        // Simulate WordPress' future-only SQL predicate, not just its row store.
+        return array_values(array_filter($this->rows, static function($row) {
+            return absint($row->meta_value) > time() + 30;
+        }));
+    }
     public function get_row($sql) { return $this->last_publication; }
 }
 
