@@ -71,6 +71,7 @@ final class TaxoCommerce_System_Check_Family_Runner {
     private static function advance( $state ) {
         $started = microtime( true );
         $memory_before = memory_get_usage( true );
+        $cpu_start = function_exists( 'getrusage' ) ? getrusage() : false;
         $size = max( 1, min( 4, (int) $state['batch_size'] ) );
         if ( 'functional' === $state['phase'] ) {
             $all = array_keys( $state['cases'] );
@@ -95,7 +96,14 @@ final class TaxoCommerce_System_Check_Family_Runner {
             }
         } elseif ( 'code' === $state['phase'] ) {
             // Reuse Core's own scanner and findings; never copy or change its rules.
-            $state['code']['speed'] = $state['speed'];
+            // Core owns the scanner; select its bounded file size from the adaptive cap.
+            $code_speed = 1;
+            foreach ( TaxoCommerce_Core_Autotest_Code::speeds() as $candidate => $config ) {
+                if ( $candidate <= $state['speed'] && $config['size'] <= $size ) {
+                    $code_speed = $candidate;
+                }
+            }
+            $state['code']['speed'] = $code_speed;
             $state['code'] = TaxoCommerce_Core_Autotest_Code::step( $state['code'] );
             if ( 'completed' === $state['code']['status'] ) {
                 $state['phase'] = 'done';
@@ -106,14 +114,24 @@ final class TaxoCommerce_System_Check_Family_Runner {
         $memory = memory_get_peak_usage( true );
         $limit = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
         $pressure = $limit > 0 ? $memory / $limit : 0;
+        $cpu_end = function_exists( 'getrusage' ) ? getrusage() : false;
+        $cpu_ms = null;
+        if ( is_array( $cpu_start ) && is_array( $cpu_end ) ) {
+            $cpu_before = ( $cpu_start['ru_utime.tv_sec'] + $cpu_start['ru_stime.tv_sec'] ) * 1000
+                + ( $cpu_start['ru_utime.tv_usec'] + $cpu_start['ru_stime.tv_usec'] ) / 1000;
+            $cpu_after = ( $cpu_end['ru_utime.tv_sec'] + $cpu_end['ru_stime.tv_sec'] ) * 1000
+                + ( $cpu_end['ru_utime.tv_usec'] + $cpu_end['ru_stime.tv_usec'] ) / 1000;
+            $cpu_ms = max( 0, (int) round( $cpu_after - $cpu_before ) );
+        }
         $maximum = self::speeds()[ $state['speed'] ]['size'];
-        if ( $elapsed > 1500 || $pressure > 0.70 ) {
+        if ( $elapsed > 1500 || $pressure > 0.70 || ( null !== $cpu_ms && $cpu_ms > 1200 ) ) {
             $state['batch_size'] = max( 1, (int) $state['batch_size'] - 1 );
         } elseif ( $elapsed < 450 && $pressure < 0.50 ) {
             $state['batch_size'] = min( $maximum, (int) $state['batch_size'] + 1 );
         }
         $state['load'] = array(
             'elapsed_ms' => (int) round( $elapsed ),
+            'php_cpu_ms' => $cpu_ms,
             'memory_bytes' => $memory,
             'memory_delta_bytes' => max( 0, $memory - $memory_before ),
             'memory_limit_bytes' => $limit > 0 ? $limit : null,
