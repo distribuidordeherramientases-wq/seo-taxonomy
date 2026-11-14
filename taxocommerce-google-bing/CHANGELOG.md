@@ -1,3 +1,9 @@
+## [1.1.62] — 2026-11-14 — Autocheck uniforme con Code Check (#2676)
+
+- Chequeo funcional con los dos controles estándar de la familia: «Ejecutar Autocheck» y «Descargar resultados (JSON)», sin ANTES/DESPUÉS ni controles por grupo.
+- Conservados todos los casos funcionales, las dos subpestañas Functionality Check / Code Check, el motor de chequeo estático de código, las protecciones nonce/capability y el último JSON por administrador y sitio.
+- Se conservan las rutas históricas de los controladores sin mostrarlas en la interfaz. Ninguna modificación en conexiones, informes, credenciales, analista, reglas, productos ni proveedores.
+
 ## [1.1.61] — 2026-11-13 — Competidores: visibilidad independiente de la casilla Productos populares (#2643)
 
 - La consulta de visibilidad Merchant utiliza las categorías oficiales verificadas del snapshot independientemente de que se muestre el indicador de productos populares.

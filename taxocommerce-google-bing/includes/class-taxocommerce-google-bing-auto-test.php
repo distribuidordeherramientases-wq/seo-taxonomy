@@ -681,7 +681,6 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
         if ( ! self::allowed() ) {
             wp_die( esc_html__( 'No tienes permiso para abrir Autocheck.', 'taxocommerce-google-bing' ) );
         }
-        $before = self::stored_report( 'baseline' );
         $last = self::stored_report( 'last' );
         $groups = self::groups();
         $cases = self::cases();
@@ -689,60 +688,35 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
         foreach ( (array) ( $last['rows'] ?? array() ) as $row ) {
             if ( isset( $row['id'] ) ) { $indexed[ $row['id'] ] = $row; }
         }
-        $compare = $before && $last ? self::compare_reports( $before, $last ) : null;
         $totals = $last['totals'] ?? array( 'pass' => 0, 'fail' => 0, 'skip' => 0, 'not_run' => count( $cases ) );
         ?>
         <section class="tgb-at" aria-labelledby="tgb-at-title">
-            <h2 id="tgb-at-title"><?php esc_html_e( 'Autocheck — TaxoCommerce Insights', 'taxocommerce-google-bing' ); ?></h2>
-            <p><?php esc_html_e( 'Diagnóstico por módulos y comparación antes/después de actualizar el plugin. No modifica fuentes, informes, credenciales ni conexiones; solo conserva dos pequeños resultados por administrador.', 'taxocommerce-google-bing' ); ?></p>
+            <h2 id="tgb-at-title"><?php esc_html_e( 'Autocheck de TaxoCommerce Insights', 'taxocommerce-google-bing' ); ?></h2>
+            <p><?php esc_html_e( 'Diagnóstico manual y no destructivo: comprueba las funcionalidades y la configuración sin importar ni exportar archivos, generar informes ni modificar conexiones.', 'taxocommerce-google-bing' ); ?></p>
             <div class="tgb-at-actions">
-                <?php self::run_form( 'all', 'before', '1. Guardar estado ANTES', true ); ?>
-                <?php self::run_form( 'all', 'after', '2. Comprobar DESPUÉS', false ); ?>
-                <?php self::run_form( 'all', 'check', 'Ejecutar chequeo completo', false ); ?>
+                <?php self::run_form( 'all', 'check', __( 'Ejecutar Autocheck', 'taxocommerce-google-bing' ) ); ?>
+                <?php if ( $last ) : ?>
+                    <?php self::export_form( 'last', __( 'Descargar resultados (JSON)', 'taxocommerce-google-bing' ) ); ?>
+                <?php else : ?>
+                    <button class="button button-secondary" type="button" disabled><?php esc_html_e( 'Descargar resultados (JSON)', 'taxocommerce-google-bing' ); ?></button>
+                <?php endif; ?>
             </div>
-            <div class="tgb-at-baseline">
-                <div>
-                    <h3><?php esc_html_e( 'Referencia anterior al despliegue', 'taxocommerce-google-bing' ); ?></h3>
-                    <?php if ( $before ) : ?>
-                        <p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-google-bing' ); ?></strong> <?php echo esc_html( (string) $before['date'] ); ?></p>
-                        <p><?php echo esc_html( $before['date'] . ' · Insights ' . $before['version'] ); ?></p>
-                        <p><?php echo esc_html( absint( $before['totals']['pass'] ) . ' correctas · ' . absint( $before['totals']['fail'] ) . ' errores · ' . absint( $before['totals']['skip'] ) . ' sin verificar' ); ?></p>
-                        <?php self::export_form( 'baseline', 'Descargar ANTES (JSON)' ); ?>
-                    <?php else : ?>
-                        <p><?php esc_html_e( 'No hay referencia. Ejecuta «Guardar estado ANTES» antes de actualizar el plugin.', 'taxocommerce-google-bing' ); ?></p>
-                    <?php endif; ?>
-                </div>
-                <div>
-                    <h3><?php esc_html_e( 'Última ejecución', 'taxocommerce-google-bing' ); ?></h3>
-                    <?php if ( $last ) : ?>
-                        <p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-google-bing' ); ?></strong> <?php echo esc_html( (string) $last['date'] ); ?></p>
-                        <p><?php echo esc_html( $last['date'] . ' · Insights ' . $last['version'] . ' · ' . absint( $last['duration_ms'] ) . ' ms' ); ?></p>
-                        <p><?php echo esc_html( 'Modo: ' . ( 'before' === $last['phase'] ? 'ANTES' : ( 'after' === $last['phase'] ? 'DESPUÉS' : 'CHEQUEO' ) ) . ' · grupo ' . $last['group'] ); ?></p>
-                        <?php self::export_form( 'last', 'Descargar último (JSON)' ); ?>
-                    <?php else : ?>
-                        <p><?php esc_html_e( 'Aún no se ha realizado ningún autochequeo.', 'taxocommerce-google-bing' ); ?></p>
-                    <?php endif; ?>
-                </div>
-            </div>
-            <div class="tgb-at-totals" aria-label="<?php esc_attr_e( 'Resultados del último chequeo', 'taxocommerce-google-bing' ); ?>">
-                <div><strong><?php echo esc_html( absint( $totals['pass'] ?? 0 ) ); ?></strong><span>Correctas</span></div>
-                <div class="tgb-at-danger"><strong><?php echo esc_html( absint( $totals['fail'] ?? 0 ) ); ?></strong><span>Errores</span></div>
-                <div><strong><?php echo esc_html( absint( $totals['skip'] ?? 0 ) ); ?></strong><span>No verificadas / no aplicables</span></div>
-                <div><strong><?php echo esc_html( absint( $totals['not_run'] ?? 0 ) ); ?></strong><span>No ejecutadas</span></div>
-            </div>
-            <?php if ( $compare ) : ?>
-                <section class="tgb-at-comparison" aria-labelledby="tgb-at-compare">
-                    <h3 id="tgb-at-compare"><?php esc_html_e( 'Comparación de regresiones — ANTES / DESPUÉS', 'taxocommerce-google-bing' ); ?></h3>
-                    <p><?php echo esc_html( 'Nuevos errores: ' . count( $compare['new_failures'] ) . ' · Corregidos: ' . count( $compare['resolved'] ) . ' · Errores previos: ' . count( $compare['unchanged_failures'] ) . ' · Cobertura perdida: ' . count( $compare['coverage_lost'] ) . ' · Pruebas nuevas: ' . count( $compare['new_checks'] ) ); ?></p>
-                    <?php if ( $compare['new_failures'] || $compare['coverage_lost'] ) : ?>
-                        <p class="tgb-at-alert"><?php echo esc_html( 'Revisar nuevas incidencias/cobertura: ' . implode( ', ', array_unique( array_merge( $compare['new_failures'], $compare['coverage_lost'] ) ) ) ); ?></p>
-                    <?php else : ?>
-                        <p><?php esc_html_e( 'No se detectan nuevas regresiones entre las pruebas comparables. Las comprobaciones omitidas y las APIs externas requieren revisión manual.', 'taxocommerce-google-bing' ); ?></p>
-                    <?php endif; ?>
-                </section>
-            <?php elseif ( $before && $last ) : ?>
-                <p class="description"><?php esc_html_e( 'Para comparar, ejecuta «Comprobar DESPUÉS» con el conjunto completo en la misma instalación. Las pruebas por grupo no sustituyen la comparación completa.', 'taxocommerce-google-bing' ); ?></p>
+            <?php if ( $last ) : ?>
+                <p class="tgb-at-last">
+                    <strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-google-bing' ); ?></strong>
+                    <?php echo esc_html( (string) ( $last['date'] ?? '' ) ); ?>
+                    · <?php echo esc_html( 'v' . (string) ( $last['version'] ?? '' ) ); ?>
+                    · <?php echo esc_html( absint( $last['duration_ms'] ?? 0 ) . ' ms' ); ?>
+                </p>
+            <?php else : ?>
+                <p class="description"><?php esc_html_e( 'Todavía no se ha ejecutado el Autocheck en este sitio.', 'taxocommerce-google-bing' ); ?></p>
             <?php endif; ?>
+            <div class="tgb-at-totals" aria-label="<?php esc_attr_e( 'Resultados del último chequeo', 'taxocommerce-google-bing' ); ?>">
+                <div><strong><?php echo esc_html( absint( $totals['pass'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'Correctas', 'taxocommerce-google-bing' ); ?></span></div>
+                <div class="tgb-at-danger"><strong><?php echo esc_html( absint( $totals['fail'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'Errores', 'taxocommerce-google-bing' ); ?></span></div>
+                <div><strong><?php echo esc_html( absint( $totals['skip'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'No verificadas / no aplicables', 'taxocommerce-google-bing' ); ?></span></div>
+                <div><strong><?php echo esc_html( absint( $totals['not_run'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'No ejecutadas', 'taxocommerce-google-bing' ); ?></span></div>
+            </div>
             <?php foreach ( $groups as $group_id => $title ) : ?>
                 <?php
                 $group_cases = array_filter( $cases, static function ( $entry ) use ( $group_id ) {
@@ -755,7 +729,6 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
                 ?>
                 <details class="tgb-at-group" <?php echo $failed || ! $last ? 'open' : ''; ?>>
                     <summary><?php echo esc_html( $title . ' · ' . count( $group_cases ) . ' pruebas' . ( $failed ? ' · ' . $failed . ' errores' : '' ) ); ?></summary>
-                    <div class="tgb-at-group-controls"><?php self::run_form( $group_id, 'check', 'Ejecutar este grupo' ); ?></div>
                     <?php foreach ( $group_cases as $id => $entry ) : ?>
                         <?php $row = $indexed[ $id ] ?? array( 'status' => 'not_run', 'message' => 'No ejecutada.', 'ms' => 0 ); ?>
                         <div class="tgb-at-row">
