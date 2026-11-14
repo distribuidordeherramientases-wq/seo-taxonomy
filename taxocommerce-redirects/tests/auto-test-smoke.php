@@ -64,7 +64,7 @@ assertion( false !== strpos( $view_source, "self::run_button( 'all', 'check', __
 assertion( false !== strpos( $view_source, "self::export_button( false, __( 'Descargar resultados (JSON)'" ), 'Latest JSON export visible' );
 assertion( false === strpos( $view_source, "self::run_button( 'all', 'before'" ), 'No BEFORE button' );
 assertion( false === strpos( $view_source, "self::run_button( 'all', 'after'" ), 'No AFTER button' );
-assertion( false === strpos( $view_source, "self::run_button( $group, 'check'" ), 'No per-group execution buttons' );
+assertion( false === strpos( $view_source, 'self::run_button( $group, \'check\'' ), 'No per-group execution buttons' );
 assertion( false !== strpos( $view_source, 'TaxoCommerce_Redirects_Autotest_Code::render_subtabs' ), 'Code Check subtab kept' );
 echo 'Redirects Auto Test smoke passed.' . PHP_EOL;
 
@@ -76,7 +76,7 @@ $legacy_report = array(
         'detail' => 'Legacy detail', 'status' => 'pass', 'ms' => 2,
     ) ),
 );
-$canonical_report = TaxoCommerce\Redirects\Auto_Test::standardize_report( $legacy_report );
+$canonical_report = Auto_Test::standardize_report( $legacy_report );
 assertion( isset( $canonical_report['rows'][0]['group_id'], $canonical_report['rows'][0]['group_name'], $canonical_report['rows'][0]['label'], $canonical_report['rows'][0]['message'], $canonical_report['rows'][0]['ms'] ), 'Unified row fields' );
 assertion( 'Legacy case' === $canonical_report['rows'][0]['label'] && 'Legacy detail' === $canonical_report['rows'][0]['message'], 'Historical text retained' );
 assertion( 'Legacy case' === $canonical_report['rows'][0]['name'] && 'Legacy detail' === $canonical_report['rows'][0]['detail'], 'Legacy keys retained' );
