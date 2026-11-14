@@ -77,6 +77,9 @@ final class TCCUST_Sync {
 		$customer = $user_id ? TCCUST_DB::find_user( $user_id ) : null;
 		if ( ! $customer && null !== $key ) {
 			$candidate = TCCUST_DB::find_email( $key );
+			if ( ! $candidate ) {
+				$candidate = TCCUST_DB::find_erased_email( $key );
+			}
 			// Different registered user IDs are not merged automatically.
 			if ( $candidate && ( ! $user_id || ! $candidate['woo_user_id'] || (int) $candidate['woo_user_id'] === $user_id ) ) {
 				$customer = $candidate;
@@ -112,11 +115,11 @@ final class TCCUST_Sync {
 		);
 		foreach ( $incoming as $column => $raw ) {
 			// Human-entered CRM edits always take precedence.
-			if ( ! $customer || '' === (string) ( $customer[ $column ] ?? '' ) ) {
+			if ( ! $customer || ( empty( $customer['erased_at'] ) && '' === (string) ( $customer[ $column ] ?? '' ) ) ) {
 				$data[ $column ] = sanitize_text_field( $raw );
 			}
 		}
-		if ( $customer && '' === (string) ( $customer['email'] ?? '' ) && null !== $key ) {
+		if ( $customer && empty( $customer['erased_at'] ) && '' === (string) ( $customer['email'] ?? '' ) && null !== $key ) {
 			$data['email'] = $key;
 			$data['email_key'] = $key;
 		}
@@ -155,12 +158,17 @@ final class TCCUST_Sync {
 		$input = map_deep( wp_unslash( $_POST ), 'sanitize_text_field' );
 		$restart = isset( $input['restart'] ) && '1' === $input['restart'];
 		$page = $restart ? 1 : max( 1, absint( get_option( 'tccust_backfill_page', 1 ) ) );
+		$offset = $restart ? 0 : absint( get_option( 'tccust_backfill_offset', 0 ) );
+		$requested = isset( $input['size'] ) ? min( self::MAX_BATCH, max( 1, absint( $input['size'] ) ) ) : 50;
+		// A different page size mid-run could silently skip paid orders.
+		$limit = $restart ? $requested : min( self::MAX_BATCH, max( 1, absint( get_option( 'tccust_backfill_limit', $requested ) ) ) );
+		update_option( 'tccust_backfill_limit', $limit, false );
 		if ( $restart ) {
 			update_option( 'tccust_backfill_complete', false, false );
 		}
 		$token = wp_generate_password( 24, false, false );
 		set_transient( self::session_key(), array(
-			'token' => $token, 'page' => $page, 'linked' => 0, 'skipped' => 0, 'conflict' => 0, 'error' => 0
+			'token' => $token, 'page' => $page, 'offset' => $offset, 'limit' => $limit, 'linked' => 0, 'skipped' => 0, 'conflict' => 0, 'error' => 0
 		), HOUR_IN_SECONDS );
 		wp_send_json_success( array( 'token' => $token, 'page' => $page ) );
 	}
@@ -177,7 +185,7 @@ final class TCCUST_Sync {
 		if ( ! self::available() ) {
 			wp_send_json_error( array( 'message' => __( 'WooCommerce is not available. Manual contacts remain usable.', 'taxocommerce-customers' ) ), 400 );
 		}
-		$limit = isset( $input['size'] ) ? min( self::MAX_BATCH, max( 1, absint( $input['size'] ) ) ) : 50;
+		$limit = min( self::MAX_BATCH, max( 1, absint( $state['limit'] ?? 50 ) ) );
 		$orders = wc_get_orders( array(
 			'status' => wc_get_is_paid_statuses(),
 			'limit' => $limit,
@@ -187,53 +195,54 @@ final class TCCUST_Sync {
 			'orderby' => 'ID',
 			'order' => 'ASC',
 		) );
-		if ( ! is_object( $orders ) || ! isset( $orders->orders, $orders->max_num_pages ) ) {
+		if ( ! is_object( $orders ) || ! isset( $orders->orders, $orders->max_num_pages ) || ! is_array( $orders->orders ) ) {
 			wp_send_json_error( array( 'message' => __( 'WooCommerce did not return a paginated order list.', 'taxocommerce-customers' ) ), 500 );
 		}
-		$started = microtime( true );
-		$processed_this_batch = 0;
-		$batch_ids = $orders->orders;
-		// Limit query size to small batches for hosting without SSH.
-		foreach ( $batch_ids as $order_id ) {
-			if ( ( microtime( true ) - $started ) > 8 ) {
+		$ids = $orders->orders;
+		$start = microtime( true );
+		$offset = min( count( $ids ), absint( $state['offset'] ?? 0 ) );
+		for ( $i = $offset; $i < count( $ids ); ++$i ) {
+			if ( $i > $offset && ( microtime( true ) - $start ) > 7.5 ) {
 				break;
 			}
-			$order = wc_get_order( absint( $order_id ) );
+			$order = wc_get_order( absint( $ids[ $i ] ) );
 			$result = $order ? self::sync_order( $order ) : 'skipped';
 			if ( ! isset( $state[ $result ] ) ) {
 				$result = 'skipped';
 			}
 			++$state[ $result ];
-			++$processed_this_batch;
 		}
-		// A page must be fully consumed before advancing to avoid missing buyers
-		// when a CPU-bounded worker hits its time limit.
+		$state['offset'] = $i;
+		$done_page = $i >= count( $ids );
+		$pages = max( 1, absint( $orders->max_num_pages ) );
+		$done = $done_page && absint( $state['page'] ) >= $pages;
+		$completed_page = absint( $state['page'] );
 		$processed = $state['linked'] + $state['skipped'] + $state['conflict'] + $state['error'];
-		$done_page = $processed_this_batch === count( $batch_ids );
-		if ( ! $done_page ) {
-			// Progress must not pretend a partially consumed page is complete.
-			wp_send_json_error( array( 'message' => __( 'A WooCommerce page exceeded the processing limit. Select a lower speed and retry.', 'taxocommerce-customers' ) ), 429 );
-		}
-		$done = $state['page'] >= absint( $orders->max_num_pages );
 		if ( $done ) {
 			update_option( 'tccust_backfill_complete', true, false );
 			update_option( 'tccust_backfill_page', 1, false );
+			update_option( 'tccust_backfill_offset', 0, false );
 			delete_transient( self::session_key() );
 		} else {
-			++$state['page'];
+			if ( $done_page ) {
+				++$state['page'];
+				$state['offset'] = 0;
+			}
 			update_option( 'tccust_backfill_page', $state['page'], false );
+			update_option( 'tccust_backfill_offset', $state['offset'], false );
 			set_transient( self::session_key(), $state, HOUR_IN_SECONDS );
 		}
+		$progress = $done ? 100 : min( 99, (int) ( 100 * ( $completed_page - 1 + $i / max( 1, count( $ids ) ) ) / $pages ) );
 		wp_send_json_success( array(
 			'done' => $done,
-			'page' => absint( $state['page'] ),
-			'pages' => absint( $orders->max_num_pages ),
+			'page' => $completed_page,
+			'pages' => $pages,
 			'linked' => $state['linked'],
 			'skipped' => $state['skipped'],
 			'conflict' => $state['conflict'],
 			'error' => $state['error'],
 			'processed' => $processed,
-			'progress' => $done ? 100 : (int) min( 99, 100 * $state['page'] / max( 1, $orders->max_num_pages ) ),
+			'progress' => $progress,
 		) );
 	}
 

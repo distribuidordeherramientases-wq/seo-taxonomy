@@ -17,14 +17,13 @@ final class TCCUST_CSV {
 	);
 
 	public static function boot() {
-		add_action( 'wp_ajax_tccust_csv_export', array( __CLASS__, 'export_batch' ) );
 		add_action( 'wp_ajax_tccust_csv_start', array( __CLASS__, 'start' ) );
 		add_action( 'wp_ajax_tccust_csv_batch', array( __CLASS__, 'batch' ) );
 		add_action( 'wp_ajax_tccust_csv_cancel', array( __CLASS__, 'cancel' ) );
 	}
 
 	private static function authorize() {
-		if ( ! TCCUST_Admin::can_manage() ) {
+		if ( ! TCCUST_Admin::can_manage() || ! current_user_can( 'import_taxocommerce_customers' ) || ! current_user_can( 'view_taxocommerce_private_notes' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'taxocommerce-customers' ) ), 403 );
 		}
 		check_ajax_referer( self::NONCE );
@@ -38,7 +37,7 @@ final class TCCUST_CSV {
 			<h2><?php esc_html_e( 'Bulk customer import and export', 'taxocommerce-customers' ); ?></h2>
 			<p><?php esc_html_e( 'Export all customer records and private notes, then edit the CSV and import it in small batches. Import never creates WordPress accounts, orders or invoices.', 'taxocommerce-customers' ); ?></p>
 			<div class="tccust-actions">
-				<button type="button" id="tccust-csv-export" class="button button-primary"><?php esc_html_e( 'Export customers CSV', 'taxocommerce-customers' ); ?></button>
+				<button type="button" id="tccust-csv-export" class="button button-primary" <?php disabled( ! current_user_can( 'export_taxocommerce_customers' ) || ! current_user_can( 'view_taxocommerce_private_notes' ) ); ?>><?php esc_html_e( 'Export customers CSV', 'taxocommerce-customers' ); ?></button>
 				<form id="tccust-csv-import" enctype="multipart/form-data">
 					<label><?php esc_html_e( 'Customers CSV', 'taxocommerce-customers' ); ?>
 						<input type="file" name="customers_csv" accept=".csv,text/csv" required>
@@ -52,7 +51,7 @@ final class TCCUST_CSV {
 							<option value="350"><?php esc_html_e( '5 - Maximum', 'taxocommerce-customers' ); ?></option>
 						</select>
 					</label>
-					<button type="submit" class="button"><?php esc_html_e( 'Import customers CSV', 'taxocommerce-customers' ); ?></button>
+					<button type="submit" class="button" <?php disabled( ! current_user_can( 'import_taxocommerce_customers' ) || ! current_user_can( 'view_taxocommerce_private_notes' ) ); ?>><?php esc_html_e( 'Import customers CSV', 'taxocommerce-customers' ); ?></button>
 				</form>
 				<button type="button" id="tccust-csv-stop" class="button" hidden><?php esc_html_e( 'Stop import', 'taxocommerce-customers' ); ?></button>
 			</div>
@@ -64,47 +63,31 @@ final class TCCUST_CSV {
 		<?php
 	}
 
-	public static function export_batch() {
-		self::authorize();
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via authorize().
-		$posted = map_deep( wp_unslash( $_POST ), 'sanitize_text_field' );
-		$cursor = isset( $posted['cursor'] ) ? absint( $posted['cursor'] ) : 0;
-		$limit = isset( $posted['size'] ) ? min( self::MAX_BATCH, max( 1, absint( $posted['size'] ) ) ) : 100;
-		global $wpdb;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded live private CRM export.
-		$rows = $wpdb->get_results(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE id>%d ORDER BY id ASC LIMIT %d', TCCUST_DB::customers_table(), $cursor, $limit ),
-			ARRAY_A
-		);
-		$data = array();
-		foreach ( (array) $rows as $row ) {
-			$item = array();
-			foreach ( self::HEADERS as $header ) {
-				$item[] = (string) ( $row[ $header ] ?? '' );
-			}
-			$data[] = $item;
-		}
-		$last = $rows ? end( $rows ) : array();
-		$total = null;
-		if ( ! $cursor ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Count number of private CRM records for progress.
-			$total = absint( $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', TCCUST_DB::customers_table() ) ) );
-		}
-		wp_send_json_success( array(
-			'headers' => self::HEADERS,
-			'rows' => $data,
-			'cursor' => absint( $last['id'] ?? 0 ),
-			'total' => $total,
-			'done' => count( (array) $rows ) < $limit,
-		) );
-	}
 
 	private static function key() {
 		return 'tccust_csv_' . get_current_user_id();
 	}
 
+	/**
+	 * Never store customer CSV files below the public WordPress document root.
+	 * get_temp_dir() can fall back to wp-content on restricted shared hosting.
+	 */
+	public static function secure_temp_dir() {
+		$temp = realpath( get_temp_dir() );
+		if ( ! $temp || ! wp_is_writable( $temp ) ) {
+			return null;
+		}
+		foreach ( array( ABSPATH, WP_CONTENT_DIR ) as $root ) {
+			$root = realpath( $root );
+			if ( $root && ( $temp === $root || 0 === strpos( $temp, $root . DIRECTORY_SEPARATOR ) ) ) {
+				return null;
+			}
+		}
+		return $temp;
+	}
+
 	public static function private_upload_dir( $directory ) {
-		$temp = untrailingslashit( get_temp_dir() );
+		$temp = untrailingslashit( self::secure_temp_dir() );
 		$directory['path'] = $temp;
 		$directory['basedir'] = $temp;
 		$directory['subdir'] = '';
@@ -142,6 +125,9 @@ final class TCCUST_CSV {
 
 	public static function start() {
 		self::authorize();
+		if ( ! self::secure_temp_dir() ) {
+			wp_send_json_error( array( 'message' => __( 'Cannot store temporary CSV.', 'taxocommerce-customers' ) ), 500 );
+		}
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce was validated via authorize().
 		if ( ! isset( $_FILES['customers_csv'] ) || ! is_array( $_FILES['customers_csv'] ) ) {
 			wp_send_json_error( array( 'message' => __( 'CSV file missing.', 'taxocommerce-customers' ) ), 400 );
@@ -221,6 +207,9 @@ final class TCCUST_CSV {
 		if ( $id && ! $existing ) {
 			return 'rejected';
 		}
+		if ( $existing && ! empty( $existing['erased_at'] ) ) {
+			return 'rejected';
+		}
 		$incoming = array();
 		foreach ( self::HEADERS as $column ) {
 			$incoming[ $column ] = self::unguard( $data[ $column ] ?? '' );
@@ -242,6 +231,9 @@ final class TCCUST_CSV {
 			return 'rejected';
 		}
 		$duplicate = null !== $fields['email_key'] ? TCCUST_DB::find_email( $fields['email_key'] ) : null;
+		if ( ! $existing && null !== $fields['email_key'] && TCCUST_DB::find_erased_email( $fields['email_key'] ) ) {
+			return 'rejected';
+		}
 		if ( $duplicate && ( ! $existing || absint( $duplicate['id'] ) !== $id ) ) {
 			return 'rejected';
 		}

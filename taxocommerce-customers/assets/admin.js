@@ -48,7 +48,7 @@
 			startButton.disabled = true; stopButton.hidden = false; stopButton.disabled = false;
 			update(sync, t('syncing', 'Syncing paid WooCommerce orders...'), 0);
 			try {
-				const first = await send(sync, 'tccust_sync_start', { restart: restart ? '1' : '0' });
+				const first = await send(sync, 'tccust_sync_start', { restart: restart ? '1' : '0', size: Number(speed.value) || 50 });
 				token = first.token;
 				let done = false;
 				while (!done && !stopped) {
@@ -76,7 +76,7 @@
 			}
 		}
 		startButton.addEventListener('click', function () { run(sync.dataset.auto !== '1'); });
-		if (sync.dataset.auto === '1') { run(false); }
+		// Opening the directory must not trigger a high-load historical sync.
 	}
 
 	const root = document.getElementById('tccust-transfer');
@@ -85,56 +85,41 @@
 	const exportButton = document.getElementById('tccust-csv-export');
 	const stopButton = document.getElementById('tccust-csv-stop');
 	const issues = document.getElementById('tccust-csv-issues');
+	const exportAllowed = !exportButton.disabled;
+	const importAllowed = !form.querySelector('button[type="submit"]').disabled;
 	let busy = false, stopped = false, token = '';
 
 	function busyState(state, importing) {
 		busy = state;
-		exportButton.disabled = state;
-		form.querySelectorAll('input, select, button').forEach(function (el) { el.disabled = state; });
+		exportButton.disabled = state || !exportAllowed;
+		form.querySelectorAll('input, select, button').forEach(function (el) { el.disabled = state || !importAllowed; });
 		stopButton.hidden = !state || !importing;
 	}
 	function speed() { return Number(form.querySelector('[name="size"]').value) || 100; }
 
-	function csvCell(value) {
-		let s = value == null ? '' : String(value);
-		if (/^\s*[=+\-@]/.test(s)) { s = "'" + s; }
-		return '"' + s.replace(/"/g, '""') + '"';
-	}
-	function csvLine(cells) { return cells.map(csvCell).join(',') + '\r\n'; }
-	function download(chunks) {
-		const blob = new Blob(['\ufeff'].concat(chunks), { type: 'text/csv;charset=utf-8' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = 'taxocommerce-customers-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '.csv';
-		document.body.appendChild(a);
-		a.click(); a.remove();
-		setTimeout(function () { URL.revokeObjectURL(url); }, 3000);
-	}
 
+	// Export is assembled privately on the server; only progress reaches JS.
+	// No CSV rows or complete Blob are retained in the browser.
 	exportButton.addEventListener('click', async function () {
 		if (busy) { return; }
 		busyState(true, false);
 		update(root, t('exporting', 'Exporting contacts...'), 0);
-		let cursor = 0, total = 0, expected = 0;
-		const chunks = [];
+		let exportToken = '';
 		try {
-			for (;;) {
-				const next = await send(root, 'tccust_csv_export', { cursor: cursor, size: speed() });
-				if (!chunks.length) { chunks.push(csvLine(next.headers)); }
-				next.rows.forEach(function (row) { chunks.push(csvLine(row)); });
-				total += next.rows.length;
-				if (next.total !== null && next.total !== undefined) { expected = Number(next.total); }
-				update(root, t('exporting', 'Exporting contacts...') + ' ' + total,
-					expected ? Math.min(99, Math.round(total * 100 / expected)) : 0);
-				if (next.done) { break; }
-				if (!next.cursor || next.cursor === cursor) { throw new Error(t('error', 'Unexpected server response.')); }
-				cursor = next.cursor;
-				await new Promise(function (resolve) { setTimeout(resolve, 100); });
-			}
-			download(chunks);
-			update(root, t('exported', 'Contacts exported:') + ' ' + total, 100);
+			const first = await send(root, 'tccust_csv_export_start', {});
+			exportToken = first.token;
+			let next;
+			do {
+				next = await send(root, 'tccust_csv_export', { token: exportToken, size: speed() });
+				update(root, t('exporting', 'Exporting contacts...') + ' ' + next.processed, next.progress);
+			} while (!next.done);
+			if (!next.download_url) { throw new Error(t('error', 'Unexpected server response.')); }
+			update(root, t('exported', 'Contacts exported:') + ' ' + next.processed, 100);
+			window.location.assign(next.download_url);
 		} catch (error) {
+			if (exportToken) {
+				try { await send(root, 'tccust_csv_export_cancel', { token: exportToken }); } catch (ignored) { /* Session expires on its own. */ }
+			}
 			update(root, error.message);
 		} finally {
 			busyState(false, false);

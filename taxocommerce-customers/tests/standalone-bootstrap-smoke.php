@@ -27,6 +27,7 @@ function is_email( $value ) { return false !== filter_var( $value, FILTER_VALIDA
 function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $value ) ); }
 function absint( $value ) { return abs( (int) $value ); }
 function current_time( $type ) { return '2026-11-13 16:00:00'; }
+function wp_salt( $scheme ) { return 'regression-test-only-key'; }
 function wc_get_orders( $args ) { return (object) array( 'orders' => array(), 'max_num_pages' => 0 ); }
 function wc_get_order( $id ) { return null; }
 function wc_get_is_paid_statuses() { return array( 'processing', 'completed' ); }
@@ -44,6 +45,7 @@ class TCCUST_FakeDB {
 			if ( false !== strpos( $sql, 'WHERE id=%d' ) && (int) $row['id'] === (int) end( $args ) ) { return $row; }
 			if ( false !== strpos( $sql, 'WHERE woo_user_id=%d' ) && (int) $row['woo_user_id'] === (int) end( $args ) && $row['woo_user_id'] ) { return $row; }
 			if ( false !== strpos( $sql, 'WHERE email_key=%s' ) && $row['email_key'] === end( $args ) ) { return $row; }
+			if ( false !== strpos( $sql, 'WHERE email_digest=%s' ) && ( $row['email_digest'] ?? null ) === end( $args ) && ! empty( $row['erased_at'] ) ) { return $row; }
 		}
 		return null;
 	}
@@ -101,6 +103,7 @@ require_once dirname( __DIR__ ) . '/taxocommerce-customers.php';
 tccust_test_check( class_exists( 'TCCUST_Admin' ), 'Admin class loads standalone' );
 tccust_test_check( class_exists( 'TaxoCommerce_Customers_Autotest_Code' ), 'Code checker loads standalone' );
 tccust_test_check( class_exists( 'TCCUST_Privacy' ), 'Privacy integration loads standalone' );
+tccust_test_check( class_exists( 'TCCUST_CSV_Export' ), 'Server-side CSV exporter loads standalone' );
 tccust_test_check( 17 === count( TCCUST_CSV::HEADERS ), 'CSV has exactly 17 columns' );
 tccust_test_check( count( TCCUST_CSV::HEADERS ) === count( array_unique( TCCUST_CSV::HEADERS ) ), 'CSV headers unique' );
 tccust_test_check( null === TCCUST_DB::email_key( 'not-an-email' ), 'Invalid email is never used for identity' );
@@ -140,6 +143,26 @@ $unpaid = new WC_Order( array( 'id' => 77, 'user_id' => 0, 'email' => 'buyer@exa
 tccust_test_check( 'unpaid' === TCCUST_Sync::sync_order( $unpaid ) && 1 === count( $wpdb->links ), 'Unpaid order removed from purchase links' );
 $anonymous = new WC_Order( array( 'id' => 80, 'user_id' => 0, 'email' => '', 'name' => 'No identificable', 'paid' => true ) );
 tccust_test_check( 'skipped' === TCCUST_Sync::sync_order( $anonymous ), 'Guest with no email skipped' );
+
+// Erasure must not retain duplicate CRM billing data or be undone by a later
+// WooCommerce hook (registered orders and guest checkout share the same email).
+$erasure = TCCUST_Privacy::eraser( 'buyer@example.com' );
+tccust_test_check( ! empty( $erasure['items_removed'] ), 'Personal data erasure reports success' );
+tccust_test_check( '' === $wpdb->rows[1]['email'] && null === $wpdb->rows[1]['email_key'], 'Erased CRM has no plain email' );
+foreach ( array( 'nombre', 'apellidos', 'empresa', 'telefono', 'whatsapp', 'direccion', 'codigo_postal', 'localidad', 'provincia', 'pais', 'canal_preferido', 'etiquetas', 'observaciones' ) as $field ) {
+	tccust_test_check( '' === $wpdb->rows[1][ $field ], 'Erasure clears private field: ' . $field );
+}
+tccust_test_check( ! empty( $wpdb->rows[1]['erased_at'] ), 'Erasure marker retained' );
+tccust_test_check( 9 === (int) $wpdb->rows[1]['woo_user_id'], 'Technical Woo user association retained' );
+tccust_test_check( 1 === count( $wpdb->links ), 'Woo order reference retained after erasure' );
+tccust_test_check( ! empty( $wpdb->rows[1]['email_digest'] ), 'Non-reversible digest retained for guest matching' );
+$guest_after_erase = new WC_Order( array( 'id' => 81, 'user_id' => 0, 'email' => 'buyer@example.com', 'name' => 'Debe permanecer anónimo', 'paid' => true ) );
+tccust_test_check( 'linked' === TCCUST_Sync::sync_order( $guest_after_erase ), 'Redacted guest identity still links order' );
+tccust_test_check( '' === $wpdb->rows[1]['email'] && '' === $wpdb->rows[1]['nombre'], 'Automatic sync never restores erased CRM PII' );
+tccust_test_check( 1 === count( $wpdb->rows ), 'Erasure prevents duplicate buyer creation' );
+tccust_test_check( false !== strpos( file_get_contents( dirname( __DIR__ ) . '/assets/admin.js' ), 'Opening the directory must not trigger' ), 'No automatic historical backfill from page load' );
+tccust_test_check( false === strpos( file_get_contents( dirname( __DIR__ ) . '/assets/admin.js' ), 'new Blob(' ), 'CSV export does not use a browser memory Blob' );
+
 
 $base = dirname( __DIR__ );
 $csv = file_get_contents( $base . '/includes/class-tccust-csv.php' );
