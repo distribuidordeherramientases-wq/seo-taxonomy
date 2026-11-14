@@ -387,3 +387,12 @@ msgstr "Selección de informe fiscal no válida."
 
 msgid "PREPARATORY WORKING DATA — NOT AN OFFICIAL AEAT RETURN OR VALID FILING FILE."
 msgstr "DATOS PREPARATORIOS — NO SON UNA DECLARACIÓN OFICIAL NI UN FICHERO VÁLIDO PARA LA AEAT."
+
+msgid "Official AEAT blank workbook templates (not filled by TaxoCommerce):"
+msgstr "Plantillas oficiales de libros de la AEAT (sin rellenar por TaxoCommerce):"
+
+msgid "Download AEAT XLSX template — legal entities"
+msgstr "Descargar plantilla AEAT XLSX — personas jurídicas"
+
+msgid "Download AEAT XLSX template — general"
+msgstr "Descargar plantilla AEAT XLSX — general"
