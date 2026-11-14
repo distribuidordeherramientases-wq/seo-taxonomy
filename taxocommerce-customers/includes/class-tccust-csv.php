@@ -74,7 +74,7 @@ final class TCCUST_CSV {
 	 */
 	public static function secure_temp_dir() {
 		$temp = realpath( get_temp_dir() );
-		if ( ! $temp || ! is_writable( $temp ) ) {
+		if ( ! $temp || ! wp_is_writable( $temp ) ) {
 			return null;
 		}
 		foreach ( array( ABSPATH, WP_CONTENT_DIR ) as $root ) {
