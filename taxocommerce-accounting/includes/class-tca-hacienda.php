@@ -205,12 +205,12 @@ final class TCA_Hacienda {
     public static function render( $year ) {
         $sections = self::sections();
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only subtab selection.
-        $selected = isset( $_GET['hacienda'] ) ? sanitize_key( wp_unslash( $_GET['hacienda'] ) ) : '303';
+        $selected = isset( $_GET['hacienda'] ) && is_scalar( $_GET['hacienda'] ) ? sanitize_key( wp_unslash( $_GET['hacienda'] ) ) : '303';
         if ( ! isset( $sections[ $selected ] ) ) {
             $selected = '303';
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only VAT quarter filter.
-        $quarter = isset( $_GET['quarter'] ) ? absint( wp_unslash( $_GET['quarter'] ) ) : 1;
+        $quarter = isset( $_GET['quarter'] ) && is_scalar( $_GET['quarter'] ) ? absint( wp_unslash( $_GET['quarter'] ) ) : 1;
         if ( $quarter < 1 || $quarter > 4 ) {
             $quarter = 1;
         }
@@ -355,13 +355,13 @@ final class TCA_Hacienda {
         }
         check_admin_referer( 'tca_hacienda_download' );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce checked above.
-        $year = isset( $_GET['year'] ) ? absint( wp_unslash( $_GET['year'] ) ) : 0;
+        $year = isset( $_GET['year'] ) && is_scalar( $_GET['year'] ) ? absint( wp_unslash( $_GET['year'] ) ) : 0;
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce checked above.
-        $document = isset( $_GET['document'] ) ? sanitize_key( wp_unslash( $_GET['document'] ) ) : '';
+        $document = isset( $_GET['document'] ) && is_scalar( $_GET['document'] ) ? sanitize_key( wp_unslash( $_GET['document'] ) ) : '';
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce checked above.
-        $quarter = isset( $_GET['quarter'] ) ? absint( wp_unslash( $_GET['quarter'] ) ) : 0;
+        $quarter = isset( $_GET['quarter'] ) && is_scalar( $_GET['quarter'] ) ? absint( wp_unslash( $_GET['quarter'] ) ) : 0;
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce checked above.
-        $format = isset( $_GET['format'] ) ? sanitize_key( wp_unslash( $_GET['format'] ) ) : '';
+        $format = isset( $_GET['format'] ) && is_scalar( $_GET['format'] ) ? sanitize_key( wp_unslash( $_GET['format'] ) ) : '';
         $sections = self::sections();
         if ( $year < 2000 || $year > 2100 || ! isset( $sections[ $document ] )
             || ! in_array( $format, array( 'csv', 'json' ), true )
