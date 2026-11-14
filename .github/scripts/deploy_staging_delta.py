@@ -67,6 +67,9 @@ def changed_files(base, head, selected_slug=None):
         if parsed is None:
             continue
         slug, relative = parsed
+        if slug == "taxocommerce-connections":
+            # Retired bridge has no deployable files, even for a deletion commit.
+            continue
         if status.startswith("D"):
             changes.setdefault(slug, set())
             if selected_slug == slug:
@@ -226,6 +229,7 @@ def plan():
         slugs = sorted(
             d.name for d in Path(".").glob("taxocommerce-*")
             if d.is_dir() and SLUG.fullmatch(d.name)
+            and d.name != "taxocommerce-connections"
             and (d / (d.name + ".php")).is_file()
         )
     else:

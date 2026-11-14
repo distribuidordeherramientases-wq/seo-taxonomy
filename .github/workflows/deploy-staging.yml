@@ -61,7 +61,7 @@ jobs:
       - name: Validate independent Autotest Code Check for the entire new family
         run: |
           set -euo pipefail
-          for plugin in auditor campaigns connections core customers database dependiente distribution facturacion faqs google-bing images import-export logistica redirects scrappers social suppliers tasks templates vocabulary; do
+          for plugin in auditor campaigns core customers database dependiente distribution facturacion faqs google-bing images import-export logistica redirects scrappers social suppliers tasks templates vocabulary; do
             php -l "taxocommerce-${plugin}/includes/class-taxocommerce-autotest-code.php"
             php .github/tests/autotest-code-vendor-smoke.php "${plugin}"
             node --check "taxocommerce-${plugin}/assets/autotest-code.js"
@@ -117,7 +117,6 @@ jobs:
           find taxocommerce-* -type f -name '*.php' -not -path '*/tests/*' -not -path '*/templates/*' -print0 | while IFS= read -r -d '' file; do
             php -l "$file" > /dev/null
           done
-          php taxocommerce-connections/tests/connections-smoke.php
           php taxocommerce-auditor/tests/auto-test-manual-smoke.php
           php taxocommerce-database/tests/auto-test-smoke.php
           php -l .github/tests/early-i18n-core-registration-smoke.php
