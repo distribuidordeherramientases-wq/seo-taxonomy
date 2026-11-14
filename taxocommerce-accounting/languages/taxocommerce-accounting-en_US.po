@@ -386,3 +386,12 @@ msgstr "Invalid tax report selection."
 
 msgid "PREPARATORY WORKING DATA — NOT AN OFFICIAL AEAT RETURN OR VALID FILING FILE."
 msgstr "PREPARATORY WORKING DATA — NOT AN OFFICIAL AEAT RETURN OR VALID FILING FILE."
+
+msgid "Official AEAT blank workbook templates (not filled by TaxoCommerce):"
+msgstr "Official AEAT blank workbook templates (not filled by TaxoCommerce):"
+
+msgid "Download AEAT XLSX template — legal entities"
+msgstr "Download AEAT XLSX template — legal entities"
+
+msgid "Download AEAT XLSX template — general"
+msgstr "Download AEAT XLSX template — general"
