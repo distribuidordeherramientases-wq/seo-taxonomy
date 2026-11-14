@@ -66,8 +66,7 @@ def main():
         return false;
     }
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only Core content selector.
-    $type = isset( $_GET['tc_type'] ) && is_string( $_GET['tc_type'] )
-        ? sanitize_key( wp_unslash( $_GET['tc_type'] ) ) : '';
+    $type = isset( $_GET['tc_type'] ) && is_string( $_GET['tc_type'] ) ? sanitize_key( wp_unslash( $_GET['tc_type'] ) ) : '';
     return 'faqs' === $type;"""
             if old_route not in result:
                 raise SystemExit("Canonical branding screen selector changed; review the FAQs route")
