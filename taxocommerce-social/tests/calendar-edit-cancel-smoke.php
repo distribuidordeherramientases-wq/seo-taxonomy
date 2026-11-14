@@ -32,6 +32,7 @@ function wp_nonce_field($action) { echo '<input name="_wpnonce" value="' . htmls
 function esc_attr($text) { return htmlspecialchars((string) $text, ENT_QUOTES); }
 function esc_html($text) { return htmlspecialchars((string) $text, ENT_QUOTES); }
 function esc_url($text) { return htmlspecialchars((string) $text, ENT_QUOTES); }
+function selected($selected, $current = true, $echo = true) { $attr = ($selected == $current) ? ' selected="selected"' : ''; if ($echo) { echo $attr; } return $attr; }
 function get_current_user_id() { return 1; }
 
 $GLOBALS['test_social'] = array(
