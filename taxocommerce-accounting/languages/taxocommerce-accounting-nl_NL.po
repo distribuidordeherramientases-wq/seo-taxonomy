@@ -387,3 +387,12 @@ msgstr "Ongeldige keuze van fiscaal rapport."
 
 msgid "PREPARATORY WORKING DATA — NOT AN OFFICIAL AEAT RETURN OR VALID FILING FILE."
 msgstr "VOORBEREIDENDE GEGEVENS — GEEN OFFICIËLE AEAT-AANGIFTE OF GELDIG INDIENBESTAND."
+
+msgid "Official AEAT blank workbook templates (not filled by TaxoCommerce):"
+msgstr "Officiële lege AEAT-boektemplates (niet ingevuld door TaxoCommerce):"
+
+msgid "Download AEAT XLSX template — legal entities"
+msgstr "AEAT-XLSX-template downloaden — rechtspersonen"
+
+msgid "Download AEAT XLSX template — general"
+msgstr "AEAT-XLSX-template downloaden — algemeen"
