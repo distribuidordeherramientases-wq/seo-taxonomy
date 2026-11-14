@@ -36,7 +36,7 @@ $GLOBALS['wpdb'] = new TCA_Hacienda_Test_DB();
 require_once dirname( __DIR__ ) . '/includes/class-tca-hacienda.php';
 $expected = array( 'issued', 'received', 'assets', 'intra', '303', '390', '347', '349', '200' );
 $sections = TCA_Hacienda::sections();
-tca_test_assert( array_keys( $sections ) === $expected, 'All four fiscal books and five models must appear in Hacienda tabs' );
+tca_test_assert( array_map( 'strval', array_keys( $sections ) ) === $expected, 'All four fiscal books and five models must appear in Hacienda tabs' );
 foreach ( $sections as $id => $section ) {
     tca_test_assert( 0 === strpos( $section['url'], 'https://sede.agenciatributaria.gob.es/' ), 'Official AEAT links only: ' . $id );
     tca_test_assert( isset( $section['scope'] ), 'Each tab has bounded data scope: ' . $id );
