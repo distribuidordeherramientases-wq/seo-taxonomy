@@ -240,3 +240,51 @@ msgstr "Ventas y devoluciones de WooCommerce"
 
 msgid "Year contains over 400 entries; use the exports for full reporting. This dashboard is limited."
 msgstr "El ejercicio tiene más de 400 registros; utiliza las exportaciones para el informe completo. Este panel está limitado."
+
+msgid "Invoice storage is unavailable."
+msgstr "El almacenamiento de facturas no está disponible."
+
+msgid "Secure invoice encryption is unavailable."
+msgstr "No está disponible el cifrado seguro de facturas."
+
+msgid "Invoice cannot be decrypted or has been modified."
+msgstr "No se puede descifrar la factura o el archivo ha sido modificado."
+
+msgid "Purchase entry not found."
+msgstr "No se encuentra el registro de compra."
+
+msgid "Select a PDF smaller than 10 MB."
+msgstr "Selecciona un PDF de menos de 10 MB."
+
+msgid "Select a valid PDF invoice."
+msgstr "Selecciona una factura PDF válida."
+
+msgid "Supplier invoice PDF"
+msgstr "Factura PDF del proveedor"
+
+msgid "Document pending"
+msgstr "Documento pendiente"
+
+msgid "Attach supplier PDF (up to 10 MB)"
+msgstr "Adjuntar PDF del proveedor (máx. 10 MB)"
+
+msgid "Upload PDF"
+msgstr "Subir PDF"
+
+msgid "Invoice document not found."
+msgstr "No se encuentra el documento de la factura."
+
+msgid "Supplier invoice PDF securely attached to the purchase."
+msgstr "Factura PDF del proveedor adjuntada de forma segura a la compra."
+
+msgid "Select a valid PDF smaller than 10 MB."
+msgstr "Selecciona un PDF válido de menos de 10 MB."
+
+msgid "Could not store the encrypted supplier invoice. No accounting data was changed."
+msgstr "No se ha podido guardar la factura cifrada del proveedor. No se han modificado los datos contables."
+
+msgid "The purchase record was not found."
+msgstr "No se ha encontrado el registro de compra."
+
+msgid "Supplier PDF originals can be attached to saved purchase and expense rows. Downloads require WordPress authentication. The files are encrypted at rest using the current site salts; preserve those salts in backups. CSV/JSON exports do not include PDFs."
+msgstr "Puedes adjuntar PDF originales del proveedor a compras y gastos guardados. Las descargas requieren autenticación de WordPress. Los archivos se almacenan cifrados mediante las claves salt actuales del sitio; consérvalas en las copias de seguridad. Las exportaciones CSV/JSON no incluyen los PDF."
