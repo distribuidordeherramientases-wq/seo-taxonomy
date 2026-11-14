@@ -45,6 +45,7 @@ $GLOBALS['test_campaigns'] = array(
     '57|203|pinterest' => strtotime('2030-01-04 20:00:00 UTC'),
 );
 $GLOBALS['test_cleared'] = array();
+$GLOBALS['test_social_states'] = array();
 
 function tcsocial_network_get_provider($provider) {
     return in_array($provider, array('facebook', 'pinterest'), true) ? array('label' => $provider) : null;
@@ -57,6 +58,7 @@ function tcsocial_network_get_scheduled_timestamp($id, $provider) {
 }
 function tcsocial_network_clear_scheduled_publication($id, $provider) {
     unset($GLOBALS['test_social'][absint($id) . '|' . sanitize_key($provider)]);
+    unset($GLOBALS['test_social_states'][absint($id) . '|' . sanitize_key($provider)]);
 }
 function wp_clear_scheduled_hook($hook, $args) {
     $GLOBALS['test_cleared'][] = $hook . '|' . implode('|', (array) $args);
@@ -66,7 +68,22 @@ function tcsocial_network_set_scheduled_publication($id, $provider, $when) {
     if ($when <= time() + 30) {
         return new WP_Error('invalid_date', 'Past schedule');
     }
-    $GLOBALS['test_social'][absint($id) . '|' . sanitize_key($provider)] = (int) $when;
+    $key = absint($id) . '|' . sanitize_key($provider);
+    $GLOBALS['test_social'][$key] = (int) $when;
+    $GLOBALS['test_social_states'][$key] = 'programada';
+    return true;
+}
+function tcsocial_network_get_schedule_state($id, $provider) {
+    $key = absint($id) . '|' . sanitize_key($provider);
+    if (empty($GLOBALS['test_social'][$key])) { return ''; }
+    return $GLOBALS['test_social_states'][$key] ?? 'programada';
+}
+function tcsocial_network_pause_scheduled_publication($id, $provider, $when) {
+    $key = absint($id) . '|' . sanitize_key($provider);
+    if (empty($GLOBALS['test_social'][$key])) { return new WP_Error('missing', 'Schedule not found'); }
+    $GLOBALS['test_social'][$key] = (int) $when;
+    $GLOBALS['test_social_states'][$key] = 'pausada';
+    wp_clear_scheduled_hook('tcsocial_network_publish_manual_scheduled', array($id, $provider));
     return true;
 }
 function tccampaigns_social_get_scheduled_timestamp($campaign_id, $product_id, $provider) {
@@ -124,7 +141,12 @@ check(!$byid['203|pinterest']['can_manage'], 'Ambiguous campaign ownership never
 ob_start();
 tcsocial_calendar_render_event_actions($byid['101|facebook']);
 $controls = ob_get_clean();
-check(false !== strpos($controls, 'Editar') && false !== strpos($controls, 'Cancelar') && false !== strpos($controls, 'Confirmar cancelación'), 'Visible edit and confirmed cancel controls.');
+check(false !== strpos($controls, 'Editar') && false !== strpos($controls, 'Borrar programación') && false !== strpos($controls, 'Confirmar borrado'), 'Visible edit and confirmed deletion controls.');
+check(false !== strpos($controls, 'name="calendar_status"') && false !== strpos($controls, 'pausada'), 'Status selector is in edit form.');
+ob_start();
+tcsocial_calendar_render_event_actions($byid['101|facebook'], 'compact');
+$compact_controls = ob_get_clean();
+check(false !== strpos($compact_controls, 'is-compact') && false !== strpos($compact_controls, 'Borrar programación'), 'Compact row actions are visible.');
 check(false !== strpos($controls, 'calendar_expected') && false !== strpos($controls, '_wpnonce'), 'Forms contain optimistic timestamp and nonce.');
 ob_start();
 tcsocial_calendar_render_event_actions($byid['203|pinterest']);
@@ -145,6 +167,13 @@ check(in_array('seo_social_network_publish_manual_scheduled|101|facebook', $GLOB
 $edit = tcsocial_calendar_change_schedule('edit', 'social', 101, 'pinterest', 0, $old_pinterest, strtotime('2030-03-01 22:00:00 UTC'));
 check(true === $edit && strtotime('2030-03-01 22:00:00 UTC') === $GLOBALS['test_social']['101|pinterest'], 'Edited one network without touching other networks.');
 
+$paused = tcsocial_calendar_change_schedule('edit', 'social', 101, 'pinterest', 0, $GLOBALS['test_social']['101|pinterest'], $GLOBALS['test_social']['101|pinterest'], 'pausada');
+check(true === $paused && 'pausada' === tcsocial_network_get_schedule_state(101, 'pinterest'), 'Social schedule is paused without deleting its timestamp.');
+check(is_wp_error(tcsocial_calendar_change_schedule('edit', 'social', 101, 'pinterest', 0, $GLOBALS['test_social']['101|pinterest'], $GLOBALS['test_social']['101|pinterest'], 'unknown')), 'Invalid status must be rejected.');
+$resumed = tcsocial_calendar_change_schedule('edit', 'social', 101, 'pinterest', 0, $GLOBALS['test_social']['101|pinterest'], strtotime('2030-04-01 22:00:00 UTC'), 'programada');
+check(true === $resumed && 'programada' === tcsocial_network_get_schedule_state(101, 'pinterest'), 'Resuming schedules a future date and clears paused state.');
+check(is_wp_error(tcsocial_calendar_change_schedule('edit', 'campaign', 202, 'pinterest', 55, $old_campaign, strtotime('2030-02-03 20:00:00 UTC'), 'pausada')), 'No misleading pause on optional campaigns.');
+
 $old_expired = $GLOBALS['test_social']['102|facebook'];
 $cancel_old = tcsocial_calendar_change_schedule('cancel', 'social', 102, 'facebook', 0, $old_expired);
 check(true === $cancel_old && !isset($GLOBALS['test_social']['102|facebook']), 'Old, overdue schedule can be cancelled.');
@@ -161,4 +190,4 @@ check(isset($GLOBALS['test_campaigns']['56|203|pinterest']) && isset($GLOBALS['t
 
 $past_edit = tcsocial_calendar_change_schedule('edit', 'social', 101, 'pinterest', 0, $GLOBALS['test_social']['101|pinterest'], strtotime('2020-01-01 UTC'));
 check(is_wp_error($past_edit), 'Cannot reprogram into the past.');
-echo "OK: calendar buttons, exact owner, stale guards, old dates, social/campaign edit+cancel and other-network isolation.\n";
+echo "OK: compact buttons, editable date/status, pause/resume, deletion, exact owner, stale guards, old dates, campaign isolation.\n";
