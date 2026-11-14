@@ -632,7 +632,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
         $totals = $latest['totals'] ?? array( 'pass'=>0, 'fail'=>0, 'skip'=>0, 'not_run'=>count( $cases ) );
         ?>
         <section class="tc-log-at" aria-labelledby="tc-log-at-heading">
-            <h2 id="tc-log-at-heading"><?php esc_html_e( 'Autocheck — Logistics', 'taxocommerce-logistica' ); ?></h2>
+            <h2 id="tc-log-at-heading"><?php esc_html_e( 'Autocheck de TaxoCommerce Logistics', 'taxocommerce-logistica' ); ?></h2>
             <p><?php esc_html_e( 'Diagnóstico no destructivo de tarifas, reglas, pesos, destinos y seguridad. No realiza envíos, modifica pedidos, recalcula carritos ni importa configuraciones.', 'taxocommerce-logistica' ); ?></p>
             <div class="tc-log-at-actions">
                 <?php self::run_button( 'all', 'check', __( 'Ejecutar Autocheck', 'taxocommerce-logistica' ) ); ?>
@@ -645,7 +645,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
             <?php if ( $latest ) : ?>
                 <p class="tc-log-at-last">
                     <strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-logistica' ); ?></strong>
-                    <?php echo esc_html( (string) ( $latest['date_utc'] ?? '' ) ); ?>
+                    <?php echo esc_html( (string) ( $latest['executed_at'] ?? '' ) ); ?>
                     · <?php echo esc_html( 'v' . (string) ( $latest['version'] ?? '' ) ); ?>
                     · <?php echo esc_html( absint( $latest['duration_ms'] ?? 0 ) . ' ms' ); ?>
                 </p>
@@ -653,7 +653,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
                 <p class="description"><?php esc_html_e( 'Todavía no se ha ejecutado el Autocheck en este sitio.', 'taxocommerce-logistica' ); ?></p>
             <?php endif; ?>
             <div class="tc-log-at-totals" aria-label="<?php esc_attr_e( 'Resultados del último chequeo', 'taxocommerce-logistica' ); ?>">
-                <?php foreach ( array( 'pass'=>__( 'Correctas', 'taxocommerce-logistica' ), 'fail'=>__( 'Errores', 'taxocommerce-logistica' ), 'skip'=>__( 'No verificadas', 'taxocommerce-logistica' ), 'not_run'=>__( 'Sin ejecutar', 'taxocommerce-logistica' ) ) as $status => $label ) : ?>
+                <?php foreach ( array( 'pass'=>__( 'Correctos', 'taxocommerce-logistica' ), 'fail'=>__( 'Errores', 'taxocommerce-logistica' ), 'skip'=>__( 'Omitidos / externos', 'taxocommerce-logistica' ), 'not_run'=>__( 'No ejecutados', 'taxocommerce-logistica' ) ) as $status => $label ) : ?>
                     <div><strong><?php echo esc_html( absint( $totals[ $status ] ?? 0 ) ); ?></strong><span><?php echo esc_html( $label ); ?></span></div>
                 <?php endforeach; ?>
             </div>
@@ -674,11 +674,11 @@ final class TaxoCommerce_Logistica_Auto_Test {
                     ?>
                     <summary><?php echo esc_html( sprintf( $tc_log_group_format, $name, count( $subset ), $failures ? sprintf( $tc_log_group_failure_format, $failures ) : '' ) ); ?></summary>
                     <?php foreach ( $subset as $id => $case ) : ?>
-                        <?php $row = $rows[ $id ] ?? array( 'status'=>'not_run', 'message'=>__( 'No ejecutada.', 'taxocommerce-logistica' ) ); ?>
+                        <?php $row = $rows[ $id ] ?? array( 'status'=>'not_run', 'label' => $case[1], 'message'=>__( 'No ejecutada.', 'taxocommerce-logistica' ), 'ms' => 0 ); ?>
                         <div class="tc-log-at-row">
                             <span aria-hidden="true" class="tc-log-at-dot tc-log-at-dot--<?php echo esc_attr( $row['status'] ); ?>"></span>
-                            <div><strong><?php echo esc_html( $case[1] ); ?></strong> <small><?php echo esc_html( $id ); ?></small>
-                                <p><?php echo esc_html( $row['message'] ); ?></p></div>
+                            <div><strong><?php echo esc_html( (string) $row['label'] ); ?> <small><?php echo esc_html( $id ); ?></small></strong>
+                                <p><?php echo esc_html( (string) $row['message'] ); ?></p><small><?php echo esc_html( absint( $row['ms'] ) . ' ms' ); ?></small></div>
                         </div>
                     <?php endforeach; ?>
                 </details>
