@@ -195,12 +195,7 @@ final class TaxoCommerce_FAQs_Auto_Test {
 	public static function handle_run() {
 		if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para ejecutar Autocheck.', 'taxocommerce-faqs' ) ); }
 		check_admin_referer( self::NONCE, 'taxocommerce_faqs_at_nonce' );
-		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified immediately above.
-		$group = isset( $_POST['test_group'] ) && is_string( $_POST['test_group'] )
-			? sanitize_key( wp_unslash( $_POST['test_group'] ) ) : 'all';
-		// Legacy test_phase is deliberately ignored: this is an immediate full run.
-		// phpcs:enable WordPress.Security.NonceVerification.Missing
-		if ( 'all' !== $group && ! isset( self::groups()[ $group ] ) ) { $group = 'all'; }
+		// Legacy phase/group fields are ignored: every click runs the complete suite.
 		// Keep the latest report and existing metadata keys; never overwrite an old baseline.
 		update_user_meta( get_current_user_id(), self::meta_key( 'latest' ), self::run_suite( 'all' ) );
 		wp_safe_redirect( self::url() );
@@ -210,9 +205,7 @@ final class TaxoCommerce_FAQs_Auto_Test {
 	public static function handle_download() {
 		if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para descargar Autocheck.', 'taxocommerce-faqs' ) ); }
 		check_admin_referer( self::NONCE, 'taxocommerce_faqs_at_nonce' );
-		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified immediately above.
-		// Always download the most recently executed report.
-		// phpcs:enable WordPress.Security.NonceVerification.Missing
+		// Download only the latest report; old before/after snapshots remain untouched.
 		$report = self::get_saved( 'latest' );
 		if ( ! $report ) { wp_die( esc_html__( 'No hay informe válido para este sitio.', 'taxocommerce-faqs' ) ); }
 		$json = wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE );
