@@ -4,13 +4,15 @@ Tags: diagnostics, security, performance, maintenance, monitoring
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.36
+Stable tag: 0.2.37
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Server, WordPress and plugin diagnostics with administrator-controlled reports and local checks.
 
 == Description ==
+
+Version 0.2.37 introduces a manual, phased family validation pilot for Core: read-only functionality cases followed by code-file inspection, with five adaptive workload settings, pause/resume and separate KPI columns. Other active modules remain clearly not integrated. Runs are never started by opening the page.
 
 Version 0.2.35 completes all 420 entries in each of the five existing gettext catalogs (es_ES, en_US, fr_FR, de_DE and nl_NL), including administrative controls, diagnostic messages and explanatory text. WordPress uses the active site/user locale. A full source-code audit for strings outside gettext and end-to-end language validation remain necessary before claiming full interface localization.
 
