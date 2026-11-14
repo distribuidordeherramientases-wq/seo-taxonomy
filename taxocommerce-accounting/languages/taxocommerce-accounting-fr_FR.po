@@ -288,3 +288,102 @@ msgstr "L'écriture d'achat est introuvable."
 
 msgid "Supplier PDF originals can be attached to saved purchase and expense rows. Downloads require WordPress authentication. The files are encrypted at rest using the current site salts; preserve those salts in backups. CSV/JSON exports do not include PDFs."
 msgstr "Les PDF originaux des fournisseurs peuvent être joints aux achats et dépenses enregistrés. Les téléchargements nécessitent une authentification WordPress. Les fichiers sont chiffrés avec les sels du site actuel ; conservez-les dans les sauvegardes. Les exports CSV/JSON n'incluent pas les PDF."
+
+msgid "Hacienda"
+msgstr "Administration fiscale"
+
+msgid "Issued invoices book"
+msgstr "Registre des factures émises"
+
+msgid "Sales and refunds registered in the local ledger. Verify invoice series, dates, tax details and corrections."
+msgstr "Ventes et remboursements enregistrés. Vérifiez séries, dates, TVA et rectifications."
+
+msgid "Received invoices book"
+msgstr "Registre des factures reçues"
+
+msgid "Supplier invoices and expenses. Confirm deductible VAT and retain the original purchase documents."
+msgstr "Factures fournisseurs et dépenses. Vérifiez la TVA déductible et conservez les justificatifs originaux."
+
+msgid "Investment goods book"
+msgstr "Registre des biens d'investissement"
+
+msgid "Review capital goods separately; adjustments and asset-specific information are not calculated."
+msgstr "Contrôlez séparément les immobilisations ; les régularisations et données propres aux actifs ne sont pas calculées."
+
+msgid "Intra-EU operations book"
+msgstr "Registre des opérations intracommunautaires"
+
+msgid "Review transactions classified as intra-EU. Check VAT ID, transaction type and country before filing."
+msgstr "Vérifiez les opérations intracommunautaires, le numéro de TVA, le type et le pays avant dépôt."
+
+msgid "Model 303 — VAT"
+msgstr "Modèle 303 — TVA"
+
+msgid "Indicative quarterly domestic VAT balance only. Special regimes, non-domestic transactions, adjustments and the official return boxes are missing."
+msgstr "Solde trimestriel indicatif de TVA nationale uniquement. Régimes spéciaux, opérations étrangères, corrections et cases officielles manquent."
+
+msgid "Model 390 — annual VAT"
+msgstr "Modèle 390 — TVA annuelle"
+
+msgid "Indicative annual domestic VAT summary. Exemptions, carryovers, official totals and filing eligibility require separate verification."
+msgstr "Résumé annuel indicatif de TVA nationale. Exonérations, reports, totaux officiels et obligation de dépôt sont à vérifier."
+
+msgid "Model 347 — third-party transactions"
+msgstr "Modèle 347 — opérations avec des tiers"
+
+msgid "Raw sales and purchase movements for reconciliation. The statutory thresholds, exclusions, counterparties and declaration records are NOT calculated."
+msgstr "Mouvements bruts d'achats et ventes à rapprocher. Seuils légaux, exclusions, tiers et enregistrements officiels ne sont PAS calculés."
+
+msgid "Model 349 — intra-EU transactions"
+msgstr "Modèle 349 — opérations intracommunautaires"
+
+msgid "Only transactions tagged as intra-EU are listed. Fiscal operation keys, partner VAT IDs, required periodicity and official files are not produced."
+msgstr "Seules les opérations marquées intracommunautaires sont listées. Codes fiscaux, numéros TVA validés, périodicité et fichiers officiels ne sont pas générés."
+
+msgid "Model 200 — corporate income tax"
+msgstr "Modèle 200 — impôt sur les sociétés"
+
+msgid "Only raw transactions are available. A balance sheet, profit and loss account, tax adjustments and applicability checks are not implemented."
+msgstr "Seules les écritures brutes sont disponibles. Bilan, compte de résultat, ajustements fiscaux et vérification des obligations ne sont pas implémentés."
+
+msgid "Hacienda — tax reports and records"
+msgstr "Administration fiscale — rapports et registres"
+
+msgid "These are internal working reports, NOT official AEAT tax forms. They are not accepted for submission. The filing obligations depend on the business and tax regime."
+msgstr "Rapports internes, NON des formulaires officiels de l'AEAT. Non acceptés au dépôt. Les obligations dépendent de l'entreprise et du régime fiscal."
+
+msgid "Tax documents"
+msgstr "Documents fiscaux"
+
+msgid "VAT quarter"
+msgstr "Trimestre de TVA"
+
+msgid "Matching accounting entries"
+msgstr "Écritures comptables correspondantes"
+
+msgid "More than 20,000 entries match. Download is blocked rather than silently omitting data."
+msgstr "Plus de 20 000 écritures. Le téléchargement est bloqué pour éviter toute omission silencieuse."
+
+msgid "Download working data (not for filing)"
+msgstr "Télécharger les données préparatoires (non déposables)"
+
+msgid "Open official AEAT information and filing"
+msgstr "Ouvrir la procédure et les informations officielles de l'AEAT"
+
+msgid "To file a return, use the official AEAT procedure and verify all fields and fiscal obligations. No data is transmitted automatically."
+msgstr "Pour déposer, utilisez la procédure AEAT officielle et vérifiez toutes les cases et obligations. Aucune donnée n'est envoyée automatiquement."
+
+msgid "No accounting entries for this period."
+msgstr "Aucune écriture comptable pour cette période."
+
+msgid "Only validated domestic operations are included in the indicative VAT figures. Drafts and other regimes require review. This is not a complete tax return."
+msgstr "La TVA indicative ne comprend que les opérations nationales validées. Les brouillons et autres régimes sont à vérifier. Ce n'est pas une déclaration complète."
+
+msgid "Preview shows 20 entries. Download to inspect the complete matching register."
+msgstr "L'aperçu montre 20 écritures. Téléchargez pour consulter le registre complet."
+
+msgid "Invalid tax report selection."
+msgstr "Sélection de rapport fiscal invalide."
+
+msgid "PREPARATORY WORKING DATA — NOT AN OFFICIAL AEAT RETURN OR VALID FILING FILE."
+msgstr "DONNÉES PRÉPARATOIRES — NI DÉCLARATION OFFICIELLE NI FICHIER VALIDE POUR L'AEAT."
