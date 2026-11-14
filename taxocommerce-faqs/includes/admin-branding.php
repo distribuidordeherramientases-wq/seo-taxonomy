@@ -22,8 +22,7 @@ $tc_brand_on_screen = static function () use ( $tc_brand_slug ) {
         return false;
     }
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only Core content selector.
-    $type = isset( $_GET['tc_type'] ) && is_string( $_GET['tc_type'] )
-        ? sanitize_key( wp_unslash( $_GET['tc_type'] ) ) : '';
+    $type = isset( $_GET['tc_type'] ) && is_string( $_GET['tc_type'] ) ? sanitize_key( wp_unslash( $_GET['tc_type'] ) ) : '';
     return 'faqs' === $type;
 };
 
