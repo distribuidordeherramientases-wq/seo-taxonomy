@@ -23,6 +23,7 @@ require_once TCCUST_DIR . 'includes/class-tccust-db.php';
 require_once TCCUST_DIR . 'includes/class-tccust-sync.php';
 require_once TCCUST_DIR . 'includes/class-tccust-admin.php';
 require_once TCCUST_DIR . 'includes/class-tccust-csv.php';
+require_once TCCUST_DIR . 'includes/class-tccust-csv-export.php';
 require_once TCCUST_DIR . 'includes/class-tccust-manual.php';
 require_once TCCUST_DIR . 'includes/class-tccust-autotest.php';
 require_once TCCUST_DIR . 'includes/class-tccust-privacy.php';
@@ -86,6 +87,7 @@ add_action( 'plugins_loaded', static function () {
 	TCCUST_Admin::boot();
 	TCCUST_Sync::boot();
 	TCCUST_CSV::boot();
+	TCCUST_CSV_Export::boot();
 	TCCUST_Privacy::boot();
 	TCCUST_Autotest::boot();
 	TaxoCommerce_Customers_Autotest_Code::boot();
