@@ -1,3 +1,10 @@
+## [1.1.63] — 2026-11-14 — Informes de Autocheck homogéneos (#2682)
+
+- Informes funcionales de Redirects, Insights y Logistics con estructura común a Import-Export: versión, fecha UTC, duración, WordPress, PHP, resúmenes, grupos, estado, etiqueta, mensaje y tiempo por prueba.
+- Los JSON nuevos normalizan metadatos y los informes ya guardados se normalizan únicamente al leerlos; se preservan sus campos originales para compatibilidad.
+- Vista funcional uniforme: resúmenes, colores, estados, grupos y tiempos. Se conservan las dos subpestañas, el Code Check autónomo, permisos y acciones de descarga.
+- Sin cambios en motores, reglas, pedidos, conexiones, información comercial ni tablas. Pruebas de regresión y WordPress Plugin Check.
+
 ## [1.1.62] — 2026-11-14 — Autocheck uniforme con Code Check (#2676)
 
 - Chequeo funcional con los dos controles estándar de la familia: «Ejecutar Autocheck» y «Descargar resultados (JSON)», sin ANTES/DESPUÉS ni controles por grupo.

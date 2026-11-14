@@ -98,6 +98,38 @@ final class Auto_Test {
         return ( $before ? self::BEFORE_KEY : self::LAST_KEY ) . get_current_blog_id();
     }
 
+    /**
+     * Canonical, backwards-compatible functional report fields.
+     * Never writes to the database and never exposes private site URLs.
+     *
+     * @param array $report Stored or newly generated report.
+     * @return array Normalized report with historical keys preserved.
+     */
+    public static function standardize_report( $report ) {
+        if ( ! is_array( $report ) ) {
+            return array();
+        }
+        $names = self::groups();
+        foreach ( (array) ( $report['rows'] ?? array() ) as $index => $row ) {
+            if ( ! is_array( $row ) ) {
+                continue;
+            }
+            $group_id = (string) ( $row['group_id'] ?? $row['group'] ?? '' );
+            $row['group_id'] = $group_id;
+            $row['group_name'] = (string) ( $names[ $group_id ] ?? $row['group'] ?? $group_id );
+            $row['label'] = (string) ( $row['label'] ?? $row['name'] ?? '' );
+            $row['message'] = (string) ( $row['message'] ?? $row['detail'] ?? '' );
+            $row['ms'] = max( 0, (int) ( $row['ms'] ?? 0 ) );
+            $report['rows'][ $index ] = $row;
+        }
+        $report['wordpress'] = (string) ( $report['wordpress'] ?? $report['wordpress_version'] ?? $report['wp_version'] ?? '' );
+        $report['php'] = (string) ( $report['php'] ?? $report['php_version'] ?? '' );
+        $report['date'] = (string) ( $report['date'] ?? $report['date_utc'] ?? $report['executed_at'] ?? '' );
+        $report['executed_at'] = (string) ( $report['executed_at'] ?? $report['date_utc'] ?? $report['date'] );
+        $report['timestamp'] = max( 0, (int) ( $report['timestamp'] ?? strtotime( $report['executed_at'] ) ) );
+        return $report;
+    }
+
     public static function suite( $group = 'all', $override = null ) {
         $groups = self::groups();
         $group = 'all' === $group || isset( $groups[ $group ] ) ? $group : 'all';
@@ -131,14 +163,14 @@ final class Auto_Test {
             ++$totals[ $result['status'] ];
         }
         global $wp_version;
-        return array(
+        return self::standardize_report( array(
             'schema' => 1, 'phase' => 'check', 'group' => $group,
             'site_hash' => self::site_hash(), 'version' => Plugin::VERSION,
             'wp_version' => isset( $wp_version ) ? (string) $wp_version : '',
             'php_version' => PHP_VERSION, 'date_utc' => gmdate( 'c' ), 'executed_at' => gmdate( 'c' ),
             'duration_ms' => (int) round( ( microtime( true ) - $start ) * 1000 ),
             'totals' => $totals, 'rows' => $rows,
-        );
+        ) );
     }
 
     public static function compare( $before, $after ) {
@@ -421,7 +453,7 @@ final class Auto_Test {
     private static function stored( $before ) {
         $report = get_user_meta( get_current_user_id(), self::key( $before ), true );
         return is_array( $report ) && ! empty( $report['rows'] ) && ! empty( $report['site_hash'] )
-            && hash_equals( self::site_hash(), (string) $report['site_hash'] ) ? $report : array();
+            && hash_equals( self::site_hash(), (string) $report['site_hash'] ) ? self::standardize_report( $report ) : array();
     }
 
     private static function url() {
@@ -463,8 +495,8 @@ final class Auto_Test {
         }
         $counts = $last['totals'] ?? array( 'pass' => 0, 'fail' => 0, 'skip' => 0, 'not_run' => count( $cases ) );
         ?>
-        <div class="tc-rd-at" aria-labelledby="tc-rd-auto-title">
-            <h2 id="tc-rd-auto-title"><?php esc_html_e( 'Autocheck — TaxoCommerce Redirects', 'taxocommerce-redirects' ); ?></h2>
+        <section class="tc-rd-at" aria-labelledby="tc-rd-auto-title">
+            <h2 id="tc-rd-auto-title"><?php esc_html_e( 'Autocheck de TaxoCommerce Redirects', 'taxocommerce-redirects' ); ?></h2>
             <p><?php esc_html_e( 'Diagnóstico manual y no destructivo: comprueba las funcionalidades y la configuración sin modificar redirecciones, visitas ni contenidos.', 'taxocommerce-redirects' ); ?></p>
             <div class="tc-rd-at-actions">
                 <?php self::run_button( 'all', 'check', __( 'Ejecutar Autocheck', 'taxocommerce-redirects' ), false ); ?>
@@ -477,7 +509,7 @@ final class Auto_Test {
             <?php if ( $last ) : ?>
                 <p class="tc-rd-at-last">
                     <strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-redirects' ); ?></strong>
-                    <?php echo esc_html( (string) ( $last['date_utc'] ?? '' ) ); ?>
+                    <?php echo esc_html( (string) ( $last['executed_at'] ?? '' ) ); ?>
                     · <?php echo esc_html( 'v' . (string) ( $last['version'] ?? '' ) ); ?>
                     · <?php echo esc_html( absint( $last['duration_ms'] ?? 0 ) . ' ms' ); ?>
                 </p>
@@ -485,7 +517,7 @@ final class Auto_Test {
                 <p class="description"><?php esc_html_e( 'Todavía no se ha ejecutado el Autocheck en este sitio.', 'taxocommerce-redirects' ); ?></p>
             <?php endif; ?>
             <div class="tc-rd-at-totals" aria-label="<?php esc_attr_e( 'Resumen del autochequeo', 'taxocommerce-redirects' ); ?>">
-                <?php foreach ( array( 'pass' => __( 'Correctas', 'taxocommerce-redirects' ), 'fail' => __( 'Errores', 'taxocommerce-redirects' ), 'skip' => __( 'No verificadas', 'taxocommerce-redirects' ), 'not_run' => __( 'No ejecutadas', 'taxocommerce-redirects' ) ) as $key => $label ) : ?>
+                <?php foreach ( array( 'pass' => __( 'Correctos', 'taxocommerce-redirects' ), 'fail' => __( 'Errores', 'taxocommerce-redirects' ), 'skip' => __( 'Omitidos / externos', 'taxocommerce-redirects' ), 'not_run' => __( 'No ejecutadas', 'taxocommerce-redirects' ) ) as $key => $label ) : ?>
                     <div><strong><?php echo esc_html( absint( $counts[ $key ] ?? 0 ) ); ?></strong><span><?php echo esc_html( $label ); ?></span></div>
                 <?php endforeach; ?>
             </div>
@@ -498,16 +530,16 @@ final class Auto_Test {
                 <details class="tc-rd-at-group" <?php echo $fails || ! $last ? 'open' : ''; ?>>
                     <summary><?php echo esc_html( $title . ' · ' . count( $subset ) . ' pruebas' . ( $fails ? ' · ' . $fails . ' errores' : '' ) ); ?></summary>
                     <?php foreach ( $subset as $id => $label ) : ?>
-                        <?php $row = $indexed[ $id ] ?? array( 'status' => 'not_run', 'detail' => 'No ejecutada.' ); ?>
+                        <?php $row = $indexed[ $id ] ?? array( 'status' => 'not_run', 'label' => $label[1], 'message' => 'No ejecutada.', 'ms' => 0 ); ?>
                         <div class="tc-rd-at-row">
                             <span class="tc-rd-at-dot tc-rd-at-dot--<?php echo esc_attr( $row['status'] ); ?>" aria-hidden="true"></span>
-                            <div><strong><?php echo esc_html( $label[1] ); ?></strong> <small><?php echo esc_html( $id ); ?></small><p><?php echo esc_html( $row['detail'] ); ?></p></div>
+                            <div><strong><?php echo esc_html( (string) $row['label'] ); ?> <small><?php echo esc_html( $id ); ?></small></strong><p><?php echo esc_html( (string) $row['message'] ); ?></p><small><?php echo esc_html( absint( $row['ms'] ) . ' ms' ); ?></small></div>
                         </div>
                     <?php endforeach; ?>
                 </details>
             <?php endforeach; ?>
             <p class="description"><?php esc_html_e( 'Correcto solo acredita el contrato probado. Las verificaciones HTTP, importaciones JSON y borrados de contenido aparecen como NO verificadas y requieren pruebas controladas en staging. Un destino no encontrado puede coexistir con una regla estructuralmente correcta.', 'taxocommerce-redirects' ); ?></p>
-        </div>
+        </section>
         <?php
     }
 }

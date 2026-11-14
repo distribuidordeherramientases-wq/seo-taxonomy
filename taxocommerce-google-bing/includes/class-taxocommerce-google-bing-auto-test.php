@@ -159,6 +159,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
             || ! hash_equals( self::site_hash(), (string) $report['site_hash'] ) ) {
             wp_die( esc_html__( 'No existe un informe válido para esta instalación.', 'taxocommerce-google-bing' ) );
         }
+        $report = self::standardize_report( $report );
         $json = wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE );
         if ( false === $json ) {
             wp_die( esc_html__( 'No se ha podido generar el informe JSON.', 'taxocommerce-google-bing' ) );
@@ -191,6 +192,38 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
     private static function skip( $message ) { return self::result( 'skip', $message ); }
 
     /** Execute groups independently. One error must not hide later results. */
+    /**
+     * Canonical, backwards-compatible functional report fields.
+     * Never writes to the database and never exposes private site URLs.
+     *
+     * @param array $report Stored or newly generated report.
+     * @return array Normalized report with historical keys preserved.
+     */
+    public static function standardize_report( $report ) {
+        if ( ! is_array( $report ) ) {
+            return array();
+        }
+        $names = self::groups();
+        foreach ( (array) ( $report['rows'] ?? array() ) as $index => $row ) {
+            if ( ! is_array( $row ) ) {
+                continue;
+            }
+            $group_id = (string) ( $row['group_id'] ?? $row['group'] ?? '' );
+            $row['group_id'] = $group_id;
+            $row['group_name'] = (string) ( $names[ $group_id ] ?? $row['group'] ?? $group_id );
+            $row['label'] = (string) ( $row['label'] ?? $row['name'] ?? '' );
+            $row['message'] = (string) ( $row['message'] ?? $row['detail'] ?? '' );
+            $row['ms'] = max( 0, (int) ( $row['ms'] ?? 0 ) );
+            $report['rows'][ $index ] = $row;
+        }
+        $report['wordpress'] = (string) ( $report['wordpress'] ?? $report['wordpress_version'] ?? $report['wp_version'] ?? '' );
+        $report['php'] = (string) ( $report['php'] ?? $report['php_version'] ?? '' );
+        $report['date'] = (string) ( $report['date'] ?? $report['date_utc'] ?? $report['executed_at'] ?? '' );
+        $report['executed_at'] = (string) ( $report['executed_at'] ?? $report['date_utc'] ?? $report['date'] );
+        $report['timestamp'] = max( 0, (int) ( $report['timestamp'] ?? strtotime( $report['executed_at'] ) ) );
+        return $report;
+    }
+
     public static function run_suite( $group = 'all', $cases = null ) {
         $groups = self::groups();
         $group = 'all' === $group || isset( $groups[ $group ] ) ? $group : 'all';
@@ -230,7 +263,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
             ++$totals[ $outcome['status'] ];
         }
         global $wp_version;
-        return array(
+        return self::standardize_report( array(
             'schema' => 1,
             'phase' => 'check',
             'site_hash' => self::site_hash(),
@@ -243,7 +276,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
             'duration_ms' => (int) round( ( microtime( true ) - $start ) * 1000 ),
             'totals' => $totals,
             'rows' => $rows,
-        );
+        ) );
     }
 
     /** A pure comparison for reproducible pre/post deployment regression tests. */
@@ -650,7 +683,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
         $value = get_user_meta( get_current_user_id(), self::key( $type ), true );
         return is_array( $value ) && ! empty( $value['rows'] )
             && isset( $value['site_hash'] ) && hash_equals( self::site_hash(), (string) $value['site_hash'] )
-            ? $value : array();
+            ? self::standardize_report( $value ) : array();
     }
 
     private static function export_form( $kind, $label ) {
@@ -704,7 +737,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
             <?php if ( $last ) : ?>
                 <p class="tgb-at-last">
                     <strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-google-bing' ); ?></strong>
-                    <?php echo esc_html( (string) ( $last['date'] ?? '' ) ); ?>
+                    <?php echo esc_html( (string) ( $last['executed_at'] ?? '' ) ); ?>
                     · <?php echo esc_html( 'v' . (string) ( $last['version'] ?? '' ) ); ?>
                     · <?php echo esc_html( absint( $last['duration_ms'] ?? 0 ) . ' ms' ); ?>
                 </p>
@@ -712,9 +745,9 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
                 <p class="description"><?php esc_html_e( 'Todavía no se ha ejecutado el Autocheck en este sitio.', 'taxocommerce-google-bing' ); ?></p>
             <?php endif; ?>
             <div class="tgb-at-totals" aria-label="<?php esc_attr_e( 'Resultados del último chequeo', 'taxocommerce-google-bing' ); ?>">
-                <div><strong><?php echo esc_html( absint( $totals['pass'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'Correctas', 'taxocommerce-google-bing' ); ?></span></div>
+                <div><strong><?php echo esc_html( absint( $totals['pass'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'Correctos', 'taxocommerce-google-bing' ); ?></span></div>
                 <div class="tgb-at-danger"><strong><?php echo esc_html( absint( $totals['fail'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'Errores', 'taxocommerce-google-bing' ); ?></span></div>
-                <div><strong><?php echo esc_html( absint( $totals['skip'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'No verificadas / no aplicables', 'taxocommerce-google-bing' ); ?></span></div>
+                <div><strong><?php echo esc_html( absint( $totals['skip'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'Omitidos / externos', 'taxocommerce-google-bing' ); ?></span></div>
                 <div><strong><?php echo esc_html( absint( $totals['not_run'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'No ejecutadas', 'taxocommerce-google-bing' ); ?></span></div>
             </div>
             <?php foreach ( $groups as $group_id => $title ) : ?>
@@ -734,7 +767,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
                         <div class="tgb-at-row">
                             <span class="tgb-at-dot tgb-at-dot--<?php echo esc_attr( $row['status'] ); ?>" aria-hidden="true"></span>
                             <div>
-                                <strong><?php echo esc_html( $entry[1] ); ?> <small><?php echo esc_html( $id ); ?></small></strong>
+                                <strong><?php echo esc_html( (string) ( $row['label'] ?? $entry[1] ) ); ?> <small><?php echo esc_html( $id ); ?></small></strong>
                                 <p><?php echo esc_html( (string) $row['message'] ); ?></p>
                                 <small><?php echo esc_html( absint( $row['ms'] ) . ' ms' ); ?></small>
                             </div>
