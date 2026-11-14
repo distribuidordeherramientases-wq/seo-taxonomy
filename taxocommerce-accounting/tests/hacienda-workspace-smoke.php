@@ -68,6 +68,8 @@ tca_test_assert( false !== strpos( $addon, "check_admin_referer( 'tca_hacienda_d
 tca_test_assert( false !== strpos( $addon, "current_user_can( 'manage_woocommerce' )" ), 'Downloads require merchant capability' );
 tca_test_assert( false !== strpos( $addon, "'official_aeat_format' => false" ), 'JSON exports explicitly marked NOT official' );
 tca_test_assert( false !== strpos( $addon, 'PREPARATORY WORKING DATA' ), 'CSV exports have not-official warning' );
+tca_test_assert( false !== strpos( $addon, 'PLANTILLA_LIBROS_Pers_Juridicas.xlsx' ), 'AEAT legal-entities workbook is linked to the original official source' );
+tca_test_assert( false !== strpos( $addon, 'PLANTILLA_LIBROS_UNIFICADOS.xlsx' ), 'AEAT general workbook is linked to the original official source' );
 tca_test_assert( false === strpos( $addon, 'wp_remote_post(' ), 'No tax authority submission API' );
 tca_test_assert( false === strpos( $addon, 'wp_insert_post(' ), 'No changes to WP content' );
 tca_test_assert( in_array( 'admin_post_tca_hacienda_download', $GLOBALS['hooks'], true ), 'Protected download endpoint registered' );
