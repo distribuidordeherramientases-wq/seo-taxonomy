@@ -1,3 +1,11 @@
+## [0.1.23] — 2026-11-14 — Propiedad autónoma de tareas WP-Cron heredadas (#2688)
+
+- Social adopta programaciones futuras almacenadas en las tablas compartidas cuando el antiguo ejecutor `seo_social_network_publish_manual_scheduled` ya no está registrado: primero registra y confirma el ejecutor propio; después retira exclusivamente el evento huérfano.
+- Conserva tablas, opciones, fechas, plantillas y conexiones existentes, sin migraciones, copias ni dependencias obligatorias entre plugins.
+- En coexistencia temporal con un ejecutor heredado activo, no crea eventos duplicados. No reenvía intentos pendientes/publicados ni programaciones vencidas de forma automática.
+- Los callbacks manuales propios comprueban que la programación existe, no está pausada y ha vencido antes de publicar: las tareas obsoletas o canceladas no se envían.
+- Prueba independiente de regresión de adopción, fallos de programación, pausas, deduplicación, entradas canceladas y fechas vencidas, integrada en CI.
+
 ## [0.1.22] — 2026-11-14 — Edición de fecha y estado en Vista compacta (#2667)
 
 - La Vista compacta muestra directamente los botones **Editar** y **Borrar programación** en cada fila gestionable, con formularios desplegables y diseño adaptado a móvil.

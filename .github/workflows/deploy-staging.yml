@@ -196,6 +196,8 @@ jobs:
           php -l taxocommerce-social/includes/calendar.php
           php -l taxocommerce-social/tests/calendar-edit-cancel-smoke.php
           php taxocommerce-social/tests/calendar-edit-cancel-smoke.php
+          php -l taxocommerce-social/tests/standalone-legacy-cron-smoke.php
+          php taxocommerce-social/tests/standalone-legacy-cron-smoke.php
           php -l taxocommerce-social/includes/csv-cancel.php
           php -l taxocommerce-social/tests/csv-cancel-smoke.php
           php taxocommerce-social/tests/csv-cancel-smoke.php
