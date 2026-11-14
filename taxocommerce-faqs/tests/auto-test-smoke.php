@@ -99,4 +99,62 @@ tc_faq_at_check( false !== strpos( $autotest, "self::run_suite( 'all' )" ), 'ser
 tc_faq_at_check( false !== strpos( $autotest, "self::meta_key( 'latest' )" ), 'latest report continues per-user per-site' );
 tc_faq_at_check( substr_count( $html, '<details' ) === count( $groups ), 'groups rendered' );
 
+
+// Exercise the real admin-notice branding callback without loading WordPress.
+// The FAQ content route in Core must show exactly the same hero as the standalone page.
+$GLOBALS['tc_faq_header_filters'] = array();
+$GLOBALS['tc_faq_header_actions'] = array();
+function add_filter( $hook, $callback, $priority = 10 ) {
+    $GLOBALS['tc_faq_header_filters'][ $hook ][] = $callback;
+}
+function add_action( $hook, $callback, $priority = 10 ) {
+    $GLOBALS['tc_faq_header_actions'][ $hook ][] = $callback;
+}
+function determine_locale() { return 'es_ES'; }
+function wp_strip_all_tags( $text ) { return strip_tags( $text ); }
+function esc_url_raw( $url, $allowed = array() ) { return $url; }
+function get_file_data( $file, $fields, $context = '' ) {
+    $source = file_get_contents( $file );
+    $values = array();
+    foreach ( $fields as $key => $field ) {
+        $found = preg_match( '/^\\s*\\*\\s*' . preg_quote( $field, '/' ) . ':\\s*(.*?)\\s*$/m', $source, $match );
+        $values[ $key ] = $found ? $match[1] : '';
+    }
+    return $values;
+}
+require dirname( __DIR__ ) . '/includes/admin-branding.php';
+tc_faq_at_check( 1 === count( $GLOBALS['tc_faq_header_filters']['admin_body_class'] ?? array() ), 'branding filter registered' );
+tc_faq_at_check( 1 === count( $GLOBALS['tc_faq_header_actions']['admin_notices'] ?? array() ), 'hero callback registered' );
+$body_filter = $GLOBALS['tc_faq_header_filters']['admin_body_class'][0];
+$notice = $GLOBALS['tc_faq_header_actions']['admin_notices'][0];
+foreach ( array(
+    array( 'page' => 'taxocommerce-faqs', 'tc_faq_tab' => 'faqs' ),
+    array( 'page' => 'taxocommerce-core-content', 'tc_type' => 'faqs', 'tc_faq_tab' => 'faqs' ),
+    array( 'page' => 'taxocommerce-core-content', 'tc_type' => 'faqs', 'tc_faq_tab' => 'auto-test' ),
+    array( 'page' => 'taxocommerce-core-content', 'tc_type' => 'faqs', 'tc_faq_tab' => 'auto-test', 'tc_autotest_section' => 'code' ),
+    array( 'page' => 'taxocommerce-core-content', 'tc_type' => 'faqs', 'tc_faq_tab' => 'manual' ),
+) as $route ) {
+    $_GET = $route; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only fixture.
+    tc_faq_at_check( false !== strpos( $body_filter( '' ), 'tc-family-screen' ), 'FAQ branded in route: ' . json_encode( $route ) );
+    ob_start();
+    $notice();
+    $hero = ob_get_clean();
+    tc_faq_at_check( 1 === substr_count( $hero, '<header class="tc-family-hero">' ), 'exactly one FAQ header: ' . json_encode( $route ) );
+    tc_faq_at_check( false !== strpos( $hero, 'TaxoCommerce FAQs' ), 'FAQ title visible' );
+    tc_faq_at_check( false !== strpos( $hero, '0.1.20' ), 'FAQ release version visible' );
+    tc_faq_at_check( false !== strpos( $hero, 'Historial de versiones y mejoras' ), 'version history visible' );
+}
+foreach ( array(
+    array( 'page' => 'taxocommerce-core-content', 'tc_type' => 'products' ),
+    array( 'page' => 'taxocommerce-core-content', 'tc_type' => 'categories' ),
+    array( 'page' => 'taxocommerce-google-bing', 'tc_type' => 'faqs' ),
+) as $route ) {
+    $_GET = $route; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only fixture.
+    tc_faq_at_check( false === strpos( $body_filter( '' ), 'tc-family-screen' ), 'non-FAQ Core route untouched' );
+    ob_start();
+    $notice();
+    tc_faq_at_check( '' === ob_get_clean(), 'no FAQ hero outside its routes' );
+}
+$_GET = array();
+
 echo 'FAQ Auto Test smoke passed: 25 checks, compatible comparison helper, unified UI, protected JSON and no FAQ writes.' . PHP_EOL;
