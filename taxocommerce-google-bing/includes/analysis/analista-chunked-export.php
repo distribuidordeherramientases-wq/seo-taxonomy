@@ -59,7 +59,7 @@ final class TaxoCommerce_Insights_Chunked_Export {
         // Incomplete work expires after an hour. A completed report remains
         // downloadable for 24 hours from completion, not from the first block.
         $completed = ! empty( $state['complete'] );
-        $since = $completed ? (int) ( $state['completed_at'] ?? $state['created'] ?? 0 ) : (int) ( $state['created'] ?? 0 );
+        $since = $completed ? (int) ( $state['completed_at'] ?? $state['created'] ?? 0 ) : (int) ( $state['updated_at'] ?? $state['created'] ?? 0 );
         $ttl = $completed ? self::COMPLETE_TTL : self::TTL;
         if ( $since < time() - $ttl || ! is_file( $state['file'] ) || ! is_readable( $state['file'] ) ) {
             self::remove( $state );
@@ -161,6 +161,7 @@ final class TaxoCommerce_Insights_Chunked_Export {
             $state = array(
                 'id' => wp_generate_password( 32, false, false ),
                 'created' => time(),
+                'updated_at' => time(),
                 'days' => $days,
                 'speed' => $speed,
                 'file' => $file,
@@ -262,6 +263,7 @@ final class TaxoCommerce_Insights_Chunked_Export {
             wp_send_json_error( array( 'message' => 'No se pudo guardar el bloque.' ), 500 );
         }
         $state['next']++;
+        $state['updated_at'] = time();
         if ( $state['next'] === count( $steps ) ) {
             // Final validation is separate from the heavy source calculations.
             $contents = file_get_contents( $state['file'] );
