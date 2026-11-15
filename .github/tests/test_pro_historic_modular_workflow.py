@@ -31,6 +31,13 @@ class HistoricModularDeployTests(unittest.TestCase):
         self.assertIn("concurrency:", text)
         self.assertIn("group: taxocommerce-production-deploy", text)
 
+    def test_production_uses_dedicated_ftp_secrets_only(self):
+        for name in ("PRO_FTPS_HOST", "PRO_FTPS_USER", "PRO_FTPS_PASSWORD"):
+            self.assertIn(name, self.workflow)
+        for old in ("secrets.FTP_SERVER", "secrets.FTP_USERNAME",
+                    "secrets.FTP_PASSWORD", "secrets.TC_FTP_HOST"):
+            self.assertNotIn(old, self.workflow)
+
     def test_no_legacy_rest_service_or_monolith_sync(self):
         text = self.workflow
         for forbidden in (
