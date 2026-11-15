@@ -19,9 +19,12 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v6
-        with: {ref: staging}
+        with: {ref: staging, fetch-depth: 0}
       - name: Copiar STAGING a PRO
         env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          DELTA_FILE: ${{ runner.temp }}/pro-delta.json
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
@@ -30,4 +33,5 @@ jobs:
           set -euo pipefail
           test "$GITHUB_REF_NAME" = "staging"
           if [ -n "$EXPECTED_SHA" ]; then test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"; fi
+          python3 .github/scripts/select_pro_release_delta.py --all-changed --output "$DELTA_FILE"
           python3 .github/scripts/deploy_pro_simple.py
