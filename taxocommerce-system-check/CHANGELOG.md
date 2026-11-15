@@ -4,6 +4,7 @@
 - WP-Cron: hook y antigüedad del evento que acumula el mayor retraso (más de 15 minutos), y aviso de dependencia de un cron externo si está desactivado WP-Cron nativo.
 - Action Scheduler: tarea pendiente más antigua, último intento fallido (hook y fecha), número de tareas completadas/fallidas durante la última hora y distinción entre cola atrasada con actividad, errores recientes o ausencia de actividad concluyente.
 - No se deduce falsamente que el ejecutor esté detenido. No se mide duración de PHP si el motor no la expone. No se ejecutan ni modifican tareas, ni se amplían los permisos de cancelación preexistentes.
+- Los procesos de auditoría HTTP muestran además el límite efectivo de URLs por lote (1–8), el progreso registrado y la posición orientativa de la siguiente URL pendiente, también tras una pausa. No cambia la selección, el orden, la reanudación ni la cancelación del motor.
 - Tres consultas de lectura acotadas sobre Action Scheduler, sin dependencias entre plugins. Pruebas aisladas y actualización de catálogos ES/EN/FR/DE/NL.
 
 ## [0.2.37] — 2026-11-14 — Piloto de validación de familia con carga adaptativa (#2685)
