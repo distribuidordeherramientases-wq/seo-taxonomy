@@ -142,7 +142,7 @@ def deploy_one(ftp, root: str, path: str, content: bytes, suffix: str):
     existing = read_remote(ftp, path)
     wanted = hashlib.sha256(content).hexdigest()
     if existing is not None and hashlib.sha256(existing).hexdigest() == wanted:
-        return "unchanged"
+        return "unchanged", None
     if len(content) > MAX_SIZE:
         raise ValueError("Oversized local file")
     ensure_parent(ftp, root, path)
@@ -168,10 +168,8 @@ def deploy_one(ftp, root: str, path: str, content: bytes, suffix: str):
         remote = read_remote(ftp, path)
         if remote is None or hashlib.sha256(remote).hexdigest() != wanted:
             raise RuntimeError("FTPS destination checksum mismatch")
-        if moved_old:
-            ftp.delete(backup)  # Only our own verified temporary backup.
-            moved_old = False
-        return "updated"
+        # Keep the backup until all files in the module have passed verification.
+        return "updated", backup if moved_old else None
     except Exception:
         if committed:
             try:
@@ -213,19 +211,40 @@ def main():
         for slug, paths in delta.items():
             updated = 0
             unchanged = 0
-            for name in paths:
-                path = slug + "/" + name
-                content = Path(slug, *PurePosixPath(name).parts).read_bytes()
-                status = deploy_one(ftp, root, path, content, suffix)
-                updated += status == "updated"
-                unchanged += status == "unchanged"
-            expected_header = read_plugin_version(ftp, slug + "/" + slug + ".php")
-            local_header = re.search(
-                r"(?mi)^\s*\*\s*Version:\s*([^\s]+)",
-                Path(slug, slug + ".php").read_text(encoding="utf-8")
-            )
-            if not local_header or expected_header != local_header.group(1):
-                raise RuntimeError("Remote plugin version does not match selected source")
+            journal = []
+            try:
+                for name in paths:
+                    path = slug + "/" + name
+                    content = Path(slug, *PurePosixPath(name).parts).read_bytes()
+                    status, backup = deploy_one(ftp, root, path, content, suffix)
+                    if status == "updated":
+                        journal.append((path, backup))
+                    updated += status == "updated"
+                    unchanged += status == "unchanged"
+                expected_header = read_plugin_version(ftp, slug + "/" + slug + ".php")
+                local_header = re.search(
+                    r"(?mi)^\s*\*\s*Version:\s*([^\s]+)",
+                    Path(slug, slug + ".php").read_text(encoding="utf-8")
+                )
+                if not local_header or expected_header != local_header.group(1):
+                    raise RuntimeError("Remote plugin version does not match selected source")
+                for path in paths:
+                    local = Path(slug, *PurePosixPath(path).parts)
+                    remote = read_remote(ftp, slug + "/" + path)
+                    if remote is None or hashlib.sha256(remote).hexdigest() != hashlib.sha256(local.read_bytes()).hexdigest():
+                        raise RuntimeError("Remote plugin file digest changed during final check")
+            except Exception:
+                for path, backup in reversed(journal):
+                    try:
+                        ftp.delete(path)  # New contents introduced by this run only.
+                        if backup is not None:
+                            ftp.rename(backup, path)
+                    except ftplib.Error as exc:
+                        raise RuntimeError("PRO partial file rollback failed; investigate before retrying") from exc
+                raise
+            for _, backup in journal:
+                if backup is not None:
+                    ftp.delete(backup)  # Verified temporary backup for this run only.
             print(f"{slug}: {updated} updated; {unchanged} unchanged; "
                   f"{len(paths)} checksummed files; version {expected_header}")
         print("PRO deployment completed using standalone, verified FTPS transport.")
