@@ -171,14 +171,28 @@ final class TaxoCommerce_System_Check_Queue_Health {
     }
 
     /**
-     * Read-only diagnostic rows on Sistema > WordPress.
+     * Render one escaped row inside the Process diagnostic table.
+     *
+     * @param string $label The metric.
+     * @param string $value Current measurement.
+     * @param string $status ok|warning|info.
+     * @param string $detail Context and limitations.
+     * @return void
+     */
+    private static function metric( $label, $value, $status, $detail ) {
+        $status = in_array( $status, array( 'ok', 'warning', 'info' ), true ) ? $status : 'info';
+        echo '<tr><th scope="row">' . esc_html( $label ) . '</th><td>' . esc_html( $value ) . '</td><td>' . esc_html( $status ) . '</td><td>' . esc_html( $detail ) . '</td></tr>';
+    }
+
+    /**
+     * Read-only WP-Cron diagnostics inside the Processes tab.
      *
      * @return void
      */
     public static function render_cron_rows() {
         $state = self::cron();
         if ( ! $state['available'] ) {
-            seo_server_status_row(
+            self::metric(
                 __( 'Oldest overdue WP-Cron event', 'taxocommerce-system-check' ),
                 __( 'Unavailable', 'taxocommerce-system-check' ),
                 'info',
@@ -186,14 +200,13 @@ final class TaxoCommerce_System_Check_Queue_Health {
             );
             return;
         }
-        $details = $state['oldest_hook'] ? $state['oldest_hook'] . ' · ' . gmdate( 'Y-m-d H:i:s', $state['oldest_due'] ) . ' UTC' : '';
-        seo_server_status_row(
+        self::metric(
             __( 'Oldest overdue WP-Cron event', 'taxocommerce-system-check' ),
-            $state['oldest_due'] ? esc_html( number_format_i18n( floor( $state['oldest_delay_seconds'] / 60 ) ) . ' min' ) : esc_html__( 'None', 'taxocommerce-system-check' ),
+            $state['oldest_due'] ? number_format_i18n( floor( $state['oldest_delay_seconds'] / 60 ) ) . ' min' : __( 'None', 'taxocommerce-system-check' ),
             $state['oldest_due'] ? 'warning' : 'ok',
-            $state['oldest_due'] ? esc_html( $details ) : __( 'No event is more than 15 minutes overdue.', 'taxocommerce-system-check' )
+            $state['oldest_due'] ? $state['oldest_hook'] . ' · ' . gmdate( 'Y-m-d H:i:s', $state['oldest_due'] ) . ' UTC' : __( 'No event is more than 15 minutes overdue.', 'taxocommerce-system-check' )
         );
-        seo_server_status_row(
+        self::metric(
             __( 'WP-Cron execution mechanism', 'taxocommerce-system-check' ),
             $state['external_cron_required'] ? __( 'External scheduler required', 'taxocommerce-system-check' ) : __( 'WordPress visitor-triggered cron enabled', 'taxocommerce-system-check' ),
             'info',
@@ -202,14 +215,14 @@ final class TaxoCommerce_System_Check_Queue_Health {
     }
 
     /**
-     * Read-only diagnostic rows on Sistema > WooCommerce.
+     * Read-only Action Scheduler diagnostics inside the Processes tab.
      *
      * @return void
      */
     public static function render_scheduler_rows() {
         $state = self::scheduler();
         if ( ! $state['available'] ) {
-            seo_server_status_row(
+            self::metric(
                 __( 'Action Scheduler activity', 'taxocommerce-system-check' ),
                 __( 'Unavailable', 'taxocommerce-system-check' ),
                 'info',
@@ -217,21 +230,21 @@ final class TaxoCommerce_System_Check_Queue_Health {
             );
             return;
         }
-        seo_server_status_row(
+        self::metric(
             __( 'Oldest pending Action Scheduler job', 'taxocommerce-system-check' ),
-            $state['oldest_hook'] ? esc_html( number_format_i18n( floor( $state['oldest_delay_seconds'] / 60 ) ) . ' min' ) : esc_html__( 'None', 'taxocommerce-system-check' ),
+            $state['oldest_hook'] ? number_format_i18n( floor( $state['oldest_delay_seconds'] / 60 ) ) . ' min' : __( 'None', 'taxocommerce-system-check' ),
             $state['oldest_delay_seconds'] > 900 ? 'warning' : 'ok',
-            $state['oldest_hook'] ? esc_html( $state['oldest_hook'] . ' · ' . $state['oldest_date_gmt'] . ' UTC' ) : __( 'No pending job found.', 'taxocommerce-system-check' )
+            $state['oldest_hook'] ? $state['oldest_hook'] . ' · ' . $state['oldest_date_gmt'] . ' UTC' : __( 'No pending job found.', 'taxocommerce-system-check' )
         );
-        seo_server_status_row(
+        self::metric(
             __( 'Most recent failed Action Scheduler attempt', 'taxocommerce-system-check' ),
-            $state['last_failed_hook'] ? esc_html( $state['last_failed_hook'] ) : esc_html__( 'None', 'taxocommerce-system-check' ),
+            $state['last_failed_hook'] ?: __( 'None', 'taxocommerce-system-check' ),
             'info',
-            $state['last_failed_date_gmt'] ? esc_html( $state['last_failed_date_gmt'] . ' UTC' ) : __( 'No failed attempt is available.', 'taxocommerce-system-check' )
+            $state['last_failed_date_gmt'] ? $state['last_failed_date_gmt'] . ' UTC' : __( 'No failed attempt is available.', 'taxocommerce-system-check' )
         );
-        seo_server_status_row(
+        self::metric(
             __( 'Action Scheduler attempts in the last hour', 'taxocommerce-system-check' ),
-            esc_html( number_format_i18n( $state['recent_completed'] ) . ' / ' . number_format_i18n( $state['recent_failed'] ) ),
+            number_format_i18n( $state['recent_completed'] ) . ' / ' . number_format_i18n( $state['recent_failed'] ),
             $state['recent_failed'] ? 'warning' : 'info',
             __( 'Completed / failed, according to the last-attempt timestamp; not callback execution time.', 'taxocommerce-system-check' )
         );
@@ -242,9 +255,9 @@ final class TaxoCommerce_System_Check_Queue_Health {
             'backlog_with_activity' => __( 'Recent completions exist, but an older task remains pending. Check the affected hook.', 'taxocommerce-system-check' ),
             'runner_unconfirmed' => __( 'Old pending tasks with no recent completions or failures: a runner issue is possible, but cannot be confirmed from one snapshot.', 'taxocommerce-system-check' ),
         );
-        seo_server_status_row(
+        self::metric(
             __( 'Action Scheduler diagnostic', 'taxocommerce-system-check' ),
-            esc_html( $messages[ $state['assessment'] ] ),
+            $messages[ $state['assessment'] ],
             'info',
             __( 'Read-only snapshot. Actual PHP process duration and runner heartbeat are not exposed by this check.', 'taxocommerce-system-check' )
         );
