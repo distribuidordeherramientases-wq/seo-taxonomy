@@ -94,6 +94,30 @@ def discover_candidates(ftp: ftplib.FTP_TLS, login_root: str):
     return candidates, visited, listing_supported
 
 
+def verify_pro_site_at_shared_account_root(ftp, expected):
+    """Verify ONLY the production WordPress at the shared Webempresa FTP root.
+
+    The existing STAGING account already uses ./staging.distribuidordeherramientas.es
+    and ./asociacionfocazul. Production is checked at ./wp-content/plugins,
+    never at either staging or Focazul. No MLSD traversal and no writes.
+    """
+    login_root = ftp.pwd()
+    try:
+        ftp.cwd(login_root)
+        ftp.cwd("./wp-content/plugins")
+        canonical = ftp.pwd()
+        for relative, key in TARGETS:
+            value = read_plugin_version(ftp, relative)
+            expected_values = expected[key] if isinstance(expected[key], (list, tuple, set)) else (expected[key],)
+            if value not in expected_values:
+                raise RuntimeError("Core/WooCommerce version mismatch at the designated PRO root")
+        return "./wp-content/plugins", canonical
+    except (ftplib.Error, OSError, ValueError) as exc:
+        raise RuntimeError("Shared FTPS account cannot verify the designated PRO plugin directory") from exc
+    finally:
+        ftp.cwd(login_root)
+
+
 def find_verified_root(ftp: ftplib.FTP_TLS, expected: dict[str, str]):
     """Read-only proof for a unique FTP plugin folder matching live WP versions."""
     login_root = ftp.pwd()
@@ -159,7 +183,12 @@ def main() -> int:
         ftp.login(os.environ["FTP_USERNAME"], os.environ["FTP_PASSWORD"])
         ftp.prot_p()
         # This is a read-only diagnostic. No FTP upload/remove/mkdir is used.
-        _candidate, _canonical = find_verified_root(ftp, expected)
+        if len(sys.argv) == 2 and sys.argv[1] == "--shared-account-pro-root":
+            _candidate, _canonical = verify_pro_site_at_shared_account_root(ftp, expected)
+        elif len(sys.argv) == 1:
+            _candidate, _canonical = find_verified_root(ftp, expected)
+        else:
+            raise RuntimeError("Unknown read-only probe mode")
         print("PRO FTPS read-only root verified using installed Core "
               + expected["PRO_CORE_EXPECTED_VERSION"] + " and WooCommerce "
               + expected["PRO_WOO_EXPECTED_VERSION"] + ".")

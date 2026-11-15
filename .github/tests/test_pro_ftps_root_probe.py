@@ -58,6 +58,18 @@ class ProbeTests(unittest.TestCase):
                 "woocommerce/woocommerce.php": header("11.3.0"),
             },
         }
+    def test_exact_pro_root_in_shared_hosting_account(self):
+        ftp = FakeFTP(self.files)
+        path, canonical = probe.verify_pro_site_at_shared_account_root(ftp, self.expected)
+        self.assertEqual("./wp-content/plugins", path)
+        self.assertEqual("/verified/plugins", canonical)
+        self.assertEqual(0, ftp.writes)
+
+    def test_shared_account_never_accepts_just_a_staging_site(self):
+        files = {".": self.files["."], "./staging.distribuidordeherramientas.es/wp-content/plugins": self.files["./wp-content/plugins"]}
+        with self.assertRaisesRegex(RuntimeError, "cannot verify"):
+            probe.verify_pro_site_at_shared_account_root(FakeFTP(files), self.expected)
+
     def test_correct_unique_root(self):
         ftp = FakeFTP(self.files)
         found = probe.find_verified_root(ftp, self.expected)

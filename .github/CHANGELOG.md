@@ -1,3 +1,8 @@
+## 2026-11-15 — Verificación directa del WordPress PRO con la cuenta FTPS de STAGING (#2696)
+
+- La cuenta FTPS existente se utiliza en un alojamiento compartido cuya raíz de login contiene las instalaciones de STAGING y Focazul como subdirectorios. El sondeo de producción se acota ahora estrictamente a `./wp-content/plugins`, en la raíz de esa misma cuenta, validando las versiones reales de Core y WooCommerce.
+- No se rastrean otros sitios ni se necesita esperar un inventario de 90 directorios. Se conserva el comportamiento general anterior para cuentas no compartidas. Es una prueba **solo lectura**, no un despliegue.
+
 ## 2026-11-15 — Verificación del acceso FTPS de STAGING a la instalación PRO (#2696)
 
 - Prueba de solo lectura reutilizando los secretos existentes `STAGING_FTP_SERVER/USERNAME/PASSWORD`, sin activar el monolítico ni configurar una cuenta nueva. La prueba solo lee las cabeceras de Core 0.4.84 y WooCommerce 11.3.0 para identificar la carpeta real de producción y exige una única coincidencia.
