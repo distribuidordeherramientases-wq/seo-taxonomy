@@ -2051,3 +2051,7 @@ msgstr "Estado"
 
 msgid "Details"
 msgstr "Detalles"
+
+#. translators: 1: maximum URLs per batch; 2: completed; 3: total; 4: approximate next pending position.
+msgid "Batch limit: %1$d URLs · progress: %2$d/%3$d · resume: next pending URL (approx. position %4$d)."
+msgstr "Límite por lote: %1$d URL · progreso: %2$d/%3$d · reanudación: siguiente URL pendiente (posición aproximada %4$d)."
