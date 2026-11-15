@@ -1,3 +1,11 @@
+## 2026-11-15 — Despliegue simple GitHub STAGING → PRODUCCIÓN (#2719)
+
+- Se elimina del workflow de producción cualquier inventario o filtrado de plugins instalados, activo/inactivo, comprobación de cabeceras Core/WooCommerce y llamadas REST heredadas del monolítico.
+- Git compara `staging` con el último despliegue correcto a producción y selecciona todos los archivos distribuibles añadidos/modificados de los módulos `taxocommerce-*`. Los archivos no cambiados no se transfieren; las eliminaciones de origen no borran ficheros en PRO.
+- Se restauran los secretos FTPS anteriores de GitHub: `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`; no se exigen los nuevos `PRO_FTPS_*`.
+- La copia va directamente a `wp-content/plugins` de la cuenta FTP de PRODUCCIÓN, con subcarpetas por plugin; compara SHA-256 del archivo y realiza una transferencia solo cuando difiere, con restauración de la versión previa si el archivo no queda verificado. No instala, activa o desactiva plugins vía WordPress.
+- Cuando no hay cambios finaliza correctamente sin conexión FTP. La existencia del directorio de plugins y los permisos de la cuenta FTP deben permitir la transferencia real; **no se considera desplegado hasta que el workflow lo confirme**.
+
 ## 2026-11-15 — STAGING a PRODUCCIÓN: ejecución manual sin selector de plugin (#2717)
 
 - Eliminado el parámetro opcional `target_plugin` del formulario manual del workflow `despliege_de_main_a_pro.yml`: al pulsar **Run workflow** se procesan todos los archivos modificados de plugins ya instalados, sin elegir uno.
