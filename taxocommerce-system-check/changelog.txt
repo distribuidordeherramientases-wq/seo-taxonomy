@@ -1,5 +1,5 @@
 = 0.2.38 (2026-11-15) =
-* Read-only cron/Action Scheduler queue-health diagnostics inside Procesos only: oldest overdue hook, pending/failed attempts, recent activity, no false proof of a stopped runner. Existing cancellation controls unchanged. Issue #2694.
+* Read-only cron/Action Scheduler queue-health diagnostics inside Procesos only: oldest overdue hook, pending/failed attempts, recent activity, no false proof of a stopped runner. Existing cancellation controls unchanged. HTTP worker rows now show current batch limit, completed/total URLs and approximate next-pending position. Issue #2694.
 
 = 0.2.37 =
 * Add manual Core family-validation pilot: functional cases then code inspection, adaptive load control, stop/resume and two KPI columns. Other modules remain not integrated. Issue #2685.
