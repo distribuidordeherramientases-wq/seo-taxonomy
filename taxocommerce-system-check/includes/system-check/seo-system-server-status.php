@@ -2057,15 +2057,6 @@ function seo_server_status_collect_snapshot($deep = false) {
     $cron = seo_server_status_get_cron_stats();
     $cron_status = $cron['overdue'] > 20 ? 'important' : ($cron['overdue'] > 0 ? 'warning' : 'ok');
     $checks[] = seo_server_status_make_check('SRV-WP-CRON', 'WordPress', 'Eventos WP-Cron atrasados', (string) $cron['overdue'], $cron_status, 'Eventos con más de 15 minutos de retraso.');
-    if (class_exists('TaxoCommerce_System_Check_Queue_Health')) {
-        $cron_health = TaxoCommerce_System_Check_Queue_Health::cron();
-        $checks[] = seo_server_status_make_check(
-            'SRV-WP-CRON-OLDEST', 'WordPress', 'Evento WP-Cron más atrasado',
-            !empty($cron_health['oldest_due']) ? $cron_health['oldest_hook'] . ' · ' . (int) floor($cron_health['oldest_delay_seconds'] / 60) . ' min' : 'Ninguno >15 min',
-            !empty($cron_health['oldest_due']) ? 'warning' : 'ok',
-            'El retraso no confirma por sí solo que el ejecutor esté detenido.'
-        );
-    }
     $debug = defined('WP_DEBUG') && WP_DEBUG;
     $checks[] = seo_server_status_make_check('SRV-WP-DEBUG', 'Seguridad', 'WP_DEBUG', seo_server_status_yes_no($debug), $debug ? 'warning' : 'ok', 'En producción debería permanecer controlado.');
     $file_edit = defined('DISALLOW_FILE_EDIT') && DISALLOW_FILE_EDIT;
@@ -2087,23 +2078,6 @@ function seo_server_status_collect_snapshot($deep = false) {
     $failed_status = $failed > 100 ? 'important' : ($failed > 0 ? 'warning' : 'ok');
     $checks[] = seo_server_status_make_check('SRV-WC-ACTIONS-PENDING', 'WooCommerce', 'Action Scheduler pendientes', (string) $pending, $pending_status, 'Una cola grande puede indicar procesos atrasados.');
     $checks[] = seo_server_status_make_check('SRV-WC-ACTIONS-FAILED', 'WooCommerce', 'Action Scheduler fallidas', (string) $failed, $failed_status, 'Conviene investigar cualquier crecimiento sostenido.');
-    if (class_exists('TaxoCommerce_System_Check_Queue_Health')) {
-        $as_health = TaxoCommerce_System_Check_Queue_Health::scheduler();
-        if (!empty($as_health['available'])) {
-            $checks[] = seo_server_status_make_check(
-                'SRV-WC-ACTIONS-OLDEST', 'WooCommerce', 'Acción pendiente más antigua',
-                $as_health['oldest_hook'] ? $as_health['oldest_hook'] . ' · ' . (int) floor($as_health['oldest_delay_seconds'] / 60) . ' min' : 'Ninguna',
-                $as_health['oldest_delay_seconds'] > 900 ? 'warning' : 'ok',
-                'Cola pendiente de Action Scheduler; el retraso no permite confirmar un fallo del ejecutor.'
-            );
-            $checks[] = seo_server_status_make_check(
-                'SRV-WC-ACTIONS-RECENT', 'WooCommerce', 'Intentos Action Scheduler en la última hora',
-                (int) $as_health['recent_completed'] . ' completados / ' . (int) $as_health['recent_failed'] . ' fallidos',
-                $as_health['recent_failed'] ? 'warning' : 'info',
-                'Actividad basada en la hora de último intento; no mide la duración de los callbacks.'
-            );
-        }
-    }
 
     $disk_free = function_exists('disk_free_space') ? @disk_free_space(ABSPATH) : false;
     $disk_total = function_exists('disk_total_space') ? @disk_total_space(ABSPATH) : false;
@@ -2818,9 +2792,6 @@ function seo_server_status_render_wordpress_tab() {
     $cron_stats = seo_server_status_get_cron_stats();
     seo_server_status_row('Eventos WP-Cron', esc_html(number_format_i18n($cron_stats['total'])), 'info', 'Eventos registrados en la cola interna de WordPress.');
     seo_server_status_row('Eventos WP-Cron atrasados', esc_html(number_format_i18n($cron_stats['overdue'])), $cron_stats['overdue'] > 0 ? 'warning' : 'ok', 'Eventos con más de 15 minutos de retraso.');
-    if (class_exists('TaxoCommerce_System_Check_Queue_Health')) {
-        TaxoCommerce_System_Check_Queue_Health::render_cron_rows();
-    }
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $revision_count = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'revision'");
@@ -3051,9 +3022,6 @@ function seo_server_status_render_woocommerce_tab() {
     seo_server_status_row('Productos sin descripción corta', esc_html(number_format_i18n($empty_short)), $empty_short > 0 ? 'warning' : 'ok', 'Relevante para ficha de producto y snippets internos.');
 
     seo_server_status_action_scheduler_rows();
-    if (class_exists('TaxoCommerce_System_Check_Queue_Health')) {
-        TaxoCommerce_System_Check_Queue_Health::render_scheduler_rows();
-    }
     seo_server_status_close_table();
 
     seo_server_status_render_action_scheduler_detail_section();
