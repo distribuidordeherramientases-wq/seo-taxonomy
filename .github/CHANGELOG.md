@@ -1,3 +1,8 @@
+## 2026-11-15 — Diagnóstico de credenciales FTPS alternativas de GitHub (#2696)
+
+- El sondeo estrictamente de solo lectura verifica el juego de secretos `TC_FTP_HOST/USER/PASS` ya utilizado en el auditor de producción, para determinar si alcanza WP_PLUGIN_DIR cuando las credenciales del antiguo handoff `FTP_SERVER/USERNAME/PASSWORD` están confinadas al monolítico.
+- La modificación no cambia el transporte de producción, no lee datos privados fuera de las cabeceras de versión, no escribe ficheros y no reactiva el monolítico.
+
 ## 2026-11-15 — Despliegue a PRO autónomo y sin monolítico (#2696)
 
 - El flujo `STAGING a PRODUCCION` ya no utiliza `/taxocommerce/v1/deploy-active-modules` ni la función PHP del plugin SEO monolítico. El origen queda limitado al SHA aprobado de `staging`.
