@@ -50,8 +50,20 @@ def connect():
     ftps.connect(os.environ["FTP_SERVER"], 21)
     ftps.login(os.environ["FTP_USERNAME"], os.environ["FTP_PASSWORD"])
     ftps.prot_p()
+    # Accept only exact Core versions already present in the retained release
+    # history. The on-site Core version naturally changes after every release.
+    core_history = Path("taxocommerce-core/CHANGELOG.md")
+    if not core_history.is_file():
+        raise RuntimeError("TaxoCommerce Core release history is unavailable")
+    known_core = re.findall(
+        r"(?m)^## \[(\d+\.\d+\.\d+)\]",
+        core_history.read_text(encoding="utf-8")
+    )[:50]
+    if not known_core:
+        raise RuntimeError("No verified Core versions in release history")
+    known_core.append(os.environ["PRO_CORE_EXPECTED_VERSION"])
     expected = {
-        "PRO_CORE_EXPECTED_VERSION": os.environ["PRO_CORE_EXPECTED_VERSION"],
+        "PRO_CORE_EXPECTED_VERSION": sorted(set(known_core)),
         "PRO_WOO_EXPECTED_VERSION": os.environ["PRO_WOO_EXPECTED_VERSION"],
     }
     _, root = find_verified_root(ftps, expected)
