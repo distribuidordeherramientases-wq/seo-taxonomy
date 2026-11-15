@@ -46,6 +46,7 @@ def read_plugin_version(ftp: ftplib.FTP_TLS, relative: str) -> str:
 def find_verified_root(ftp: ftplib.FTP_TLS, expected: dict[str, str]):
     """Return one verified canonical FTP directory, else fail closed."""
     matches = {}
+    login_root = ftp.pwd()
     for candidate in CANDIDATES:
         try:
             ftp.cwd(candidate)
@@ -55,10 +56,10 @@ def find_verified_root(ftp: ftplib.FTP_TLS, expected: dict[str, str]):
                 versions[var] = read_plugin_version(ftp, relative)
             if all(versions[key] == expected[key] for key in versions):
                 matches[canonical] = candidate
-            ftp.cwd("/")  # The next attempt starts from a known FTP root.
+            ftp.cwd(login_root)  # Reset to authenticated account's original directory.
         except (ftplib.Error, OSError, ValueError, UnicodeError):
             try:
-                ftp.cwd("/")
+                ftp.cwd(login_root)
             except ftplib.Error:
                 raise RuntimeError("FTPS cannot reset to its login root") from None
     if len(matches) != 1:
