@@ -12,6 +12,7 @@ on:
       - staging
     paths:
       - '.github/workflows/pro-ftps-readonly-probe.yml'
+      - '.github/scripts/pro_ftps_root_probe.py'
 
 permissions:
   contents: read
