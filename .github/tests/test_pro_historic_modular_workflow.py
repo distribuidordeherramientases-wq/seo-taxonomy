@@ -67,6 +67,8 @@ class ProFullFamilyTests(unittest.TestCase):
                 "taxocommerce-core/languages/core.pot": "messages",
                 "taxocommerce-core/tests/smoke.php": "<?php // test",
                 "taxocommerce-core/.gitlab/config.yml": "secret ci config",
+                "taxocommerce-core/.github/deploy.yml": "ci config",
+                "taxocommerce-core/.hidden/key.txt": "not public",
                 "taxocommerce-customers/taxocommerce-customers.php": "<?php // customer",
                 "taxocommerce-customers/readme.txt": "Stable tag: 1.0",
             }
@@ -90,7 +92,7 @@ class ProFullFamilyTests(unittest.TestCase):
                 self.assertIn("tests/smoke.php", entries)
                 self.assertIn("languages/core.pot", entries)
                 self.assertIn("CHANGELOG.md", entries)
-                self.assertFalse(any(".gitlab" in x for x in entries))
+                self.assertFalse(any(any(part.startswith(".") for part in x.split("/")) for x in entries))
                 manifest = {name: hashlib.sha256(z.read(name)).hexdigest() for name in entries}
             self.assertEqual(count, 5)
             expected = hashlib.sha256(
