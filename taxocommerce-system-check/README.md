@@ -2,7 +2,7 @@
 
 ## Procesos (0.2.38)
 
-La pestaña Procesos incorpora un cuadro diagnóstico **de solo lectura** que muestra el evento WP-Cron más atrasado, el hook más antiguo pendiente de Action Scheduler, el último intento fallido y cuántos intentos se completaron/fallaron en la última hora. Diferencia una cola con actividad de errores recientes y evita afirmar que el ejecutor está detenido cuando los datos no lo demuestran. No mide tiempo efectivo de callback PHP. Ningún cambio en permisos, botones, algoritmos de cancelación o solapes con Sistema.
+La pestaña Procesos incorpora un cuadro diagnóstico **de solo lectura** que muestra el evento WP-Cron más atrasado, el hook más antiguo pendiente de Action Scheduler, el último intento fallido y cuántos intentos se completaron/fallaron en la última hora. Diferencia una cola con actividad de errores recientes y evita afirmar que el ejecutor está detenido cuando los datos no lo demuestran. No mide tiempo efectivo de callback PHP. Los procesos HTTP locales muestran el tamaño real máximo de lote (1 a 8 URL), el progreso guardado y la posición aproximada de la siguiente URL pendiente, incluso si una ejecución se ha pausado. No se expone una URL sensible ni se deduce que la reanudación ocurrirá automáticamente. Ningún cambio en permisos, botones, algoritmos de cancelación o solapes con Sistema.
 
 ### Inventario y controles existentes
 
