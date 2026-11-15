@@ -48,16 +48,6 @@ jQuery(function ($) {
         );
     }
 
-    function items() {
-        return buttons.map(function () {
-            var button = $(this);
-            return {
-                report: String(button.attr('data-report') || ''),
-                label: button.closest('.seo-analista-report-card').find('h3').first().text()
-            };
-        }).get().filter(function (item) { return item.report !== ''; });
-    }
-
     function run(queue, complete) {
         if (running || !queue.length) {
             return;
@@ -142,20 +132,6 @@ jQuery(function ($) {
             report: String(button.attr('data-report') || ''),
             label: button.closest('.seo-analista-report-card').find('h3').first().text()
         }], false);
-    });
-
-    fullButton.on('click', function () {
-        run(items(), true);
-    });
-
-    stopButton.on('click', function () {
-        if (!running) {
-            return;
-        }
-        cancelled = true;
-        if (pending && typeof pending.abort === 'function') {
-            pending.abort();
-        }
     });
 
     // The competitor report is a separate POST form injected by the lazy
@@ -247,9 +223,8 @@ jQuery(function ($) {
 
     // Complete JSON: one authenticated request per section. No browser Blob,
     // no WP-Cron and no server-wide CPU percentage estimates.
-    var exportStart = $('#tgb-chunked-json-start');
-    var exportStop = $('#tgb-chunked-json-stop');
-    var exportStatus = $('#tgb-chunked-json-status');
+    var exportStart = fullButton;
+    var exportStop = stopButton;
     var exportDownload = $('#tgb-chunked-json-download');
     var exportJob = '';
     var exportActive = false;
@@ -260,11 +235,20 @@ jQuery(function ($) {
     function exportBusy(active) {
         exportActive = active;
         exportStart.prop('disabled', active);
+        buttons.prop('disabled', active);
         exportStop.prop('disabled', !active);
     }
 
     function exportMessage(message, failed) {
-        exportStatus.text(message).toggleClass('notice notice-error inline', !!failed);
+        showStatus(message, failed);
+    }
+
+    function exportReady(url) {
+        exportDownload.removeClass('disabled').attr('aria-disabled', 'false').attr('href', url);
+    }
+
+    function exportClear() {
+        exportDownload.addClass('disabled').attr('aria-disabled', 'true').removeAttr('href');
     }
 
     function exportAjax(operation, extra) {
@@ -297,11 +281,11 @@ jQuery(function ($) {
             }
             var state = response.data;
             exportFailures = 0;
-            exportMessage('JSON completo: ' + state.done + ' de ' + state.total + ' bloques guardados.', false);
+            exportMessage('Informe completo: ' + state.done + ' de ' + state.total + ' bloques guardados.', false);
             if (state.complete && state.download_url) {
                 exportBusy(false);
-                exportDownload.attr('href', state.download_url).show();
-                exportMessage('JSON completo preparado: ' + state.done + ' bloques. Ya puedes descargarlo.', false);
+                exportReady(state.download_url);
+                exportMessage('Informe completo generado en ' + state.done + ' bloques. Ya puedes descargar el JSON.', false);
                 return;
             }
             exportTimer = setTimeout(exportNext, Math.max(300, Math.min(6000, Number(state.delay_ms) || 1000)));
@@ -331,11 +315,11 @@ jQuery(function ($) {
         if (exportActive || !config.ajaxUrl || !config.chunkNonce) {
             return;
         }
-        exportDownload.hide().removeAttr('href');
+        exportClear();
         exportJob = '';
         exportFailures = 0;
         exportBusy(true);
-        exportMessage('Preparando la exportación completa…', false);
+        exportMessage('Iniciando informe completo por bloques…', false);
         exportRequest = exportAjax('start', { days: config.days, speed: $('#tgb-chunked-json-speed').val() || 3 });
         exportRequest.done(function (response) {
             if (!exportActive) return;
@@ -351,11 +335,27 @@ jQuery(function ($) {
     });
 
     exportStop.on('click', function () {
-        if (!exportActive) return;
-        exportBusy(false);
-        if (exportTimer !== null) clearTimeout(exportTimer);
-        if (exportRequest) exportRequest.abort();
-        if (exportJob) exportAjax('cancel');
-        exportMessage('Exportación detenida. No hay archivo incompleto disponible para descarga.', false);
+        if (exportActive) {
+            exportBusy(false);
+            if (exportTimer !== null) clearTimeout(exportTimer);
+            if (exportRequest) exportRequest.abort();
+            if (exportJob) exportAjax('cancel');
+            exportMessage('Informe detenido. No se puede descargar un archivo incompleto.', false);
+            return;
+        }
+        if (!running) return;
+        cancelled = true;
+        if (pending && typeof pending.abort === 'function') pending.abort();
     });
+
+    // Restore the completed file without generating any new blocks.
+    if (config.ajaxUrl && config.chunkNonce) {
+        exportAjax('status').done(function (response) {
+            if (!exportActive && response && response.success && response.data &&
+                response.data.complete && response.data.download_url) {
+                exportJob = response.data.id;
+                exportReady(response.data.download_url);
+            }
+        });
+    }
 });
