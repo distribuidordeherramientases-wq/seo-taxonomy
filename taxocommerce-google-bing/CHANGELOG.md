@@ -1,3 +1,10 @@
+## [1.1.64] — 2026-11-15 — Un solo informe completo por bloques y descarga JSON válida
+
+- «Ejecutar informe completo» es la única ejecución integral: 21 bloques AJAX secuenciales con selector de control de CPU 1–5, avance y un único botón Detener. Se elimina la segunda acción «Preparar JSON completo por bloques» y su control de detención duplicado.
+- «Descargar JSON completo» se habilita al validar el último bloque, sin volver a generar datos. Corrige el nonce de la URL AJAX (ampersands HTML escapados) que provocaba «el archivo ha caducado» inmediatamente después de prepararlo.
+- La exportación terminada se conserva durante 24 horas desde su finalización y se recupera tras recargar la página; el plazo de ejecución en curso se renueva después de cada bloque. Siguen disponibles los informes especializados individuales y sus descargas.
+- No se alteran las fuentes, las conexiones, el catálogo ni las credenciales. Se mantienen las protecciones WordPress por usuario, permisos, nonce y bloqueo de pasos concurrentes.
+
 ## [1.1.63] — 2026-11-14 — Informes de Autocheck homogéneos (#2682)
 
 - Informes funcionales de Redirects, Insights y Logistics con estructura común a Import-Export: versión, fecha UTC, duración, WordPress, PHP, resúmenes, grupos, estado, etiqueta, mensaje y tiempo por prueba.
