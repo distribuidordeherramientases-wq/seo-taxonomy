@@ -2055,3 +2055,48 @@ msgstr "Détails"
 #. translators: 1: maximum URLs per batch; 2: completed; 3: total; 4: approximate next pending position.
 msgid "Batch limit: %1$d URLs · progress: %2$d/%3$d · resume: next pending URL (approx. position %4$d)."
 msgstr "Limite par lot : %1$d URL · progression : %2$d/%3$d · reprise : URL suivante en attente (position approximative %4$d)."
+
+msgid "Diagnóstico de tarea"
+msgstr "Diagnostic de la tâche"
+
+msgid "La tarea ya no existe o no está disponible."
+msgstr "La tâche n'existe plus ou n'est pas disponible."
+
+msgid "Grupo:"
+msgstr "Groupe :"
+
+msgid "Posible tarea huérfana: no hay un callback registrado en esta petición. Confirma si el plugin está activo antes de cancelar."
+msgstr "Tâche potentiellement orpheline : aucun rappel n'est enregistré pour cette requête. Vérifiez que l’extension est active avant d'annuler."
+
+msgid "Callback registrado. Esto no demuestra una ejecución correcta."
+msgstr "Rappel enregistré. Cela ne garantit pas une exécution réussie."
+
+msgid "Ejecutor no verificable desde este estado."
+msgstr "L'exécuteur ne peut pas être vérifié à partir de cet état."
+
+msgid "Programado (UTC):"
+msgstr "Planifié (UTC) :"
+
+msgid "WP-Cron no conserva un historial individual de errores. Consulta los registros del plugin responsable si existen."
+msgstr "WP-Cron ne conserve pas d'historique des erreurs par événement. Consultez les journaux de l'extension responsable, s'ils existent."
+
+msgid "Este estado no prueba que una petición PHP siga ejecutándose."
+msgstr "Cet état ne prouve pas qu'une requête PHP soit encore en cours."
+
+msgid "Registro de Action Scheduler (últimas 20 entradas)"
+msgstr "Journal d’Action Scheduler (20 dernières entrées)"
+
+msgid "No hay entradas de registro disponibles para esta tarea."
+msgstr "Aucune entrée de journal n'est disponible pour cette tâche."
+
+msgid "El prefijo histórico seo_ no demuestra una dependencia del antiguo monolítico. No se muestran argumentos ni credenciales."
+msgstr "Le préfixe historique seo_ ne prouve pas une dépendance à l'ancienne extension monolithique. Les arguments et les identifiants ne sont pas affichés."
+
+msgid "Ver log del último fallo"
+msgstr "Voir le journal du dernier échec"
+
+msgid "Ver detalles"
+msgstr "Voir les détails"
+
+msgid "Ver log / diagnóstico"
+msgstr "Voir le journal / diagnostic"
