@@ -76,7 +76,7 @@ def discover_candidates(ftp: ftplib.FTP_TLS, login_root: str):
                 continue
             entries = list(ftp.mlsd())
             listing_supported = True
-        except (ftplib.Error, OSError, ValueError):
+        except (ftplib.Error, OSError, ValueError, AttributeError):
             continue
         for name, facts in entries[:250]:
             if (facts.get("type") or "").lower() != "dir":
