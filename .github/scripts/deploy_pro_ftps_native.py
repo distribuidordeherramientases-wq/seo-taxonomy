@@ -47,6 +47,37 @@ def read_hash(ftp, filename):
     return digest.hexdigest()
 
 
+def find_live_plugin_root(ftp):
+    """Find only an existing WordPress plugins root; never create another one.
+
+    The previous uploader created wp-content/plugins *inside* an unrelated
+    FTPS chroot and falsely reported 103 successful production updates.
+    This checks two files at a fixed root, not an installed-plugin inventory.
+    """
+    home = ftp.pwd()
+    matches = set()
+    try:
+        for candidate in ("", PLUGINS_DIR):
+            ftp.cwd(home)
+            try:
+                if candidate:
+                    ftp.cwd(candidate)
+                if (read_hash(ftp, "woocommerce/woocommerce.php") is not None
+                        and read_hash(ftp, "taxocommerce-core/taxocommerce-core.php") is not None):
+                    matches.add(ftp.pwd())
+            except ftplib.error_perm as exc:
+                if not str(exc).startswith("550"):
+                    raise
+        if len(matches) != 1:
+            raise RuntimeError(
+                "Wrong production FTPS root: no unique WooCommerce and TaxoCommerce plugins directory. "
+                "No files were copied; configure FTP_SERVER/FTP_USERNAME/FTP_PASSWORD for the real PRO site."
+            )
+        return next(iter(matches))
+    finally:
+        ftp.cwd(home)
+
+
 def copy_changed(ftp, slug, relative, root):
     """Copy just one modified file; skip identical content and verify SHA-256."""
     if not valid_path(slug, relative):
@@ -140,9 +171,10 @@ def main():
         ftp.connect(os.environ["FTP_SERVER"], 21)
         ftp.login(os.environ["FTP_USERNAME"], os.environ["FTP_PASSWORD"])
         ftp.prot_p()
-        # A single fixed WordPress plugins directory, not a scan or lookup.
-        ftp.cwd(PLUGINS_DIR)
-        root = ftp.pwd()
+        # No WordPress inventory: only confirm that the FTPS account can
+        # access the existing real WooCommerce plugin root before any write.
+        root = find_live_plugin_root(ftp)
+        print("PRO WordPress plugins root verified; comparing changed files.", flush=True)
         total = 0
         for slug, paths in sorted(delta.items()):
             for relative in sorted(paths):
