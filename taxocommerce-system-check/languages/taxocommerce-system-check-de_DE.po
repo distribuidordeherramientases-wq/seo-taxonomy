@@ -2055,3 +2055,48 @@ msgstr "Details"
 #. translators: 1: maximum URLs per batch; 2: completed; 3: total; 4: approximate next pending position.
 msgid "Batch limit: %1$d URLs · progress: %2$d/%3$d · resume: next pending URL (approx. position %4$d)."
 msgstr "Batchlimit: %1$d URLs · Fortschritt: %2$d/%3$d · Fortsetzung: nächste ausstehende URL (ungefähr Position %4$d)."
+
+msgid "Diagnóstico de tarea"
+msgstr "Aufgabendiagnose"
+
+msgid "La tarea ya no existe o no está disponible."
+msgstr "Die Aufgabe ist nicht mehr vorhanden oder nicht verfügbar."
+
+msgid "Grupo:"
+msgstr "Gruppe:"
+
+msgid "Posible tarea huérfana: no hay un callback registrado en esta petición. Confirma si el plugin está activo antes de cancelar."
+msgstr "Möglicherweise verwaiste Aufgabe: Für diese Anfrage ist kein Callback registriert. Prüfen Sie vor dem Abbrechen, ob das Plugin aktiv ist."
+
+msgid "Callback registrado. Esto no demuestra una ejecución correcta."
+msgstr "Callback registriert. Dies beweist keine erfolgreiche Ausführung."
+
+msgid "Ejecutor no verificable desde este estado."
+msgstr "Der Ausführer kann anhand dieses Status nicht überprüft werden."
+
+msgid "Programado (UTC):"
+msgstr "Geplant (UTC):"
+
+msgid "WP-Cron no conserva un historial individual de errores. Consulta los registros del plugin responsable si existen."
+msgstr "WP-Cron speichert keinen Fehlerverlauf für einzelne Ereignisse. Prüfen Sie gegebenenfalls die Protokolle des zuständigen Plugins."
+
+msgid "Este estado no prueba que una petición PHP siga ejecutándose."
+msgstr "Dieser Status beweist nicht, dass eine PHP-Anfrage noch läuft."
+
+msgid "Registro de Action Scheduler (últimas 20 entradas)"
+msgstr "Action-Scheduler-Protokoll (letzte 20 Einträge)"
+
+msgid "No hay entradas de registro disponibles para esta tarea."
+msgstr "Für diese Aufgabe sind keine Protokolleinträge verfügbar."
+
+msgid "El prefijo histórico seo_ no demuestra una dependencia del antiguo monolítico. No se muestran argumentos ni credenciales."
+msgstr "Das historische Präfix seo_ belegt keine Abhängigkeit vom alten monolithischen Plugin. Argumente und Zugangsdaten werden nicht angezeigt."
+
+msgid "Ver log del último fallo"
+msgstr "Protokoll des letzten Fehlers anzeigen"
+
+msgid "Ver detalles"
+msgstr "Details anzeigen"
+
+msgid "Ver log / diagnóstico"
+msgstr "Protokoll / Diagnose anzeigen"
