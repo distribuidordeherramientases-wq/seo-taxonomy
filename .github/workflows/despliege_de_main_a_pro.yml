@@ -1,9 +1,6 @@
 name: STAGING a PRODUCCION
 on:
   workflow_dispatch:
-  push:
-    branches: [staging]
-    paths: [.github/workflows/despliege_de_main_a_pro.yml]
   workflow_call:
     inputs:
       source_sha: {type: string, required: true}
