@@ -107,12 +107,14 @@ def selected_delta(base: str, head: str, installed: list[str], allowed: list[str
         if not SLUG.fullmatch(target_plugin) or (accepted is not None and target_plugin not in accepted):
             raise ValueError("Plugin seleccionado ausente o no autorizado en PRO")
         accepted = {target_plugin}
-    # Never allow deletions (or renamed-away files) to silently leave drift on PRO.
-    deleted = git("diff", "--no-renames", "--name-only", "-z", "--diff-filter=D",
-                  base, head, "--", "taxocommerce-*").decode().split("\0")
-    for path in deleted:
-        if path and installable(path) and (accepted is None or path.split("/", 1)[0] in accepted):
-            raise ValueError("Archivo eliminado sin migracion segura: " + path)
+    # The simple copy operation handles added/modified files only.
+    # Deleted source files have no bytes to copy; leave remote deletions alone.
+    if accepted is not None:
+        deleted = git("diff", "--no-renames", "--name-only", "-z", "--diff-filter=D",
+                      base, head, "--", "taxocommerce-*").decode().split("\0")
+        for path in deleted:
+            if path and installable(path) and path.split("/", 1)[0] in accepted:
+                raise ValueError("Archivo eliminado sin migracion segura: " + path)
     changed = git("diff", "--no-renames", "--name-only", "-z", "--diff-filter=ACMT",
                   base, head, "--", "taxocommerce-*").decode().split("\0")
     result = {}
