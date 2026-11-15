@@ -29,6 +29,8 @@ class FakeFTP:
         if value is None:
             raise probe.ftplib.error_perm("550 Missing")
         callback(value)
+    def mlsd(self):
+        return self.files.get(self.place, {}).get('entries', [])
     def storbinary(self, *args, **kwargs):
         self.writes += 1
         raise AssertionError("Never upload in diagnostic")
@@ -69,6 +71,30 @@ class ProbeTests(unittest.TestCase):
         self.files["."]["taxocommerce-core/taxocommerce-core.php"] = header("0.4.84")
         with self.assertRaisesRegex(RuntimeError, "No unique"):
             probe.find_verified_root(FakeFTP(self.files), self.expected)
+    def test_discovers_nested_domain_without_hardcoded_path(self):
+        ftp_files = {
+            "/": {"canonical": "/", "entries": [("domains", {"type": "dir"})]},
+            "/domains": {"canonical": "/domains", "entries": [("shop.test", {"type": "dir"})]},
+            "/domains/shop.test": {"canonical": "/domains/shop.test",
+                                    "entries": [("public_html", {"type": "dir"})]},
+            "/domains/shop.test/public_html": {"canonical": "/domains/shop.test/public_html",
+                                                 "entries": [("wp-content", {"type": "dir"})]},
+            "/domains/shop.test/public_html/wp-content": {
+                "canonical": "/domains/shop.test/public_html/wp-content",
+                "entries": [("plugins", {"type": "dir"})],
+            },
+            "/domains/shop.test/public_html/wp-content/plugins": {
+                "canonical": "/domains/shop.test/public_html/wp-content/plugins",
+                "taxocommerce-core/taxocommerce-core.php": header("0.4.84"),
+                "woocommerce/woocommerce.php": header("11.3.0"),
+            },
+        }
+        ftp = FakeFTP(ftp_files)
+        path, canonical = probe.find_verified_root(ftp, self.expected)
+        self.assertTrue(path.endswith("/wp-content/plugins"))
+        self.assertEqual(canonical, "/domains/shop.test/public_html/wp-content/plugins")
+        self.assertEqual(0, ftp.writes)
+
     def test_missing_file_is_not_authorized(self):
         del self.files["./wp-content/plugins"]["taxocommerce-core/taxocommerce-core.php"]
         with self.assertRaisesRegex(RuntimeError, "No unique"):
