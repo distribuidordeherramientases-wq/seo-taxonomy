@@ -31,31 +31,32 @@ EXCLUDE_SUFFIXES = (".bak", ".log", ".pyc", ".pot")
 
 
 def deliverables():
-    entries = subprocess.check_output(["git", "ls-files", "-z", "--", "taxocommerce-*"])
+    """Copy only Git changes, including files missed by the false-success runs."""
+    raw = json.loads(Path(os.environ["DELTA_FILE"]).read_text(encoding="utf-8"))
+    if not isinstance(raw, dict) or len(raw) > 40:
+        raise RuntimeError("Invalid Git delta")
     selected = {}
-    for raw in entries.split(b"\x00"):
-        if not raw:
-            continue
-        path = raw.decode("utf-8")
-        parts = PurePosixPath(path).parts
-        if len(parts) < 2 or not SLUG.fullmatch(parts[0]):
-            continue
-        if any(not PART.fullmatch(p) or p.startswith(".") for p in parts):
-            continue
-        if any(p in EXCLUDE_DIRS for p in parts[1:]):
-            continue
-        rel = "/".join(parts[1:])
-        if rel.endswith(EXCLUDE_SUFFIXES) or (rel.endswith(".md") and rel != "CHANGELOG.md"):
-            continue
-        local = Path(path)
-        if not local.is_file() or local.is_symlink() or local.stat().st_size > MAX_FILE:
-            continue
-        selected.setdefault(parts[0], []).append((rel, local))
-    for slug, files in selected.items():
-        if not any(p == slug + ".php" for p, _ in files) or not any(p == "readme.txt" for p, _ in files):
-            raise RuntimeError("Missing plugin entrypoint or readme: " + slug)
-    if not selected:
-        raise RuntimeError("No tracked TaxoCommerce plugin files found in staging")
+    for slug, paths in sorted(raw.items()):
+        if not isinstance(slug, str) or not SLUG.fullmatch(slug):
+            raise RuntimeError("Unsafe plugin name")
+        if not isinstance(paths, list) or len(paths) != len(set(paths)):
+            raise RuntimeError("Invalid changed files")
+        if not (Path(slug) / (slug + ".php")).is_file():
+            raise RuntimeError("Missing source plugin entrypoint: " + slug)
+        for rel in paths:
+            if not isinstance(rel, str) or rel.startswith("/") or "\\\\" in rel:
+                raise RuntimeError("Unsafe Git relative path")
+            parts = PurePosixPath(rel).parts
+            if not parts or any(not PART.fullmatch(p) or p.startswith(".") for p in parts):
+                raise RuntimeError("Unsafe source file path")
+            if any(p in EXCLUDE_DIRS for p in parts):
+                raise RuntimeError("Non-distributable path in Git delta")
+            if rel.endswith(EXCLUDE_SUFFIXES) or (rel.endswith(".md") and rel != "CHANGELOG.md"):
+                raise RuntimeError("Non-distributable file in Git delta")
+            local = Path(slug, *parts)
+            if not local.is_file() or local.is_symlink() or local.stat().st_size > MAX_FILE:
+                raise RuntimeError("Changed source file missing or invalid")
+            selected.setdefault(slug, []).append((rel, local))
     return selected
 
 
@@ -123,6 +124,9 @@ def main():
     if not all(os.environ.get(k) for k in ("FTP_SERVER", "FTP_USERNAME", "FTP_PASSWORD")):
         raise RuntimeError("Existing FTP_SERVER/FTP_USERNAME/FTP_PASSWORD secrets required")
     modules = deliverables()
+    if not modules:
+        print('No Git changes to publish; production unchanged.')
+        return
     packages = create_packages(modules)
     token = secrets.token_hex(32)
     ident = secrets.token_hex(12)
