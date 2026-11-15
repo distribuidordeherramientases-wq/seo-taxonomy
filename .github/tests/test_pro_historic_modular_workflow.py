@@ -26,7 +26,9 @@ class PRODeployTests(unittest.TestCase):
             self.assertIn("secrets." + name, self.workflow)
         self.assertNotIn("secrets.STAGING_FTP_", self.workflow)
         self.assertIn("PLUGINS_DIR = \"wp-content/plugins\"", self.copier)
-        self.assertIn("ftp.cwd(PLUGINS_DIR)", self.copier)
+        self.assertIn("root = find_live_plugin_root(ftp)", self.copier)
+        self.assertIn("woocommerce/woocommerce.php", self.copier)
+        self.assertIn("taxocommerce-core/taxocommerce-core.php", self.copier)
 
     def test_changed_files_only_and_copy_sha(self):
         self.assertIn("changed_count != '0'", self.workflow)
