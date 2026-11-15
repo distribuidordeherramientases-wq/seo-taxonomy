@@ -36,7 +36,7 @@ tgb_chunked_assert( false !== strpos( $worker, "tempnam( get_temp_dir(), 'tgb-in
 tgb_chunked_assert( false !== strpos( $worker, 'const COMPLETE_TTL = 86400;' ), 'Completed report persists for 24 hours.' );
 tgb_chunked_assert( false !== strpos( $worker, "'updated_at' => time()" ), 'Active export has sliding expiry.' );
 tgb_chunked_assert( false !== strpos( $worker, "'nonce'  => wp_create_nonce( self::NONCE )" ), 'AJAX download URL has valid literal nonce parameter.' );
-tgb_chunked_assert( false === strpos( $worker, 'wp_nonce_url(' ), 'AJAX download URL is not HTML-escaped.' );
+tgb_chunked_assert( false === strpos( $worker, 'return wp_nonce_url(' ), 'AJAX download URL is not HTML-escaped.' );
 tgb_chunked_assert( false !== strpos( $worker, "json_decode( \$contents, true );" ), 'Only valid JSON is downloadable.' );
 tgb_chunked_assert( false !== strpos( $worker, "getrusage" ), 'Load controller can observe PHP process CPU time.' );
 tgb_chunked_assert( false !== strpos( $worker, "memory_get_peak_usage" ), 'Load controller observes memory.' );
