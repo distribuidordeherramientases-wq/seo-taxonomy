@@ -290,7 +290,7 @@ final class TaxoCommerce_System_Check_Processes {
 		$operation = isset( $_POST['operation'] ) ? sanitize_key( wp_unslash( $_POST['operation'] ) ) : '';
 		$success = 0;
 		if ( 'stop_worker' === $operation ) {
-			$id = isset( $_POST['worker'] ) ? sanitize_key( wp_unslash( $_POST['worker'] ) ) : '';
+			$id = isset( $_POST['worker'] ) && is_scalar( $_POST['worker'] ) ? sanitize_text_field( wp_unslash( $_POST['worker'] ) ) : '';
 			$success = self::stop_worker( $id ) ? 1 : 0;
 		} elseif ( 'cancel_action' === $operation ) {
 			$id = isset( $_POST['id'] ) ? absint( wp_unslash( $_POST['id'] ) ) : 0;
