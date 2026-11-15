@@ -1,3 +1,9 @@
+## 0.1.5 — 2026-11-15 — Pestaña activa destacada (#2720)
+
+- La pestaña activa del menú de Accounting y la subpestaña de Hacienda se distinguen con fondo azul y texto blanco, con estado de foco visible al navegar con teclado.
+- CSS propio, cargado únicamente en la pantalla del plugin mediante admin_enqueue_scripts; sin cambiar las otras pantallas de WordPress, el código fiscal o las traducciones.
+- Prueba de regresión para encolado y marcado visual de la navegación. Sin cambios funcionales ni de datos.
+
 ## 0.1.4 — 2026-11-15 — Preparación fiscal acumulada y sincronización opcional (#2707)
 
 - Hacienda muestra en los modelos 303 y 390 los importes acumulados del periodo (bases de ventas y compras, IVA repercutido, soportado deducible y diferencia indicativa) calculados desde el registro fiscal actualizado al abrir la pestaña. No se confunden con las casillas oficiales ni con la deuda tributaria final.
