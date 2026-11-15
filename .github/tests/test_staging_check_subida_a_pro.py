@@ -36,10 +36,16 @@ class GatedPipelineContract(unittest.TestCase):
         # Partial Core/Tasks jobs cannot mark the entire revision deployed.
         self.assertNotIn("  push:", self.staging)
         self.assertIn("workflow_call:", self.staging)
-        self.assertIn("TAXOCOMMERCE_REMOTE_VERIFY: '1'", self.staging)
+        self.assertNotIn("TAXOCOMMERCE_REMOTE_VERIFY: '1'", self.staging)
         self.assertIn("STAGING_FTP_PASSWORD:", self.staging)
         self.assertIn("TAXOCOMMERCE_TARGET_PLUGIN:", self.staging)
         self.assertNotIn("github.workflow == 'Immediate deployment to STAGING'", self.staging)
+        # Uploading changed plugin files must never be blocked by optional
+        # WordPress login credentials or automatic plugin activation.
+        self.assertNotIn("python3 .github/scripts/activate_accounting_staging.py", self.staging)
+        self.assertNotIn("Activate and verify new Accounting plugin", self.staging)
+        self.assertNotIn("remote_plugin_entrypoint_drift", self.staging)
+
 
 
     def test_plugin_check_does_not_monopolize_the_ftp_delivery_lock(self):
