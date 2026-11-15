@@ -373,7 +373,7 @@ final class TaxoCommerce_System_Check_Processes {
 			}
 			TaxoCommerce_System_Check_Process_Details::render_selected();
 		} else {
-			echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'El diagnóstico detallado de procesos no está disponible. Comprueba que la actualización de System Check se haya completado.', 'taxocommerce-system-check' ) . '</p></div>';
+			echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Process diagnostics are unavailable until the plugin update completes.', 'taxocommerce-system-check' ) . '</p></div>';
 		}
 		self::button( 'stop_all', __( 'Detener los trabajos cancelables mostrados', 'taxocommerce-system-check' ), array(), true );
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status feedback.
@@ -392,7 +392,7 @@ final class TaxoCommerce_System_Check_Processes {
 			if ( $details_available ) {
 				echo '</td><td><a class="button" href="' . esc_url( TaxoCommerce_System_Check_Process_Details::url( 'worker', array( 'tcs_worker' => $worker['id'] ) ) ) . '">' . esc_html__( 'Ver detalles', 'taxocommerce-system-check' ) . '</a></td></tr>';
 			} else {
-				echo '</td><td>' . esc_html__( 'No disponible', 'taxocommerce-system-check' ) . '</td></tr>';
+				echo '</td><td>' . esc_html__( 'Unavailable', 'taxocommerce-system-check' ) . '</td></tr>';
 			}
 		}
 		if ( ! $workers ) {
@@ -408,7 +408,7 @@ final class TaxoCommerce_System_Check_Processes {
 			if ( $details_available ) {
 				echo '</td><td><a class="button" href="' . esc_url( TaxoCommerce_System_Check_Process_Details::url( 'action', array( 'tcs_item' => (int) $action['id'] ) ) ) . '">' . esc_html__( 'Ver log / diagnóstico', 'taxocommerce-system-check' ) . '</a></td></tr>';
 			} else {
-				echo '</td><td>' . esc_html__( 'No disponible', 'taxocommerce-system-check' ) . '</td></tr>';
+				echo '</td><td>' . esc_html__( 'Unavailable', 'taxocommerce-system-check' ) . '</td></tr>';
 			}
 		}
 		if ( ! $actions ) {
@@ -424,7 +424,7 @@ final class TaxoCommerce_System_Check_Processes {
 			if ( $details_available ) {
 				echo '</td><td><a class="button" href="' . esc_url( TaxoCommerce_System_Check_Process_Details::url( 'cron', array( 'tcs_hook' => $event['hook'], 'tcs_when' => $event['due'], 'tcs_sig' => md5( wp_json_encode( $event['args'] ) ) ) ) ) . '">' . esc_html__( 'Ver detalles', 'taxocommerce-system-check' ) . '</a></td></tr>';
 			} else {
-				echo '</td><td>' . esc_html__( 'No disponible', 'taxocommerce-system-check' ) . '</td></tr>';
+				echo '</td><td>' . esc_html__( 'Unavailable', 'taxocommerce-system-check' ) . '</td></tr>';
 			}
 		}
 		if ( ! $crons ) {
