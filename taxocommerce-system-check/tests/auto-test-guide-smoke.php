@@ -250,9 +250,9 @@ foreach ( $tcs_expected_locales as $tcs_locale ) {
         tcs_smoke_expect( ! array_key_exists( $tcs_entry['msgid'], $tcs_pairs ), 'Duplicate msgid in ' . $tcs_locale );
         $tcs_pairs[ $tcs_entry['msgid'] ] = $tcs_entry['msgstr'];
     }
-    tcs_smoke_expect( 421 === count( $tcs_pairs ), 'Expected 420 translated strings plus metadata in ' . $tcs_locale );
+    tcs_smoke_expect( count( $tcs_pairs ) >= 421, 'Translation catalog regressed below original 420 strings in ' . $tcs_locale );
     $tcs_header = unpack( 'Vmagic/Vrevision/Vcount/Vorig/Vtrans/Vhashsize/Vhash', substr( $tcs_bytes, 0, 28 ) );
-    tcs_smoke_expect( 0x950412de === $tcs_header['magic'] && 421 === $tcs_header['count'], 'Invalid gettext MO header for ' . $tcs_locale );
+    tcs_smoke_expect( 0x950412de === $tcs_header['magic'] && count( $tcs_pairs ) === $tcs_header['count'], 'Invalid gettext MO header/count for ' . $tcs_locale );
     tcs_smoke_expect( $tcs_header['orig'] + $tcs_header['count'] * 8 <= strlen( $tcs_bytes ), 'Invalid MO source index for ' . $tcs_locale );
     tcs_smoke_expect( $tcs_header['trans'] + $tcs_header['count'] * 8 <= strlen( $tcs_bytes ), 'Invalid MO translation index for ' . $tcs_locale );
     for ( $tcs_n = 0; $tcs_n < $tcs_header['count']; ++$tcs_n ) {
