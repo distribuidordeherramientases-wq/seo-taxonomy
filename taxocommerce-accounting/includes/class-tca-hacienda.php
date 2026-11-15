@@ -111,7 +111,7 @@ final class TCA_Hacienda {
         $groups = $wpdb->get_results(
             $wpdb->prepare(
                 'SELECT SUBSTRING(fiscal_date, 1, 7) AS period, kind, status, treatment, COUNT(*) AS entry_count,
-                    SUM(amount_total) AS amount_total, SUM(amount_tax) AS amount_tax,
+                    SUM(amount_base) AS amount_base, SUM(amount_total) AS amount_total, SUM(amount_tax) AS amount_tax,
                     SUM(amount_tax * deductible_pct / 100) AS deductible_tax
                 FROM %i WHERE fiscal_date BETWEEN %s AND %s
                 GROUP BY SUBSTRING(fiscal_date, 1, 7), kind, status, treatment
@@ -127,6 +127,7 @@ final class TCA_Hacienda {
             if ( ! isset( $months[ $month ] ) ) {
                 $months[ $month ] = array(
                     'month' => $month, 'sales' => 0.0, 'purchases' => 0.0,
+                    'sales_base' => 0.0, 'purchases_base' => 0.0,
                     'output_vat' => 0.0, 'deductible_input_vat' => 0.0,
                     'pending_review' => 0, 'entries' => 0,
                 );
@@ -137,9 +138,11 @@ final class TCA_Hacienda {
                 $months[ $month ]['pending_review'] += $count;
             } elseif ( in_array( $group->kind, array( 'sale', 'refund' ), true ) ) {
                 $months[ $month ]['sales'] += (float) $group->amount_total;
+                $months[ $month ]['sales_base'] += (float) $group->amount_base;
                 $months[ $month ]['output_vat'] += (float) $group->amount_tax;
             } elseif ( in_array( $group->kind, array( 'purchase', 'expense', 'asset' ), true ) ) {
                 $months[ $month ]['purchases'] += (float) $group->amount_total;
+                $months[ $month ]['purchases_base'] += (float) $group->amount_base;
                 $months[ $month ]['deductible_input_vat'] += (float) $group->deductible_tax;
             } else {
                 $months[ $month ]['pending_review'] += $count;
@@ -148,7 +151,7 @@ final class TCA_Hacienda {
         ksort( $months );
         foreach ( $months as &$month ) {
             $month['difference'] = round( $month['output_vat'] - $month['deductible_input_vat'], 2 );
-            foreach ( array( 'sales', 'purchases', 'output_vat', 'deductible_input_vat' ) as $field ) {
+            foreach ( array( 'sales', 'sales_base', 'purchases', 'purchases_base', 'output_vat', 'deductible_input_vat' ) as $field ) {
                 $month[ $field ] = round( $month[ $field ], 2 );
             }
         }
@@ -261,6 +264,22 @@ final class TCA_Hacienda {
     private static function render_readiness( $year, $quarter ) {
         $data = self::readiness( $year, $quarter );
         echo '<h3>' . esc_html__( 'Preparation checklist', 'taxocommerce-accounting' ) . '</h3>';
+        $settings = tca_settings();
+        $sync_state = (array) get_option( 'tca_sales_sync_state', array() );
+        echo '<p><strong>' . esc_html__( 'WooCommerce background sales import:', 'taxocommerce-accounting' ) . '</strong> ';
+        if ( empty( $settings['auto_sync_sales'] ) ) {
+            echo esc_html__( 'Not enabled. Enable it under Accounting Settings to keep new paid orders available for review.', 'taxocommerce-accounting' );
+        } elseif ( empty( $sync_state['last_checked'] ) ) {
+            echo esc_html__( 'Enabled but not executed yet. WP-Cron requires site traffic or an external scheduler.', 'taxocommerce-accounting' );
+        } else {
+            echo esc_html__( 'Last check:', 'taxocommerce-accounting' ) . ' ' . esc_html( (string) $sync_state['last_checked'] );
+            echo '. ' . esc_html__( 'Last full cycle:', 'taxocommerce-accounting' ) . ' ' . esc_html( ! empty( $sync_state['last_full_cycle'] ) ? (string) $sync_state['last_full_cycle'] : __( 'Not completed yet', 'taxocommerce-accounting' ) );
+            if ( ! empty( $sync_state['last_error'] ) ) {
+                echo '. ' . esc_html__( 'Error:', 'taxocommerce-accounting' ) . ' ' . esc_html( (string) $sync_state['last_error'] );
+            }
+        }
+        echo ' <a href="' . esc_url( tca_admin_url( 'settings', array( 'year' => $year ) ) ) . '">' . esc_html__( 'Settings', 'taxocommerce-accounting' ) . '</a></p>';
+
         echo '<p>' . esc_html__( 'Accounting entries in selected period:', 'taxocommerce-accounting' ) . ' <strong>' . esc_html( (string) $data['total'] ) . '</strong>. ';
         echo esc_html__( 'Pending validation:', 'taxocommerce-accounting' ) . ' <strong>' . esc_html( (string) $data['pending'] ) . '</strong>. ';
         echo esc_html__( 'Operations outside standard domestic VAT:', 'taxocommerce-accounting' ) . ' <strong>' . esc_html( (string) $data['other_treatments'] ) . '</strong>. ';
@@ -298,8 +317,13 @@ final class TCA_Hacienda {
             $quarter = 1;
         }
         $section = $sections[ $selected ];
+        list( $period_start, $period_end ) = self::dates( $year, '303' === $selected ? $quarter : 0 );
+
         echo '<h2>' . esc_html__( 'Hacienda — tax reports and records', 'taxocommerce-accounting' ) . '</h2>';
         echo '<p>' . esc_html__( 'These are internal working reports, NOT official AEAT tax forms. They are not accepted for submission. The filing obligations depend on the business and tax regime.', 'taxocommerce-accounting' ) . '</p>';
+        echo '<p><strong>' . esc_html__( 'Reporting period:', 'taxocommerce-accounting' ) . '</strong> ' . esc_html( $period_start . ' — ' . $period_end ) . '. ';
+        echo esc_html__( 'Figures recalculate from the current register whenever you open this screen; you do not have to wait for the tax deadline.', 'taxocommerce-accounting' ) . '</p>';
+
         echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Tax documents', 'taxocommerce-accounting' ) . '">';
         foreach ( $sections as $id => $item ) {
             $url = tca_admin_url( 'hacienda', array( 'year' => $year, 'hacienda' => $id ) );
@@ -391,6 +415,34 @@ final class TCA_Hacienda {
             echo '<tr><td colspan="7">' . esc_html__( 'No accounting entries for this period.', 'taxocommerce-accounting' ) . '</td></tr>';
         }
         echo '</tbody></table>';
+        $totals = array(
+            'sales_base' => 0.0, 'sales' => 0.0,
+            'purchases_base' => 0.0, 'purchases' => 0.0,
+            'output_vat' => 0.0, 'deductible_input_vat' => 0.0,
+            'pending_review' => 0,
+        );
+        foreach ( $rows as $row ) {
+            foreach ( $totals as $key => $value ) {
+                $totals[ $key ] += isset( $row[ $key ] ) ? (float) $row[ $key ] : 0.0;
+            }
+        }
+        echo '<h3>' . esc_html__( 'Accumulated figures for the selected period', 'taxocommerce-accounting' ) . '</h3>';
+        echo '<table class="widefat striped"><tbody>';
+        foreach ( array(
+            'sales_base' => __( 'Domestic sales taxable base (validated)', 'taxocommerce-accounting' ),
+            'sales' => __( 'Domestic sales with VAT', 'taxocommerce-accounting' ),
+            'purchases_base' => __( 'Domestic purchases / expenses taxable base (validated)', 'taxocommerce-accounting' ),
+            'purchases' => __( 'Domestic purchases / expenses with VAT', 'taxocommerce-accounting' ),
+            'output_vat' => __( 'Accrued output VAT', 'taxocommerce-accounting' ),
+            'deductible_input_vat' => __( 'Deductible input VAT', 'taxocommerce-accounting' ),
+        ) as $key => $label ) {
+            echo '<tr><th scope="row">' . esc_html( $label ) . '</th><td>' . esc_html( tca_money( round( $totals[ $key ], 2 ) ) ) . '</td></tr>';
+        }
+        echo '<tr><th scope="row">' . esc_html__( 'Indicative domestic VAT balance (not final tax due)', 'taxocommerce-accounting' ) . '</th><td><strong>' .
+            esc_html( tca_money( round( $totals['output_vat'] - $totals['deductible_input_vat'], 2 ) ) ) . '</strong></td></tr>';
+        echo '<tr><th scope="row">' . esc_html__( 'Operations pending review or special tax treatment', 'taxocommerce-accounting' ) . '</th><td>' . esc_html( (string) (int) $totals['pending_review'] ) . '</td></tr>';
+        echo '</tbody></table>';
+        echo '<p>' . esc_html__( 'These are live accounting totals, not official AEAT boxes. The current register does not retain an invoice-by-invoice split of VAT rates, prior period offsets, all tax adjustments or filing options. Do not copy the indicative balance directly as the amount to pay.', 'taxocommerce-accounting' ) . '</p>';
         echo '<p>' . esc_html__( 'Only validated domestic operations are included in the indicative VAT figures. Drafts and other regimes require review. This is not a complete tax return.', 'taxocommerce-accounting' ) . '</p>';
     }
 
