@@ -38,7 +38,7 @@ def deliverables():
         if len(parts) < 2 or not SLUG.fullmatch(parts[0]):
             continue
         slug, relative_parts = parts[0], parts[1:]
-        if any(part in {".gitlab", ".git"} for part in relative_parts):
+        if any(part.startswith(".") for part in relative_parts):
             continue
         if any(part in {".", ".."} or not PART.fullmatch(part) for part in relative_parts):
             raise RuntimeError("Unsafe source path in Git")
@@ -59,7 +59,7 @@ def deliverables():
             if not file.is_file() or file.is_symlink() or file.stat().st_size > MAX_FILE:
                 continue
             relative = file.relative_to(dompdf)
-            if any(part in {".gitlab", ".git"} for part in relative.parts):
+            if any(part.startswith(".") for part in relative.parts):
                 continue
             if any(not PART.fullmatch(part) for part in relative.parts):
                 raise RuntimeError("Unsafe Dompdf source filename")
