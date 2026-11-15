@@ -702,7 +702,7 @@ function tca_admin() {
         echo '<h2>' . esc_html__( 'Read-only functional Autocheck', 'taxocommerce-accounting' ) . '</h2>';
         echo '<p>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-accounting' ) . ' ' . esc_html( $report['date'] ) . '</p>';
         echo '<p>' . esc_html( $report['pass'] ) . ' PASS / ' . esc_html( $report['fail'] ) . ' FAIL</p><table class="widefat striped">';
-        foreach ( $report['tests'] as $test => $state ) echo '<tr><td>' . esc_html( $test ) . '</td><td>' . esc_html( strtoupper( $state ) ) . '</td></tr>';
+        foreach ( $report['rows'] as $check ) echo '<tr><td>' . esc_html( $check['id'] ) . '</td><td>' . esc_html( strtoupper( $check['status'] ) ) . '</td></tr>';
         echo '</table><p>' . esc_html__( 'Failure of draft/review checks means fiscal data needs validation, not that the plugin runtime has failed.', 'taxocommerce-accounting' ) . '</p>';
         $autocheck_url = wp_nonce_url( add_query_arg( array( 'action' => 'tca_autocheck_download', 'year' => $year ), admin_url( 'admin-post.php' ) ), 'tca_autocheck_download' );
         echo '<p><a class="button button-secondary" href="' . esc_url( $autocheck_url ) . '">' . esc_html__( 'Download Autocheck JSON', 'taxocommerce-accounting' ) . '</a></p>';
