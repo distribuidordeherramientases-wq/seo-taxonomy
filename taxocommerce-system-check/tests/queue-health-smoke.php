@@ -45,6 +45,7 @@ require_once dirname( __DIR__ ) . '/includes/class-taxocommerce-system-check-que
 
 tcs_queue_assert( 'no_old_backlog' === TaxoCommerce_System_Check_Queue_Health::assess( 600, 0, 0 ), 'No overdue work is not a runner failure' );
 tcs_queue_assert( 'failures_recent' === TaxoCommerce_System_Check_Queue_Health::assess( 1800, 1, 2 ), 'Recent failure diagnosis' );
+tcs_queue_assert( 'failures_recent' === TaxoCommerce_System_Check_Queue_Health::assess( 0, 1, 2 ), 'Recent failures matter even without a late pending job' );
 tcs_queue_assert( 'backlog_with_activity' === TaxoCommerce_System_Check_Queue_Health::assess( 1800, 7, 0 ), 'Stale job but runner is active' );
 tcs_queue_assert( 'runner_unconfirmed' === TaxoCommerce_System_Check_Queue_Health::assess( 1800, 0, 0 ), 'No activity cannot be reported as proven runner stop' );
 
