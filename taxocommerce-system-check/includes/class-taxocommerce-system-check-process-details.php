@@ -40,8 +40,8 @@ final class TaxoCommerce_System_Check_Process_Details {
         $text = sanitize_text_field( wp_strip_all_tags( (string) $message ) );
         $text = preg_replace( '/\\b(Bearer)\\s+[A-Za-z0-9._~+\\/-]+/i', '$1 [redacted]', $text );
         $text = preg_replace( '/\\b(password|passwd|secret|token|api[_-]?key|authorization|access[_-]?key)\\s*[:=]\\s*[^\\s&,;]+/i', '$1=[redacted]', $text );
-        $text = preg_replace( '/([?&](?:key|token|secret|password|auth|signature|code)=)[^&#\\s]+/i', '$1[redacted]', $text );
-        return mb_substr( (string) $text, 0, 400 );
+        $text = preg_replace( '/([?&](?:key|api_key|token|secret|password|auth|signature|code)=)[^&#\\s]+/i', '$1[redacted]', $text );
+        return wp_html_excerpt( (string) $text, 400 );
     }
 
     /** Use Action Scheduler's own logger; never read arbitrary paths or debug.log. */
