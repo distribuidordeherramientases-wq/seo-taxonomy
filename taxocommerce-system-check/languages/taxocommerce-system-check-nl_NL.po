@@ -2055,3 +2055,48 @@ msgstr "Details"
 #. translators: 1: maximum URLs per batch; 2: completed; 3: total; 4: approximate next pending position.
 msgid "Batch limit: %1$d URLs · progress: %2$d/%3$d · resume: next pending URL (approx. position %4$d)."
 msgstr "Batchlimiet: %1$d URL's · voortgang: %2$d/%3$d · hervatten: volgende wachtende URL (ongeveer positie %4$d)."
+
+msgid "Diagnóstico de tarea"
+msgstr "Taakdiagnose"
+
+msgid "La tarea ya no existe o no está disponible."
+msgstr "De taak bestaat niet meer of is niet beschikbaar."
+
+msgid "Grupo:"
+msgstr "Groep:"
+
+msgid "Posible tarea huérfana: no hay un callback registrado en esta petición. Confirma si el plugin está activo antes de cancelar."
+msgstr "Mogelijk verweesde taak: voor dit verzoek is geen callback geregistreerd. Controleer vóór annulering of de plugin actief is."
+
+msgid "Callback registrado. Esto no demuestra una ejecución correcta."
+msgstr "Callback geregistreerd. Dit bewijst niet dat de uitvoering is geslaagd."
+
+msgid "Ejecutor no verificable desde este estado."
+msgstr "De uitvoerder kan op basis van deze status niet worden gecontroleerd."
+
+msgid "Programado (UTC):"
+msgstr "Gepland (UTC):"
+
+msgid "WP-Cron no conserva un historial individual de errores. Consulta los registros del plugin responsable si existen."
+msgstr "WP-Cron bewaart geen foutgeschiedenis per gebeurtenis. Raadpleeg indien beschikbaar de logboeken van de verantwoordelijke plugin."
+
+msgid "Este estado no prueba que una petición PHP siga ejecutándose."
+msgstr "Deze status bewijst niet dat er nog een PHP-verzoek wordt uitgevoerd."
+
+msgid "Registro de Action Scheduler (últimas 20 entradas)"
+msgstr "Action Scheduler-logboek (laatste 20 vermeldingen)"
+
+msgid "No hay entradas de registro disponibles para esta tarea."
+msgstr "Er zijn geen logboekvermeldingen beschikbaar voor deze taak."
+
+msgid "El prefijo histórico seo_ no demuestra una dependencia del antiguo monolítico. No se muestran argumentos ni credenciales."
+msgstr "Het historische voorvoegsel seo_ bewijst geen afhankelijkheid van de oude monolithische plugin. Argumenten en inloggegevens worden niet getoond."
+
+msgid "Ver log del último fallo"
+msgstr "Logboek van laatste fout bekijken"
+
+msgid "Ver detalles"
+msgstr "Details bekijken"
+
+msgid "Ver log / diagnóstico"
+msgstr "Logboek / diagnose bekijken"
