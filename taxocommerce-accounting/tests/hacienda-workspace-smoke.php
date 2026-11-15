@@ -22,6 +22,12 @@ class TCA_Hacienda_Test_DB {
         return $sql;
     }
     public function get_results( $sql ) {
+        if ( false !== strpos( $sql, 'missing_document' ) ) {
+            return array(
+                (object) array( 'kind' => 'sale', 'status' => 'validated', 'treatment' => 'domestic', 'entry_count' => 4, 'missing_document' => 1, 'missing_tax_id' => 2 ),
+                (object) array( 'kind' => 'refund', 'status' => 'draft', 'treatment' => 'review', 'entry_count' => 2, 'missing_document' => 2, 'missing_tax_id' => 1 ),
+            );
+        }
         return array(
             (object) array( 'period' => '2026-11', 'kind' => 'sale', 'status' => 'validated', 'treatment' => 'domestic', 'entry_count' => 600, 'amount_total' => 121, 'amount_tax' => 21, 'deductible_tax' => 0 ),
             (object) array( 'period' => '2026-11', 'kind' => 'refund', 'status' => 'validated', 'treatment' => 'domestic', 'entry_count' => 1, 'amount_total' => -25, 'amount_tax' => -5, 'deductible_tax' => 0 ),
@@ -34,6 +40,14 @@ class TCA_Hacienda_Test_DB {
 }
 $GLOBALS['wpdb'] = new TCA_Hacienda_Test_DB();
 require_once dirname( __DIR__ ) . '/includes/class-tca-hacienda.php';
+$coverage = TCA_Hacienda::readiness( 2026, 4 );
+tca_test_assert( 6 === $coverage['total'], 'All ledger rows must count toward period coverage' );
+tca_test_assert( 2 === $coverage['pending'], 'Unvalidated records require review' );
+tca_test_assert( 2 === $coverage['other_treatments'], 'Special treatments are not silently treated as domestic' );
+tca_test_assert( 3 === $coverage['missing_document'], 'Missing document references are counted' );
+tca_test_assert( 3 === $coverage['missing_tax_id'], 'Missing tax IDs are informational, not a blanket tax blocker' );
+tca_test_assert( in_array( '2026-10-01', $GLOBALS['wpdb']->args, true ), 'Readiness uses bound fiscal quarter start' );
+tca_test_assert( false !== strpos( $GLOBALS['wpdb']->sql, 'GROUP BY' ), 'Readiness does not rely on a display-limited row set' );
 $expected = array( 'issued', 'received', 'assets', 'intra', '303', '390', '347', '349', '200' );
 $sections = TCA_Hacienda::sections();
 tca_test_assert( array_map( 'strval', array_keys( $sections ) ) === $expected, 'All four fiscal books and five models must appear in Hacienda tabs' );
