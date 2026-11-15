@@ -18,6 +18,11 @@ CANDIDATES = (
     "./wp-content/plugins",
     "./public_html/wp-content/plugins",
     "./httpdocs/wp-content/plugins",
+    "./distribuidordeherramientas.es/wp-content/plugins",
+    "./public_html/distribuidordeherramientas.es/wp-content/plugins",
+    "./www/wp-content/plugins",
+    "./domains/distribuidordeherramientas.es/public_html/wp-content/plugins",
+    "./web/wp-content/plugins",
     "..",
 )
 TARGETS = (
@@ -163,6 +168,30 @@ def find_verified_root(ftp: ftplib.FTP_TLS, expected: dict[str, str]):
     return next(iter(matches.values())), next(iter(matches.keys()))
 
 
+def diagnose_known_roots(ftp):
+    """Bounded read-only diagnostics. No site inventory, FTP writes or credentials."""
+    login_root = ftp.pwd()
+    for relative in CANDIDATES:
+        try:
+            ftp.cwd(login_root)
+            ftp.cwd(relative)
+            values = []
+            for file, label in (
+                ("taxocommerce-core/taxocommerce-core.php", "Core"),
+                ("woocommerce/woocommerce.php", "WooCommerce"),
+                ("taxocommerce-google-bing/taxocommerce-google-bing.php", "Insights"),
+            ):
+                try:
+                    values.append(label + "=" + read_plugin_version(ftp, file))
+                except (ftplib.Error, OSError, ValueError):
+                    values.append(label + "=absent")
+            print("CANDIDATE " + relative + " : " + " ".join(values), flush=True)
+        except (ftplib.Error, OSError, ValueError):
+            print("CANDIDATE " + relative + " : inaccessible", flush=True)
+        finally:
+            ftp.cwd(login_root)
+
+
 def main() -> int:
     required = ("FTP_SERVER", "FTP_USERNAME", "FTP_PASSWORD",
                 "PRO_CORE_EXPECTED_VERSION", "PRO_WOO_EXPECTED_VERSION")
@@ -183,6 +212,9 @@ def main() -> int:
         ftp.login(os.environ["FTP_USERNAME"], os.environ["FTP_PASSWORD"])
         ftp.prot_p()
         # This is a read-only diagnostic. No FTP upload/remove/mkdir is used.
+        if len(sys.argv) == 2 and sys.argv[1] == "--diagnose-known-roots":
+            diagnose_known_roots(ftp)
+            return 0
         if len(sys.argv) == 2 and sys.argv[1] == "--shared-account-pro-root":
             _candidate, _canonical = verify_pro_site_at_shared_account_root(ftp, expected)
         elif len(sys.argv) == 1:
