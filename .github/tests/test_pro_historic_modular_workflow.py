@@ -1,18 +1,16 @@
-"""Regression tests for restored STAGING -> PRO modular ZIP/REST workflow.
+"""Regression tests for independent STAGING -> PRO FTPS deployment.
 
-This is a read-only test: it never connects to FTP or writes to WordPress.
-Historical reference: successful run 41243555528, source 03cb678b.
-The legacy monolith sync and obsolete-file deletion steps are deliberately
-not restored. The installed REST receiver is only used for the ZIP handoff.
+Source inspection only; never connects to WordPress or FTP.
 """
 from pathlib import Path
 import re
 import unittest
 
-
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github/workflows/despliege_de_main_a_pro.yml"
-INVENTORY = ROOT / ".github/scripts/fetch_pro_installed_modules.py"
+UPLOADER = ROOT / ".github/scripts/deploy_pro_ftps_native.py"
+PREFLIGHT = ROOT / ".github/scripts/pro_deploy_preflight.py"
+SELECTOR = ROOT / ".github/scripts/select_pro_release_delta.py"
 MODULE = re.compile(r"^taxocommerce-[a-z0-9-]+$")
 
 
@@ -20,121 +18,86 @@ class HistoricModularDeployTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.workflow = WORKFLOW.read_text(encoding="utf-8")
-        cls.inventory = INVENTORY.read_text(encoding="utf-8")
+        cls.uploader = UPLOADER.read_text(encoding="utf-8")
+        cls.preflight = PREFLIGHT.read_text(encoding="utf-8")
+        cls.selector = SELECTOR.read_text(encoding="utf-8")
 
-    def test_manual_staging_source_and_installed_wordpress_inventory(self):
+    def test_manual_staging_source(self):
         text = self.workflow
         self.assertIn("workflow_dispatch:", text)
         self.assertIn("ref: staging", text)
         self.assertIn('test "$GITHUB_REF_NAME" = "staging"', text)
-        self.assertIn("PRO_SITE_URL: https://www.distribuidordeherramientas.es", text)
-        self.assertIn(".github/scripts/fetch_pro_installed_modules.py", text)
-        self.assertIn("INSTALLED_MODULES_JSON: ${{ steps.installed.outputs.modules }}", text)
-        self.assertIn("ALL_MODULES_JSON: ${{ steps.family.outputs.modules }}", text)
-        self.assertIn("seo_taxocommerce_installed_deploy_modules", (
-            ROOT / "includes/seo-deploy-status.php").read_text(encoding="utf-8"))
-        self.assertIn("get_plugins()", (ROOT / "includes/seo-deploy-status.php").read_text(encoding="utf-8"))
+        self.assertIn("Reject untested source revisions before any production write", text)
+        self.assertIn("concurrency:", text)
+        self.assertIn("group: taxocommerce-production-deploy", text)
 
-    def test_no_monolith_sync_no_repo_sync_no_deletion(self):
+    def test_no_legacy_rest_service_or_monolith_sync(self):
         text = self.workflow
         for forbidden in (
-            "Subir TaxoCommerce SEO antiguo",
-            "Subir SEO Taxonomy a producción",
-            "FTP-Deploy-Action",
-            "local-dir: ./",
-            "server-dir: ./",
-            ".github/scripts/deploy_pro_all.py",
-            ".github/scripts/reconcile_taxocommerce_pro.py",
-            "TC_APPROVED_CLEANUP_SHA256",
-            "ftp.cwd",
-            "PRO_FTP_PLUGINS_DIR",
-            "wp-content/plugins/seo-taxonomy",
+            "seo-taxonomy/", "seo_taxocommerce_", "/deploy-active-modules",
+            "fetch_pro_installed_modules.py >>", "wp-json/taxocommerce/v1/",
+            'handoff=".taxocommerce-deploy/', "put \"$package\"",
+            "FTP-Deploy-Action", "local-dir: ./", "server-dir: ./",
+            "reconcile_taxocommerce_pro.py", "wp-content/plugins/seo-taxonomy",
         ):
             self.assertNotIn(forbidden, text)
-        self.assertNotIn("rm -rf \"includes/", text)
-        self.assertIn('handoff=".taxocommerce-deploy/$GITHUB_RUN_ID"', text)
-        self.assertIn("put \"$package\" -o \"$handoff/$module.zip\"", text)
-        self.assertIn('rm -r "$handoff"', text)
+        self.assertIn("deploy_pro_ftps_native.py inventory", text)
+        self.assertIn("deploy_pro_ftps_native.py apply", text)
 
-    def test_only_existing_modules_and_sha256_verified_by_wordpress(self):
-        text = self.workflow
-        self.assertIn("find . -maxdepth 1 -mindepth 1 -type d -name 'taxocommerce-*'", text)
-        self.assertIn('test -f "$module/$module.php"', text)
-        self.assertIn('for module in "${selected_modules[@]}"; do', text)
-        self.assertIn('zip -q "$package" "${changed_files[@]}"', text)
-        self.assertIn("unzip -t \"$package\"", text)
-        self.assertIn("unzip -Z1 \"$package\"", text)
-        self.assertIn("manifest_sha256", text)
-        self.assertIn("verified_files", text)
-        self.assertIn("wp-json/taxocommerce/v1/deploy-active-modules", text)
-        self.assertIn("readme.txt", text)
-        self.assertIn("zipfile.ZipFile(package)", text)
-        self.assertIn("trap cleanup_handoff EXIT", text)
+    def test_verified_root_and_installed_inventory_before_writes(self):
+        uploader = self.uploader
+        self.assertIn("find_verified_root(ftps, expected)", uploader)
+        self.assertIn("ftp.mlsd()", uploader)
+        self.assertIn("read_plugin_version(ftp, name +", uploader)
+        self.assertIn("load_delta(sys.argv[2], installed)", uploader)
+        self.assertIn("if slug not in installed", uploader)
+        self.assertIn("ftplib.FTP_TLS(context=ssl.create_default_context()", uploader)
+        self.assertIn("ftp.prot_p()", uploader)
+        self.assertIn("PRO_CORE_EXPECTED_VERSION", self.workflow)
+        self.assertIn("PRO_WOO_EXPECTED_VERSION", self.workflow)
 
-    def test_only_deployable_changed_files_are_transferred(self):
-        text = self.workflow
-        selector = (ROOT / '.github/scripts/select_pro_release_delta.py').read_text(encoding='utf-8')
-        self.assertIn('select_pro_release_delta.py', text)
-        self.assertIn('fetch-depth: 0', text)
-        self.assertIn("selected_count != '0'", text)
-        self.assertIn('for module in "${selected_modules[@]}"; do', text)
-        self.assertIn('zip -q "$package" "${changed_files[@]}"', text)
-        self.assertIn('modules=$SELECTED_MODULES_JSON', text)
-        self.assertIn('if set(updated_by_slug) != set(selected):', text)
-        self.assertIn('manifest_sha256', text)
-        self.assertIn('verified_files', text)
-        self.assertIn('last_successful_source', selector)
-        self.assertNotIn('actions/jobs/', selector)
-        self.assertIn('branch=staging&status=success', selector)
-        self.assertIn('merge-base', selector)
-        for excluded in ('tests', 'uploads', 'node_modules', '.bak', '.log', '.pot'):
-            self.assertIn(excluded, selector)
+    def test_changed_files_only_checksums_and_rollback(self):
+        uploader = self.uploader
+        for contract in (
+            "target_is_safe(slug, name)", "hashlib.sha256",
+            "ftp.storbinary", "ftp.rename", "journal.append((path, backup))",
+            "for path, backup in reversed(journal)",
+            "Remote plugin file digest changed during final check",
+        ):
+            self.assertIn(contract, uploader)
+        self.assertIn("selected_count != '0'", self.workflow)
+        self.assertIn("taxocommerce-pro-changed.json", self.workflow)
+        self.assertIn("selected_delta", self.selector)
+        self.assertIn("last_successful_source", self.selector)
+        self.assertNotIn("actions/jobs/", self.selector)
+        for excluded in ("tests", "uploads", "node_modules", ".bak", ".log", ".pot"):
+            self.assertIn(excluded, self.selector)
 
-    def test_readme_and_changelog_remain_on_disk_but_only_changed_files_are_packed(self):
-        text = self.workflow
-        self.assertIn('test -f "$module/readme.txt"', text)
-        self.assertNotIn('zip -qr "$package" .', text)
-        self.assertNotIn('for module in "${installed_modules[@]}"; do', text)
-        self.assertIn("DELTA_FILE: ${{ runner.temp }}/taxocommerce-pro-changed.json", text)
-        modules = sorted(d for d in ROOT.glob('taxocommerce-*')
+    def test_no_changes_succeeds_without_ftp(self):
+        self.assertIn("pro_deploy_preflight.py", self.workflow)
+        self.assertIn("steps.preflight.outputs.has_changes == 'false'", self.workflow)
+        self.assertIn("Sin archivos modificados instalados para publicar", self.workflow)
+        self.assertIn("release.installable(name)", self.preflight)
+        self.assertIn("release.last_successful_source(repo, token)", self.preflight)
+        self.assertIn("steps.preflight.outputs.has_changes == 'true'", self.workflow)
+
+    def test_all_source_modules_have_standard_headers(self):
+        modules = sorted(d for d in ROOT.glob("taxocommerce-*")
                          if d.is_dir() and MODULE.fullmatch(d.name))
-        for module in modules:
-            self.assertTrue((module / 'CHANGELOG.md').is_file(), module.name)
-    def test_every_source_module_has_version_and_stable_tag(self):
-        modules = sorted(
-            d for d in ROOT.glob("taxocommerce-*")
-            if d.is_dir() and MODULE.fullmatch(d.name)
-        )
+        self.assertGreaterEqual(len(modules), 19)
         errors = []
         for module in modules:
-            main = (module / (module.name + ".php")).read_text(
-                encoding="utf-8", errors="replace"
-            )
-            readme = (module / "readme.txt").read_text(
-                encoding="utf-8", errors="replace"
-            )
-            version = re.search(r"(?mi)^\s*\*\s*Version:\s*(\S+)", main)
-            stable = re.search(r"(?mi)^Stable tag:\s*(\S+)", readme)
+            main = module / (module.name + ".php")
+            readme = module / "readme.txt"
+            changelog = module / "CHANGELOG.md"
+            if not (main.is_file() and readme.is_file() and changelog.is_file()):
+                errors.append(module.name + ": missing plugin files")
+                continue
+            version = re.search(r"(?mi)^\s*\*\s*Version:\s*(\S+)", main.read_text(errors="replace"))
+            stable = re.search(r"(?mi)^Stable tag:\s*(\S+)", readme.read_text(errors="replace"))
             if not version or not stable:
-                errors.append(module.name + ": missing Version or Stable tag")
-        self.assertEqual(errors, [])
-
-    def test_does_not_scan_every_plugin_or_deploy_when_nothing_changed(self):
-        workflow = self.workflow
-        self.assertNotIn('Validate all TaxoCommerce version headers and readmes', workflow)
-        self.assertIn('if: steps.delta.outputs.selected_count != \'0\'', workflow)
-        self.assertIn('Sincronizar SOLO archivos modificados', workflow)
-        self.assertIn('actions: read', workflow)
-    def test_source_inventory_is_a_valid_modular_family(self):
-        modules = sorted(
-            d for d in ROOT.glob("taxocommerce-*")
-            if d.is_dir() and MODULE.fullmatch(d.name)
-        )
-        self.assertGreaterEqual(len(modules), 19)
-        self.assertNotIn("seo-taxonomy", {p.name for p in modules})
-        for directory in modules:
-            self.assertTrue((directory / (directory.name + ".php")).is_file(), directory.name)
-            self.assertTrue((directory / "readme.txt").is_file(), directory.name)
+                errors.append(module.name + ": missing version or stable tag")
+        self.assertEqual([], errors)
 
 
 if __name__ == "__main__":
