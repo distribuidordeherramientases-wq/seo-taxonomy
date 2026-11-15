@@ -26,6 +26,9 @@ class FakeFTP:
             raise module.ftplib.error_perm("550 Not found")
         self.folder = p
 
+    def pwd(self):
+        return self.folder
+
     def mkd(self, name):
         self.dirs.add(self.folder + "/" + name)
 
@@ -70,6 +73,27 @@ class CopyTests(unittest.TestCase):
                      "uploads/data.csv", "includes/../x.php", "includes\\x.php"):
             self.assertFalse(module.valid_path("taxocommerce-social", path))
         self.assertFalse(module.valid_path("seo-taxonomy", "seo-taxonomy.php"))
+
+    def test_reject_wrong_chroot_without_woocommerce_before_any_write(self):
+        self.ftp.dirs.add("/plugins/wp-content/plugins")
+        self.ftp.files["/plugins/wp-content/plugins/taxocommerce-core/taxocommerce-core.php"] = b"0.4.85"
+        with self.assertRaisesRegex(RuntimeError, "Wrong production FTPS root"):
+            module.find_live_plugin_root(self.ftp)
+        self.assertEqual(0, self.ftp.uploads)
+
+    def test_correct_existing_plugin_root_is_accepted_without_inventory(self):
+        self.ftp.files["/plugins/woocommerce/woocommerce.php"] = b"woocommerce"
+        self.ftp.files["/plugins/taxocommerce-core/taxocommerce-core.php"] = b"core"
+        self.assertEqual("/plugins", module.find_live_plugin_root(self.ftp))
+        self.assertEqual(0, self.ftp.uploads)
+
+    def test_nested_real_wordpress_plugin_root_is_accepted(self):
+        nested = "/plugins/wp-content/plugins"
+        self.ftp.dirs.add(nested)
+        self.ftp.files[nested + "/woocommerce/woocommerce.php"] = b"woocommerce"
+        self.ftp.files[nested + "/taxocommerce-core/taxocommerce-core.php"] = b"core"
+        self.assertEqual(nested, module.find_live_plugin_root(self.ftp))
+        self.assertEqual(0, self.ftp.uploads)
 
     def test_new_plugin_or_file_can_be_copied_without_install_inventory(self):
         changed = module.copy_changed(self.ftp, "taxocommerce-social", "includes/core.php", "/plugins")
