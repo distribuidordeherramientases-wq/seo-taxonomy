@@ -133,6 +133,8 @@ jobs:
           php -l taxocommerce-accounting/includes/class-tca-hacienda.php
           php -l taxocommerce-accounting/tests/hacienda-workspace-smoke.php
           php taxocommerce-accounting/tests/hacienda-workspace-smoke.php
+          php -l taxocommerce-accounting/tests/live-tax-preparation-smoke.php
+          php taxocommerce-accounting/tests/live-tax-preparation-smoke.php
           php taxocommerce-accounting/tests/smoke.php
           node --check taxocommerce-customers/assets/admin.js
           php -l taxocommerce-tasks/includes/class-tctasks-calendar.php
