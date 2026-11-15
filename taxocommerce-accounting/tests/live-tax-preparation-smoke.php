@@ -9,6 +9,7 @@ $GLOBALS['tca_wc_calls'] = array();
 $GLOBALS['tca_wc_pages'] = 5;
 
 function __( $text, $domain = '' ) { return $text; }
+function plugin_dir_path( $path ) { return dirname( $path ) . '/'; }
 function add_action( $hook, $callback, $priority = 10, $args = 1 ) {}
 function add_filter( $hook, $callback, $priority = 10, $args = 1 ) {}
 function register_activation_hook( $file, $callback ) {}
