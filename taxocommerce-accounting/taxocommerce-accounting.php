@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.4
+ * Version: 0.1.5
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.4' );
+define( 'TCA_VERSION', '0.1.5' );
 define( 'TCA_DB_VERSION', '2' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
@@ -106,6 +106,26 @@ function tca_menu() {
     }
 }
 add_action( 'admin_menu', 'tca_menu', 70 );
+/**
+ * Enqueue visual navigation styles only on the Accounting administration page.
+ *
+ * @param string $hook_suffix Current WordPress admin hook.
+ * @return void
+ */
+function tca_enqueue_admin_styles( $hook_suffix ) {
+    $suffix = '_page_taxocommerce-accounting';
+    if ( $suffix !== substr( (string) $hook_suffix, -strlen( $suffix ) ) ) {
+        return;
+    }
+    wp_enqueue_style(
+        'taxocommerce-accounting-admin',
+        plugin_dir_url( __FILE__ ) . 'assets/admin.css',
+        array(),
+        TCA_VERSION
+    );
+}
+add_action( 'admin_enqueue_scripts', 'tca_enqueue_admin_styles' );
+
 add_action( 'taxocommerce_core_register_modules', static function ( $core ) {
     if ( is_object( $core ) && method_exists( $core, 'register_module' ) ) {
         $core->register_module( 'accounting', array(
@@ -626,7 +646,7 @@ function tca_admin() {
     if ( $year < 2000 || $year > 2100 ) $year = (int) current_time( 'Y' );
     $rows = tca_rows( $year );
     $summary = tca_summary( $rows );
-    echo '<div class="wrap"><h1>' . esc_html__( 'TaxoCommerce Accounting', 'taxocommerce-accounting' ) . ' <small>v' . esc_html( TCA_VERSION ) . '</small></h1>';
+    echo '<div class="wrap tca-accounting-admin"><h1>' . esc_html__( 'TaxoCommerce Accounting', 'taxocommerce-accounting' ) . ' <small>v' . esc_html( TCA_VERSION ) . '</small></h1>';
     echo '<p>' . esc_html__( 'Fiscal register, VAT review, supplier invoices and export. No tax return is filed automatically.', 'taxocommerce-accounting' ) . '</p>';
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice key.
     $notice = isset( $_GET['notice'] ) ? sanitize_key( wp_unslash( $_GET['notice'] ) ) : '';

@@ -12,13 +12,9 @@ on:
         required: false
         type: string
         default: ''
+  # Manual releases always publish all pending changes from staging.
+  # GitHub displays its native branch selector; only staging is accepted below.
   workflow_dispatch:
-    inputs:
-      target_plugin:
-        description: 'Optional installed plugin slug (empty: all changed plugins)'
-        required: false
-        type: string
-        default: ''
 
 permissions:
   contents: read
@@ -28,12 +24,9 @@ concurrency:
   group: taxocommerce-production-deploy
   cancel-in-progress: false
 
-env:
-  PRO_SITE_URL: https://www.distribuidordeherramientas.es
-
 jobs:
   deploy:
-    name: Publicar SOLO archivos modificados en plugins instalados
+    name: Copiar archivos modificados de STAGING a PRO
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -65,129 +58,39 @@ jobs:
             echo "Approved source SHA: $ACTUAL_SHA"
           fi
 
-      - name: Comprobar restauracion del despliegue modular sin escribir en PRO
+      - name: Verificar selector y copia de archivos (sin conectar a PRO)
         run: |
           set -euo pipefail
-          python3 -m unittest discover -s .github/tests -p test_pro_historic_modular_workflow.py -v
-          python3 -m py_compile .github/scripts/fetch_pro_installed_modules.py
-          python3 -m py_compile .github/scripts/deploy_pro_ftps_native.py
-          python3 -m py_compile .github/scripts/pro_deploy_preflight.py
-          python3 -m unittest discover -s .github/tests -p test_pro_ftps_native.py -v
-          python3 -m py_compile .github/scripts/select_pro_release_delta.py
+          python3 -m py_compile .github/scripts/select_pro_release_delta.py .github/scripts/deploy_pro_ftps_native.py
           python3 -m unittest discover -s .github/tests -p test_select_pro_release_delta.py -v
-          python3 -m unittest discover -s .github/scripts/tests -p test_fetch_pro_installed_modules.py -v
+          python3 -m unittest discover -s .github/tests -p test_pro_ftps_native.py -v
 
-      - name: Descubrir plugins TaxoCommerce disponibles en MAIN
-        id: family
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          mapfile -t modules < <(
-            find . -maxdepth 1 -mindepth 1 -type d -name 'taxocommerce-*' -printf '%f\n' | sort
-          )
-
-          valid_modules=()
-          for module in "${modules[@]}"; do
-            if [[ "$module" =~ ^taxocommerce-[a-z0-9-]+$ ]] && [ -f "$module/$module.php" ]; then
-              valid_modules+=("$module")
-            fi
-          done
-
-          if [ "${#valid_modules[@]}" -eq 0 ]; then
-            echo "::error::No se encontraron plugins TaxoCommerce válidos en STAGING."
-            exit 1
-          fi
-
-          modules_json="$(python3 - "${valid_modules[@]}" <<'PY'
-          import json
-          import sys
-          print(json.dumps(sys.argv[1:], separators=(",", ":")))
-          PY
-          )"
-
-          echo "modules=$modules_json" >> "$GITHUB_OUTPUT"
-          echo "Plugins TaxoCommerce disponibles en STAGING: $modules_json"
-
-      - name: Comprobar si existen archivos modificados antes de conectar a PRO
-        id: preflight
+      - name: Comparar cambios de STAGING con ultimo despliegue correcto
+        id: delta
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
-          python3 .github/scripts/pro_deploy_preflight.py >> "$GITHUB_OUTPUT"
-
-      - name: Leer inventario instalado en PRO mediante FTPS verificado
-        if: steps.preflight.outputs.has_changes == 'true'
-        id: installed
-        shell: bash
-        env:
-          FTP_SERVER: ${{ secrets.PRO_FTPS_HOST }}
-          FTP_USERNAME: ${{ secrets.PRO_FTPS_USER }}
-          FTP_PASSWORD: ${{ secrets.PRO_FTPS_PASSWORD }}
-          PRO_CORE_EXPECTED_VERSION: '0.4.84'
-          PRO_WOO_EXPECTED_VERSION: '11.3.0'
-        run: |
-          set -euo pipefail
-          python3 .github/scripts/deploy_pro_ftps_native.py inventory >> "$GITHUB_OUTPUT"
-
-      - name: Seleccionar solo archivos modificados desde el ultimo release PRO correcto
-        if: steps.preflight.outputs.has_changes == 'true'
-        id: delta
-        shell: bash
-        env:
-          ALL_MODULES_JSON: ${{ steps.family.outputs.modules }}
-          INSTALLED_MODULES_JSON: ${{ steps.installed.outputs.modules }}
-          TARGET_PLUGIN: ${{ inputs.target_plugin || '' }}
-        run: |
-          set -euo pipefail
-          # Read the last successful PRO release from PUBLIC run metadata.
-          # Job-log downloads caused HTTP 401 in runs #194 and #195.
-          # No GitHub token is needed and the release fails closed on missing data.
-          runs_url="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/despliege_de_main_a_pro.yml/runs?branch=staging&status=success&per_page=15"
-          base_sha="$(curl --fail --silent --show-error --location --retry 3 --retry-delay 2 \
-            -H 'Accept: application/vnd.github+json' \
-            -H 'User-Agent: TaxoCommerce-PRO-Deploy' \
-            "$runs_url" | jq -er '[.workflow_runs[]? | select(.status == "completed" and .conclusion == "success" and .head_branch == "staging") | .head_sha][0]')"
-          if ! [[ "$base_sha" =~ ^[0-9a-f]{40}$ ]]; then
-            echo '::error::No se ha podido verificar el ultimo release PRO correcto.'
-            exit 1
-          fi
-          git cat-file -e "$base_sha^{commit}"
-          if ! git merge-base --is-ancestor "$base_sha" HEAD; then
-            echo "::error::El ultimo release PRO no es ancestro de STAGING: $base_sha"
-            exit 1
-          fi
-          echo "Base PRO verificada: $base_sha"
-
-          python3 .github/scripts/select_pro_release_delta.py \
-            --base-sha "$base_sha" \
-            --installed-json "$INSTALLED_MODULES_JSON" \
-            --allowed-json "$ALL_MODULES_JSON" \
-            --target-plugin "$TARGET_PLUGIN" \
+          python3 .github/scripts/select_pro_release_delta.py --all-changed \
             --output "$RUNNER_TEMP/taxocommerce-pro-changed.json"
-          count="$(jq 'length' "$RUNNER_TEMP/taxocommerce-pro-changed.json")"
-          echo "selected_count=$count" >> "$GITHUB_OUTPUT"
-          if [ "$count" -eq 0 ]; then
-            echo "Ningun archivo instalable ha cambiado. Sin transferencia a produccion."
-          fi
+          count="$(jq '[.[] | length] | add // 0' "$RUNNER_TEMP/taxocommerce-pro-changed.json")"
+          echo "changed_count=$count" >> "$GITHUB_OUTPUT"
+          echo "$count archivo(s) modificado(s) para PRODUCCION."
 
-      - name: Sincronizar y verificar SOLO archivos modificados de los plugins ya instalados
-        if: steps.preflight.outputs.has_changes == 'true' && steps.delta.outputs.selected_count != '0'
+      - name: Copiar solo los archivos modificados a PRO por FTPS
+        if: steps.delta.outputs.changed_count != '0'
         shell: bash
         env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           DELTA_FILE: ${{ runner.temp }}/taxocommerce-pro-changed.json
-          FTP_SERVER: ${{ secrets.PRO_FTPS_HOST }}
-          FTP_USERNAME: ${{ secrets.PRO_FTPS_USER }}
-          FTP_PASSWORD: ${{ secrets.PRO_FTPS_PASSWORD }}
-          PRO_CORE_EXPECTED_VERSION: '0.4.84'
-          PRO_WOO_EXPECTED_VERSION: '11.3.0'
         run: |
           set -euo pipefail
-          python3 .github/scripts/deploy_pro_ftps_native.py apply "$DELTA_FILE"
+          python3 .github/scripts/deploy_pro_ftps_native.py "$DELTA_FILE"
 
-      - name: Confirmar que no hay cambios que desplegar
-        if: steps.preflight.outputs.has_changes == 'false' || steps.delta.outputs.selected_count == '0'
-        run: echo "Sin archivos modificados instalados para publicar; producción permanece intacta."
+      - name: Sin cambios - no copiar nada
+        if: steps.delta.outputs.changed_count == '0'
+        run: echo "Sin cambios en los plugins de GitHub. PRODUCCION sin modificaciones."

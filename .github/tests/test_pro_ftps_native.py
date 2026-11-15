@@ -1,120 +1,105 @@
-"""Isolated tests of the FTPS delta writer; no network or WordPress access."""
+"""Offline tests: compare changed files and copy without WordPress inventory."""
 import importlib.util
-import io
-import json
-import pathlib
+import os
+from pathlib import Path
 import sys
 import tempfile
 import unittest
 
-ROOT = pathlib.Path(__file__).resolve().parents[1] / "scripts"
-sys.path.insert(0, str(ROOT))
-spec = importlib.util.spec_from_file_location("pro_ftps_native", ROOT / "deploy_pro_ftps_native.py")
+SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
+spec = importlib.util.spec_from_file_location("pro_copy", SCRIPTS / "deploy_pro_ftps_native.py")
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 
-class FakeFTPS:
+class FakeFTP:
     def __init__(self):
-        self.root = "/plugins"
-        self.folder = self.root
-        self.dirs = {"/plugins", "/plugins/taxocommerce-social",
-                     "/plugins/taxocommerce-social/includes"}
+        self.folder = "/plugins"
+        self.dirs = {"/plugins"}
         self.files = {}
-        self.writes = 0
+        self.uploads = 0
         self.fail_commit = False
-    def cwd(self, folder):
-        if folder not in self.dirs:
-            raise module.ftplib.error_perm("550 Directory missing")
-        self.folder = folder
-    def mkd(self, folder):
-        self.dirs.add(folder)
-    def key(self, name):
-        return name
+
+    def cwd(self, name):
+        p = name if name.startswith("/") else self.folder + "/" + name
+        if p not in self.dirs:
+            raise module.ftplib.error_perm("550 Not found")
+        self.folder = p
+
+    def mkd(self, name):
+        self.dirs.add(self.folder + "/" + name)
+
     def retrbinary(self, command, callback, blocksize=8192):
-        name = command.split(" ", 1)[1]
-        if name not in self.files:
-            raise module.ftplib.error_perm("550 File missing")
-        callback(self.files[name])
+        path = self.folder + "/" + command.split(" ", 1)[1]
+        if path not in self.files:
+            raise module.ftplib.error_perm("550 Not found")
+        callback(self.files[path])
+
     def storbinary(self, command, stream, blocksize=8192):
-        name = command.split(" ", 1)[1]
-        self.writes += 1
-        self.files[name] = stream.read()
-    def rename(self, src, dest):
-        if self.fail_commit and ".tc-upload-" in src and ".tc-upload-" not in dest:
-            raise module.ftplib.error_perm("550 Rename failed")
+        self.uploads += 1
+        self.files[self.folder + "/" + command.split(" ", 1)[1]] = stream.read()
+
+    def rename(self, old, new):
+        if self.fail_commit and old.endswith(".tmp"):
+            raise module.ftplib.error_perm("550 Rename refused")
+        src, dst = self.folder + "/" + old, self.folder + "/" + new
         if src not in self.files:
-            raise module.ftplib.error_perm("550 File missing")
-        if dest in self.files:
-            raise AssertionError("Cannot replace without removing old file first")
-        self.files[dest] = self.files.pop(src)
+            raise module.ftplib.error_perm("550 Not found")
+        if dst in self.files:
+            raise module.ftplib.error_perm("550 Destination exists")
+        self.files[dst] = self.files.pop(src)
+
     def delete(self, name):
-        if name not in self.files:
-            raise module.ftplib.error_perm("550 File missing")
-        del self.files[name]
+        self.files.pop(self.folder + "/" + name, None)
 
 
-class FTPSTests(unittest.TestCase):
-    def test_unsafe_paths_never_write(self):
-        for name in ("../wrong.php", "/etc/passwd", "tests/test.php", "uploads/x.png",
-                     ".env", "includes/../other.php", "includes/a.php.bak",
-                     "includes\\x.php"):
-            self.assertFalse(module.target_is_safe("taxocommerce-social", name), name)
-        self.assertFalse(module.target_is_safe("seo-taxonomy", "main.php"))
+class CopyTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.orig = Path.cwd()
+        os.chdir(self.tmp.name)
+        self.addCleanup(os.chdir, self.orig)
+        Path("taxocommerce-social/includes").mkdir(parents=True)
+        Path("taxocommerce-social/includes/core.php").write_bytes(b"new")
+        self.ftp = FakeFTP()
+        self.dest = "/plugins/taxocommerce-social/includes/core.php"
 
-    def test_existing_identical_file_is_noop(self):
-        ftp = FakeFTPS()
-        ftp.files["taxocommerce-social/includes/core.php"] = b"same"
-        status, backup = module.deploy_one(
-            ftp, ftp.root, "taxocommerce-social/includes/core.php", b"same", "test")
-        self.assertEqual(("unchanged", None), (status, backup))
-        self.assertEqual(0, ftp.writes)
+    def test_reject_bad_names_without_ftp(self):
+        for path in ("../secret.php", "/wrong.php", ".env", "tests/test.php",
+                     "uploads/data.csv", "includes/../x.php", "includes\\x.php"):
+            self.assertFalse(module.valid_path("taxocommerce-social", path))
+        self.assertFalse(module.valid_path("seo-taxonomy", "seo-taxonomy.php"))
 
-    def test_update_retains_backup_until_module_verified(self):
-        ftp = FakeFTPS()
-        name = "taxocommerce-social/includes/core.php"
-        ftp.files[name] = b"old"
-        status, backup = module.deploy_one(ftp, ftp.root, name, b"new", "test")
-        self.assertEqual("updated", status)
-        self.assertEqual(b"new", ftp.files[name])
-        self.assertEqual(b"old", ftp.files[backup])
-        ftp.delete(backup)
-        self.assertNotIn(backup, ftp.files)
+    def test_new_plugin_or_file_can_be_copied_without_install_inventory(self):
+        changed = module.copy_changed(self.ftp, "taxocommerce-social", "includes/core.php", "/plugins")
+        self.assertTrue(changed)
+        self.assertEqual(b"new", self.ftp.files[self.dest])
+        self.assertEqual(1, self.ftp.uploads)
 
-    def test_failed_rename_rolls_back_previous_bytes(self):
-        ftp = FakeFTPS()
-        name = "taxocommerce-social/includes/core.php"
-        ftp.files[name] = b"old"
-        ftp.fail_commit = True
+    def test_identical_file_is_not_uploaded(self):
+        self.ftp.dirs.update({"/plugins/taxocommerce-social", "/plugins/taxocommerce-social/includes"})
+        self.ftp.files[self.dest] = b"new"
+        changed = module.copy_changed(self.ftp, "taxocommerce-social", "includes/core.php", "/plugins")
+        self.assertFalse(changed)
+        self.assertEqual(0, self.ftp.uploads)
+
+    def test_changed_file_replaces_previous_and_cleans_backup(self):
+        self.ftp.dirs.update({"/plugins/taxocommerce-social", "/plugins/taxocommerce-social/includes"})
+        self.ftp.files[self.dest] = b"old"
+        changed = module.copy_changed(self.ftp, "taxocommerce-social", "includes/core.php", "/plugins")
+        self.assertTrue(changed)
+        self.assertEqual(b"new", self.ftp.files[self.dest])
+        self.assertEqual({self.dest}, set(self.ftp.files))
+
+    def test_failed_commit_restores_original_file(self):
+        self.ftp.dirs.update({"/plugins/taxocommerce-social", "/plugins/taxocommerce-social/includes"})
+        self.ftp.files[self.dest] = b"old"
+        self.ftp.fail_commit = True
         with self.assertRaises(module.ftplib.error_perm):
-            module.deploy_one(ftp, ftp.root, name, b"new", "test")
-        self.assertEqual(b"old", ftp.files[name])
-        self.assertEqual({name}, set(ftp.files))
-
-    def test_new_file_is_staged_and_verified(self):
-        ftp = FakeFTPS()
-        status, backup = module.deploy_one(
-            ftp, ftp.root, "taxocommerce-social/includes/new.php", b"new", "test")
-        self.assertEqual(("updated", None), (status, backup))
-        self.assertEqual(b"new", ftp.files["taxocommerce-social/includes/new.php"])
-
-    def test_delta_must_be_for_existing_plugin_and_files(self):
-        with tempfile.TemporaryDirectory() as temp:
-            root = pathlib.Path(temp)
-            (root / "taxocommerce-social").mkdir()
-            (root / "taxocommerce-social/readme.txt").write_text("test", encoding="utf-8")
-            path = root / "delta.json"
-            path.write_text(json.dumps({"taxocommerce-social": ["readme.txt"]}), encoding="utf-8")
-            old_cwd = pathlib.Path.cwd()
-            try:
-                import os
-                os.chdir(root)
-                result = module.load_delta(str(path), ["taxocommerce-social"])
-                self.assertEqual({"taxocommerce-social": ["readme.txt"]}, result)
-                with self.assertRaisesRegex(ValueError, "Uninstalled"):
-                    module.load_delta(str(path), [])
-            finally:
-                os.chdir(old_cwd)
+            module.copy_changed(self.ftp, "taxocommerce-social", "includes/core.php", "/plugins")
+        self.assertEqual(b"old", self.ftp.files[self.dest])
+        self.assertEqual({self.dest}, set(self.ftp.files))
 
 
 if __name__ == "__main__":
