@@ -47,3 +47,13 @@ jobs:
           PRO_CORE_EXPECTED_VERSION: '0.4.84'
           PRO_WOO_EXPECTED_VERSION: '11.2.2'
         run: python3 .github/scripts/pro_ftps_root_probe.py --diagnose-known-roots
+
+      - name: Check legacy WordPress ZIP bridge is loaded from FTP root (read-only)
+        if: github.event_name == 'push'
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          PRO_CORE_EXPECTED_VERSION: '0.4.84'
+          PRO_WOO_EXPECTED_VERSION: '11.2.2'
+        run: python3 .github/scripts/pro_ftps_root_probe.py --legacy-route-check
