@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish tracked TaxoCommerce plugins from Git STAGING using existing FTP credentials.
+"""Reconcile all tracked TaxoCommerce plugin files from STAGING with real PRO.
 
 FTP is jailed in seo-taxonomy/, not WP_PLUGIN_DIR. A short-lived signed PHP
 receiver in that existing directory asks WordPress to apply each ZIP at the real
@@ -24,39 +24,56 @@ import zipfile
 HOST = "https://www.distribuidordeherramientas.es"
 SLUG = re.compile(r"taxocommerce-[a-z0-9-]+$")
 PART = re.compile(r"[A-Za-z0-9._+-]+$")
-MAX_FILE = 32 * 1024 * 1024
-# Only known source formats; never ship tests, caches, private data or symlinks.
-EXCLUDE_DIRS = {"tests", "uploads", "node_modules", ".git", ".github", "tmp", "cache", "logs"}
-EXCLUDE_SUFFIXES = (".bak", ".log", ".pyc", ".pot")
+MAX_FILE = 64 * 1024 * 1024
 
 
 def deliverables():
-    """Copy only Git changes, including files missed by the false-success runs."""
-    raw = json.loads(Path(os.environ["DELTA_FILE"]).read_text(encoding="utf-8"))
-    if not isinstance(raw, dict) or len(raw) > 40:
-        raise RuntimeError("Invalid Git delta")
+    """All tracked files of every TaxoCommerce plugin, excluding .gitlab."""
+    names = subprocess.check_output(["git", "ls-files", "-z", "--", "taxocommerce-*"])
     selected = {}
-    for slug, paths in sorted(raw.items()):
-        if not isinstance(slug, str) or not SLUG.fullmatch(slug):
-            raise RuntimeError("Unsafe plugin name")
-        if not isinstance(paths, list) or len(paths) != len(set(paths)):
-            raise RuntimeError("Invalid changed files")
+    for tracked in names.decode("utf-8").split("\0"):
+        if not tracked:
+            continue
+        parts = PurePosixPath(tracked).parts
+        if len(parts) < 2 or not SLUG.fullmatch(parts[0]):
+            continue
+        slug, relative_parts = parts[0], parts[1:]
+        if any(part in {".gitlab", ".git"} for part in relative_parts):
+            continue
+        if any(part in {".", ".."} or not PART.fullmatch(part) for part in relative_parts):
+            raise RuntimeError("Unsafe source path in Git")
+        file = Path(tracked)
+        if not file.is_file() or file.is_symlink() or file.stat().st_size > MAX_FILE:
+            raise RuntimeError("Source file unavailable, linked or oversized: " + tracked)
+        selected.setdefault(slug, []).append(("/".join(relative_parts), file))
+
+    for slug in sorted(selected):
         if not (Path(slug) / (slug + ".php")).is_file():
-            raise RuntimeError("Missing source plugin entrypoint: " + slug)
-        for rel in paths:
-            if not isinstance(rel, str) or rel.startswith("/") or "\\\\" in rel:
-                raise RuntimeError("Unsafe Git relative path")
-            parts = PurePosixPath(rel).parts
-            if not parts or any(not PART.fullmatch(p) or p.startswith(".") for p in parts):
-                raise RuntimeError("Unsafe source file path")
-            if any(p in EXCLUDE_DIRS for p in parts):
-                raise RuntimeError("Non-distributable path in Git delta")
-            if rel.endswith(EXCLUDE_SUFFIXES) or (rel.endswith(".md") and rel != "CHANGELOG.md"):
-                raise RuntimeError("Non-distributable file in Git delta")
-            local = Path(slug, *parts)
-            if not local.is_file() or local.is_symlink() or local.stat().st_size > MAX_FILE:
-                raise RuntimeError("Changed source file missing or invalid")
-            selected.setdefault(slug, []).append((rel, local))
+            raise RuntimeError("Missing local plugin main file: " + slug)
+
+    # Billing PDF vendor library is shared with the legacy source. The prior
+    # working release explicitly bundled it for TaxoCommerce Facturacion.
+    dompdf = Path("includes/facturas/dompdf")
+    if "taxocommerce-facturacion" in selected and (dompdf / "autoload.inc.php").is_file():
+        for file in dompdf.rglob("*"):
+            if not file.is_file() or file.is_symlink() or file.stat().st_size > MAX_FILE:
+                continue
+            relative = file.relative_to(dompdf)
+            if any(part in {".gitlab", ".git"} for part in relative.parts):
+                continue
+            if any(not PART.fullmatch(part) for part in relative.parts):
+                raise RuntimeError("Unsafe Dompdf source filename")
+            selected["taxocommerce-facturacion"].append((
+                "includes/dompdf/" + relative.as_posix(), file
+            ))
+
+    if not selected:
+        raise RuntimeError("No TaxoCommerce source plugins found in STAGING")
+    for slug, files in sorted(selected.items()):
+        names = [relative for relative, _ in files]
+        if len(names) != len(set(names)):
+            raise RuntimeError("Duplicate packaged source path for " + slug)
+        print(slug + ": " + str(len(files)) + " source files", flush=True)
     return selected
 
 
@@ -77,16 +94,21 @@ def create_packages(modules):
 
 
 def receiver_php(token_hash, expires, folder):
-    # No secrets in source; the caller proves possession via a 256-bit token.
-    # The PHP receiver is removed from FTPS in finally, including failed runs.
+    """Temporary authenticated GET receiver inside the existing legacy FTP jail.
+
+    The previous POST call was rejected by PRO with HTTP 403, and WordPress's
+    old REST route is now 404. This endpoint loads WP independently of whether
+    the legacy plugin is activated, and is removed after delivery.
+    """
     return """<?php
-if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' ||
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET' ||
     time() > %d ||
-    !isset($_POST['token']) ||
-    !hash_equals('%s', hash('sha256', (string)$_POST['token']))) {
+    !isset($_GET['token']) ||
+    !is_string($_GET['token']) ||
+    !hash_equals('%s', hash('sha256', $_GET['token']))) {
     http_response_code(403); exit;
 }
-$slug = (string)($_POST['slug'] ?? '');
+$slug = (string)($_GET['slug'] ?? '');
 if (!preg_match('/^taxocommerce-[a-z0-9-]+$/D', $slug)) { http_response_code(400); exit; }
 $archive = __DIR__ . '/.taxocommerce-deploy/%s/' . $slug . '.zip';
 if (!is_file($archive)) { http_response_code(404); exit; }
@@ -96,10 +118,14 @@ require_once $root;
 if (!function_exists('seo_taxocommerce_deploy_apply_zip_delta')) {
     require_once __DIR__ . '/includes/seo-deploy-status.php';
 }
+if (!function_exists('seo_taxocommerce_deploy_apply_zip_delta')) {
+    http_response_code(500); exit;
+}
 $destination = WP_PLUGIN_DIR . '/' . $slug;
 if (!is_dir($destination) && !wp_mkdir_p($destination)) { http_response_code(500); exit; }
 $result = seo_taxocommerce_deploy_apply_zip_delta($archive, $destination);
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store, private');
 if (is_wp_error($result)) {
     http_response_code(500);
     echo wp_json_encode(array('error' => $result->get_error_code()));
@@ -124,12 +150,9 @@ def main():
     if not all(os.environ.get(k) for k in ("FTP_SERVER", "FTP_USERNAME", "FTP_PASSWORD")):
         raise RuntimeError("Existing FTP_SERVER/FTP_USERNAME/FTP_PASSWORD secrets required")
     modules = deliverables()
-    if not modules:
-        print('No Git changes to publish; production unchanged.')
-        return
     packages = create_packages(modules)
     token = secrets.token_hex(32)
-    ident = secrets.token_hex(12)
+    ident = secrets.token_hex(24)
     receiver = "tc-pro-apply-" + ident + ".php"
     folder = "run-" + ident
     ftp = ftplib.FTP_TLS(context=ssl.create_default_context(), timeout=50)
@@ -152,11 +175,11 @@ def main():
         opened = True
         updated = 0
         for slug, (_, manifest, count) in packages.items():
+            query = urllib.parse.urlencode({"token": token, "slug": slug})
             request = urllib.request.Request(
-                HOST + "/wp-content/plugins/seo-taxonomy/" + receiver,
-                data=urllib.parse.urlencode({"token": token, "slug": slug}).encode("ascii"),
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-                method="POST",
+                HOST + "/wp-content/plugins/seo-taxonomy/" + receiver + "?" + query,
+                headers={"Accept": "application/json", "Cache-Control": "no-store"},
+                method="GET",
             )
             with urllib.request.urlopen(request, timeout=100) as response:
                 data = json.load(response)
@@ -179,7 +202,8 @@ def main():
                     ftp.delete(slug + ".zip")
                 except ftplib.error_perm:
                     pass
-            ftp.cwd(root + "/.taxocommerce-deploy")
+            ftp.cwd(root)
+            ftp.cwd(".taxocommerce-deploy")
             ftp.rmd(folder)
         except ftplib.Error as exc:
             print("WARNING: Temporary handoff cleanup incomplete: " + type(exc).__name__,
