@@ -358,7 +358,7 @@ class DeltaTests(unittest.TestCase):
     def test_gated_pipeline_owns_all_automatic_staging_pushes(self):
         workflow = (Path(__file__).resolve().parents[2] / ".github/workflows/deploy-staging.yml").read_text()
         self.assertNotIn("  push:", workflow)
-        self.assertIn("TAXOCOMMERCE_REMOTE_VERIFY: '1'", workflow)
+        self.assertNotIn("TAXOCOMMERCE_REMOTE_VERIFY: '1'", workflow)
         self.assertIn("target_plugin:", workflow)
         self.assertFalse((Path(__file__).resolve().parents[2] / ".github/workflows/deploy-core-staging.yml").exists())
 
