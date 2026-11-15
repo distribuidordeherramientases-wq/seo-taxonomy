@@ -16,6 +16,8 @@ import sys
 CANDIDATES = (
     ".",
     "./wp-content/plugins",
+    "./public/wp-content/plugins",
+    "./public/distribuidordeherramientas.es/wp-content/plugins",
     "./public_html/wp-content/plugins",
     "./httpdocs/wp-content/plugins",
     "./distribuidordeherramientas.es/wp-content/plugins",
