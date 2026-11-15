@@ -1,3 +1,9 @@
+## 2026-11-15 — Credenciales FTPS dedicadas al despliegue de producción (#2696)
+
+- El workflow de producción y el sondeo de solo lectura usan exclusivamente `PRO_FTPS_HOST`, `PRO_FTPS_USER` y `PRO_FTPS_PASSWORD`. Esto evita mezclar el FTPS del antiguo receptor/monolítico con el acceso al verdadero `wp-content/plugins`, sin modificar secretos de STAGING.
+- El segundo juego de credenciales históricas del auditor `TC_FTP_*` ya no está disponible en GitHub; su sondeo falló por credenciales ausentes. La configuración dedicada debe autorizar únicamente el destino de plugins de producción.
+- Si no existe la cuenta nueva o no superan las pruebas de identidad de Core/WooCommerce, se bloquea sin modificar ficheros de producción.
+
 ## 2026-11-15 — Diagnóstico de credenciales FTPS alternativas de GitHub (#2696)
 
 - El sondeo estrictamente de solo lectura verifica el juego de secretos `TC_FTP_HOST/USER/PASS` ya utilizado en el auditor de producción, para determinar si alcanza WP_PLUGIN_DIR cuando las credenciales del antiguo handoff `FTP_SERVER/USERNAME/PASSWORD` están confinadas al monolítico.
