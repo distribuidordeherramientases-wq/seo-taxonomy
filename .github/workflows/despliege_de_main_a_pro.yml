@@ -1,37 +1,42 @@
+
 name: STAGING a PRODUCCION
+
 on:
   workflow_dispatch:
-  workflow_call:
-    inputs:
-      source_sha: {type: string, required: true}
-      target_plugin: {type: string, required: false, default: ''}
+
 permissions:
   contents: read
+  actions: read
+
 concurrency:
   group: taxocommerce-production-deploy
   cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+
     steps:
-      - uses: actions/checkout@v6
-        with: {ref: staging, fetch-depth: 0}
-      - name: Copiar STAGING a PRO
+      - name: Obtener codigo de STAGING
+        uses: actions/checkout@v4
+        with:
+          ref: staging
+          fetch-depth: 0
+
+      - name: Copiar cambios a PRO
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          DELTA_FILE: ${{ runner.temp }}/pro-delta.json
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-          EXPECTED_SHA: ${{ inputs.source_sha }}
+
         run: |
           set -euo pipefail
-          test "$GITHUB_REF_NAME" = "staging"
-          ACTUAL_SHA="$(git rev-parse HEAD)"
-          if [ -n "$EXPECTED_SHA" ]; then
-            if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then exit 1; fi
-          fi
-          python3 .github/scripts/select_pro_release_delta.py --all-changed --output "$DELTA_FILE"
-          python3 .github/scripts/deploy_pro_simple.py
+
+          python3 .github/scripts/select_pro_release_delta.py \
+            --all-changed \
+            --output "$RUNNER_TEMP/cambios.json"
+
+          python3 .github/scripts/deploy_pro_ftps_native.py \
+            "$RUNNER_TEMP/cambios.json"
