@@ -206,6 +206,79 @@ final class TCA_Hacienda {
     }
 
     /**
+     * Read-only completeness counters for the selected fiscal period.
+     * These counters report ledger coverage, not whether a return is legally ready.
+     *
+     * @param int $year Calendar year.
+     * @param int $quarter 0 for full year, or 1-4.
+     * @return array
+     */
+    public static function readiness( $year, $quarter = 0 ) {
+        global $wpdb;
+        list( $start, $end ) = self::dates( $year, $quarter );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only aggregate of the plugin's own ledger, used for live tax-preparation warnings.
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                'SELECT kind, status, treatment, COUNT(*) AS entry_count,
+                    SUM(CASE WHEN document_no = %s THEN 1 ELSE 0 END) AS missing_document,
+                    SUM(CASE WHEN tax_id = %s THEN 1 ELSE 0 END) AS missing_tax_id
+                FROM %i WHERE fiscal_date BETWEEN %s AND %s
+                GROUP BY kind, status, treatment',
+                '', '', tca_table(), $start, $end
+            )
+        );
+        $result = array(
+            'total' => 0,
+            'pending' => 0,
+            'other_treatments' => 0,
+            'missing_document' => 0,
+            'missing_tax_id' => 0,
+        );
+        foreach ( (array) $rows as $row ) {
+            $count = (int) $row->entry_count;
+            $result['total'] += $count;
+            if ( 'validated' !== $row->status ) {
+                $result['pending'] += $count;
+            }
+            if ( 'domestic' !== $row->treatment ) {
+                $result['other_treatments'] += $count;
+            }
+            $result['missing_document'] += (int) $row->missing_document;
+            // Not every transaction legally needs a customer tax ID, so this is
+            // informational rather than a blanket blocking error.
+            $result['missing_tax_id'] += (int) $row->missing_tax_id;
+        }
+        return $result;
+    }
+
+    /**
+     * Explain fiscal preparation without claiming eligibility or filing readiness.
+     *
+     * @param int $year Calendar year.
+     * @param int $quarter Selected quarter.
+     * @return void
+     */
+    private static function render_readiness( $year, $quarter ) {
+        $data = self::readiness( $year, $quarter );
+        echo '<h3>' . esc_html__( 'Preparation checklist', 'taxocommerce-accounting' ) . '</h3>';
+        echo '<p>' . esc_html__( 'Accounting entries in selected period:', 'taxocommerce-accounting' ) . ' <strong>' . esc_html( (string) $data['total'] ) . '</strong>. ';
+        echo esc_html__( 'Pending validation:', 'taxocommerce-accounting' ) . ' <strong>' . esc_html( (string) $data['pending'] ) . '</strong>. ';
+        echo esc_html__( 'Operations outside standard domestic VAT:', 'taxocommerce-accounting' ) . ' <strong>' . esc_html( (string) $data['other_treatments'] ) . '</strong>. ';
+        echo esc_html__( 'Entries without a document number:', 'taxocommerce-accounting' ) . ' <strong>' . esc_html( (string) $data['missing_document'] ) . '</strong>.</p>';
+        if ( 0 === $data['total'] ) {
+            echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'There are no recorded operations in this period. This does not establish that the tax return is zero: first check the WooCommerce import and supplier invoices.', 'taxocommerce-accounting' ) . '</p></div>';
+        } elseif ( $data['pending'] > 0 || $data['other_treatments'] > 0 || $data['missing_document'] > 0 ) {
+            echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Review the outstanding records before using these figures. Non-domestic transactions and missing references need individual tax treatment.', 'taxocommerce-accounting' ) . '</p></div>';
+        } else {
+            echo '<p>' . esc_html__( 'No pending status or missing document numbers were detected. This does NOT mean a tax return is complete, accurate or ready for filing.', 'taxocommerce-accounting' ) . '</p>';
+        }
+        echo '<p>' . esc_html__( 'Entries without tax identification (check only where legally required):', 'taxocommerce-accounting' ) . ' ' . esc_html( (string) $data['missing_tax_id'] ) . '.</p>';
+        echo '<p><a class="button" href="' . esc_url( tca_admin_url( 'sales', array( 'year' => $year ) ) ) . '">' . esc_html__( 'Review sales', 'taxocommerce-accounting' ) . '</a> ';
+        echo '<a class="button" href="' . esc_url( tca_admin_url( 'received', array( 'year' => $year ) ) ) . '">' . esc_html__( 'Review purchases and expenses', 'taxocommerce-accounting' ) . '</a></p>';
+        echo '<p>' . esc_html__( 'Verify that the fiscal start date includes the entire applicable reporting period. Imported WooCommerce orders are drafts until reviewed, and the ledger may omit transactions not entered manually.', 'taxocommerce-accounting' ) . '</p>';
+    }
+
+    /**
      * User-facing model navigation and per-subtab downloads.
      *
      * @param int $year Reporting year.
@@ -233,6 +306,8 @@ final class TCA_Hacienda {
             echo '<a class="nav-tab ' . ( $id === $selected ? 'nav-tab-active' : '' ) . '" href="' . esc_url( $url ) . '">' . esc_html( $item['name'] ) . '</a>';
         }
         echo '</nav>';
+        $selected_period_quarter = '303' === $selected ? $quarter : 0;
+        self::render_readiness( $year, $selected_period_quarter );
         echo '<h3>' . esc_html( $section['name'] ) . '</h3>';
         echo '<p>' . esc_html( $section['detail'] ) . '</p>';
 
