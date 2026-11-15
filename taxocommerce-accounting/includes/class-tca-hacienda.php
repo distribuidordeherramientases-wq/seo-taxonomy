@@ -355,6 +355,8 @@ final class TCA_Hacienda {
             echo '<a class="button" target="_blank" rel="noopener noreferrer" href="https://sede.agenciatributaria.gob.es/static_files/Sede/Tema/IVA/Fact_registro/Libros/PLANTILLA_LIBROS_UNIFICADOS.xlsx">' . esc_html__( 'Download AEAT XLSX template — general', 'taxocommerce-accounting' ) . '</a></p>';
         }
         echo '<p><a class="button" target="_blank" rel="noopener noreferrer" href="' . esc_url( $section['url'] ) . '">' . esc_html__( 'Open official AEAT information and filing', 'taxocommerce-accounting' ) . '</a></p>';
+        echo '<p>' . esc_html__( 'The tax models shown are references, not a list of mandatory returns for this merchant. Applicability depends on tax registration and legal form; for example, Model 130 may apply to certain self-employed taxpayers under direct estimation, while Model 200 concerns corporate income tax. Check tax registration with the AEAT or your adviser before preparing a return.', 'taxocommerce-accounting' ) . ' ';
+        echo '<a target="_blank" rel="noopener noreferrer" href="https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G601.shtml">' . esc_html__( 'Official AEAT Model 130 information', 'taxocommerce-accounting' ) . '</a></p>';
         echo '<p>' . esc_html__( 'To file a return, use the official AEAT procedure and verify all fields and fiscal obligations. No data is transmitted automatically.', 'taxocommerce-accounting' ) . '</p>';
     }
 
