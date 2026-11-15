@@ -158,11 +158,12 @@ final class TaxoCommerce_System_Check_Queue_Health {
      * @return string
      */
     public static function assess( $delay, $complete, $failed ) {
-        if ( (int) $delay <= 900 ) {
-            return 'no_old_backlog';
-        }
+        // Recent errors deserve attention even when there is no old backlog.
         if ( (int) $failed > 0 ) {
             return 'failures_recent';
+        }
+        if ( (int) $delay <= 900 ) {
+            return 'no_old_backlog';
         }
         if ( (int) $complete > 0 ) {
             return 'backlog_with_activity';
