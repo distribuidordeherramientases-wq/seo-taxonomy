@@ -1,3 +1,11 @@
+## 0.1.3 — 2026-11-15 — Preparación fiscal sin PDFs ni envíos (#2702)
+
+- En Hacienda se incorpora un control de cobertura por ejercicio y, para el modelo 303, por trimestre: total de asientos, pendientes de validar, tratamientos fiscales especiales, referencias documentales ausentes y NIF no informados (estos últimos solo orientativos).
+- Las alertas distinguen un periodo vacío de una declaración a cero y advierten de importaciones incompletas, fechas de inicio y operaciones no incluidas en el registro.
+- Accesos a revisión de ventas y compras, aclaración de la posible aplicación de los modelos 130 y 200 según situación fiscal y enlace a la información oficial de la AEAT.
+- Se conservan los libros e informes CSV/JSON existentes. Ningún PDF adicional, envío a Hacienda, generación de modelo oficial o modificación de pedidos/asientos.
+- Pruebas de regresión de periodos y recuentos; queda por verificar funcionamiento real y ausencia de errores en STAGING.
+
 ## 0.1.2 — 2026-11-14 — Pestaña Hacienda y descargas preparatorias (#2687)
 
 - Nueva pestaña «Hacienda» con subpestañas de los cuatro libros registro de IVA y modelos 303, 390, 347, 349 y 200. Mantiene compatible la antigua ruta de «Declaraciones fiscales».
