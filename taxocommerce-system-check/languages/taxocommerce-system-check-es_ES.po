@@ -1964,3 +1964,90 @@ msgstr "Procesos"
 #: taxocommerce-system-check.php:180
 msgid "Autocheck"
 msgstr "Autocheck"
+
+msgid "Oldest overdue WP-Cron event"
+msgstr "Evento WP-Cron más atrasado"
+
+msgid "Unavailable"
+msgstr "No disponible"
+
+msgid "The scheduled-event list is unavailable; no status is inferred."
+msgstr "La lista de eventos programados no está disponible; no se deduce ningún estado."
+
+msgid "None"
+msgstr "Ninguno"
+
+msgid "No event is more than 15 minutes overdue."
+msgstr "No hay eventos con más de 15 minutos de retraso."
+
+msgid "WP-Cron execution mechanism"
+msgstr "Mecanismo de ejecución de WP-Cron"
+
+msgid "External scheduler required"
+msgstr "Necesita un programador externo"
+
+msgid "WordPress visitor-triggered cron enabled"
+msgstr "WP-Cron activado por visitas de WordPress"
+
+msgid "Overdue events alone do not prove that the runner is stopped. Check the hosting cron when WP-Cron is disabled."
+msgstr "Los eventos atrasados no demuestran que el ejecutor esté detenido. Comprueba el cron del alojamiento si WP-Cron está desactivado."
+
+msgid "Action Scheduler activity"
+msgstr "Actividad de Action Scheduler"
+
+msgid "Action Scheduler has no accessible action table."
+msgstr "Action Scheduler no tiene una tabla de acciones accesible."
+
+msgid "Oldest pending Action Scheduler job"
+msgstr "Tarea pendiente más antigua de Action Scheduler"
+
+msgid "No pending job found."
+msgstr "No se han encontrado tareas pendientes."
+
+msgid "Most recent failed Action Scheduler attempt"
+msgstr "Último intento fallido de Action Scheduler"
+
+msgid "No failed attempt is available."
+msgstr "No hay intentos fallidos registrados."
+
+msgid "Action Scheduler attempts in the last hour"
+msgstr "Intentos de Action Scheduler en la última hora"
+
+msgid "Completed / failed, according to the last-attempt timestamp; not callback execution time."
+msgstr "Completados / fallidos según la fecha del último intento; no es el tiempo de ejecución de la función."
+
+msgid "No overdue backlog was detected in the sampled queue."
+msgstr "No se ha detectado acumulación de tareas atrasadas."
+
+msgid "Recent failures exist; inspect the failing hooks. This does not prove the runner is stopped."
+msgstr "Hay fallos recientes; revisa los hooks afectados. No demuestra que el ejecutor esté detenido."
+
+msgid "Recent completions exist, but an older task remains pending. Check the affected hook."
+msgstr "Hay tareas completadas recientemente, pero una tarea antigua sigue pendiente. Revisa su hook."
+
+msgid "Old pending tasks with no recent completions or failures: a runner issue is possible, but cannot be confirmed from one snapshot."
+msgstr "Hay tareas antiguas pendientes sin actividad reciente: podría haber un problema del ejecutor, pero una sola medición no lo confirma."
+
+msgid "Action Scheduler diagnostic"
+msgstr "Diagnóstico de Action Scheduler"
+
+msgid "Read-only snapshot. Actual PHP process duration and runner heartbeat are not exposed by this check."
+msgstr "Medición de solo lectura. Este chequeo no muestra la duración real de PHP ni la señal de actividad del ejecutor."
+
+msgid "Queue health diagnostics (read-only)"
+msgstr "Diagnóstico de colas (solo lectura)"
+
+msgid "WP-Cron and Action Scheduler signals are measured when this page opens. These measurements do not start, cancel or resume jobs, and cannot prove a PHP runner is stopped."
+msgstr "Los datos de WP-Cron y Action Scheduler se consultan al abrir esta página. No se inician, cancelan ni reanudan tareas y no pueden demostrar que el ejecutor PHP esté detenido."
+
+msgid "Metric"
+msgstr "Métrica"
+
+msgid "Value"
+msgstr "Valor"
+
+msgid "Status"
+msgstr "Estado"
+
+msgid "Details"
+msgstr "Detalles"
