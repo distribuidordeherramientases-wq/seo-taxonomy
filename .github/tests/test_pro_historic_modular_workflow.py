@@ -1,62 +1,91 @@
-"""PRO release contract: Git changed files -> existing FTPS ZIP handoff -> WordPress.
-
-No preflight inventories of activated or installed plugins, no new FTP users,
-and no FTP-based guessing of the real WordPress plugin directory.
-"""
+"""Offline regression for short STAGING -> PRO GitHub Actions workflow."""
 from pathlib import Path
+import importlib.util
+import hashlib
+import json
+import os
+import tempfile
 import unittest
+import zipfile
+from unittest.mock import patch
+from io import BytesIO
 
 ROOT = Path(__file__).resolve().parents[2]
+SCRIPT = ROOT / ".github/scripts/deploy_pro_simple.py"
+spec = importlib.util.spec_from_file_location("pro_simple", SCRIPT)
+pro = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(pro)
 
 
-class PRODeployTests(unittest.TestCase):
+class SimpleDeploymentTests(unittest.TestCase):
     def setUp(self):
         self.workflow = (ROOT / ".github/workflows/despliege_de_main_a_pro.yml").read_text()
-        self.selector = (ROOT / ".github/scripts/select_pro_release_delta.py").read_text()
 
-    def test_git_delta_without_site_plugin_inventory(self):
+    def test_simple_staging_copy_with_existing_secrets(self):
+        self.assertLessEqual(len(self.workflow.splitlines()), 50)
+        self.assertIn("ref: staging", self.workflow)
         self.assertIn("select_pro_release_delta.py --all-changed", self.workflow)
-        self.assertIn("installed = None", self.selector)
-        self.assertIn("allowed = None", self.selector)
-        for forbidden in (
-            "fetch_pro_installed_modules.py", "INSTALLED_MODULES_JSON",
-            "ALL_MODULES_JSON", "steps.installed", "steps.family",
-            "installed-json", "allowed-json", "deploy_pro_ftps_native.py",
-            "PRO_CORE_EXPECTED_VERSION", "PRO_WOO_EXPECTED_VERSION",
-        ):
+        self.assertIn("deploy_pro_simple.py", self.workflow)
+        self.assertIn("workflow_dispatch:", self.workflow)
+        for key in ("FTP_SERVER", "FTP_USERNAME", "FTP_PASSWORD"):
+            self.assertIn("secrets." + key, self.workflow)
+        for forbidden in ("fetch_pro_installed_modules.py", "INSTALLED_MODULES_JSON",
+                          "get_plugins()", "active_plugins", "deploy_pro_ftps_native.py"):
             self.assertNotIn(forbidden, self.workflow)
 
-    def test_same_ftp_account_and_working_wordpress_delivery_path(self):
-        for name in ("FTP_SERVER", "FTP_USERNAME", "FTP_PASSWORD"):
-            self.assertIn("secrets." + name, self.workflow)
-        self.assertNotIn("secrets.STAGING_FTP_", self.workflow)
-        self.assertIn('handoff=".taxocommerce-deploy/$GITHUB_RUN_ID"', self.workflow)
-        self.assertIn('put "$package" -o "$handoff/$module.zip"', self.workflow)
-        self.assertIn('put /tmp/taxocommerce-deploy-marker -o ".token-$token_hash"', self.workflow)
-        self.assertIn('wp-json/taxocommerce/v1/deploy-active-modules', self.workflow)
-        self.assertNotIn('mkdir -p "wp-content/plugins"', self.workflow)
-        self.assertNotIn("ftp.cwd(PLUGINS_DIR)", self.workflow)
+    def test_upload_uses_real_wordpress_plugin_directory_and_auth(self):
+        receiver = pro.receiver_php("a" * 64, 9999999999, "run-test")
+        self.assertIn("dirname(__DIR__, 3) . '/wp-load.php'", receiver)
+        self.assertIn("WP_PLUGIN_DIR . '/' . $slug", receiver)
+        self.assertIn("hash_equals(", receiver)
+        self.assertIn("seo_taxocommerce_deploy_apply_zip_delta", receiver)
+        self.assertIn("manifest_sha256", receiver)
+        self.assertNotIn("get_plugins(", receiver)
 
-    def test_only_modified_files_with_wordpress_sha256_ack(self):
-        self.assertIn("changed_count != '0'", self.workflow)
-        self.assertIn("changed_count == '0'", self.workflow)
-        self.assertIn('jq -j --arg module "$module"', self.workflow)
-        self.assertIn('zip -q "$package" "${changed_files[@]}"', self.workflow)
-        self.assertIn('unzip -t "$package"', self.workflow)
-        self.assertIn('hashlib.sha256', self.workflow)
-        self.assertIn("manifest_sha256", self.workflow)
-        self.assertIn("confirmed_count != len(manifest)", self.workflow)
-        self.assertIn('if [[ "$http_code" != 2* ]]', self.workflow)
+    def test_changed_files_only_and_sha256_package(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            plugin = base / "taxocommerce-core"
+            plugin.mkdir()
+            (plugin / "taxocommerce-core.php").write_bytes(b"<?php // version")
+            (plugin / "readme.txt").write_text("stable")
+            (plugin / "includes").mkdir()
+            (plugin / "includes/main.php").write_bytes(b"<?php // changed")
+            delta = base / "delta.json"
+            delta.write_text(json.dumps({"taxocommerce-core": ["includes/main.php"]}))
+            orig = Path.cwd()
+            try:
+                os.chdir(base)
+                with patch.dict(os.environ, {"DELTA_FILE": str(delta)}):
+                    modules = pro.deliverables()
+                    packages = pro.create_packages(modules)
+                archive, digest, count = packages["taxocommerce-core"]
+                with zipfile.ZipFile(BytesIO(archive)) as z:
+                    self.assertEqual(["includes/main.php"], z.namelist())
+                    expected = {"includes/main.php": hashlib.sha256(b"<?php // changed").hexdigest()}
+                self.assertEqual(count, 1)
+                self.assertEqual(digest, hashlib.sha256(
+                    json.dumps(expected, sort_keys=True, separators=(",", ":")).encode("ascii")
+                ).hexdigest())
+            finally:
+                os.chdir(orig)
 
-    def test_manual_staging_source_without_plugin_filter(self):
-        self.assertIn("ref: staging", self.workflow)
-        self.assertIn('test "$GITHUB_REF_NAME" = "staging"', self.workflow)
-        self.assertIn("EXPECTED_SHA: " + "$" + "{{ inputs.source_sha }}", self.workflow)
-        self.assertNotIn("active_plugins", self.workflow)
-        self.assertNotIn("get_plugins()", self.workflow)
-        manual = self.workflow.split("  workflow_dispatch:", 1)[1].split("\npermissions:", 1)[0]
-        self.assertNotIn("inputs:", manual)
-        self.assertNotIn("target_plugin", manual)
+    def test_missing_or_unsafe_delta_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            plugin = base / "taxocommerce-core"
+            plugin.mkdir()
+            (plugin / "taxocommerce-core.php").write_text("entrypoint")
+            delta = base / "delta.json"
+            delta.write_text('{"taxocommerce-core":["../wp-config.php"]}')
+            orig = Path.cwd()
+            try:
+                os.chdir(base)
+                with patch.dict(os.environ, {"DELTA_FILE": str(delta)}):
+                    with self.assertRaises(RuntimeError):
+                        pro.deliverables()
+            finally:
+                os.chdir(orig)
 
 
 if __name__ == "__main__":
