@@ -37,4 +37,4 @@ jobs:
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           PRO_CORE_EXPECTED_VERSION: '0.4.84'
           PRO_WOO_EXPECTED_VERSION: '11.2.2'
-        run: python3 .github/scripts/pro_ftps_root_probe.py --shared-account-pro-root
+        run: python3 .github/scripts/pro_ftps_root_probe.py
