@@ -32,6 +32,9 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REF_NAME" = "staging"
-          if [ -n "$EXPECTED_SHA" ]; then test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"; fi
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          if [ -n "$EXPECTED_SHA" ]; then
+            if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then exit 1; fi
+          fi
           python3 .github/scripts/select_pro_release_delta.py --all-changed --output "$DELTA_FILE"
           python3 .github/scripts/deploy_pro_simple.py
