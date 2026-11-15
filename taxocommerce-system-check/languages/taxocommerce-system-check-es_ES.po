@@ -2055,3 +2055,48 @@ msgstr "Detalles"
 #. translators: 1: maximum URLs per batch; 2: completed; 3: total; 4: approximate next pending position.
 msgid "Batch limit: %1$d URLs · progress: %2$d/%3$d · resume: next pending URL (approx. position %4$d)."
 msgstr "Límite por lote: %1$d URL · progreso: %2$d/%3$d · reanudación: siguiente URL pendiente (posición aproximada %4$d)."
+
+msgid "Diagnóstico de tarea"
+msgstr "Diagnóstico de tarea"
+
+msgid "La tarea ya no existe o no está disponible."
+msgstr "La tarea ya no existe o no está disponible."
+
+msgid "Grupo:"
+msgstr "Grupo:"
+
+msgid "Posible tarea huérfana: no hay un callback registrado en esta petición. Confirma si el plugin está activo antes de cancelar."
+msgstr "Posible tarea huérfana: no hay un callback registrado en esta petición. Confirma si el plugin está activo antes de cancelar."
+
+msgid "Callback registrado. Esto no demuestra una ejecución correcta."
+msgstr "Callback registrado. Esto no demuestra una ejecución correcta."
+
+msgid "Ejecutor no verificable desde este estado."
+msgstr "Ejecutor no verificable desde este estado."
+
+msgid "Programado (UTC):"
+msgstr "Programado (UTC):"
+
+msgid "WP-Cron no conserva un historial individual de errores. Consulta los registros del plugin responsable si existen."
+msgstr "WP-Cron no conserva un historial individual de errores. Consulta los registros del plugin responsable si existen."
+
+msgid "Este estado no prueba que una petición PHP siga ejecutándose."
+msgstr "Este estado no prueba que una petición PHP siga ejecutándose."
+
+msgid "Registro de Action Scheduler (últimas 20 entradas)"
+msgstr "Registro de Action Scheduler (últimas 20 entradas)"
+
+msgid "No hay entradas de registro disponibles para esta tarea."
+msgstr "No hay entradas de registro disponibles para esta tarea."
+
+msgid "El prefijo histórico seo_ no demuestra una dependencia del antiguo monolítico. No se muestran argumentos ni credenciales."
+msgstr "El prefijo histórico seo_ no demuestra una dependencia del antiguo monolítico. No se muestran argumentos ni credenciales."
+
+msgid "Ver log del último fallo"
+msgstr "Ver log del último fallo"
+
+msgid "Ver detalles"
+msgstr "Ver detalles"
+
+msgid "Ver log / diagnóstico"
+msgstr "Ver log / diagnóstico"

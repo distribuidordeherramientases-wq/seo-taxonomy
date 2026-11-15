@@ -31,7 +31,7 @@ class TCS_Queue_Test_DB {
         if ( false !== strpos( $query, 'scheduled_date_gmt' ) ) {
             return (object) array( 'hook' => 'taxocommerce_slow_scan', 'scheduled_date_gmt' => '2026-11-15 09:00:00' );
         }
-        return (object) array( 'hook' => '<test_failure>', 'last_attempt_gmt' => '2026-11-15 09:40:00' );
+        return (object) array( 'action_id' => 77, 'hook' => '<test_failure>', 'last_attempt_gmt' => '2026-11-15 09:40:00' );
     }
     public function get_results( $query ) {
         return array(
@@ -64,7 +64,7 @@ $actions = TaxoCommerce_System_Check_Queue_Health::scheduler( $now );
 tcs_queue_assert( $actions['available'] && 'taxocommerce_slow_scan' === $actions['oldest_hook'], 'Read the oldest native pending action' );
 tcs_queue_assert( 8 === $actions['recent_completed'] && 2 === $actions['recent_failed'], 'Read recent completed/failed counts' );
 tcs_queue_assert( 'failures_recent' === $actions['assessment'], 'Repeated failures are distinguished from no runner activity' );
-tcs_queue_assert( '<test_failure>' === $actions['last_failed_hook'], 'Last failed hook is retrieved' );
+tcs_queue_assert( '<test_failure>' === $actions['last_failed_hook'] && 77 === $actions['last_failed_id'], 'Last failed hook and action ID are retrieved' );
 tcs_queue_assert( 3 === count( $GLOBALS['wpdb']->queries ), 'Only three bounded Action Scheduler diagnostic queries' );
 foreach ( $GLOBALS['wpdb']->queries as $query ) {
     tcs_queue_assert( false !== stripos( $query[0], 'SELECT ' ) && false === stripos( $query[0], 'UPDATE ' ), 'Read-only prepared queries' );

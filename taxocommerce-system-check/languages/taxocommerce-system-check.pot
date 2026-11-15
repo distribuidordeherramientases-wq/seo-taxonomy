@@ -2,7 +2,7 @@
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce System Check 0.2.35\n"
+"Project-Id-Version: TaxoCommerce System Check 0.2.39\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/taxocommerce-system-check\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1871,4 +1871,49 @@ msgstr ""
 
 #. translators: 1: maximum URLs per batch; 2: completed; 3: total; 4: approximate next pending position.
 msgid "Batch limit: %1$d URLs · progress: %2$d/%3$d · resume: next pending URL (approx. position %4$d)."
+msgstr ""
+
+msgid "Diagnóstico de tarea"
+msgstr ""
+
+msgid "La tarea ya no existe o no está disponible."
+msgstr ""
+
+msgid "Grupo:"
+msgstr ""
+
+msgid "Posible tarea huérfana: no hay un callback registrado en esta petición. Confirma si el plugin está activo antes de cancelar."
+msgstr ""
+
+msgid "Callback registrado. Esto no demuestra una ejecución correcta."
+msgstr ""
+
+msgid "Ejecutor no verificable desde este estado."
+msgstr ""
+
+msgid "Programado (UTC):"
+msgstr ""
+
+msgid "WP-Cron no conserva un historial individual de errores. Consulta los registros del plugin responsable si existen."
+msgstr ""
+
+msgid "Este estado no prueba que una petición PHP siga ejecutándose."
+msgstr ""
+
+msgid "Registro de Action Scheduler (últimas 20 entradas)"
+msgstr ""
+
+msgid "No hay entradas de registro disponibles para esta tarea."
+msgstr ""
+
+msgid "El prefijo histórico seo_ no demuestra una dependencia del antiguo monolítico. No se muestran argumentos ni credenciales."
+msgstr ""
+
+msgid "Ver log del último fallo"
+msgstr ""
+
+msgid "Ver detalles"
+msgstr ""
+
+msgid "Ver log / diagnóstico"
 msgstr ""

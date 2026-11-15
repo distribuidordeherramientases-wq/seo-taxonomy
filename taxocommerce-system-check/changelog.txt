@@ -1,3 +1,7 @@
+= 0.2.39 (2026-11-15) =
+* Add per-task diagnostic links for WP-Cron, Action Scheduler and registered workers; show up to 20 native Scheduler log entries on demand with credential redaction, callback availability and the most recent historical failure.
+* Preserve critical task protection and cooperative stop; repair WP-Cron cancellation signature mismatch and export-worker identifiers containing colons. No arbitrary task execution or PHP process kill. Issue #2699.
+
 = 0.2.38 (2026-11-15) =
 * Read-only cron/Action Scheduler queue-health diagnostics inside Procesos only: oldest overdue hook, pending/failed attempts, recent activity, no false proof of a stopped runner. Existing cancellation controls unchanged. HTTP worker rows now show current batch limit, completed/total URLs and approximate next-pending position. Issue #2694.
 

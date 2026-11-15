@@ -2055,3 +2055,48 @@ msgstr "Details"
 #. translators: 1: maximum URLs per batch; 2: completed; 3: total; 4: approximate next pending position.
 msgid "Batch limit: %1$d URLs · progress: %2$d/%3$d · resume: next pending URL (approx. position %4$d)."
 msgstr "Batch limit: %1$d URLs · progress: %2$d/%3$d · resume: next pending URL (approx. position %4$d)."
+
+msgid "Diagnóstico de tarea"
+msgstr "Task diagnostics"
+
+msgid "La tarea ya no existe o no está disponible."
+msgstr "The task no longer exists or is unavailable."
+
+msgid "Grupo:"
+msgstr "Group:"
+
+msgid "Posible tarea huérfana: no hay un callback registrado en esta petición. Confirma si el plugin está activo antes de cancelar."
+msgstr "Possible orphaned task: no callback is registered for this request. Confirm that its plugin is active before cancelling."
+
+msgid "Callback registrado. Esto no demuestra una ejecución correcta."
+msgstr "Callback registered. This does not prove successful execution."
+
+msgid "Ejecutor no verificable desde este estado."
+msgstr "The runner cannot be verified from this state."
+
+msgid "Programado (UTC):"
+msgstr "Scheduled (UTC):"
+
+msgid "WP-Cron no conserva un historial individual de errores. Consulta los registros del plugin responsable si existen."
+msgstr "WP-Cron does not keep a per-event error history. Check the responsible plugin's logs, if available."
+
+msgid "Este estado no prueba que una petición PHP siga ejecutándose."
+msgstr "This state does not prove that a PHP request is still running."
+
+msgid "Registro de Action Scheduler (últimas 20 entradas)"
+msgstr "Action Scheduler log (last 20 entries)"
+
+msgid "No hay entradas de registro disponibles para esta tarea."
+msgstr "No log entries are available for this task."
+
+msgid "El prefijo histórico seo_ no demuestra una dependencia del antiguo monolítico. No se muestran argumentos ni credenciales."
+msgstr "The historical seo_ prefix does not prove dependency on the old monolithic plugin. Arguments and credentials are not displayed."
+
+msgid "Ver log del último fallo"
+msgstr "View latest failure log"
+
+msgid "Ver detalles"
+msgstr "View details"
+
+msgid "Ver log / diagnóstico"
+msgstr "View log / diagnostics"
