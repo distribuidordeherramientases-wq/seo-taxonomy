@@ -206,6 +206,33 @@ def diagnose_known_roots(ftp):
             ftp.cwd(login_root)
 
 
+def diagnose_legacy_bridge(ftp):
+    """Read two fixed, public-source files only. Never print source or credentials."""
+    def read_limited(path):
+        chunks = bytearray()
+        try:
+            def append(block):
+                if len(chunks) + len(block) > 1048576:
+                    raise RuntimeError("Legacy source exceeds size limit")
+                chunks.extend(block)
+            ftp.retrbinary("RETR " + path, append)
+        except ftplib.error_perm as exc:
+            if str(exc).startswith("550"):
+                return None
+            raise
+        return bytes(chunks)
+
+    entry = read_limited("seo-taxonomy.php")
+    bridge = read_limited("includes/seo-deploy-status.php")
+    print("Legacy monolith entrypoint present: " + str(entry is not None), flush=True)
+    print("Legacy entrypoint loads deploy bridge: " +
+          str(entry is not None and b"includes/seo-deploy-status.php" in entry), flush=True)
+    print("Legacy REST deploy bridge source present: " + str(bridge is not None), flush=True)
+    print("Legacy REST route source registered: " +
+          str(bridge is not None and b"deploy-active-modules" in bridge and
+              b"register_rest_route" in bridge), flush=True)
+
+
 def main() -> int:
     required = ("FTP_SERVER", "FTP_USERNAME", "FTP_PASSWORD",
                 "PRO_CORE_EXPECTED_VERSION", "PRO_WOO_EXPECTED_VERSION")
@@ -226,6 +253,9 @@ def main() -> int:
         ftp.login(os.environ["FTP_USERNAME"], os.environ["FTP_PASSWORD"])
         ftp.prot_p()
         # This is a read-only diagnostic. No FTP upload/remove/mkdir is used.
+        if len(sys.argv) == 2 and sys.argv[1] == "--legacy-route-check":
+            diagnose_legacy_bridge(ftp)
+            return 0
         if len(sys.argv) == 2 and sys.argv[1] == "--diagnose-known-roots":
             diagnose_known_roots(ftp)
             return 0
