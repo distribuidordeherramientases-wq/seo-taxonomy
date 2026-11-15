@@ -66,6 +66,7 @@ class ProbeTests(unittest.TestCase):
     def test_accepts_known_previous_core_release_without_disabling_root_identity(self):
         ftp = FakeFTP(self.files)
         self.expected["PRO_CORE_EXPECTED_VERSION"] = ["0.4.84", "0.4.85"]
+        self.files["."]["woocommerce/woocommerce.php"] = header("11.2.0")
         found = probe.find_verified_root(ftp, self.expected)
         self.assertEqual(("./wp-content/plugins", "/verified/plugins"), found)
         self.assertEqual(0, ftp.writes)
