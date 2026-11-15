@@ -190,8 +190,22 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (ftplib.Error, OSError, ValueError, RuntimeError) as exc:
-        # FTP server errors sometimes include account paths, so avoid printing
-        # untrusted exception text or credentials.
+    except RuntimeError as exc:
+        # A working login is not enough: it must reach the actual WP plugins
+        # directory, not the old seo-taxonomy account's confined FTP home.
+        if str(exc).startswith("Wrong production FTPS root:"):
+            print(
+                "::error::The existing FTP login cannot access the real PRO "
+                "wp-content/plugins directory. No production files copied. "
+                "The previous ZIP process could reach sibling plugin folders "
+                "only through WordPress; direct FTP requires that destination "
+                "to be accessible to this FTP account.",
+                file=sys.stderr,
+            )
+        else:
+            print("::error::PRO file copy failed: RuntimeError", file=sys.stderr)
+        sys.exit(1)
+    except (ftplib.Error, OSError, ValueError) as exc:
+        # FTP errors may contain private paths; do not print raw server text.
         print("::error::PRO file copy failed: " + type(exc).__name__, file=sys.stderr)
         sys.exit(1)
