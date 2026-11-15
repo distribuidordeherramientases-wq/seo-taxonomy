@@ -22,7 +22,7 @@ class FakeFTP:
             raise probe.ftplib.error_perm("550 Not available")
         self.place = name
     def pwd(self):
-        return self.files[self.place]["canonical"]
+        return "/" if self.place == "/" else self.files[self.place]["canonical"]
     def retrbinary(self, command, callback):
         path = command.split(" ", 1)[1]
         value = self.files[self.place].get(path)
