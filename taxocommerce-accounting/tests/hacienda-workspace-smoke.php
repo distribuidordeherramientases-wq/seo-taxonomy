@@ -29,9 +29,9 @@ class TCA_Hacienda_Test_DB {
             );
         }
         return array(
-            (object) array( 'period' => '2026-11', 'kind' => 'sale', 'status' => 'validated', 'treatment' => 'domestic', 'entry_count' => 600, 'amount_total' => 121, 'amount_tax' => 21, 'deductible_tax' => 0 ),
-            (object) array( 'period' => '2026-11', 'kind' => 'refund', 'status' => 'validated', 'treatment' => 'domestic', 'entry_count' => 1, 'amount_total' => -25, 'amount_tax' => -5, 'deductible_tax' => 0 ),
-            (object) array( 'period' => '2026-11', 'kind' => 'purchase', 'status' => 'validated', 'treatment' => 'domestic', 'entry_count' => 3, 'amount_total' => 110, 'amount_tax' => 10, 'deductible_tax' => 5 ),
+            (object) array( 'period' => '2026-11', 'kind' => 'sale', 'status' => 'validated', 'treatment' => 'domestic', 'entry_count' => 600, 'amount_base' => 100, 'amount_total' => 121, 'amount_tax' => 21, 'deductible_tax' => 0 ),
+            (object) array( 'period' => '2026-11', 'kind' => 'refund', 'status' => 'validated', 'treatment' => 'domestic', 'entry_count' => 1, 'amount_base' => -20, 'amount_total' => -25, 'amount_tax' => -5, 'deductible_tax' => 0 ),
+            (object) array( 'period' => '2026-11', 'kind' => 'purchase', 'status' => 'validated', 'treatment' => 'domestic', 'entry_count' => 3, 'amount_base' => 100, 'amount_total' => 110, 'amount_tax' => 10, 'deductible_tax' => 5 ),
             (object) array( 'period' => '2026-11', 'kind' => 'sale', 'status' => 'draft', 'treatment' => 'domestic', 'entry_count' => 2, 'amount_total' => 121, 'amount_tax' => 21, 'deductible_tax' => 0 ),
             (object) array( 'period' => '2026-11', 'kind' => 'sale', 'status' => 'validated', 'treatment' => 'intra', 'entry_count' => 5, 'amount_total' => 121, 'amount_tax' => 21, 'deductible_tax' => 0 ),
         );
@@ -62,6 +62,9 @@ $data = TCA_Hacienda::vat_summary( 2026, 4 );
 tca_test_assert( 1 === count( $data ), 'One month returned' );
 tca_test_assert( 611 === $data[0]['entries'], 'Full group count is not capped to 400 ledger rows' );
 tca_test_assert( 96.0 === $data[0]['sales'], 'Domestic sales include correctly signed refunds only' );
+tca_test_assert( 80.0 === $data[0]['sales_base'], 'Real domestic sales taxable bases retain signed refunds' );
+tca_test_assert( 100.0 === $data[0]['purchases_base'], 'Domestic purchase taxable bases are accumulated separately from VAT' );
+
 tca_test_assert( 16.0 === $data[0]['output_vat'], 'Domestic output VAT offsets refunds' );
 tca_test_assert( 5.0 === $data[0]['deductible_input_vat'], 'Deductible input VAT respects configured percentage' );
 tca_test_assert( 11.0 === $data[0]['difference'], 'Indicative difference is not an official tax form' );
