@@ -124,9 +124,9 @@ jobs:
         id: installed
         shell: bash
         env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER: ${{ secrets.PRO_FTPS_HOST }}
+          FTP_USERNAME: ${{ secrets.PRO_FTPS_USER }}
+          FTP_PASSWORD: ${{ secrets.PRO_FTPS_PASSWORD }}
           PRO_CORE_EXPECTED_VERSION: '0.4.84'
           PRO_WOO_EXPECTED_VERSION: '11.3.0'
         run: |
@@ -179,9 +179,9 @@ jobs:
         shell: bash
         env:
           DELTA_FILE: ${{ runner.temp }}/taxocommerce-pro-changed.json
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER: ${{ secrets.PRO_FTPS_HOST }}
+          FTP_USERNAME: ${{ secrets.PRO_FTPS_USER }}
+          FTP_PASSWORD: ${{ secrets.PRO_FTPS_PASSWORD }}
           PRO_CORE_EXPECTED_VERSION: '0.4.84'
           PRO_WOO_EXPECTED_VERSION: '11.3.0'
         run: |
