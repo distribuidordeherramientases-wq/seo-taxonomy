@@ -1,3 +1,9 @@
+## 2026-11-15 — Despliegue PRO: diagnóstico del receptor REST heredado (#2696)
+
+- Confirmados los fallos de las ejecuciones #207 y #208: el receptor `taxocommerce/v1/deploy-active-modules` está registrado exclusivamente en el monolítico, ahora desactivado; ambos endpoints REST responden 404 antes de transferir archivos.
+- Se añade una comprobación FTPS estrictamente de solo lectura para verificar que las credenciales acceden al directorio real de plugins: contrasta las cabeceras de Core y WooCommerce con el inventario obtenido por WordPress, sin mostrar rutas/secretos y bloqueando si no existe una ubicación única.
+- El diagnóstico no sustituye todavía el despliegue REST ni permite saltarse el inventario de producción; no escribe ni elimina ficheros. Debe comprobarse la capacidad real de acceso antes de plantear la migración de canal.
+
 ## 2026-11-12 — PRO: corregido HTTP 401 al seleccionar cambios (#2570)
 
 - Los releases #194 y #195 llegaban correctamente al inventario REST de PRO, pero fallaban antes de transferir archivos porque el selector descargaba logs protegidos de GitHub Actions con un token rechazado (401).
