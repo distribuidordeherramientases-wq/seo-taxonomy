@@ -1,3 +1,9 @@
+## 2026-11-15 — PRO: descubrimiento acotado de la carpeta FTPS de WordPress (#2696)
+
+- El diagnóstico FTP inicial solo reconocía ubicaciones fijas. Se amplía a un descubrimiento MLSD de solo lectura, con límites de profundidad y cantidad de directorios, sin abrir ni modificar archivos de otros sitios.
+- Se comprueban las versiones de los plugins Core y WooCommerce contra las verificadas en el WordPress de producción; se requiere coincidencia en una única carpeta. Los fallos muestran contadores, no rutas ni credenciales.
+- La validación no equivale a autorizar despliegues: los dos workflows #207/#208 no se han reintentado y no se ha reactivado el monolítico.
+
 ## 2026-11-15 — Despliegue PRO: diagnóstico del receptor REST heredado (#2696)
 
 - Confirmados los fallos de las ejecuciones #207 y #208: el receptor `taxocommerce/v1/deploy-active-modules` está registrado exclusivamente en el monolítico, ahora desactivado; ambos endpoints REST responden 404 antes de transferir archivos.
