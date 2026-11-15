@@ -1,3 +1,12 @@
+## [0.2.39] — 2026-11-15 — Diagnóstico y logs por tarea en Procesos (#2699)
+
+- Procesos incorpora una columna de diagnóstico para tareas de WP-Cron, Action Scheduler y trabajadores de larga duración. Cada consulta detallada está limitada a una tarea y requiere permisos de administrador y nonce.
+- Los logs nativos de Action Scheduler se muestran bajo demanda (últimas 20 entradas) y se ocultan valores que parezcan credenciales. Enlace al último intento fallido desde el resumen de colas.
+- Señal de posible tarea huérfana cuando el hook no tiene callback registrado en la petición actual; no confundir prefijos `seo_` con dependencia demostrada del antiguo monolítico.
+- WP-Cron no conserva historial individual por defecto; no se inventan causas de fallos ni se exponen los argumentos de los jobs.
+- Se mantienen intactas las cancelaciones protegidas y paradas cooperativas; ningún kill de PHP/SO ni ejecución arbitraria de hooks. Corrección de la firma de la cancelación de WP-Cron, que se calculaba distinto entre el botón y el validador.
+- Pruebas de regresión de logs, lectura, control de acceso, máscara de credenciales y colas. Sin cambios en Sistema, plugins ajenos o producción.
+
 ## [0.2.38] — 2026-11-15 — Diagnóstico de colas en Procesos (#2694)
 
 - Amplía **solo la pestaña «Procesos»** con un bloque de diagnóstico WP-Cron y Action Scheduler de solo lectura. «Sistema», «MySQL» y «Servidor» permanecen intactos.
