@@ -32,4 +32,14 @@ foreach ( array( 'wp_remote_post(', 'wp_remote_get(', 'wp_delete_post(', 'wc_del
         exit( 1 );
     }
 }
+$css = file_get_contents( dirname( __DIR__ ) . '/assets/admin.css' );
+if ( false === $css
+    || false === strpos( $source, "add_action( 'admin_enqueue_scripts', 'tca_enqueue_admin_styles' )" )
+    || false === strpos( $source, "plugin_dir_url( __FILE__ ) . 'assets/admin.css'" )
+    || false === strpos( $source, 'wrap tca-accounting-admin' )
+    || false === strpos( $css, '.tca-accounting-admin .nav-tab-wrapper .nav-tab.nav-tab-active' )
+    || false === strpos( $css, 'color: #fff;' ) ) {
+    fwrite( STDERR, "Accounting active tab style contract failed.\n" );
+    exit( 1 );
+}
 echo "TaxoCommerce Accounting isolated smoke: PASS\n";
