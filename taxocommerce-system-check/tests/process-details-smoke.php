@@ -73,6 +73,8 @@ detail_assert( 'missing' === $c::callback_status( 'seo_orphan_hook' ), 'missing 
 detail_assert( 'registered' === $c::callback_status( 'test_registered' ), 'registered callback detected' );
 $log = $c::safe_log_message( 'Bearer abc123 token=xyz&x=2 https://example.test/?api_key=shh' );
 detail_assert( false === strpos( $log, 'abc123' ) && false === strpos( $log, 'xyz' ) && false === strpos( $log, 'shh' ), 'log secrets masked' );
+$json_log = $c::safe_log_message( '{"access_token":"secretXYZ","password":"privateValue"}' );
+detail_assert( false === strpos( $json_log, 'secretXYZ' ) && false === strpos( $json_log, 'privateValue' ), 'JSON-style credentials masked' );
 $a = $c::action( 100 );
 detail_assert( 'failed' === $a['status'] && count( $a['logs'] ) === 20 && 'registered' === $a['callback'], 'action and last 20 logs returned' );
 detail_assert( false !== strpos( $a['logs'][0]['message'], 'failure 8' ), 'logs bounded to latest 20' );
