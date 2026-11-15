@@ -1,6 +1,10 @@
 # TaxoCommerce System Check
 
-## Procesos (0.2.18)
+## Procesos (0.2.38)
+
+La pestaña Procesos incorpora un cuadro diagnóstico **de solo lectura** que muestra el evento WP-Cron más atrasado, el hook más antiguo pendiente de Action Scheduler, el último intento fallido y cuántos intentos se completaron/fallaron en la última hora. Diferencia una cola con actividad de errores recientes y evita afirmar que el ejecutor está detenido cuando los datos no lo demuestran. No mide tiempo efectivo de callback PHP. Ningún cambio en permisos, botones, algoritmos de cancelación o solapes con Sistema.
+
+### Inventario y controles existentes
 
 La pestaña **Procesos** muestra el inventario acotado de Action Scheduler y WP-Cron y el estado lógico de workers compatibles, sin permisos shell y sin depender de Core. Las acciones requieren `manage_options`, nonce y revisión del estado. Solo se ofrece cancelación de tareas de aplicación consideradas no críticas. Para detener trabajos largos, la detención es cooperativa: se impiden nuevos lotes pero **no** se mata una petición PHP ya ejecutándose. El botón global no borra pagos, tareas internas de WooCommerce ni trabajos del sistema operativo.
 
