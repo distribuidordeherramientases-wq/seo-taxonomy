@@ -1,3 +1,6 @@
+= 0.2.40 (2026-11-15) =
+* Prevent Processes fatal when the optional Process_Details class arrives after the process manager in an incremental FTPS update. Load detail class lazily and preserve existing process controls with a temporary warning. Added partial-install regression test. Issue #2711.
+
 = 0.2.39 (2026-11-15) =
 * Add per-task diagnostic links for WP-Cron, Action Scheduler and registered workers; show up to 20 native Scheduler log entries on demand with credential redaction, callback availability and the most recent historical failure.
 * Preserve critical task protection and cooperative stop; repair WP-Cron cancellation signature mismatch and export-worker identifiers containing colons. No arbitrary task execution or PHP process kill. Issue #2699.
