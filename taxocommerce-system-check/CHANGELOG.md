@@ -1,3 +1,10 @@
+## [0.2.40] — 2026-11-15 — Evitar fatal durante actualizaciones FTPS parciales (#2711)
+
+- Corrección urgente del error `Class TaxoCommerce_System_Check_Process_Details not found` observado en STAGING al abrir Procesos.
+- La pantalla carga el módulo de diagnóstico bajo demanda si existe; si aún no ha llegado durante una transferencia incremental, continúa mostrando los indicadores y controles de cancelación anteriores con un aviso de diagnóstico temporalmente no disponible, sin error fatal.
+- La carga inicial del plugin tolera temporalmente la ausencia del archivo hasta completar la actualización. No cambia las protecciones de paradas ni las consultas de Action Scheduler y WP-Cron.
+- Prueba de regresión que simula la llegada no atómica de archivos (primero el gestor y después el módulo de detalles) y verifica la recuperación. No se despliega a producción.
+
 ## [0.2.39] — 2026-11-15 — Diagnóstico y logs por tarea en Procesos (#2699)
 
 - Procesos incorpora una columna de diagnóstico para tareas de WP-Cron, Action Scheduler y trabajadores de larga duración. Cada consulta detallada está limitada a una tarea y requiere permisos de administrador y nonce.

@@ -4,13 +4,15 @@ Tags: diagnostics, security, performance, maintenance, monitoring
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.39
+Stable tag: 0.2.40
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Server, WordPress and plugin diagnostics with administrator-controlled reports and local checks.
 
 == Description ==
+
+Version 0.2.40 prevents a fatal error when the Processes diagnostic class is temporarily unavailable during an incremental FTPS update. The previous process list and controls remain usable until the transfer finishes.
 
 Version 0.2.39 adds administrator-only, on-demand job diagnostics inside Processes. Each Action Scheduler task has a bounded, redacted log view; WP-Cron jobs show callback availability without inventing execution history. Existing protected cancellation and cooperative stop remain unchanged, with the WP-Cron event signature corrected. No general PHP kill or arbitrary run-now action is provided.
 

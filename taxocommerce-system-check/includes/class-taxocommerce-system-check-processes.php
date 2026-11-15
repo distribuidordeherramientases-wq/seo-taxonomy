@@ -343,6 +343,16 @@ final class TaxoCommerce_System_Check_Processes {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
+		// FTPS deployments are not atomic: load the optional detail module lazily
+		// so an older bootstrap cannot leave the Processes tab in a fatal state.
+		$details_available = class_exists( 'TaxoCommerce_System_Check_Process_Details', false );
+		if ( ! $details_available ) {
+			$details_file = __DIR__ . '/class-taxocommerce-system-check-process-details.php';
+			if ( is_readable( $details_file ) ) {
+				require_once $details_file;
+				$details_available = class_exists( 'TaxoCommerce_System_Check_Process_Details', false );
+			}
+		}
 		$workers = self::workers();
 		$actions = self::actions();
 		$crons   = self::cron();
@@ -356,11 +366,15 @@ final class TaxoCommerce_System_Check_Processes {
 			TaxoCommerce_System_Check_Queue_Health::render_scheduler_rows();
 			echo '</tbody></table>';
 		}
-		$queue_state = class_exists( 'TaxoCommerce_System_Check_Queue_Health' ) ? TaxoCommerce_System_Check_Queue_Health::scheduler() : array();
-		if ( ! empty( $queue_state['last_failed_id'] ) ) {
-			echo '<p><a class="button button-secondary" href="' . esc_url( TaxoCommerce_System_Check_Process_Details::url( 'action', array( 'tcs_item' => (int) $queue_state['last_failed_id'] ) ) ) . '">' . esc_html__( 'Ver log del último fallo', 'taxocommerce-system-check' ) . '</a></p>';
+		if ( $details_available ) {
+			$queue_state = class_exists( 'TaxoCommerce_System_Check_Queue_Health' ) ? TaxoCommerce_System_Check_Queue_Health::scheduler() : array();
+			if ( ! empty( $queue_state['last_failed_id'] ) ) {
+				echo '<p><a class="button button-secondary" href="' . esc_url( TaxoCommerce_System_Check_Process_Details::url( 'action', array( 'tcs_item' => (int) $queue_state['last_failed_id'] ) ) ) . '">' . esc_html__( 'Ver log del último fallo', 'taxocommerce-system-check' ) . '</a></p>';
+			}
+			TaxoCommerce_System_Check_Process_Details::render_selected();
+		} else {
+			echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Process diagnostics are unavailable until the plugin update completes.', 'taxocommerce-system-check' ) . '</p></div>';
 		}
-		TaxoCommerce_System_Check_Process_Details::render_selected();
 		self::button( 'stop_all', __( 'Detener los trabajos cancelables mostrados', 'taxocommerce-system-check' ), array(), true );
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status feedback.
 		$stopped = isset( $_GET['stopped'] ) ? absint( wp_unslash( $_GET['stopped'] ) ) : null;
@@ -375,7 +389,11 @@ final class TaxoCommerce_System_Check_Processes {
 			if ( ! empty( $worker['can_stop'] ) ) {
 				self::button( 'stop_worker', __( 'Detener', 'taxocommerce-system-check' ), array( 'worker' => $worker['id'] ) );
 			}
-			echo '</td><td><a class="button" href="' . esc_url( TaxoCommerce_System_Check_Process_Details::url( 'worker', array( 'tcs_worker' => $worker['id'] ) ) ) . '">' . esc_html__( 'Ver detalles', 'taxocommerce-system-check' ) . '</a></td></tr>';
+			if ( $details_available ) {
+				echo '</td><td><a class="button" href="' . esc_url( TaxoCommerce_System_Check_Process_Details::url( 'worker', array( 'tcs_worker' => $worker['id'] ) ) ) . '">' . esc_html__( 'Ver detalles', 'taxocommerce-system-check' ) . '</a></td></tr>';
+			} else {
+				echo '</td><td>' . esc_html__( 'Unavailable', 'taxocommerce-system-check' ) . '</td></tr>';
+			}
 		}
 		if ( ! $workers ) {
 			echo '<tr><td colspan="5">' . esc_html__( 'No hay procesos registrados.', 'taxocommerce-system-check' ) . '</td></tr>';
@@ -387,7 +405,11 @@ final class TaxoCommerce_System_Check_Processes {
 			if ( $action['can_cancel'] ) {
 				self::button( 'cancel_action', __( 'Cancelar pendiente', 'taxocommerce-system-check' ), array( 'id' => $action['id'] ) );
 			}
-			echo '</td><td><a class="button" href="' . esc_url( TaxoCommerce_System_Check_Process_Details::url( 'action', array( 'tcs_item' => (int) $action['id'] ) ) ) . '">' . esc_html__( 'Ver log / diagnóstico', 'taxocommerce-system-check' ) . '</a></td></tr>';
+			if ( $details_available ) {
+				echo '</td><td><a class="button" href="' . esc_url( TaxoCommerce_System_Check_Process_Details::url( 'action', array( 'tcs_item' => (int) $action['id'] ) ) ) . '">' . esc_html__( 'Ver log / diagnóstico', 'taxocommerce-system-check' ) . '</a></td></tr>';
+			} else {
+				echo '</td><td>' . esc_html__( 'Unavailable', 'taxocommerce-system-check' ) . '</td></tr>';
+			}
 		}
 		if ( ! $actions ) {
 			echo '<tr><td colspan="6">' . esc_html__( 'Sin acciones pendientes o en curso.', 'taxocommerce-system-check' ) . '</td></tr>';
@@ -399,7 +421,11 @@ final class TaxoCommerce_System_Check_Processes {
 			if ( $event['can_cancel'] ) {
 				self::button( 'cancel_cron', __( 'Cancelar programación', 'taxocommerce-system-check' ), array( 'hook' => $event['hook'], 'when' => $event['due'], 'signature' => md5( wp_json_encode( $event['args'] ) ) ) );
 			}
-			echo '</td><td><a class="button" href="' . esc_url( TaxoCommerce_System_Check_Process_Details::url( 'cron', array( 'tcs_hook' => $event['hook'], 'tcs_when' => $event['due'], 'tcs_sig' => md5( wp_json_encode( $event['args'] ) ) ) ) ) . '">' . esc_html__( 'Ver detalles', 'taxocommerce-system-check' ) . '</a></td></tr>';
+			if ( $details_available ) {
+				echo '</td><td><a class="button" href="' . esc_url( TaxoCommerce_System_Check_Process_Details::url( 'cron', array( 'tcs_hook' => $event['hook'], 'tcs_when' => $event['due'], 'tcs_sig' => md5( wp_json_encode( $event['args'] ) ) ) ) ) . '">' . esc_html__( 'Ver detalles', 'taxocommerce-system-check' ) . '</a></td></tr>';
+			} else {
+				echo '</td><td>' . esc_html__( 'Unavailable', 'taxocommerce-system-check' ) . '</td></tr>';
+			}
 		}
 		if ( ! $crons ) {
 			echo '<tr><td colspan="5">' . esc_html__( 'No hay eventos de WP-Cron.', 'taxocommerce-system-check' ) . '</td></tr>';

@@ -2100,3 +2100,6 @@ msgstr "Ver detalles"
 
 msgid "Ver log / diagnóstico"
 msgstr "Ver log / diagnóstico"
+
+msgid "Process diagnostics are unavailable until the plugin update completes."
+msgstr "Los diagnósticos de procesos no están disponibles hasta que finalice la actualización del plugin."

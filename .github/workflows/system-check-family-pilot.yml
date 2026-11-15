@@ -28,3 +28,8 @@ jobs:
           php -l taxocommerce-system-check/tests/family-runner-pilot-smoke.php
       - name: Pilot regression contract
         run: php taxocommerce-system-check/tests/family-runner-pilot-smoke.php
+      - name: Partial FTPS delivery regression
+        run: |
+          php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-processes.php
+          php -l taxocommerce-system-check/tests/process-details-partial-deploy-smoke.php
+          php taxocommerce-system-check/tests/process-details-partial-deploy-smoke.php
