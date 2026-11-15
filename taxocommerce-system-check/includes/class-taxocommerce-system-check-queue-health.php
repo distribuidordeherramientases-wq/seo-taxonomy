@@ -27,7 +27,8 @@ final class TaxoCommerce_System_Check_Queue_Health {
             return self::$cron;
         }
 
-        $now = null === $now ? time() : absint( $now );
+        $cacheable = null === $now;
+        $now = $cacheable ? time() : absint( $now );
         $events = function_exists( '_get_cron_array' ) ? _get_cron_array() : array();
         $result = array(
             'available' => is_array( $events ),
@@ -59,7 +60,7 @@ final class TaxoCommerce_System_Check_Queue_Health {
             }
         }
 
-        if ( null === func_get_arg( 0 ) ) { // The first argument is normally omitted.
+        if ( $cacheable ) {
             self::$cron = $result;
         }
         return $result;
@@ -76,7 +77,8 @@ final class TaxoCommerce_System_Check_Queue_Health {
             return self::$actions;
         }
         global $wpdb;
-        $now = null === $now ? time() : absint( $now );
+        $cacheable = null === $now;
+        $now = $cacheable ? time() : absint( $now );
         $result = array(
             'available' => false,
             'oldest_hook' => '',
@@ -90,7 +92,7 @@ final class TaxoCommerce_System_Check_Queue_Health {
         );
         $table = $wpdb->prefix . 'actionscheduler_actions';
         if ( ! function_exists( 'seo_server_status_table_exists' ) || ! seo_server_status_table_exists( $table ) ) {
-            if ( null === func_get_arg( 0 ) ) {
+            if ( $cacheable ) {
                 self::$actions = $result;
             }
             return $result;
@@ -141,7 +143,7 @@ final class TaxoCommerce_System_Check_Queue_Health {
             $result['recent_completed'],
             $result['recent_failed']
         );
-        if ( null === func_get_arg( 0 ) ) {
+        if ( $cacheable ) {
             self::$actions = $result;
         }
         return $result;
