@@ -38,6 +38,19 @@ class HistoricModularDeployTests(unittest.TestCase):
                     "secrets.FTP_PASSWORD", "secrets.TC_FTP_HOST"):
             self.assertNotIn(old, self.workflow)
 
+    def test_manual_release_has_no_plugin_input_and_targets_staging(self):
+        text = self.workflow
+        manual = text.split("  workflow_dispatch:", 1)[1].split("\npermissions:", 1)[0]
+        self.assertNotIn("target_plugin", manual)
+        self.assertNotIn("inputs:", manual)
+        self.assertIn("  workflow_call:", text)
+        # The automatic gated workflow still supports its existing scoped input.
+        self.assertIn("      target_plugin:", text.split("  workflow_dispatch:", 1)[0])
+        # Manual runs have no target_plugin input, so the selection is always all.
+        self.assertIn("TARGET_PLUGIN: ${{ inputs.target_plugin || '' }}", text)
+        self.assertIn('test "$GITHUB_REF_NAME" = "staging"', text)
+        self.assertIn("ref: staging", text)
+
     def test_no_legacy_rest_service_or_monolith_sync(self):
         text = self.workflow
         for forbidden in (

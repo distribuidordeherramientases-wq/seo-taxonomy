@@ -1,3 +1,10 @@
+## 2026-11-15 — STAGING a PRODUCCIÓN: ejecución manual sin selector de plugin (#2717)
+
+- Eliminado el parámetro opcional `target_plugin` del formulario manual del workflow `despliege_de_main_a_pro.yml`: al pulsar **Run workflow** se procesan todos los archivos modificados de plugins ya instalados, sin elegir uno.
+- Se mantiene `staging` como único origen autorizado y la comprobación de rama de GitHub Actions. El selector nativo de rama de GitHub no se puede ocultar mediante YAML.
+- Se conserva la entrada opcional para el workflow reutilizable automático, que depende de ella; sin cambios en sus llamadas ni en las garantías de inventario, SHA, reversión o despliegue.
+- Prueba de regresión del formulario manual añadida. No se ha ejecutado un despliegue de producción: el acceso FTPS sigue pendiente de validación en el Issue #2696.
+
 ## 2026-11-15 — Verificación directa del WordPress PRO con la cuenta FTPS de STAGING (#2696)
 
 - La cuenta FTPS existente se utiliza en un alojamiento compartido cuya raíz de login contiene las instalaciones de STAGING y Focazul como subdirectorios. El sondeo de producción se acota ahora estrictamente a `./wp-content/plugins`, en la raíz de esa misma cuenta, validando las versiones reales de Core y WooCommerce.
