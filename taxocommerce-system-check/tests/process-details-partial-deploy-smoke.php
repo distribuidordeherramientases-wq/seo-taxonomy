@@ -48,7 +48,7 @@ try {
     ob_start();
     TaxoCommerce_System_Check_Processes::render();
     $fallback = ob_get_clean();
-    tcs_partial_assert( false !== strpos( $fallback, 'diagnóstico detallado de procesos no está disponible' ), 'Missing-class warning' );
+    tcs_partial_assert( false !== strpos( $fallback, 'Process diagnostics are unavailable until the plugin update completes.' ), 'Missing-class warning' );
     tcs_partial_assert( false !== strpos( $fallback, 'Action Scheduler' ), 'Action Scheduler still visible' );
     tcs_partial_assert( false !== strpos( $fallback, 'Cancelar programación' ), 'Existing safe cancel remains visible' );
     tcs_partial_assert( false === strpos( $fallback, 'Ver log / diagnóstico' ), 'Missing details do not create broken links' );
@@ -60,7 +60,7 @@ try {
     $ready = ob_get_clean();
     tcs_partial_assert( class_exists( 'TaxoCommerce_System_Check_Process_Details', false ), 'Details loaded lazily' );
     tcs_partial_assert( false !== strpos( $ready, 'Ver detalles' ), 'Detail links now appear' );
-    tcs_partial_assert( false === strpos( $ready, 'diagnóstico detallado de procesos no está disponible' ), 'Warning cleared after transfer' );
+    tcs_partial_assert( false === strpos( $ready, 'Process diagnostics are unavailable until the plugin update completes.' ), 'Warning cleared after transfer' );
     echo "process-details-partial-deploy-smoke: PASS\n";
 } finally {
     if ( is_file( $dir . '/class-taxocommerce-system-check-process-details.php' ) ) {
