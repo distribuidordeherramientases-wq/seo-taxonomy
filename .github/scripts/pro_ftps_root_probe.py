@@ -114,7 +114,11 @@ def find_verified_root(ftp: ftplib.FTP_TLS, expected: dict[str, str]):
             for relative, var in TARGETS:
                 versions[var] = read_plugin_version(ftp, relative)
             inspected += 1
-            if all(versions[key] == expected[key] for key in versions):
+            if all(
+                versions[key] in (expected[key] if isinstance(expected[key], (list, tuple, set))
+                                  else (expected[key],))
+                for key in versions
+            ):
                 matches[canonical] = candidate
             else:
                 version_mismatch += 1

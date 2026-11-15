@@ -1,3 +1,11 @@
+## 2026-11-15 — Despliegue a PRO autónomo y sin monolítico (#2696)
+
+- El flujo `STAGING a PRODUCCION` ya no utiliza `/taxocommerce/v1/deploy-active-modules` ni la función PHP del plugin SEO monolítico. El origen queda limitado al SHA aprobado de `staging`.
+- Nuevo transporte FTPS con inventario de plugins físicamente instalados, prueba de identidad de la carpeta de plugins con Core/WooCommerce, TLS, paths acotados, copia temporal comprobada por SHA-256, copia de seguridad reversible y verificación final de cada fichero.
+- Un preflight compara la fuente con el último release correcto y finaliza con éxito («sin cambios») sin contactar a producción cuando no hay ficheros desplegables diferentes.
+- No se instala ningún plugin nuevo, no se reactiva el monolítico, no se modifica el estado de activación y no se borran archivos ajenos. Las pruebas CI simulan actualizaciones y restauraciones sin acceso remoto.
+- **Bloqueo real previo al uso:** el FTPS configurado en GitHub no ha podido acreditar acceso a la carpeta física `wp-content/plugins`; el nuevo flujo falla cerrado antes de escribir hasta configurar una cuenta FTPS que sí lo permita. No equivale a despliegue verificado en PRO.
+
 ## 2026-11-15 — PRO: descubrimiento acotado de la carpeta FTPS de WordPress (#2696)
 
 - El diagnóstico FTP inicial solo reconocía ubicaciones fijas. Se amplía a un descubrimiento MLSD de solo lectura, con límites de profundidad y cantidad de directorios, sin abrir ni modificar archivos de otros sitios.
