@@ -38,3 +38,12 @@ jobs:
           PRO_CORE_EXPECTED_VERSION: '0.4.84'
           PRO_WOO_EXPECTED_VERSION: '11.2.2'
         run: python3 .github/scripts/pro_ftps_root_probe.py --diagnose-known-roots
+      - name: Compare same candidate paths via existing shared hosting FTPS credentials (read-only)
+        if: github.event_name == 'push'
+        env:
+          FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+          PRO_CORE_EXPECTED_VERSION: '0.4.84'
+          PRO_WOO_EXPECTED_VERSION: '11.2.2'
+        run: python3 .github/scripts/pro_ftps_root_probe.py --diagnose-known-roots
