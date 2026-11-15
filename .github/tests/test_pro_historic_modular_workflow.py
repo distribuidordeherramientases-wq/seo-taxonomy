@@ -52,7 +52,7 @@ class HistoricModularDeployTests(unittest.TestCase):
         self.assertIn("load_delta(sys.argv[2], installed)", uploader)
         self.assertIn("if slug not in installed", uploader)
         self.assertIn("ftplib.FTP_TLS(context=ssl.create_default_context()", uploader)
-        self.assertIn("ftp.prot_p()", uploader)
+        self.assertIn("ftps.prot_p()", uploader)
         self.assertIn("PRO_CORE_EXPECTED_VERSION", self.workflow)
         self.assertIn("PRO_WOO_EXPECTED_VERSION", self.workflow)
 
