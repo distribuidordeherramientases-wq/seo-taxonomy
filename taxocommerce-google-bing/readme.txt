@@ -4,13 +4,16 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.63
+Stable tag: 1.1.64
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 External connections, manual provider data downloads, and market intelligence for WooCommerce.
 
 == Description ==
+
+Version 1.1.64 unifies the complete Analysis action into one CPU-paced, sequential chunked report generation, with one Stop button and a downloadable JSON retained for 24 hours after completion. Fixes the signed AJAX download link to avoid the expired-file error; individual reports remain available.
+
 
 Version 1.1.61 ensures Merchant competitive visibility remains available when Best Sellers is used internally to obtain official Google category IDs but is not selected for display in the report. The unselected indicator is marked clearly without hiding competitive visibility.
 
