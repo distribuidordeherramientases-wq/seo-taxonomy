@@ -348,6 +348,14 @@ final class TaxoCommerce_System_Check_Processes {
 		$crons   = self::cron();
 		echo '<div class="wrap"><h2>' . esc_html__( 'Procesos de WordPress y WooCommerce', 'taxocommerce-system-check' ) . '</h2>';
 		echo '<p>' . esc_html__( 'Tareas de aplicación, no procesos Linux. Detener no interrumpe una petición PHP ya en marcha. Se preservan los trabajos críticos de WordPress y WooCommerce.', 'taxocommerce-system-check' ) . '</p>';
+		if ( class_exists( 'TaxoCommerce_System_Check_Queue_Health' ) ) {
+			echo '<h3>' . esc_html__( 'Queue health diagnostics (read-only)', 'taxocommerce-system-check' ) . '</h3>';
+			echo '<p>' . esc_html__( 'WP-Cron and Action Scheduler signals are measured when this page opens. These measurements do not start, cancel or resume jobs, and cannot prove a PHP runner is stopped.', 'taxocommerce-system-check' ) . '</p>';
+			echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Metric', 'taxocommerce-system-check' ) . '</th><th>' . esc_html__( 'Value', 'taxocommerce-system-check' ) . '</th><th>' . esc_html__( 'Status', 'taxocommerce-system-check' ) . '</th><th>' . esc_html__( 'Details', 'taxocommerce-system-check' ) . '</th></tr></thead><tbody>';
+			TaxoCommerce_System_Check_Queue_Health::render_cron_rows();
+			TaxoCommerce_System_Check_Queue_Health::render_scheduler_rows();
+			echo '</tbody></table>';
+		}
 		self::button( 'stop_all', __( 'Detener los trabajos cancelables mostrados', 'taxocommerce-system-check' ), array(), true );
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status feedback.
 		$stopped = isset( $_GET['stopped'] ) ? absint( wp_unslash( $_GET['stopped'] ) ) : null;
