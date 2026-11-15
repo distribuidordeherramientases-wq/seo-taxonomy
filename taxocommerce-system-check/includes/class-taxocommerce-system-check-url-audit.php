@@ -673,8 +673,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
             $completed = absint( $run['processed_items'] ?? 0 );
             $total = absint( $run['total_items'] ?? 0 );
             $next = $total > 0 ? min( $total, $completed + 1 ) : 0;
-            /* translators: 1: Max URLs per batch; 2: completed URLs; 3: total URLs; 4: next pending position. */
             $detail = sprintf(
+                /* translators: 1: Maximum URLs per batch; 2: completed URLs; 3: total URLs; 4: next pending URL position. */
                 __( 'Batch limit: %1$d URLs · progress: %2$d/%3$d · resume: next pending URL (approx. position %4$d).', 'taxocommerce-system-check' ),
                 $batch_size, $completed, $total, $next
             );
