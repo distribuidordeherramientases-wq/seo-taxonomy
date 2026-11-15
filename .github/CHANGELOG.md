@@ -1,3 +1,8 @@
+## 2026-11-15 — Verificación del acceso FTPS de STAGING a la instalación PRO (#2696)
+
+- Prueba de solo lectura reutilizando los secretos existentes `STAGING_FTP_SERVER/USERNAME/PASSWORD`, sin activar el monolítico ni configurar una cuenta nueva. La prueba solo lee las cabeceras de Core 0.4.84 y WooCommerce 11.3.0 para identificar la carpeta real de producción y exige una única coincidencia.
+- No cambia el desplegador ni autoriza escrituras: si el acceso existente no acredita inequívocamente la identidad de producción, la transferencia sigue bloqueada.
+
 ## 2026-11-15 — Credenciales FTPS dedicadas al despliegue de producción (#2696)
 
 - El workflow de producción y el sondeo de solo lectura usan exclusivamente `PRO_FTPS_HOST`, `PRO_FTPS_USER` y `PRO_FTPS_PASSWORD`. Esto evita mezclar el FTPS del antiguo receptor/monolítico con el acceso al verdadero `wp-content/plugins`, sin modificar secretos de STAGING.
