@@ -12,13 +12,9 @@ on:
         required: false
         type: string
         default: ''
+  # Manual releases always publish all pending changes from staging.
+  # GitHub displays its native branch selector; only staging is accepted below.
   workflow_dispatch:
-    inputs:
-      target_plugin:
-        description: 'Optional installed plugin slug (empty: all changed plugins)'
-        required: false
-        type: string
-        default: ''
 
 permissions:
   contents: read
