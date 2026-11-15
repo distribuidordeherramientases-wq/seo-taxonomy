@@ -1,0 +1,31 @@
+name: PRO FTPS read-only root verification (no writes)
+on:
+  push:
+    branches:
+      - staging
+    paths:
+      - '.github/workflows/pro-ftps-readonly-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    name: Verify installed plugin root without modifying PRO
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout probe
+        uses: actions/checkout@v6
+      - name: Check syntax and safety properties
+        run: |
+          python3 -m py_compile .github/scripts/pro_ftps_root_probe.py
+          python3 -m unittest discover -s .github/tests -p test_pro_ftps_root_probe.py -v
+      - name: Read-only FTPS header comparison against WP installed versions
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          PRO_CORE_EXPECTED_VERSION: '0.4.84'
+          PRO_WOO_EXPECTED_VERSION: '11.3.0'
+        run: python3 .github/scripts/pro_ftps_root_probe.py
