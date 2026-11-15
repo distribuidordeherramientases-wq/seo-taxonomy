@@ -141,6 +141,8 @@ jobs:
           php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-queue-health.php
           php -l taxocommerce-system-check/tests/queue-health-smoke.php
           php taxocommerce-system-check/tests/queue-health-smoke.php
+          php -l taxocommerce-system-check/tests/url-process-progress-smoke.php
+          php taxocommerce-system-check/tests/url-process-progress-smoke.php
           php taxocommerce-system-check/tests/processes-smoke.php
           php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-code-check.php
           php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-code-rules.php
