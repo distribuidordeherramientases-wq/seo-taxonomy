@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.2
+ * Version: 0.1.4
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.2' );
+define( 'TCA_VERSION', '0.1.4' );
 define( 'TCA_DB_VERSION', '2' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
@@ -43,6 +43,7 @@ function tca_settings() {
     $today = current_time( 'Y-m-d' );
     $defaults = array(
         'start_date' => substr( $today, 0, 7 ) . '-01',
+        'auto_sync_sales' => 0,
         'country'    => function_exists( 'wc_get_base_location' ) ? (string) ( wc_get_base_location()['country'] ?? 'ES' ) : 'ES',
         'currency'   => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'EUR',
     );
@@ -234,6 +235,62 @@ function tca_sync_sales( $page = 1 ) {
     }
     return array( 'created' => $created, 'skipped' => $skipped, 'page' => absint( $page ), 'pages' => absint( $result->max_num_pages ) );
 }
+/**
+ * Optional low-load background import into this plugin's own draft ledger.
+ * It never changes orders, invoices, or validated accounting entries.
+ */
+function tca_schedule_sales_sync() {
+    $enabled = ! empty( tca_settings()['auto_sync_sales'] );
+    $next = wp_next_scheduled( 'tca_sales_auto_sync' );
+    if ( $enabled && ! $next ) {
+        wp_schedule_event( time() + 300, 'hourly', 'tca_sales_auto_sync' );
+    } elseif ( ! $enabled && $next ) {
+        wp_clear_scheduled_hook( 'tca_sales_auto_sync' );
+    }
+}
+add_action( 'init', 'tca_schedule_sales_sync' );
+
+function tca_background_sales_sync() {
+    if ( empty( tca_settings()['auto_sync_sales'] ) ) {
+        return;
+    }
+    $state = (array) get_option( 'tca_sales_sync_state', array() );
+    $page = max( 1, absint( isset( $state['next_page'] ) ? $state['next_page'] : 1 ) );
+    $created = 0;
+    $scanned = 0;
+    $total_pages = 0;
+    for ( $batch = 0; $batch < 3; $batch++ ) {
+        $result = tca_sync_sales( $page );
+        if ( is_wp_error( $result ) ) {
+            $state['last_error'] = $result->get_error_message();
+            $state['last_checked'] = current_time( 'mysql' );
+            $state['next_page'] = $page;
+            update_option( 'tca_sales_sync_state', $state, false );
+            return;
+        }
+        $created += (int) $result['created'];
+        $scanned += (int) $result['created'] + (int) $result['skipped'];
+        $total_pages = (int) $result['pages'];
+        if ( $page >= $total_pages ) {
+            $page = 1;
+            $state['last_full_cycle'] = current_time( 'mysql' );
+            break;
+        }
+        ++$page;
+    }
+    $state['last_checked'] = current_time( 'mysql' );
+    $state['last_error'] = '';
+    $state['next_page'] = $page;
+    $state['last_created'] = $created;
+    $state['last_scanned'] = $scanned;
+    $state['total_pages'] = $total_pages;
+    update_option( 'tca_sales_sync_state', $state, false );
+}
+add_action( 'tca_sales_auto_sync', 'tca_background_sales_sync' );
+register_deactivation_hook( __FILE__, static function () {
+    wp_clear_scheduled_hook( 'tca_sales_auto_sync' );
+} );
+
 function tca_input( $key ) {
     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller verifies the nonce before invoking this accessor.
     return isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : '';
@@ -251,6 +308,7 @@ function tca_handle() {
         if ( ! tca_valid_date( $date ) ) tca_redirect( 'settings', 'invalid' );
         $old = tca_settings();
         $old['start_date'] = $date;
+        $old['auto_sync_sales'] = '1' === tca_input( 'auto_sync_sales' ) ? 1 : 0;
         update_option( TCA_OPTION, $old, false );
         tca_redirect( 'settings', 'saved' );
     }
@@ -635,6 +693,8 @@ function tca_admin() {
         echo '<p><label>' . esc_html__( 'First real commercial date:', 'taxocommerce-accounting' ) . ' <input type="date" name="start_date" value="' . esc_attr( $settings['start_date'] ) . '" required></label></p>';
         echo '<p>' . esc_html__( 'Base country:', 'taxocommerce-accounting' ) . ' ' . esc_html( $settings['country'] ) . ' &nbsp; ' . esc_html__( 'Currency:', 'taxocommerce-accounting' ) . ' ' . esc_html( $settings['currency'] ) . '</p>';
         echo '<p>' . esc_html__( 'Changing this date does not erase previously imported records.', 'taxocommerce-accounting' ) . '</p>';
+        echo '<p><label><input type="checkbox" name="auto_sync_sales" value="1" ' . checked( 1, (int) $settings['auto_sync_sales'], false ) . '> ' . esc_html__( 'Import new paid WooCommerce orders automatically in small background batches', 'taxocommerce-accounting' ) . '</label></p>';
+        echo '<p class="description">' . esc_html__( 'Uses WordPress WP-Cron while the website receives visits. Imported sales and refunds remain drafts until invoice numbers, dates and tax treatment are verified. Does not import supplier bills or mark taxes as ready.', 'taxocommerce-accounting' ) . '</p>';
         submit_button( __( 'Save settings', 'taxocommerce-accounting' ) );
         echo '</form>';
     } elseif ( 'autocheck' === $tab ) {
@@ -642,7 +702,7 @@ function tca_admin() {
         echo '<h2>' . esc_html__( 'Read-only functional Autocheck', 'taxocommerce-accounting' ) . '</h2>';
         echo '<p>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-accounting' ) . ' ' . esc_html( $report['date'] ) . '</p>';
         echo '<p>' . esc_html( $report['pass'] ) . ' PASS / ' . esc_html( $report['fail'] ) . ' FAIL</p><table class="widefat striped">';
-        foreach ( $report['tests'] as $test => $state ) echo '<tr><td>' . esc_html( $test ) . '</td><td>' . esc_html( strtoupper( $state ) ) . '</td></tr>';
+        foreach ( $report['rows'] as $check ) echo '<tr><td>' . esc_html( $check['id'] ) . '</td><td>' . esc_html( strtoupper( $check['status'] ) ) . '</td></tr>';
         echo '</table><p>' . esc_html__( 'Failure of draft/review checks means fiscal data needs validation, not that the plugin runtime has failed.', 'taxocommerce-accounting' ) . '</p>';
         $autocheck_url = wp_nonce_url( add_query_arg( array( 'action' => 'tca_autocheck_download', 'year' => $year ), admin_url( 'admin-post.php' ) ), 'tca_autocheck_download' );
         echo '<p><a class="button button-secondary" href="' . esc_url( $autocheck_url ) . '">' . esc_html__( 'Download Autocheck JSON', 'taxocommerce-accounting' ) . '</a></p>';

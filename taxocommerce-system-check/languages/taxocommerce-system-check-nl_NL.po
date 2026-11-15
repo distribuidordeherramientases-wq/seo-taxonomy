@@ -1964,3 +1964,142 @@ msgstr "Processen"
 #: taxocommerce-system-check.php:180
 msgid "Autocheck"
 msgstr "Zelftest"
+
+msgid "Oldest overdue WP-Cron event"
+msgstr "Oudste achterstallige WP-Cron-gebeurtenis"
+
+msgid "Unavailable"
+msgstr "Niet beschikbaar"
+
+msgid "The scheduled-event list is unavailable; no status is inferred."
+msgstr "De lijst geplande gebeurtenissen is niet beschikbaar; er wordt geen status afgeleid."
+
+msgid "None"
+msgstr "Geen"
+
+msgid "No event is more than 15 minutes overdue."
+msgstr "Geen gebeurtenis is meer dan 15 minuten te laat."
+
+msgid "WP-Cron execution mechanism"
+msgstr "WP-Cron-uitvoeringsmechanisme"
+
+msgid "External scheduler required"
+msgstr "Externe planner vereist"
+
+msgid "WordPress visitor-triggered cron enabled"
+msgstr "WordPress-bezoekerscron ingeschakeld"
+
+msgid "Overdue events alone do not prove that the runner is stopped. Check the hosting cron when WP-Cron is disabled."
+msgstr "Achterstallige taken bewijzen geen stilstand. Controleer de hostingcron als WP-Cron uitstaat."
+
+msgid "Action Scheduler activity"
+msgstr "Action Scheduler-activiteit"
+
+msgid "Action Scheduler has no accessible action table."
+msgstr "De Action Scheduler-tabel is niet toegankelijk."
+
+msgid "Oldest pending Action Scheduler job"
+msgstr "Oudste wachtende Action Scheduler-taak"
+
+msgid "No pending job found."
+msgstr "Geen wachtende taak gevonden."
+
+msgid "Most recent failed Action Scheduler attempt"
+msgstr "Laatste mislukte Action Scheduler-poging"
+
+msgid "No failed attempt is available."
+msgstr "Geen mislukte poging beschikbaar."
+
+msgid "Action Scheduler attempts in the last hour"
+msgstr "Action Scheduler-pogingen in het afgelopen uur"
+
+msgid "Completed / failed, according to the last-attempt timestamp; not callback execution time."
+msgstr "Voltooid / mislukt volgens laatste poging; niet de uitvoeringstijd van de callback."
+
+msgid "No overdue backlog was detected in the sampled queue."
+msgstr "Geen achterstallige wachtrij gedetecteerd."
+
+msgid "Recent failures exist; inspect the failing hooks. This does not prove the runner is stopped."
+msgstr "Er zijn recente fouten; controleer de betrokken hooks. Dit bewijst geen stilstand."
+
+msgid "Recent completions exist, but an older task remains pending. Check the affected hook."
+msgstr "Er zijn recente voltooiingen, maar een oudere taak wacht nog. Controleer de hook."
+
+msgid "Old pending tasks with no recent completions or failures: a runner issue is possible, but cannot be confirmed from one snapshot."
+msgstr "Oude taken zonder recente activiteit: mogelijk probleem met de uitvoerder, maar niet bewezen met één meting."
+
+msgid "Action Scheduler diagnostic"
+msgstr "Action Scheduler-diagnose"
+
+msgid "Read-only snapshot. Actual PHP process duration and runner heartbeat are not exposed by this check."
+msgstr "Alleen-lezen momentopname. Werkelijke PHP-duur en heartbeat van de uitvoerder worden niet gemeten."
+
+msgid "Queue health diagnostics (read-only)"
+msgstr "Wachtrijdiagnose (alleen lezen)"
+
+msgid "WP-Cron and Action Scheduler signals are measured when this page opens. These measurements do not start, cancel or resume jobs, and cannot prove a PHP runner is stopped."
+msgstr "WP-Cron- en Action Scheduler-gegevens worden bij openen gelezen. Geen taken starten, annuleren of hervatten; geen bewijs van PHP-stilstand."
+
+msgid "Metric"
+msgstr "Metriek"
+
+msgid "Value"
+msgstr "Waarde"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Details"
+msgstr "Details"
+
+#. translators: 1: maximum URLs per batch; 2: completed; 3: total; 4: approximate next pending position.
+msgid "Batch limit: %1$d URLs · progress: %2$d/%3$d · resume: next pending URL (approx. position %4$d)."
+msgstr "Batchlimiet: %1$d URL's · voortgang: %2$d/%3$d · hervatten: volgende wachtende URL (ongeveer positie %4$d)."
+
+msgid "Diagnóstico de tarea"
+msgstr "Taakdiagnose"
+
+msgid "La tarea ya no existe o no está disponible."
+msgstr "De taak bestaat niet meer of is niet beschikbaar."
+
+msgid "Grupo:"
+msgstr "Groep:"
+
+msgid "Posible tarea huérfana: no hay un callback registrado en esta petición. Confirma si el plugin está activo antes de cancelar."
+msgstr "Mogelijk verweesde taak: voor dit verzoek is geen callback geregistreerd. Controleer vóór annulering of de plugin actief is."
+
+msgid "Callback registrado. Esto no demuestra una ejecución correcta."
+msgstr "Callback geregistreerd. Dit bewijst niet dat de uitvoering is geslaagd."
+
+msgid "Ejecutor no verificable desde este estado."
+msgstr "De uitvoerder kan op basis van deze status niet worden gecontroleerd."
+
+msgid "Programado (UTC):"
+msgstr "Gepland (UTC):"
+
+msgid "WP-Cron no conserva un historial individual de errores. Consulta los registros del plugin responsable si existen."
+msgstr "WP-Cron bewaart geen foutgeschiedenis per gebeurtenis. Raadpleeg indien beschikbaar de logboeken van de verantwoordelijke plugin."
+
+msgid "Este estado no prueba que una petición PHP siga ejecutándose."
+msgstr "Deze status bewijst niet dat er nog een PHP-verzoek wordt uitgevoerd."
+
+msgid "Registro de Action Scheduler (últimas 20 entradas)"
+msgstr "Action Scheduler-logboek (laatste 20 vermeldingen)"
+
+msgid "No hay entradas de registro disponibles para esta tarea."
+msgstr "Er zijn geen logboekvermeldingen beschikbaar voor deze taak."
+
+msgid "El prefijo histórico seo_ no demuestra una dependencia del antiguo monolítico. No se muestran argumentos ni credenciales."
+msgstr "Het historische voorvoegsel seo_ bewijst geen afhankelijkheid van de oude monolithische plugin. Argumenten en inloggegevens worden niet getoond."
+
+msgid "Ver log del último fallo"
+msgstr "Logboek van laatste fout bekijken"
+
+msgid "Ver detalles"
+msgstr "Details bekijken"
+
+msgid "Ver log / diagnóstico"
+msgstr "Logboek / diagnose bekijken"
+
+msgid "Process diagnostics are unavailable until the plugin update completes."
+msgstr "Procesdiagnose is niet beschikbaar totdat de pluginupdate is voltooid."

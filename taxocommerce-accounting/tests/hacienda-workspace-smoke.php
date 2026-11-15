@@ -22,10 +22,16 @@ class TCA_Hacienda_Test_DB {
         return $sql;
     }
     public function get_results( $sql ) {
+        if ( false !== strpos( $sql, 'missing_document' ) ) {
+            return array(
+                (object) array( 'kind' => 'sale', 'status' => 'validated', 'treatment' => 'domestic', 'entry_count' => 4, 'missing_document' => 1, 'missing_tax_id' => 2 ),
+                (object) array( 'kind' => 'refund', 'status' => 'draft', 'treatment' => 'review', 'entry_count' => 2, 'missing_document' => 2, 'missing_tax_id' => 1 ),
+            );
+        }
         return array(
-            (object) array( 'period' => '2026-11', 'kind' => 'sale', 'status' => 'validated', 'treatment' => 'domestic', 'entry_count' => 600, 'amount_total' => 121, 'amount_tax' => 21, 'deductible_tax' => 0 ),
-            (object) array( 'period' => '2026-11', 'kind' => 'refund', 'status' => 'validated', 'treatment' => 'domestic', 'entry_count' => 1, 'amount_total' => -25, 'amount_tax' => -5, 'deductible_tax' => 0 ),
-            (object) array( 'period' => '2026-11', 'kind' => 'purchase', 'status' => 'validated', 'treatment' => 'domestic', 'entry_count' => 3, 'amount_total' => 110, 'amount_tax' => 10, 'deductible_tax' => 5 ),
+            (object) array( 'period' => '2026-11', 'kind' => 'sale', 'status' => 'validated', 'treatment' => 'domestic', 'entry_count' => 600, 'amount_base' => 100, 'amount_total' => 121, 'amount_tax' => 21, 'deductible_tax' => 0 ),
+            (object) array( 'period' => '2026-11', 'kind' => 'refund', 'status' => 'validated', 'treatment' => 'domestic', 'entry_count' => 1, 'amount_base' => -20, 'amount_total' => -25, 'amount_tax' => -5, 'deductible_tax' => 0 ),
+            (object) array( 'period' => '2026-11', 'kind' => 'purchase', 'status' => 'validated', 'treatment' => 'domestic', 'entry_count' => 3, 'amount_base' => 100, 'amount_total' => 110, 'amount_tax' => 10, 'deductible_tax' => 5 ),
             (object) array( 'period' => '2026-11', 'kind' => 'sale', 'status' => 'draft', 'treatment' => 'domestic', 'entry_count' => 2, 'amount_total' => 121, 'amount_tax' => 21, 'deductible_tax' => 0 ),
             (object) array( 'period' => '2026-11', 'kind' => 'sale', 'status' => 'validated', 'treatment' => 'intra', 'entry_count' => 5, 'amount_total' => 121, 'amount_tax' => 21, 'deductible_tax' => 0 ),
         );
@@ -34,6 +40,14 @@ class TCA_Hacienda_Test_DB {
 }
 $GLOBALS['wpdb'] = new TCA_Hacienda_Test_DB();
 require_once dirname( __DIR__ ) . '/includes/class-tca-hacienda.php';
+$coverage = TCA_Hacienda::readiness( 2026, 4 );
+tca_test_assert( 6 === $coverage['total'], 'All ledger rows must count toward period coverage' );
+tca_test_assert( 2 === $coverage['pending'], 'Unvalidated records require review' );
+tca_test_assert( 2 === $coverage['other_treatments'], 'Special treatments are not silently treated as domestic' );
+tca_test_assert( 3 === $coverage['missing_document'], 'Missing document references are counted' );
+tca_test_assert( 3 === $coverage['missing_tax_id'], 'Missing tax IDs are informational, not a blanket tax blocker' );
+tca_test_assert( in_array( '2026-10-01', $GLOBALS['wpdb']->args, true ), 'Readiness uses bound fiscal quarter start' );
+tca_test_assert( false !== strpos( $GLOBALS['wpdb']->sql, 'GROUP BY' ), 'Readiness does not rely on a display-limited row set' );
 $expected = array( 'issued', 'received', 'assets', 'intra', '303', '390', '347', '349', '200' );
 $sections = TCA_Hacienda::sections();
 tca_test_assert( array_map( 'strval', array_keys( $sections ) ) === $expected, 'All four fiscal books and five models must appear in Hacienda tabs' );
@@ -48,6 +62,9 @@ $data = TCA_Hacienda::vat_summary( 2026, 4 );
 tca_test_assert( 1 === count( $data ), 'One month returned' );
 tca_test_assert( 611 === $data[0]['entries'], 'Full group count is not capped to 400 ledger rows' );
 tca_test_assert( 96.0 === $data[0]['sales'], 'Domestic sales include correctly signed refunds only' );
+tca_test_assert( 80.0 === $data[0]['sales_base'], 'Real domestic sales taxable bases retain signed refunds' );
+tca_test_assert( 100.0 === $data[0]['purchases_base'], 'Domestic purchase taxable bases are accumulated separately from VAT' );
+
 tca_test_assert( 16.0 === $data[0]['output_vat'], 'Domestic output VAT offsets refunds' );
 tca_test_assert( 5.0 === $data[0]['deductible_input_vat'], 'Deductible input VAT respects configured percentage' );
 tca_test_assert( 11.0 === $data[0]['difference'], 'Indicative difference is not an official tax form' );

@@ -1964,3 +1964,142 @@ msgstr "Processus"
 #: taxocommerce-system-check.php:180
 msgid "Autocheck"
 msgstr "Autotest"
+
+msgid "Oldest overdue WP-Cron event"
+msgstr "Événement WP-Cron le plus en retard"
+
+msgid "Unavailable"
+msgstr "Indisponible"
+
+msgid "The scheduled-event list is unavailable; no status is inferred."
+msgstr "La liste des événements planifiés est indisponible ; aucun état n'est déduit."
+
+msgid "None"
+msgstr "Aucun"
+
+msgid "No event is more than 15 minutes overdue."
+msgstr "Aucun événement n'a plus de 15 minutes de retard."
+
+msgid "WP-Cron execution mechanism"
+msgstr "Mécanisme d'exécution WP-Cron"
+
+msgid "External scheduler required"
+msgstr "Planificateur externe requis"
+
+msgid "WordPress visitor-triggered cron enabled"
+msgstr "WP-Cron déclenché par les visites activé"
+
+msgid "Overdue events alone do not prove that the runner is stopped. Check the hosting cron when WP-Cron is disabled."
+msgstr "Les retards seuls ne prouvent pas que l'exécuteur est arrêté. Vérifiez le cron de l'hébergement si WP-Cron est désactivé."
+
+msgid "Action Scheduler activity"
+msgstr "Activité d'Action Scheduler"
+
+msgid "Action Scheduler has no accessible action table."
+msgstr "La table des actions d'Action Scheduler est inaccessible."
+
+msgid "Oldest pending Action Scheduler job"
+msgstr "Tâche Action Scheduler en attente la plus ancienne"
+
+msgid "No pending job found."
+msgstr "Aucune tâche en attente trouvée."
+
+msgid "Most recent failed Action Scheduler attempt"
+msgstr "Dernière tentative Action Scheduler échouée"
+
+msgid "No failed attempt is available."
+msgstr "Aucune tentative échouée n'est disponible."
+
+msgid "Action Scheduler attempts in the last hour"
+msgstr "Tentatives Action Scheduler de la dernière heure"
+
+msgid "Completed / failed, according to the last-attempt timestamp; not callback execution time."
+msgstr "Terminées / échouées selon l'horodatage du dernier essai ; pas la durée d'exécution."
+
+msgid "No overdue backlog was detected in the sampled queue."
+msgstr "Aucun retard de file détecté dans l'échantillon."
+
+msgid "Recent failures exist; inspect the failing hooks. This does not prove the runner is stopped."
+msgstr "Des échecs récents existent ; vérifiez les hooks concernés. Cela ne prouve pas l'arrêt de l'exécuteur."
+
+msgid "Recent completions exist, but an older task remains pending. Check the affected hook."
+msgstr "Des tâches sont terminées récemment, mais une tâche ancienne reste en attente. Vérifiez son hook."
+
+msgid "Old pending tasks with no recent completions or failures: a runner issue is possible, but cannot be confirmed from one snapshot."
+msgstr "Tâches anciennes sans activité récente : problème d'exécution possible, mais non confirmé par une seule mesure."
+
+msgid "Action Scheduler diagnostic"
+msgstr "Diagnostic Action Scheduler"
+
+msgid "Read-only snapshot. Actual PHP process duration and runner heartbeat are not exposed by this check."
+msgstr "Instantané en lecture seule. Durée PHP réelle et signal de vie de l'exécuteur non mesurés."
+
+msgid "Queue health diagnostics (read-only)"
+msgstr "Diagnostic des files (lecture seule)"
+
+msgid "WP-Cron and Action Scheduler signals are measured when this page opens. These measurements do not start, cancel or resume jobs, and cannot prove a PHP runner is stopped."
+msgstr "Les signaux WP-Cron et Action Scheduler sont lus à l'ouverture. Aucune tâche n'est lancée, annulée ou reprise ; aucun arrêt PHP n'est prouvé."
+
+msgid "Metric"
+msgstr "Mesure"
+
+msgid "Value"
+msgstr "Valeur"
+
+msgid "Status"
+msgstr "État"
+
+msgid "Details"
+msgstr "Détails"
+
+#. translators: 1: maximum URLs per batch; 2: completed; 3: total; 4: approximate next pending position.
+msgid "Batch limit: %1$d URLs · progress: %2$d/%3$d · resume: next pending URL (approx. position %4$d)."
+msgstr "Limite par lot : %1$d URL · progression : %2$d/%3$d · reprise : URL suivante en attente (position approximative %4$d)."
+
+msgid "Diagnóstico de tarea"
+msgstr "Diagnostic de la tâche"
+
+msgid "La tarea ya no existe o no está disponible."
+msgstr "La tâche n'existe plus ou n'est pas disponible."
+
+msgid "Grupo:"
+msgstr "Groupe :"
+
+msgid "Posible tarea huérfana: no hay un callback registrado en esta petición. Confirma si el plugin está activo antes de cancelar."
+msgstr "Tâche potentiellement orpheline : aucun rappel n'est enregistré pour cette requête. Vérifiez que l’extension est active avant d'annuler."
+
+msgid "Callback registrado. Esto no demuestra una ejecución correcta."
+msgstr "Rappel enregistré. Cela ne garantit pas une exécution réussie."
+
+msgid "Ejecutor no verificable desde este estado."
+msgstr "L'exécuteur ne peut pas être vérifié à partir de cet état."
+
+msgid "Programado (UTC):"
+msgstr "Planifié (UTC) :"
+
+msgid "WP-Cron no conserva un historial individual de errores. Consulta los registros del plugin responsable si existen."
+msgstr "WP-Cron ne conserve pas d'historique des erreurs par événement. Consultez les journaux de l'extension responsable, s'ils existent."
+
+msgid "Este estado no prueba que una petición PHP siga ejecutándose."
+msgstr "Cet état ne prouve pas qu'une requête PHP soit encore en cours."
+
+msgid "Registro de Action Scheduler (últimas 20 entradas)"
+msgstr "Journal d’Action Scheduler (20 dernières entrées)"
+
+msgid "No hay entradas de registro disponibles para esta tarea."
+msgstr "Aucune entrée de journal n'est disponible pour cette tâche."
+
+msgid "El prefijo histórico seo_ no demuestra una dependencia del antiguo monolítico. No se muestran argumentos ni credenciales."
+msgstr "Le préfixe historique seo_ ne prouve pas une dépendance à l'ancienne extension monolithique. Les arguments et les identifiants ne sont pas affichés."
+
+msgid "Ver log del último fallo"
+msgstr "Voir le journal du dernier échec"
+
+msgid "Ver detalles"
+msgstr "Voir les détails"
+
+msgid "Ver log / diagnóstico"
+msgstr "Voir le journal / diagnostic"
+
+msgid "Process diagnostics are unavailable until the plugin update completes."
+msgstr "Les diagnostics des processus sont indisponibles jusqu'à la fin de la mise à jour de l’extension."

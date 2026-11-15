@@ -1964,3 +1964,142 @@ msgstr "Prozesse"
 #: taxocommerce-system-check.php:180
 msgid "Autocheck"
 msgstr "Selbsttest"
+
+msgid "Oldest overdue WP-Cron event"
+msgstr "Ältestes überfälliges WP-Cron-Ereignis"
+
+msgid "Unavailable"
+msgstr "Nicht verfügbar"
+
+msgid "The scheduled-event list is unavailable; no status is inferred."
+msgstr "Die Liste geplanter Ereignisse ist nicht verfügbar; es wird kein Status abgeleitet."
+
+msgid "None"
+msgstr "Keine"
+
+msgid "No event is more than 15 minutes overdue."
+msgstr "Kein Ereignis ist mehr als 15 Minuten überfällig."
+
+msgid "WP-Cron execution mechanism"
+msgstr "WP-Cron-Ausführungsmechanismus"
+
+msgid "External scheduler required"
+msgstr "Externer Zeitplaner erforderlich"
+
+msgid "WordPress visitor-triggered cron enabled"
+msgstr "WordPress-Besucher-Cron ist aktiviert"
+
+msgid "Overdue events alone do not prove that the runner is stopped. Check the hosting cron when WP-Cron is disabled."
+msgstr "Überfällige Ereignisse beweisen keinen Stillstand. Bei deaktiviertem WP-Cron den Hosting-Cron prüfen."
+
+msgid "Action Scheduler activity"
+msgstr "Action-Scheduler-Aktivität"
+
+msgid "Action Scheduler has no accessible action table."
+msgstr "Die Action-Scheduler-Tabelle ist nicht zugänglich."
+
+msgid "Oldest pending Action Scheduler job"
+msgstr "Älteste ausstehende Action-Scheduler-Aufgabe"
+
+msgid "No pending job found."
+msgstr "Keine ausstehenden Aufgaben gefunden."
+
+msgid "Most recent failed Action Scheduler attempt"
+msgstr "Letzter fehlgeschlagener Action-Scheduler-Versuch"
+
+msgid "No failed attempt is available."
+msgstr "Kein fehlgeschlagener Versuch verfügbar."
+
+msgid "Action Scheduler attempts in the last hour"
+msgstr "Action-Scheduler-Versuche in der letzten Stunde"
+
+msgid "Completed / failed, according to the last-attempt timestamp; not callback execution time."
+msgstr "Abgeschlossen / fehlgeschlagen nach Zeitstempel des letzten Versuchs; keine Laufzeit des Callbacks."
+
+msgid "No overdue backlog was detected in the sampled queue."
+msgstr "Kein überfälliger Rückstau in der Stichprobe erkannt."
+
+msgid "Recent failures exist; inspect the failing hooks. This does not prove the runner is stopped."
+msgstr "Es gibt aktuelle Fehler; betroffene Hooks prüfen. Das beweist keinen Stillstand."
+
+msgid "Recent completions exist, but an older task remains pending. Check the affected hook."
+msgstr "Kürzlich abgeschlossene Aufgaben, aber eine alte Aufgabe bleibt offen. Hook prüfen."
+
+msgid "Old pending tasks with no recent completions or failures: a runner issue is possible, but cannot be confirmed from one snapshot."
+msgstr "Alte Aufgaben ohne jüngste Aktivität: mögliches Runner-Problem, aber nicht durch eine Momentaufnahme bestätigt."
+
+msgid "Action Scheduler diagnostic"
+msgstr "Action-Scheduler-Diagnose"
+
+msgid "Read-only snapshot. Actual PHP process duration and runner heartbeat are not exposed by this check."
+msgstr "Schreibgeschützte Momentaufnahme. Tatsächliche PHP-Laufzeit und Runner-Heartbeat werden nicht gemessen."
+
+msgid "Queue health diagnostics (read-only)"
+msgstr "Warteschlangendiagnose (nur lesen)"
+
+msgid "WP-Cron and Action Scheduler signals are measured when this page opens. These measurements do not start, cancel or resume jobs, and cannot prove a PHP runner is stopped."
+msgstr "WP-Cron- und Action-Scheduler-Daten werden beim Öffnen gelesen. Keine Aufgaben starten, abbrechen oder fortsetzen; kein PHP-Stillstand nachweisbar."
+
+msgid "Metric"
+msgstr "Messwert"
+
+msgid "Value"
+msgstr "Wert"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Details"
+msgstr "Details"
+
+#. translators: 1: maximum URLs per batch; 2: completed; 3: total; 4: approximate next pending position.
+msgid "Batch limit: %1$d URLs · progress: %2$d/%3$d · resume: next pending URL (approx. position %4$d)."
+msgstr "Batchlimit: %1$d URLs · Fortschritt: %2$d/%3$d · Fortsetzung: nächste ausstehende URL (ungefähr Position %4$d)."
+
+msgid "Diagnóstico de tarea"
+msgstr "Aufgabendiagnose"
+
+msgid "La tarea ya no existe o no está disponible."
+msgstr "Die Aufgabe ist nicht mehr vorhanden oder nicht verfügbar."
+
+msgid "Grupo:"
+msgstr "Gruppe:"
+
+msgid "Posible tarea huérfana: no hay un callback registrado en esta petición. Confirma si el plugin está activo antes de cancelar."
+msgstr "Möglicherweise verwaiste Aufgabe: Für diese Anfrage ist kein Callback registriert. Prüfen Sie vor dem Abbrechen, ob das Plugin aktiv ist."
+
+msgid "Callback registrado. Esto no demuestra una ejecución correcta."
+msgstr "Callback registriert. Dies beweist keine erfolgreiche Ausführung."
+
+msgid "Ejecutor no verificable desde este estado."
+msgstr "Der Ausführer kann anhand dieses Status nicht überprüft werden."
+
+msgid "Programado (UTC):"
+msgstr "Geplant (UTC):"
+
+msgid "WP-Cron no conserva un historial individual de errores. Consulta los registros del plugin responsable si existen."
+msgstr "WP-Cron speichert keinen Fehlerverlauf für einzelne Ereignisse. Prüfen Sie gegebenenfalls die Protokolle des zuständigen Plugins."
+
+msgid "Este estado no prueba que una petición PHP siga ejecutándose."
+msgstr "Dieser Status beweist nicht, dass eine PHP-Anfrage noch läuft."
+
+msgid "Registro de Action Scheduler (últimas 20 entradas)"
+msgstr "Action-Scheduler-Protokoll (letzte 20 Einträge)"
+
+msgid "No hay entradas de registro disponibles para esta tarea."
+msgstr "Für diese Aufgabe sind keine Protokolleinträge verfügbar."
+
+msgid "El prefijo histórico seo_ no demuestra una dependencia del antiguo monolítico. No se muestran argumentos ni credenciales."
+msgstr "Das historische Präfix seo_ belegt keine Abhängigkeit vom alten monolithischen Plugin. Argumente und Zugangsdaten werden nicht angezeigt."
+
+msgid "Ver log del último fallo"
+msgstr "Protokoll des letzten Fehlers anzeigen"
+
+msgid "Ver detalles"
+msgstr "Details anzeigen"
+
+msgid "Ver log / diagnóstico"
+msgstr "Protokoll / Diagnose anzeigen"
+
+msgid "Process diagnostics are unavailable until the plugin update completes."
+msgstr "Die Prozessdiagnose ist erst nach Abschluss der Plugin-Aktualisierung verfügbar."

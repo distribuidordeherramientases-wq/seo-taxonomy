@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.2
+Stable tag: 0.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,11 +23,17 @@ TaxoCommerce Accounting records fiscal data without changing WooCommerce orders,
 * Store taxable base, input/output VAT, total, tax classification, deductible percentage, document number and supplier data.
 * Inspect monthly fiscal balances using validated domestic records only.
 * Review indicative Model 303 figures and export internal CSV or JSON.
+* Hacienda displays read-only fiscal period coverage: unvalidated records, exceptional treatments, missing document numbers and informational missing tax IDs. Empty periods are not assumed to be zero returns; use the sales and purchase review links.
+* Tax filing obligations depend on the taxpayer. The screen links to AEAT Model 130 guidance for potentially eligible self-employed taxpayers; Models 130 and 200 are not treated as universally mandatory.
+* Hacienda provides accumulated taxable sales and purchase bases, output and deductible input VAT, and an indicative VAT balance for the selected period. The totals refresh whenever the screen is opened but are not official AEAT form boxes.
+* Optional hourly WP-Cron-based import of paid WooCommerce orders in small batches (three pages of 25 orders per run), disabled until the merchant enables it. Imported entries are draft and must be reconciled. Shows last check and full-scan time; WP-Cron is dependent on site traffic or a configured scheduler.
 * Hacienda workspace: nine sub-tabs for four VAT books and Models 303, 390, 347, 349 and 200. Each sub-tab offers an authenticated internal working CSV/JSON download and an official AEAT information/filing link. Model 303 has a quarter selector; Model 390 shows indicative annual domestic figures. The new Hacienda VAT reports aggregate all ledger entries without the dashboard's 400-row display cap.
 * Relevant VAT book and Model 303 tabs link to the AEAT's own EMPTY official XLSX workbook templates (legal-entity and general variants, published 2026). They are linked directly from AEAT; TaxoCommerce does not prefill these templates or claim automatic Pre303 compatibility.
 * Run a read-only functional Autocheck with explicit incomplete-data errors.
 * Standalone administration if TaxoCommerce Core is absent; nested TaxoCommerce administration when present.
 * Uses a dedicated prefix-aware database table and WooCommerce's public order APIs (including HPOS).
+
+Important: Importing all paid WooCommerce orders does not prove all invoices (including unpaid invoices, purchase bills and credit notes) are present. WooCommerce order creation dates may differ from fiscal invoice dates; manual reconciliation is mandatory. Accounting does not store per-tax-rate VAT detail for each invoice, previous return offsets, or all tax adjustments and cannot claim a complete Model 303 return.
 
 Important: Hacienda's downloads are conspicuously labelled **PREPARATORY / NOT OFFICIAL** and are NOT an AEAT-compatible 303/390/347/349/200 electronic declaration or Pre303/LSI XLSX. These views do not perform tax ID validation, full accounting, partner threshold/exclusion checks, filing-calendar eligibility, or complete VAT regime calculations. No data is sent to AEAT; reports are for accountant review only. The financial overview is preliminary, NOT an official VAT form, an accounting system with double-entry books, tax/legal advice or a replacement for invoices. No forms are filed or submitted to the Spanish Tax Agency. Ensure applicability and deductible VAT with a qualified advisor before approving.
 
@@ -66,6 +72,12 @@ No. It is a working summary of validated domestic records, not an official AEAT 
 No. Input VAT defaults to 0% deductible and records start in draft. A qualified professional should verify the tax treatment.
 
 == Changelog ==
+
+= 0.1.4 =
+* Added continuously recalculated VAT-period totals and opt-in bounded automatic WooCommerce draft imports with progress and reminders about missing tax return inputs. Fixed Autocheck result rendering. Issue #2707.
+
+= 0.1.3 =
+* Added fiscal preparation completeness counters and review links for Hacienda, including quarterly Model 303 periods. No extra PDF, official tax-return formats or filing integrations. Issue #2702.
 
 = 0.1.2 =
 * Added Hacienda dashboard with nine sub-tabs, secure non-fileable CSV/JSON preparatory exports, 303 quarter and 390 annual domestic summaries without the old 400-entry limit, links to AEAT and compatibility with the old Tax returns URL. No tax submission. Issue #2687.

@@ -133,12 +133,24 @@ jobs:
           php -l taxocommerce-accounting/includes/class-tca-hacienda.php
           php -l taxocommerce-accounting/tests/hacienda-workspace-smoke.php
           php taxocommerce-accounting/tests/hacienda-workspace-smoke.php
+          php -l taxocommerce-accounting/tests/live-tax-preparation-smoke.php
+          php taxocommerce-accounting/tests/live-tax-preparation-smoke.php
           php taxocommerce-accounting/tests/smoke.php
           node --check taxocommerce-customers/assets/admin.js
           php -l taxocommerce-tasks/includes/class-tctasks-calendar.php
           php -l taxocommerce-tasks/tests/calendar-duration-smoke.php
           php taxocommerce-tasks/tests/calendar-duration-smoke.php
+          php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-queue-health.php
+          php -l taxocommerce-system-check/tests/queue-health-smoke.php
+          php taxocommerce-system-check/tests/queue-health-smoke.php
+          php -l taxocommerce-system-check/tests/url-process-progress-smoke.php
+          php taxocommerce-system-check/tests/url-process-progress-smoke.php
           php taxocommerce-system-check/tests/processes-smoke.php
+          php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-process-details.php
+          php -l taxocommerce-system-check/tests/process-details-smoke.php
+          php taxocommerce-system-check/tests/process-details-smoke.php
+          php -l taxocommerce-system-check/tests/process-details-partial-deploy-smoke.php
+          php taxocommerce-system-check/tests/process-details-partial-deploy-smoke.php
           php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-code-check.php
           php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-code-rules.php
           php -l taxocommerce-system-check/tests/code-check-deep-smoke.php
