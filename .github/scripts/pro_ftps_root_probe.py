@@ -171,6 +171,18 @@ def find_verified_root(ftp: ftplib.FTP_TLS, expected: dict[str, str]):
 def diagnose_known_roots(ftp):
     """Bounded read-only diagnostics. No site inventory, FTP writes or credentials."""
     login_root = ftp.pwd()
+    # Print only plausible public WordPress site directory names, not private
+    # paths, credentials or arbitrary files. Useful for FTP-account chroots.
+    try:
+        candidates = sorted(
+            name for name, facts in ftp.mlsd()
+            if (facts.get("type") or "").lower() == "dir"
+            and name.lower().startswith(("distrib", "www", "public", "http", "pro", "web", "dom", "site", "wordpress"))
+        )[:25]
+        print("SITE ROOT FOLDERS: " + (", ".join(candidates) if candidates else "(none)"), flush=True)
+    except (ftplib.Error, OSError):
+        print("SITE ROOT FOLDERS: unavailable", flush=True)
+
     for relative in CANDIDATES:
         try:
             ftp.cwd(login_root)
