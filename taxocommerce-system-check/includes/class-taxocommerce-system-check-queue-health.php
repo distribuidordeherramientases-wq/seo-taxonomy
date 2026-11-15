@@ -84,6 +84,7 @@ final class TaxoCommerce_System_Check_Queue_Health {
             'oldest_hook' => '',
             'oldest_date_gmt' => '',
             'oldest_delay_seconds' => 0,
+            'last_failed_id' => 0,
             'last_failed_hook' => '',
             'last_failed_date_gmt' => '',
             'recent_completed' => 0,
@@ -116,10 +117,11 @@ final class TaxoCommerce_System_Check_Queue_Health {
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Failed-action status/last-attempt lookup is read-only, bounded to one item.
         $failed = $wpdb->get_row( $wpdb->prepare(
-            'SELECT hook, last_attempt_gmt FROM %i WHERE status = %s ORDER BY last_attempt_gmt DESC LIMIT 1',
+            'SELECT action_id, hook, last_attempt_gmt FROM %i WHERE status = %s ORDER BY last_attempt_gmt DESC LIMIT 1',
             $table, 'failed'
         ) );
         if ( is_object( $failed ) && ! empty( $failed->last_attempt_gmt ) && '0000-00-00 00:00:00' !== $failed->last_attempt_gmt ) {
+            $result['last_failed_id'] = absint( $failed->action_id );
             $result['last_failed_hook'] = (string) $failed->hook;
             $result['last_failed_date_gmt'] = (string) $failed->last_attempt_gmt;
         }
