@@ -1,3 +1,13 @@
+## 0.1.4 — 2026-11-15 — Preparación fiscal acumulada y sincronización opcional (#2707)
+
+- Hacienda muestra en los modelos 303 y 390 los importes acumulados del periodo (bases de ventas y compras, IVA repercutido, soportado deducible y diferencia indicativa) calculados desde el registro fiscal actualizado al abrir la pestaña. No se confunden con las casillas oficiales ni con la deuda tributaria final.
+- Incorporada importación periódica **opcional, desactivada por defecto** de pedidos pagados desde WooCommerce mediante WP-Cron cada hora, con un máximo de tres bloques de 25 pedidos por ejecución. Se guarda cursor, último chequeo y fecha de última vuelta completa; no se confunde la importación con la validación fiscal.
+- Los pedidos importados y devoluciones permanecen en borrador. No se editan pedidos, facturas ni asientos validados. El plugin no importa automáticamente facturas de proveedores; cada factura debe registrarse y verificarse.
+- Hacienda indica el estado de sincronización y si está desactivada o todavía no se ha completado. Aviso sobre el desglose por tipos impositivos, compensaciones de periodos anteriores y otros datos fiscales no recogidos todavía.
+- Corregida la tabla de Autocheck para mostrar los resultados devueltos por la función de pruebas.
+- Pruebas de bases de cálculo y paginación del proceso automático en CI, documentación WordPress.org y verificación con Plugin Check.
+- Sin PDF adicional ni integración de envío a la AEAT. El resultado es una herramienta preparatoria, no una autoliquidación oficial completa.
+
 ## 0.1.3 — 2026-11-15 — Preparación fiscal sin PDFs ni envíos (#2702)
 
 - En Hacienda se incorpora un control de cobertura por ejercicio y, para el modelo 303, por trimestre: total de asientos, pendientes de validar, tratamientos fiscales especiales, referencias documentales ausentes y NIF no informados (estos últimos solo orientativos).
