@@ -29,12 +29,12 @@ jobs:
         run: |
           python3 -m py_compile .github/scripts/pro_ftps_root_probe.py
           python3 -m unittest discover -s .github/tests -p test_pro_ftps_root_probe.py -v
-      - name: Read-only FTPS header comparison against WP installed versions
+      - name: Read-only alternate auditor FTPS account against live PRO plugin versions
         if: github.event_name == 'push'
         env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER: ${{ secrets.TC_FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.TC_FTP_USER }}
+          FTP_PASSWORD: ${{ secrets.TC_FTP_PASS }}
           PRO_CORE_EXPECTED_VERSION: '0.4.84'
           PRO_WOO_EXPECTED_VERSION: '11.3.0'
         run: python3 .github/scripts/pro_ftps_root_probe.py
