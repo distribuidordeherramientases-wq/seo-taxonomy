@@ -98,6 +98,21 @@ class ProFullFamilyTests(unittest.TestCase):
             ).hexdigest()
             self.assertEqual(digest, expected)
 
+    def test_actual_staging_plugins_can_be_packaged_offline(self):
+        """Exercise all tracked source files, never open FTP or HTTP."""
+        modules = PRO.deliverables()
+        self.assertGreaterEqual(len(modules), 19)
+        packages = PRO.create_packages(modules)
+        self.assertEqual(set(modules), set(packages))
+        self.assertGreater(sum(item[2] for item in packages.values()), 300)
+        for slug, (archive, digest, count) in packages.items():
+            self.assertEqual(len(digest), 64)
+            self.assertGreater(count, 0)
+            with zipfile.ZipFile(io.BytesIO(archive)) as content:
+                self.assertEqual(content.testzip(), None, slug)
+                self.assertEqual(len(content.namelist()), count)
+                self.assertFalse(any(".gitlab" in name for name in content.namelist()))
+
     def test_bad_plugin_source_rejected_before_any_ftp_connection(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
