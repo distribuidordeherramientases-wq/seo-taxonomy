@@ -98,7 +98,7 @@ class GatedPipelineContract(unittest.TestCase):
         self.assertIn("      actions: read", production)
         uploader = (ROOT / ".github/scripts/deploy_pro_ftps_native.py").read_text(encoding="utf-8")
         self.assertIn("hashlib.sha256", uploader)
-        self.assertIn("Remote plugin file digest changed during final check", uploader)
+        self.assertIn("Destination checksum mismatch", uploader)
 
     def test_failure_opens_issue_and_never_proceeds_to_pro(self):
         self.assertIn("report-failure:", self.pipeline)
