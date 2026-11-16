@@ -14,6 +14,7 @@ final class SEO_Facturas_Tax {
     const IDS_OPTION  = 'seo_facturas_tax_rate_ids';
     const HASH_OPTION = 'seo_facturas_tax_rate_hash';
     const TAX_CLASS   = 'seo-facturas-managed';
+    const INCLUSIVE_TAX_REPAIR_OPTION = 'seo_facturas_inclusive_tax_repair_20261116';
 
     private static $initialized = false;
     private static $rate_exists_cache = array();
@@ -25,9 +26,11 @@ final class SEO_Facturas_Tax {
         self::$initialized = true;
 
         /*
-         * La interpretacion del PVP no depende del gestor de tasas.
-         * En este proyecto el precio almacenado es el PVP final con IVA.
+         * El PVP almacenado ya contiene IVA. En instalaciones anteriores el
+         * gestor de tasas podia quedar apagado y generar documentos con IVA 0.
+         * Reparacion acotada y una sola vez: nunca recalcula pedidos emitidos.
          */
+        self::maybe_repair_inclusive_tax_setup();
         self::sync_price_tax_mode();
 
         add_filter('woocommerce_find_rates', array(__CLASS__, 'filter_rates'), 99, 2);
@@ -35,12 +38,60 @@ final class SEO_Facturas_Tax {
         add_filter('woocommerce_countries_shipping_countries', array(__CLASS__, 'allowed_countries'), 99, 1);
 
         if (self::enabled()) {
+            // La existencia de tasas no basta si WooCommerce no calcula IVA.
+            if ('yes' !== (string) get_option('woocommerce_calc_taxes', 'no')) {
+                update_option('woocommerce_calc_taxes', 'yes');
+            }
             self::ensure_managed_rates();
         }
     }
 
     public static function enabled() {
         return (bool) SEO_Facturas_Settings::get('tax_manager_enabled', 0);
+    }
+
+    /**
+     * Corrige una instalacion con PVP IVA incluido y tasas no operativas.
+     * No sustituye una configuracion estandar 21 % ya funcional.
+     *
+     * Preserva paises de venta existentes: no activa la restriccion a ES.
+     * No modifica precios, pedidos, facturas ni snapshots historicos.
+     */
+    private static function maybe_repair_inclusive_tax_setup() {
+        if (get_option(self::INCLUSIVE_TAX_REPAIR_OPTION, false)) {
+            return;
+        }
+        if (!class_exists('WC_Tax')) {
+            return;
+        }
+
+        $settings = SEO_Facturas_Settings::taxation();
+        if (!empty($settings['tax_prices_include_tax']) && empty($settings['tax_manager_enabled'])) {
+            $correct_rate = false;
+            $configured_rate = (float) ($settings['tax_peninsula_rate'] ?? 21);
+            if ('yes' === (string) get_option('woocommerce_calc_taxes', 'no')) {
+                $rates = WC_Tax::find_rates(array(
+                    'country' => 'ES', 'state' => 'M', 'postcode' => '28001',
+                    'city' => 'Madrid', 'tax_class' => '',
+                ));
+                foreach ((array) $rates as $rate) {
+                    if (
+                        abs((float) ($rate['rate'] ?? 0) - $configured_rate) < 0.0001
+                        && (empty($settings['tax_shipping']) || 'yes' === (string) ($rate['shipping'] ?? 'no'))
+                    ) {
+                        $correct_rate = true;
+                        break;
+                    }
+                }
+            }
+            if (!$correct_rate) {
+                $settings['tax_manager_enabled'] = 1;
+                // No limitar las ventas internacionales por corregir el IVA español.
+                $settings['tax_restrict_to_spain'] = 0;
+                update_option(SEO_Facturas_Settings::TAX_OPTION, $settings, false);
+            }
+        }
+        update_option(self::INCLUSIVE_TAX_REPAIR_OPTION, '1', false);
     }
 
     /**
@@ -171,6 +222,11 @@ final class SEO_Facturas_Tax {
         }
 
         $args = is_array($args) ? $args : array();
+        // Respetar clases reducidas/exentas configuradas expresamente.
+        $tax_class = sanitize_title((string) ($args['tax_class'] ?? ''));
+        if ('' !== $tax_class && 'standard' !== $tax_class && self::TAX_CLASS !== $tax_class) {
+            return $rates;
+        }
         $country = strtoupper((string) ($args['country'] ?? ''));
         $state = strtoupper((string) ($args['state'] ?? ''));
         $postcode = strtoupper((string) ($args['postcode'] ?? ''));
@@ -401,6 +457,104 @@ final class SEO_Facturas_Tax {
             array('%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s'),
             array('%d')
         );
+    }
+
+    /**
+     * Impide emitir PDFs con base imponible igual al PVP cuando falta el IVA
+     * de un producto ordinario, sujeto al tipo positivo de la zona.
+     * Nunca inventa impuestos en el PDF; obliga a corregir WooCommerce.
+     */
+    public static function validate_cart_tax($cart, array $buyer = array()) {
+        if (!$cart || !method_exists($cart, 'get_cart')) {
+            return true;
+        }
+        $country = strtoupper((string) ($buyer['country'] ?? ''));
+        $state = (string) ($buyer['state'] ?? '');
+        $postcode = (string) ($buyer['postcode'] ?? '');
+        if ('' === $country && function_exists('WC') && WC() && WC()->customer) {
+            $customer = WC()->customer;
+            $country = strtoupper((string) $customer->get_shipping_country());
+            $state = (string) $customer->get_shipping_state();
+            $postcode = (string) $customer->get_shipping_postcode();
+        }
+        if (!self::requires_standard_iva($country, $state, $postcode)) {
+            return true;
+        }
+        if (function_exists('WC') && WC() && WC()->customer
+            && is_callable(array(WC()->customer, 'get_is_vat_exempt'))
+            && WC()->customer->get_is_vat_exempt()) {
+            return true;
+        }
+        foreach ((array) $cart->get_cart() as $line) {
+            $product = $line['data'] ?? null;
+            if (!$product || !is_callable(array($product, 'get_tax_class'))) {
+                continue;
+            }
+            $class = (string) $product->get_tax_class();
+            if ('' !== $class && 'standard' !== $class) {
+                continue;
+            }
+            if (!is_callable(array($product, 'get_tax_status')) || 'taxable' !== (string) $product->get_tax_status()) {
+                continue;
+            }
+            if ((float) ($line['line_total'] ?? 0) > 0 && (float) ($line['line_tax'] ?? 0) < 0.001) {
+                return new WP_Error('seo_facturas_cart_tax_missing',
+                    'No se puede emitir el documento: WooCommerce no ha desglosado el IVA de un producto sujeto al tipo general. Comprueba la fiscalidad y el estado fiscal del producto.');
+            }
+        }
+        return true;
+    }
+
+    public static function validate_order_tax($order) {
+        if (!$order || !is_callable(array($order, 'get_items'))) {
+            return true;
+        }
+        $country = strtoupper((string) $order->get_shipping_country());
+        $state = (string) $order->get_shipping_state();
+        $postcode = (string) $order->get_shipping_postcode();
+        if ('' === $country) {
+            $country = strtoupper((string) $order->get_billing_country());
+            $state = (string) $order->get_billing_state();
+            $postcode = (string) $order->get_billing_postcode();
+        }
+        if (!self::requires_standard_iva($country, $state, $postcode)) {
+            return true;
+        }
+        foreach ((array) $order->get_items('line_item') as $item) {
+            $product = is_callable(array($item, 'get_product')) ? $item->get_product() : null;
+            if (!$product || !is_callable(array($product, 'get_tax_class'))) {
+                continue;
+            }
+            $class = (string) $product->get_tax_class();
+            if ('' !== $class && 'standard' !== $class) {
+                continue;
+            }
+            if (!is_callable(array($product, 'get_tax_status')) || 'taxable' !== (string) $product->get_tax_status()) {
+                continue;
+            }
+            if ((float) $item->get_total() > 0 && (float) $item->get_total_tax() < 0.001) {
+                return new WP_Error('seo_facturas_order_tax_missing',
+                    'No se emite la factura/proforma: el pedido WooCommerce tiene un producto sin el IVA esperado. Revisa y recalcula los impuestos del pedido antes de emitir documentos.');
+            }
+        }
+        return true;
+    }
+
+    private static function requires_standard_iva($country, $state, $postcode) {
+        if (!SEO_Facturas_Settings::get('tax_prices_include_tax', 1)
+            || 'yes' !== (string) get_option('woocommerce_calc_taxes', 'no')) {
+            return false;
+        }
+        $country = strtoupper((string) $country);
+        if ('' === $country && SEO_Facturas_Settings::get('tax_restrict_to_spain', 0)) {
+            $country = 'ES';
+        }
+        if ('ES' !== $country) {
+            return false;
+        }
+        $zone = self::classify_location($country, $state, $postcode);
+        $zones = self::zone_definitions();
+        return (float) ($zones[$zone]['rate'] ?? 0) > 0.0;
     }
 
     private static function flush_tax_cache() {
