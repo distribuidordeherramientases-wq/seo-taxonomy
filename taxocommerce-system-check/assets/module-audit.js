@@ -6,6 +6,8 @@
     var progress = document.getElementById('tcs-module-progress');
     var result = document.getElementById('tcs-module-report');
     var speed = document.getElementById('tcs-module-speed');
+    var i18n = config.i18n || {};
+    function t(key, fallback) { return i18n[key] || fallback; }
     var current = '';
     var token = 0;
     var timer = null;
@@ -27,7 +29,7 @@
             .then(function (response) { return response.json(); })
             .then(function (data) {
                 if (!data.success) {
-                    throw new Error((data.data && data.data.message) || 'No se pudo ejecutar el chequeo.');
+                    throw new Error((data.data && data.data.message) || t('request_failed', 'Unable to execute the check.'));
                 }
                 return data.data;
             });
@@ -39,17 +41,17 @@
         var totals = f.totals || {};
         progress.textContent = label(state.name, state.plugin) + ': ' + label(state.status, '') +
             ' · Funcionalidades: ' + (f.done || 0) + '/' + (f.total || 0) +
-            ' (' + (totals.fail || 0) + ' fallos, ' + (totals.skip || 0) + ' omitidos)' +
+            ' (' + (totals.fail || 0) + ' ' + t('failures', 'failures') + ', ' + (totals.skip || 0) + ' ' + t('skipped', 'skipped') + ')' +
             ' · Código: ' + (c.done || 0) + '/' + (c.total || 0) +
-            ' (' + (c.errors || 0) + ' errores, ' + (c.warnings || 0) + ' avisos)' +
+            ' (' + (c.errors || 0) + ' ' + t('errors', 'errors') + ', ' + (c.warnings || 0) + ' ' + t('warnings', 'warnings') + ')' +
             (state.error ? ' · ' + state.error : '');
         var fcell = document.querySelector('[data-tcs-module-functional="' + state.plugin + '"]');
         var ccell = document.querySelector('[data-tcs-module-code="' + state.plugin + '"]');
         if (fcell) { fcell.textContent = f.status === 'basic_only' ?
-            'Solo básico: ' + (totals.fail || 0) + ' fallos' :
+            t('basic_only', 'Basic only: ') + (totals.fail || 0) + ' ' + t('failures', 'failures') :
             (f.done || 0) + '/' + (f.total || 0) + ': ' + (totals.fail || 0) + ' fallos'; }
         if (ccell) { ccell.textContent = (c.done || 0) + '/' + (c.total || 0) + ': ' +
-            (c.errors || 0) + ' errores, ' + (c.warnings || 0) + ' avisos'; }
+            (c.errors || 0) + ' errores, ' + (c.warnings || 0) + ' ' + t('warnings', 'warnings'); }
     }
     function clearTimer() {
         ++token;
@@ -60,14 +62,14 @@
         if (type === 'functional') {
             text('strong', label(item.status, 'skip') + ' · ' + label(item.group, '') +
                 ' · ' + label(item.label, item.id), row);
-            text('p', label(item.message, 'Sin detalle'), row);
+            text('p', label(item.message, t('no_details', 'No details available.')), row);
         } else {
             text('strong', label(item.severity, item.status || type) +
                 ' · ' + label(item.file, '') +
                 (item.line == null ? '' : ':' + item.line) +
                 ' · ' + label(item.rule, item.group || ''), row);
-            text('p', label(item.description, 'Revisión requerida'), row);
-            if (item.recommendation) { text('p', 'Sugerencia: ' + item.recommendation, row); }
+            text('p', label(item.description, t('review_required', 'Review required.')), row);
+            if (item.recommendation) { text('p', t('recommendation', 'Recommendation: ') + item.recommendation, row); }
             else if (item.evidence && Object.keys(item.evidence).length) {
                 var evidence = JSON.stringify(item.evidence);
                 text('pre', evidence.length > 1600 ? evidence.slice(0, 1600) + '…' : evidence, row);
@@ -79,7 +81,7 @@
         details.open = !!open;
         result.appendChild(details);
         text('summary', title + ' (' + items.length + ')', details);
-        if (!items.length) { text('p', 'No se han registrado resultados en esta categoría.', details); return; }
+        if (!items.length) { text('p', t('none_recorded', 'No results in this category.'), details); return; }
         var list = document.createElement('ol');
         details.appendChild(list);
         items.forEach(function (item) { renderRow(item, list, type); });
@@ -88,27 +90,27 @@
         result.hidden = false;
         result.textContent = '';
         if (!report || !report.summary) {
-            text('p', 'Todavía no existe un informe para el plugin seleccionado.', result);
+            text('p', t('not_run', 'No report exists for this plugin yet.'), result);
             return;
         }
-        var title = text('h3', 'Resultados de ' + label(report.name, report.plugin), result);
+        var title = text('h3', t('results_of', 'Results for ') + label(report.name, report.plugin), result);
         title.setAttribute('tabindex', '-1');
         var summary = report.summary;
-        text('p', 'Estado: ' + label(summary.status, 'pendiente') +
-            ' · Fecha: ' + label(report.executed_at, '—'), result);
+        text('p', t('status', 'Status: ') + label(summary.status, 'pendiente') +
+            t('date', ' · Date: ') + label(report.executed_at, '—'), result);
         if (summary.note) { text('p', summary.note, result); }
-        var link = text('a', 'Descargar JSON completo de este plugin', result);
+        var link = text('a', t('download_json', 'Download complete JSON for this plugin'), result);
         link.href = config.export + '&module=' + encodeURIComponent(report.plugin);
         link.className = 'button button-secondary';
         var functional = report.functional_tests || [];
-        section('Fallos funcionales', functional.filter(function (x) { return x.status === 'fail'; }), 'functional', true);
-        section('Pruebas omitidas', functional.filter(function (x) { return x.status === 'skip'; }), 'functional', false);
-        section('Pruebas correctas', functional.filter(function (x) { return x.status === 'pass'; }), 'functional', false);
+        section(t('functional_failures', 'Functional failures'), functional.filter(function (x) { return x.status === 'fail'; }), 'functional', true);
+        section(t('skipped_checks', 'Skipped checks'), functional.filter(function (x) { return x.status === 'skip'; }), 'functional', false);
+        section(t('passed_checks', 'Passed checks'), functional.filter(function (x) { return x.status === 'pass'; }), 'functional', false);
         var code = report.code_findings || {};
-        section('Errores de código', code.errors || [], 'code', true);
-        section('Avisos de código (revisión manual)', code.warnings || [], 'code', true);
-        section('Archivos sin comprobar', code.unchecked || [], 'code', false);
-        text('p', 'El análisis local de código no sustituye el WordPress Plugin Check oficial.', result);
+        section(t('code_errors', 'Code errors'), code.errors || [], 'code', true);
+        section(t('code_warnings', 'Code warnings (manual review)'), code.warnings || [], 'code', true);
+        section(t('unchecked', 'Unchecked files'), code.unchecked || [], 'code', false);
+        text('p', t('disclaimer', 'Local code review is not the official WordPress Plugin Check.'), result);
     }
     function view(module) {
         current = module;
@@ -141,7 +143,7 @@
         current = start.getAttribute('data-tcs-module-start');
         clearTimer();
         result.hidden = true;
-        progress.textContent = 'Preparando chequeo de ' + current + '…';
+        progress.textContent = t('preparing', 'Preparing check for ') + current + '…';
         var mine = token;
         request(current, 'start').then(function (state) {
             show(state);
