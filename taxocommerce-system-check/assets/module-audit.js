@@ -41,7 +41,7 @@
         var totals = f.totals || {};
         progress.textContent = label(state.name, state.plugin) + ': ' + label(state.status, '') +
             ' · ' + t('functions', 'Functions') + ': ' + (f.done || 0) + '/' + (f.total || 0) +
-            ' (' + (totals.fail || 0) + ' ' + t('failures', 'failures') + ', ' + (totals.skip || 0) + ' ' + t('skipped', 'skipped') + ')' +
+            ' (' + (totals.fail || 0) + ' ' + t('failures', 'failures') + ', ' + (totals.skip || 0) + ' ' + t('skipped', 'skipped') + ', ' + (totals.warning || 0) + ' ' + t('warnings', 'warnings') + ')' +
             ' · ' + t('code', 'Code') + ': ' + (c.done || 0) + '/' + (c.total || 0) +
             ' (' + (c.errors || 0) + ' ' + t('errors', 'errors') + ', ' + (c.warnings || 0) + ' ' + t('warnings', 'warnings') + ')' +
             (state.error ? ' · ' + state.error : '');
@@ -104,6 +104,7 @@
         link.className = 'button button-secondary';
         var functional = report.functional_tests || [];
         section(t('functional_failures', 'Functional failures'), functional.filter(function (x) { return x.status === 'fail'; }), 'functional', true);
+        section(t('warnings', 'Warnings') + ' · ' + t('functions', 'Functions'), functional.filter(function (x) { return x.status === 'warning'; }), 'functional', false);
         section(t('skipped_checks', 'Skipped checks'), functional.filter(function (x) { return x.status === 'skip'; }), 'functional', false);
         section(t('passed_checks', 'Passed checks'), functional.filter(function (x) { return x.status === 'pass'; }), 'functional', false);
         var code = report.code_findings || {};
