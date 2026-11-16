@@ -190,7 +190,7 @@ final class Rules {
      * compared lexically (Issue #2752).
      */
     private static function numeric_tag_conflict( $tag, $title, $description ) {
-        if ( ! preg_match( '/^\\s*([0-9]+(?:[.,][0-9]+)?)\\s*(kw|w|v|ah|mah|kg|bar|psi|rpm)\\s*$/iu', (string) $tag, $matches ) ) {
+        if ( ! preg_match( '/^\s*([0-9]+(?:[.,][0-9]+)?)\s*(kw|w|v|ah|mah|kg|bar|psi|rpm)\s*$/iu', (string) $tag, $matches ) ) {
             return '';
         }
 
