@@ -4,7 +4,7 @@
  * Plugin URI: https://asociacionfocazul.com/taxocommerce-system-check/
  * Description: Independent WordPress, server and plugin diagnostics with local checks, reports and optional administrator notifications.
  * Version: 0.2.41
- * Release Date: 2026-11-15
+ * Release Date: 2026-11-16
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: David Perez
