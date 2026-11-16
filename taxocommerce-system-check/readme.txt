@@ -4,13 +4,15 @@ Tags: diagnostics, security, performance, maintenance, monitoring
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.41
+Stable tag: 0.2.42
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Server, WordPress and plugin diagnostics with administrator-controlled reports and local checks.
 
 == Description ==
+
+Version 0.2.42 fixes individual-plugin result formats (including Billing), provides per-row progress and Stop/Resume controls, records bounded execution events, and identifies browser-driven checks in Processes. Diagnostics remain read-only; no active PHP request is forcibly terminated.
 
 Version 0.2.41 adds per-plugin diagnostics in Plugin Validation: select an active plugin, run available read-only native functional and code checks, inspect specific failures and file-level review findings, and export a JSON report without rerunning. If a plugin does not expose deep functional tests, only basic availability checks are claimed. No content writes or full official WordPress Plugin Check are performed.
 
