@@ -327,7 +327,44 @@ final class SEO_Facturas_Quotes {
             self::fail('No se puede generar el PDF porque Dompdf no esta disponible.');
         }
 
-        WC()->cart->calculate_totals();
+        // Calcular IVA segun el destino indicado para este documento, sin
+        // conservar dicha direccion de prueba en la sesion del comprador.
+        $customer = WC()->customer;
+        $previous_address = array();
+        $document_country = strtoupper((string) ($buyer['country'] ?? ''));
+        if ($customer && '' !== $document_country) {
+            foreach (array('billing', 'shipping') as $address_kind) {
+                foreach (array('country', 'state', 'postcode', 'city') as $field) {
+                    $getter = 'get_' . $address_kind . '_' . $field;
+                    $setter = 'set_' . $address_kind . '_' . $field;
+                    if (!is_callable(array($customer, $getter)) || !is_callable(array($customer, $setter))) {
+                        continue;
+                    }
+                    $previous_address[$address_kind][$field] = $customer->{$getter}();
+                    $new_value = 'country' === $field ? $document_country : (string) ($buyer[$field] ?? '');
+                    $customer->{$setter}($new_value);
+                }
+            }
+        }
+
+        try {
+            WC()->cart->calculate_totals();
+            $tax_validation = class_exists('SEO_Facturas_Tax')
+                ? SEO_Facturas_Tax::validate_cart_tax(WC()->cart, $buyer)
+                : true;
+        } finally {
+            if ($customer && $previous_address) {
+                foreach ($previous_address as $address_kind => $fields) {
+                    foreach ($fields as $field => $old_value) {
+                        $setter = 'set_' . $address_kind . '_' . $field;
+                        $customer->{$setter}($old_value);
+                    }
+                }
+            }
+        }
+        if (is_wp_error($tax_validation)) {
+            self::fail($tax_validation->get_error_message());
+        }
 
         if ('quote' === $kind) {
             $numbering = SEO_Facturas_Documents::reserve_number(SEO_Facturas_Documents::TYPE_QUOTE);
@@ -498,7 +535,7 @@ final class SEO_Facturas_Quotes {
         // La sesión se utiliza solo para el contexto fiscal/porte ya calculado.
         // No se imprime como una supuesta dirección facilitada en la proforma.
         $cart_shipping = self::customer_address($customer, 'shipping');
-        $destination = !empty($cart_shipping['country']) ? $cart_shipping : $billing;
+        $destination = !empty($billing['country']) ? $billing : $cart_shipping;
         $shipping = array();
         $fiscal = class_exists('SEO_Facturas_Tax')
             ? SEO_Facturas_Tax::context_for_location(

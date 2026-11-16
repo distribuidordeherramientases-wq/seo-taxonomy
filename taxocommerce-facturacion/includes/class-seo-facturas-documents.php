@@ -68,6 +68,16 @@ final class SEO_Facturas_Documents {
             }
         }
 
+        // No registrar ni numerar documentos nuevos si el pedido contiene
+        // lineas ordinarias sujetas a IVA pero WooCommerce calculo cuota cero.
+        // Las facturas existentes se conservan sin alterar sus snapshots.
+        if (class_exists('SEO_Facturas_Tax')) {
+            $tax_validation = SEO_Facturas_Tax::validate_order_tax($order);
+            if (is_wp_error($tax_validation)) {
+                return $tax_validation;
+            }
+        }
+
         $numbering = self::reserve_number($type);
         if (is_wp_error($numbering)) {
             return $numbering;
