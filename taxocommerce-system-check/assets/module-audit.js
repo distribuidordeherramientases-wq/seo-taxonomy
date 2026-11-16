@@ -40,18 +40,18 @@
         var c = state.code || {};
         var totals = f.totals || {};
         progress.textContent = label(state.name, state.plugin) + ': ' + label(state.status, '') +
-            ' · Funcionalidades: ' + (f.done || 0) + '/' + (f.total || 0) +
+            ' · ' + t('functions', 'Functions') + ': ' + (f.done || 0) + '/' + (f.total || 0) +
             ' (' + (totals.fail || 0) + ' ' + t('failures', 'failures') + ', ' + (totals.skip || 0) + ' ' + t('skipped', 'skipped') + ')' +
-            ' · Código: ' + (c.done || 0) + '/' + (c.total || 0) +
+            ' · ' + t('code', 'Code') + ': ' + (c.done || 0) + '/' + (c.total || 0) +
             ' (' + (c.errors || 0) + ' ' + t('errors', 'errors') + ', ' + (c.warnings || 0) + ' ' + t('warnings', 'warnings') + ')' +
             (state.error ? ' · ' + state.error : '');
         var fcell = document.querySelector('[data-tcs-module-functional="' + state.plugin + '"]');
         var ccell = document.querySelector('[data-tcs-module-code="' + state.plugin + '"]');
         if (fcell) { fcell.textContent = f.status === 'basic_only' ?
             t('basic_only', 'Basic only: ') + (totals.fail || 0) + ' ' + t('failures', 'failures') :
-            (f.done || 0) + '/' + (f.total || 0) + ': ' + (totals.fail || 0) + ' fallos'; }
+            (f.done || 0) + '/' + (f.total || 0) + ': ' + (totals.fail || 0) + ' ' + t('failures', 'failures'); }
         if (ccell) { ccell.textContent = (c.done || 0) + '/' + (c.total || 0) + ': ' +
-            (c.errors || 0) + ' errores, ' + (c.warnings || 0) + ' ' + t('warnings', 'warnings'); }
+            (c.errors || 0) + ' ' + t('errors', 'errors') + ', ' + (c.warnings || 0) + ' ' + t('warnings', 'warnings'); }
     }
     function clearTimer() {
         ++token;
@@ -131,7 +131,7 @@
                 show(updated);
                 next(updated, mine);
             }).catch(function (error) {
-                progress.textContent = error.message + ' · Puedes reanudar el chequeo.';
+                progress.textContent = error.message + t('can_resume', ' · You can resume this check.');
             });
         }, Number(state.delay_ms) || 2500);
     }
