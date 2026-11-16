@@ -111,6 +111,8 @@
         section(t('code_warnings', 'Code warnings (manual review)'), code.warnings || [], 'code', true);
         section(t('unchecked', 'Unchecked files'), code.unchecked || [], 'code', false);
         text('p', t('disclaimer', 'Local code review is not the official WordPress Plugin Check.'), result);
+        result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        title.focus({ preventScroll: true });
     }
     function view(module) {
         current = module;
