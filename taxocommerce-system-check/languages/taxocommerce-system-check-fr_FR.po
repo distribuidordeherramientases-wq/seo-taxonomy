@@ -2280,3 +2280,24 @@ msgstr "Le serveur a renvoyé une réponse JSON invalide. Vérifiez les avertiss
 
 msgid "The browser is not processing batches; press Resume to continue."
 msgstr "Le navigateur ne traite aucun lot ; cliquez sur Reprendre pour continuer."
+
+msgid "Check all plugins"
+msgstr "Vérifier tous les plugins"
+
+msgid "Plugins checked"
+msgstr "Plugins vérifiés"
+
+msgid "Checks with findings"
+msgstr "Contrôles avec anomalies"
+
+msgid "Execution errors"
+msgstr "Erreurs d’exécution"
+
+msgid "Paused"
+msgstr "En pause"
+
+msgid "All plugin checks finished"
+msgstr "Contrôles de tous les plugins terminés"
+
+msgid "Check plugins individually or run all active TaxoCommerce modules sequentially. Each plugin keeps its own results, log and JSON report."
+msgstr "Vérifiez chaque plugin séparément ou exécutez tous les modules TaxoCommerce actifs dans l’ordre. Chaque plugin conserve ses résultats, son journal et son rapport JSON."
