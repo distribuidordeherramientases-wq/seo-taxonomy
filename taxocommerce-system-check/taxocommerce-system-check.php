@@ -90,8 +90,13 @@ function taxocommerce_system_check_boot() {
         }
     }
     require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-family-runner.php';
-    require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-module-audit.php';
-    TaxoCommerce_System_Check_Module_Audit::boot();
+    // Non-atomic FTPS delivery must not make Plugin Validation fatal if an
+    // entrypoint arrives before its optional per-plugin diagnostic module.
+    $module_audit_file = TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-module-audit.php';
+    if ( is_readable( $module_audit_file ) ) {
+        require_once $module_audit_file;
+        TaxoCommerce_System_Check_Module_Audit::boot();
+    }
     TaxoCommerce_System_Check_Family_Runner::boot();
     // Incremental FTPS updates can expose mixed revisions briefly. Processes
     // keeps its existing controls available even if detail views are not yet installed.
@@ -437,7 +442,11 @@ function taxocommerce_system_check_validation_screen() {
 
     echo '<div class="wrap">' . '<h2>' . esc_html__( 'Plugin Validation · módulos activos', 'taxocommerce-system-check' ) . '</h2>';
     echo '<p>' . esc_html__( 'Sin Core solo se comprueba System Check. Con Core se usan sus módulos activos; no hay una lista duplicada.', 'taxocommerce-system-check' ) . '</p>';
-    TaxoCommerce_System_Check_Module_Audit::render();
+    if ( class_exists( 'TaxoCommerce_System_Check_Module_Audit', false ) ) {
+        TaxoCommerce_System_Check_Module_Audit::render();
+    } else {
+        echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Unavailable', 'taxocommerce-system-check' ) . '</p></div>';
+    }
     echo '<details style="margin:8px 0 16px"><summary>' . esc_html__( 'Core pilot (previous validation mode)', 'taxocommerce-system-check' ) . '</summary>';
     TaxoCommerce_System_Check_Family_Runner::render();
     echo '</details>';
@@ -450,7 +459,11 @@ function taxocommerce_system_check_validation_screen() {
         echo '<tr><th scope="row">' . esc_html( (string) $module['name'] ) . '</th>';
         echo '<td>' . esc_html( (string) $module['version'] ) . '</td>';
         echo '<td>' . esc_html( implode( ' · ', $messages ) ) . '</td>';
-        TaxoCommerce_System_Check_Module_Audit::row( $id );
+        if ( class_exists( 'TaxoCommerce_System_Check_Module_Audit', false ) ) {
+            TaxoCommerce_System_Check_Module_Audit::row( $id );
+        } else {
+            echo '<td>' . esc_html__( 'Unavailable', 'taxocommerce-system-check' ) . '</td><td>' . esc_html__( 'Unavailable', 'taxocommerce-system-check' ) . '</td><td></td>';
+        }
         echo '</tr>';
     }
     echo '</tbody></table>';
