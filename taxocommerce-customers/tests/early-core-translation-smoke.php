@@ -11,6 +11,7 @@ $GLOBALS['tccust_init_complete'] = false;
 $GLOBALS['tccust_early_translations'] = 0;
 $GLOBALS['tccust_all_translations'] = 0;
 
+function admin_url( $path = '' ) { return 'https://example.test/wp-admin/' . $path; }
 function did_action( $hook ) {
     return 'init' === $hook && $GLOBALS['tccust_init_complete'] ? 1 : 0;
 }
