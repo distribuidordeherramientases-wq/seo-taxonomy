@@ -408,7 +408,7 @@ final class TaxoCommerce_System_Check_Module_Audit {
         } else {
             $totals = $summary['functional']['totals'];
             $function_status = 'basic_only' === $summary['functional']['status']
-                ? __( 'Basic checks only', 'taxocommerce-system-check' ) . ' · ' . $totals['fail'] . ' ' . __( 'failures', 'taxocommerce-system-check' )
+                ? __( 'Basic only: ', 'taxocommerce-system-check' ) . ' · ' . $totals['fail'] . ' ' . __( 'failures', 'taxocommerce-system-check' )
                 : $summary['functional']['done'] . '/' . $summary['functional']['total'] . ' · ' . $totals['fail'] . ' ' . __( 'failures', 'taxocommerce-system-check' );
             $code_status = $summary['code']['done'] . '/' . $summary['code']['total'] . ' · '
                 . $summary['code']['errors'] . ' ' . __( 'errors', 'taxocommerce-system-check' ) . ' · '
