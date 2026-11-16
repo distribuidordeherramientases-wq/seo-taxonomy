@@ -321,27 +321,10 @@ final class Rules {
             );
         }
 
-        // A tag without meaningful support is a review signal, never a deletion.
-        if ( taxonomy_exists( 'product_tag' ) ) {
-            $tags = wp_get_object_terms( $id, 'product_tag', array( 'fields' => 'names' ) );
-            if ( ! is_wp_error( $tags ) ) {
-                $category_names = function_exists( 'wc_get_product_terms' )
-                    ? wc_get_product_terms( $id, 'product_cat', array( 'fields' => 'names' ) )
-                    : array();
-                $category_names = is_wp_error( $category_names ) ? array() : (array) $category_names;
-                $identity = $title . ' ' . $excerpt . ' ' . $body . ' ' . $attribute_text . ' ' . implode( ' ', $category_names );
-                foreach ( array_slice( (array) $tags, 0, 30 ) as $tag ) {
-                    if ( ! self::tag_supported( $tag, $identity ) ) {
-                        $findings[] = self::finding(
-                            'product_tag_identity_drift', 'low', 'product', $id, $title,
-                            'La etiqueta "' . $tag . '" no aparece sustentada por título, contenido, categorías o atributos.',
-                            __( 'Comprobar si la etiqueta describe realmente el producto.', 'taxocommerce-auditor' )
-                        );
-                        break;
-                    }
-                }
-            }
-        }
+        // WooCommerce product_tag terms classify products. Their labels need not
+        // occur verbatim in the title, copy, attributes or category names.
+        // Lexical mismatches are not evidence of an incorrect assignment.
+        // Keep the product's real taxonomy terms intact (Issue #2746).
 
         if ( '' === $sku ) {
             $findings[] = self::finding( 'product_no_stable_sku', 'low', 'product', $id, $title, 'SKU vacío; puede ser legítimo para algunos productos.', __( 'Comprobar si existe otro identificador estable en el proveedor.', 'taxocommerce-auditor' ) );
