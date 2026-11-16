@@ -101,6 +101,10 @@ function get_terms( $args ) {
 }
 function get_term( $id, $tax = '' ) { return $GLOBALS['tc_fake_terms'][ $id ] ?? null; }
 function wp_get_object_terms( $ids, $tax, $args = array() ) {
+    // Product tags classify an item; generic/synonym labels are not defects.
+    if ( 'product_tag' === $tax ) {
+        return array( 'Equipamiento', 'repuesto', 'Detección y Comprobación Eléctrica' );
+    }
     if ( 'tc_tipo' === $tax && is_array( $ids ) ) {
         $out = array();
         foreach ( $ids as $i ) {
@@ -178,6 +182,7 @@ $product = Rules::inspect( 'products', get_post( 4 ) );
 $codes = array_column( $product['findings'], 'code' );
 verify( in_array( 'product_missing_excerpt', $codes, true ), 'Missing product excerpt' );
 verify( ! in_array( 'product_without_category', $codes, true ), 'No false missing category' );
+verify( ! in_array( 'product_tag_identity_drift', $codes, true ), 'Product classification terms do not require literal copy matches' );
 verify( isset( $product['quality']['score'] ), 'Internal quality exists' );
 verify( 'sku test' === $product['sku_key'], 'SKU used for duplicate candidates' );
 $GLOBALS['tc_wc']->attrs = array( new WC_Product_Attribute( 'Tension', array( '12 V' ) ) );
