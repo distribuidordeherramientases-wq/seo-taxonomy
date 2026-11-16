@@ -530,7 +530,10 @@ final class TaxoCommerce_System_Check_Module_Audit {
         echo '<td data-tcs-module-functional="' . esc_attr( $id ) . '">' . esc_html( $function_status ) . '</td>';
         echo '<td data-tcs-module-code="' . esc_attr( $id ) . '">' . esc_html( $code_status ) . '</td>';
         echo '<td><button type="button" class="button button-small" data-tcs-module-start="' . esc_attr( $id ) . '">' . esc_html__( 'Check plugin', 'taxocommerce-system-check' ) . '</button> ';
-        echo '<button type="button" class="button button-small" data-tcs-module-report="' . esc_attr( $id ) . '">' . esc_html__( 'View results', 'taxocommerce-system-check' ) . '</button></td>';
+        echo '<button type="button" class="button button-small" data-tcs-module-report="' . esc_attr( $id ) . '">' . esc_html__( 'View results', 'taxocommerce-system-check' ) . '</button> ';
+        $can_toggle = $state && in_array( $state['status'], array( 'running', 'paused' ), true );
+        $button_label = $state && 'running' === $state['status'] ? __( 'Stop', 'taxocommerce-system-check' ) : __( 'Resume', 'taxocommerce-system-check' );
+        echo '<button type="button" class="button button-small" data-tcs-module-toggle="' . esc_attr( $id ) . '"' . ( $can_toggle ? '' : ' disabled="disabled"' ) . '>' . esc_html( $button_label ) . '</button></td>';
     }
 
     public static function render() {
@@ -579,6 +582,11 @@ final class TaxoCommerce_System_Check_Module_Audit {
                 'preparing' => __( 'Preparing check for ', 'taxocommerce-system-check' ),
                 'functions' => __( 'Functions', 'taxocommerce-system-check' ),
                 'code' => __( 'Code', 'taxocommerce-system-check' ),
+                'execution_log' => __( 'Execution log', 'taxocommerce-system-check' ),
+                'invalid_json' => __( 'The server returned an invalid JSON response. Check PHP notices or the server error log.', 'taxocommerce-system-check' ),
+                'resume_hint' => __( 'The browser is not processing batches; press Resume to continue.', 'taxocommerce-system-check' ),
+                'stop' => __( 'Stop', 'taxocommerce-system-check' ),
+                'resume' => __( 'Resume', 'taxocommerce-system-check' ),
             ),
         ) ) . ';', 'before' );
     }
