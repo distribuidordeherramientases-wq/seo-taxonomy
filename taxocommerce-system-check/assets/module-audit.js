@@ -39,7 +39,7 @@
         current = bulk.ids[bulk.index];
         persistBulk();
         bulkMessage();
-        progress.textContent = t('all_resume_hint', 'Batch paused after reload. Press Resume to continue.');
+        progress.textContent = t('resume_hint', 'The browser is not processing batches; press Resume to continue.');
     }
     function bulkMessage() {
         var marker = document.getElementById('tcs-module-bulk-progress');
@@ -93,7 +93,9 @@
             return;
         }
         if (state.status !== 'running') {
-            bulkFailure(new Error(t('all_paused', 'Paused') + ': ' + state.status), mine);
+            bulk.paused = true;
+            progress.textContent = label(current, '') + ': ' + t('all_paused', 'Paused') + ' (' + state.status + ')';
+            bulkMessage();
             return;
         }
         timer = window.setTimeout(function () {
