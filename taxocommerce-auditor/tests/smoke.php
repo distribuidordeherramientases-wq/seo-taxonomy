@@ -207,7 +207,7 @@ $GLOBALS['tc_wc']->description = 'Sin especificaciones contrastables de tension 
 $unknown_tag = Rules::inspect( 'products', get_post( 4 ) );
 verify( ! in_array( 'product_tag_numeric_conflict', array_column( $unknown_tag['findings'], 'code' ), true ), 'Insufficient technical evidence does not produce a numeric tag conflict' );
 $GLOBALS['tc_deep_product_signals'] = true;
-$GLOBALS['tc_wc']->description = 'Pila recargable de 1,2 V con especificaciones comprobables.';
+$GLOBALS['tc_wc']->description = 'Pila recargable de 1,2 V que alimenta instrumentos y dispositivos compatibles mediante una reaccion electroquimica reversible y permite muchos ciclos de carga.';
 $deep_product = Rules::inspect( 'products', get_post( 4 ) );
 verify( ! empty( $deep_product['template_key'] ), 'Opt-in deep audit preserves historical product fingerprint' );
 $GLOBALS['tc_deep_product_signals'] = false;
