@@ -1,3 +1,6 @@
+= 0.3.24 (2026-11-16) =
+* WooCommerce product_tag labels are classification metadata and no longer trigger literal title/description mismatch warnings. Other content rules and taxonomy assignments are unchanged. Issue #2746.
+
 = 0.3.23 (2026-11-13) =
 * Code Check ampliado con las mismas reglas, clasificación por gravedad, información por archivo/línea y JSON que Core 0.4.82; sin cambiar el Autotest funcional ni la ejecución por lotes. Issue #2626.
 
