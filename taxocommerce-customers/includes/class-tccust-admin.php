@@ -33,8 +33,9 @@ final class TCCUST_Admin {
 	 * @return string Human-readable plugin description.
 	 */
 	public static function description() {
-		$description = 'Private customer and purchaser management.';
-		return did_action( 'init' ) ? __( $description, 'taxocommerce-customers' ) : $description;
+		return did_action( 'init' )
+			? __( 'Private customer and purchaser management.', 'taxocommerce-customers' )
+			: 'Private customer and purchaser management.';
 	}
 
 	public static function register_module( $core ) {
