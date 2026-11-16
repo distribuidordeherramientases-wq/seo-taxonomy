@@ -557,6 +557,7 @@ final class TaxoCommerce_System_Check_Module_Audit {
         echo '</section>';
         wp_add_inline_script( 'taxocommerce-system-check-module-audit', 'window.tcsModuleAudit=' . wp_json_encode( array(
             'url' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( self::ACTION ),
+            'site' => get_current_blog_id(), 'user' => get_current_user_id(),
             'initial' => self::recent(),
             'export' => wp_nonce_url( admin_url( 'admin-post.php?action=' . self::EXPORT ), self::EXPORT ),
             'i18n' => array(
