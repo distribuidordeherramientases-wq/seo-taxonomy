@@ -14,6 +14,33 @@
     // A batch is deliberately browser-driven: one plugin at a time, using
     // precisely the same authenticated AJAX endpoint as the row controls.
     var bulk = null;
+    var bulkStorageKey = 'tcs-module-bulk:' + String(config.site || 0) + ':' + String(config.user || 0);
+    function persistBulk() {
+        try {
+            if (bulk) { window.sessionStorage.setItem(bulkStorageKey, JSON.stringify(bulk)); }
+            else { window.sessionStorage.removeItem(bulkStorageKey); }
+        } catch (error) { /* Storage may be blocked; the current tab still works. */ }
+    }
+    function restoreBulk() {
+        var saved;
+        try { saved = JSON.parse(window.sessionStorage.getItem(bulkStorageKey) || 'null'); }
+        catch (error) { return; }
+        if (!saved || !Array.isArray(saved.ids) || !saved.ids.length) { return; }
+        var active = Array.prototype.map.call(document.querySelectorAll('[data-tcs-module-start]'), function (button) {
+            return button.getAttribute('data-tcs-module-start');
+        });
+        if (saved.ids.length !== active.length || saved.ids.some(function (id, i) { return id !== active[i]; }) ||
+            !Number.isInteger(saved.index) || saved.index < 0 || saved.index >= saved.ids.length) {
+            try { window.sessionStorage.removeItem(bulkStorageKey); } catch (error) { /* Storage unavailable. */ }
+            return;
+        }
+        bulk = { ids: saved.ids, index: saved.index, paused: true,
+            findings: Number(saved.findings) || 0, errors: Number(saved.errors) || 0 };
+        current = bulk.ids[bulk.index];
+        persistBulk();
+        bulkMessage();
+        progress.textContent = t('all_resume_hint', 'Batch paused after reload. Press Resume to continue.');
+    }
     function bulkMessage() {
         var marker = document.getElementById('tcs-module-bulk-progress');
         if (!marker || !bulk) { return; }
@@ -25,11 +52,13 @@
             (bulk.paused ? ' · ' + t('all_paused', 'Paused') : '');
         var allButton = document.querySelector('[data-tcs-module-all]');
         if (allButton) { allButton.disabled = true; }
+        persistBulk();
     }
     function finishBulk() {
         var marker = document.getElementById('tcs-module-bulk-progress');
         var summary = bulk;
         bulk = null;
+        persistBulk();
         if (marker) {
             marker.textContent = t('all_complete', 'All plugin checks finished') + ': ' +
                 summary.ids.length + '/' + summary.ids.length +
@@ -333,8 +362,9 @@
             if (op === 'resume') { next(state, mine); }
         }).catch(function (error) { progress.textContent = error.message; });
     });
+    restoreBulk();
     // A previously started run must remain stoppable after navigation or reload.
-    if (config.initial && config.initial.plugin) {
+    if (!bulk && config.initial && config.initial.plugin) {
         current = config.initial.plugin;
         show(config.initial);
         if (config.initial.status === 'running') {
