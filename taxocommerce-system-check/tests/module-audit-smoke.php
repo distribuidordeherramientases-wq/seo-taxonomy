@@ -55,12 +55,12 @@ class WP_Error {
 
 /** The fixture must be in the real selected module directory for reflection. */
 class Test_Auto_Test {
-    public static function cases() { return array( 'pass' => array( 'group', 'Pass' ), 'fail' => array( 'group', 'Fail' ), 'write_uat' => array( 'UAT', 'Dangerous write' ) ); }
+    public static function cases() { return array( 'pass' => array( 'group', 'Pass' ), 'fail' => array( 'group', 'Fail' ), 'warning' => array( 'group', 'Warning' ), 'write_uat' => array( 'UAT', 'Dangerous write' ) ); }
     public static function run_suite( $cases = null ) {
         if ( isset( $cases['write_uat'] ) ) { throw new RuntimeException( 'Destructive case reached' ); }
         $rows = array();
         foreach ( (array) $cases as $id => $definition ) {
-            $rows[] = array( 'id' => $id, 'group' => $definition[0], 'label' => $definition[1], 'status' => $id === 'fail' ? 'fail' : 'pass', 'message' => $id === 'fail' ? 'Specific failure reason' : 'Works' );
+            $rows[] = array( 'id' => $id, 'group' => $definition[0], 'label' => $definition[1], 'status' => 'warning' === $id ? 'warning' : ( 'fail' === $id ? 'fail' : 'pass' ), 'message' => $id === 'fail' ? 'Specific failure reason' : 'Works' );
         }
         return array( 'rows' => $rows );
     }
@@ -103,12 +103,12 @@ test_check( isset( $GLOBALS['module_audit_hooks']['admin_post_tcs_module_audit_e
 $s = call_audit( 'system_check', 'start' );
 test_check( 'running' === $s['status'] && 'system_check' === $s['plugin'], 'Wrong plugin started' );
 $s = call_audit( 'system_check', 'step' );
-test_check( 'code' === $s['phase'] && 1 === $s['functional']['totals']['fail'], 'Native functional failures must appear' );
+test_check( 'code' === $s['phase'] && 1 === $s['functional']['totals']['fail'] && 1 === $s['functional']['totals']['warning'], 'Native functional failures must appear' );
 $s = call_audit( 'system_check', 'step' );
 $s = call_audit( 'system_check', 'step' );
 test_check( 'completed' === $s['status'] && 2 === $s['code']['warnings'], 'Native findings must appear as warnings' );
 $report = call_audit( 'system_check', 'report' );
-test_check( count( $report['functional_tests'] ) === 3, 'Excluded UAT still documented, not executed' );
+test_check( count( $report['functional_tests'] ) === 4, 'Excluded UAT still documented, not executed' );
 test_check( count( $report['code_findings']['warnings'] ) === 2, 'Detailed code findings preserved' );
 test_check( 'Specific failure reason' === $report['functional_tests'][2]['message'], 'Specific functional error present' );
 
