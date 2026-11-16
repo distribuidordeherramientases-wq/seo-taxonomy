@@ -1,3 +1,11 @@
+## [0.3.25] — 2026-11-16 — Primer pase de alta precisión en productos (#2752)
+
+- La auditoría normal de productos prioriza errores verificables: campos ausentes, categorías, conflictos técnicos y evidencias de identidad. Se dejan de emitir por defecto las señales heurísticas `duplicate_content_template_candidate`, `duplicate_title_candidate` y `product_description_alignment_weak` para productos.
+- El cálculo de huellas de descripción y las comparaciones de títulos de productos se conservan para una revisión profunda opcional mediante el filtro `taxocommerce_auditor_enable_deep_product_signals` (valor predeterminado: `false`). No se altera la lógica de categorías, páginas, entradas ni FAQ.
+- Nueva regla `product_tag_numeric_conflict`: una etiqueta que representa exclusivamente valor y unidad puede generar una incidencia cuando **título y descripción** confirman un valor técnico único y distinto. No se modifican términos de WooCommerce.
+- La ausencia de coincidencia verbal no prueba un error semántico; el desplazamiento de textos entre familias sigue requiriendo una segunda comprobación con evidencia adicional, sin inventar errores para alcanzar cobertura.
+- Añadidas pruebas de regresión para etiquetas numéricas coincidentes, contradictorias o desconocidas, etiquetas generales válidas y conservación del modo profundo. Informe JSON, ejecución por lotes, velocidades y funcionalidades existentes preservadas.
+
 ## [0.3.24] — 2026-11-16 — Etiquetas de clasificación WooCommerce sin falsos positivos (#2746)
 
 - Retirada exclusivamente la heurística `product_tag_identity_drift`: las etiquetas `product_tag` clasifican productos y no necesitan aparecer literalmente en título, extracto, descripción, atributos o categoría.
