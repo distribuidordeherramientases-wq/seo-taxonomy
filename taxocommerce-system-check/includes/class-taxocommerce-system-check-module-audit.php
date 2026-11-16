@@ -307,7 +307,9 @@ final class TaxoCommerce_System_Check_Module_Audit {
             'functional' => array(
                 'status' => 'functional' === $state['phase'] ? 'running' : ( $state['functional_class'] ? ( $totals['fail'] ? 'fail' : 'checked' ) : 'basic_only' ),
                 'done' => count( $state['functional_rows'] ),
-                'total' => count( $state['cases'] ) + ( $state['functional_class'] ? count( array_filter( $state['functional_rows'], static function ( $item ) { return 'Safety' === ( $item['group'] ?? '' ); } ) ) : 2 ),
+                'total' => 'full_suite' === $state['functional_mode'] && 'functional' !== $state['phase']
+                    ? count( $state['functional_rows'] )
+                    : count( $state['cases'] ) + ( $state['functional_class'] ? count( array_filter( $state['functional_rows'], static function ( $item ) { return 'Safety' === ( $item['group'] ?? '' ); } ) ) : 2 ),
                 'totals' => $totals,
             ),
             'code' => array(
