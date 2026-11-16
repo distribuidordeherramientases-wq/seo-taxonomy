@@ -4,7 +4,7 @@ Tags: woocommerce, audit, seo, content, quality
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.23
+Stable tag: 0.3.24
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,7 +21,7 @@ Audit WordPress and WooCommerce content quality, structure, duplicate risks and 
 
 TaxoCommerce Auditor provides independent read-only content reviews across five scopes:
 
-* Products: descriptions, titles, SKUs, categories, attributes, vocabulary and possible duplicate content.
+* Products: descriptions, titles, SKUs, categories, attributes, vocabulary and possible duplicate content. WooCommerce product tags are classification terms; their absence from literal product copy is not flagged as an error.
 * Product categories and SEO architecture: taxonomy completeness, native relationships and evidence-based restructuring candidates.
 * Posts: titles, slugs, content patterns and potential overlap with landing pages.
 * Pages and landings: content structure, WordPress-native SEO roles, hierarchy and potentially overlapping pages.
