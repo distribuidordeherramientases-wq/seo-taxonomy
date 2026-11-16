@@ -18,6 +18,9 @@ final class TaxoCommerce_System_Check_Module_Audit {
     public static function boot() {
         add_action( 'wp_ajax_' . self::ACTION, array( __CLASS__, 'ajax' ) );
         add_action( 'admin_post_' . self::EXPORT, array( __CLASS__, 'export' ) );
+        // Browser-driven checks are application jobs, never Action Scheduler jobs.
+        add_filter( 'taxocommerce_system_check_process_workers', array( __CLASS__, 'process_rows' ) );
+        add_filter( 'taxocommerce_system_check_stop_worker', array( __CLASS__, 'process_stop' ), 10, 2 );
     }
 
     private static function key( $id ) {
@@ -27,6 +30,74 @@ final class TaxoCommerce_System_Check_Module_Audit {
     private static function state( $id ) {
         $value = get_transient( self::key( $id ) );
         return is_array( $value ) && isset( $value['module'], $value['status'] ) && $id === $value['module'] ? $value : false;
+    }
+
+    private static function recent_key() {
+        return 'tcs_module_audit_recent_' . get_current_blog_id() . '_' . get_current_user_id();
+    }
+
+    /** A bounded execution trail; no credentials, request arguments or PHP paths. */
+    private static function event( &$state, $action, $message = '' ) {
+        $state['events'] = isset( $state['events'] ) && is_array( $state['events'] ) ? $state['events'] : array();
+        $state['events'][] = array(
+            'at' => gmdate( 'c' ),
+            'action' => sanitize_key( (string) $action ),
+            'phase' => sanitize_key( (string) ( $state['phase'] ?? '' ) ),
+            'message' => sanitize_text_field( (string) $message ),
+            'functional_done' => count( $state['functional_rows'] ?? array() ),
+            'code_done' => absint( $state['code_cursor'] ?? 0 ),
+        );
+        $state['events'] = array_slice( $state['events'], -60 );
+    }
+
+    /** Read-only snapshot of the current administrator's check jobs. */
+    public static function process_rows( $rows ) {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return $rows;
+        }
+        foreach ( taxocommerce_system_check_registered_modules() as $id => $module ) {
+            $state = self::state( $id );
+            if ( ! $state ) {
+                continue;
+            }
+            $status = (string) $state['status'];
+            if ( 'running' === $status ) {
+                $status = time() - absint( $state['heartbeat'] ?? 0 ) > 30 ? 'waiting' : 'running';
+            }
+            $rows[] = array(
+                'id' => 'audit:' . $id,
+                'label' => sprintf( __( 'Plugin check: %s', 'taxocommerce-system-check' ), (string) ( $module['name'] ?? $id ) ),
+                'status' => $status,
+                'detail' => sprintf(
+                    __( 'Browser-driven check, not PHP background execution; function tests: %1$d, code files: %2$d/%3$d.', 'taxocommerce-system-check' ),
+                    count( $state['functional_rows'] ?? array() ),
+                    absint( $state['code_cursor'] ?? 0 ),
+                    count( $state['code_files'] ?? array() )
+                ),
+                'can_stop' => 'running' === ( $state['status'] ?? '' ),
+            );
+        }
+        return $rows;
+    }
+
+    /** Cooperatively pause only the signed-in administrator's own report. */
+    public static function process_stop( $stopped, $id ) {
+        if ( $stopped || ! current_user_can( 'manage_options' ) || ! is_string( $id )
+            || ! preg_match( '/^audit:([a-z0-9_-]+)$/', $id, $match ) ) {
+            return $stopped;
+        }
+        $module = $match[1];
+        if ( ! self::module( $module ) ) {
+            return false;
+        }
+        $state = self::state( $module );
+        if ( ! $state || 'running' !== $state['status'] ) {
+            return false;
+        }
+        $state['status'] = 'paused';
+        self::event( $state, 'stop', __( 'Paused from Processes.', 'taxocommerce-system-check' ) );
+        set_transient( self::key( $module ), $state, self::TTL );
+        return true;
     }
 
     /** Core is the source of active modules, not a duplicated plugin list. */
@@ -156,11 +227,17 @@ final class TaxoCommerce_System_Check_Module_Audit {
             'cases' => $cases, 'functional_cursor' => 0, 'functional_rows' => $excluded,
             'code_class' => $code_class, 'code_cursor' => 0, 'code_files' => $files,
             'code_results' => array(), 'inventory_truncated' => count( $files ) >= 250,
+            'run_id' => wp_generate_uuid4(), 'heartbeat' => time(), 'events' => array(),
             'note' => $functional_class ? '' : __( 'Only basic availability checks are supported by this plugin.', 'taxocommerce-system-check' ),
         );
     }
 
     private static function append_rows( &$state, $report ) {
+        // Some native Autocheck implementations (including Billing and Suppliers)
+        // return a list of rows directly rather than a report envelope.
+        if ( is_array( $report ) && isset( $report[0] ) && is_array( $report[0] ) ) {
+            $report = array( 'rows' => $report );
+        }
         if ( ! is_array( $report ) || ! isset( $report['rows'] ) || ! is_array( $report['rows'] ) ) {
             $state['functional_rows'][] = array( 'id' => 'invalid_report', 'group' => '', 'label' => 'Autocheck', 'status' => 'fail', 'message' => __( 'The native test returned an invalid report.', 'taxocommerce-system-check' ) );
             return;
@@ -262,6 +339,8 @@ final class TaxoCommerce_System_Check_Module_Audit {
             }
         }
         $state['updated_at'] = gmdate( 'c' );
+        $state['heartbeat'] = time();
+        self::event( $state, 'step', (string) $state['phase'] );
         return $state;
     }
 
@@ -330,6 +409,7 @@ final class TaxoCommerce_System_Check_Module_Audit {
         return array(
             'schema' => 2, 'plugin' => $state['module'], 'name' => $state['name'],
             'version' => $state['version'], 'executed_at' => $state['updated_at'],
+            'execution_log' => $state['events'] ?? array(),
             'summary' => self::summary( $state ), 'functional_tests' => $state['functional_rows'],
             'code_findings' => self::code_entries( $state ),
             'limitations' => array(
