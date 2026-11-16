@@ -352,7 +352,11 @@ final class TaxoCommerce_System_Check_Module_Audit {
         $state = self::state( $id );
         if ( 'start' === $op ) {
             $value = isset( $_POST['speed'] ) && is_scalar( $_POST['speed'] ) ? absint( wp_unslash( $_POST['speed'] ) ) : 3;
-            $state = self::begin( $id, isset( self::speeds()[ $value ] ) ? $value : 3 );
+            try {
+                $state = self::begin( $id, isset( self::speeds()[ $value ] ) ? $value : 3 );
+            } catch ( Throwable $error ) {
+                wp_send_json_error( array( 'message' => __( 'The active plugin directory could not be verified.', 'taxocommerce-system-check' ) ), 503 );
+            }
             if ( is_wp_error( $state ) ) {
                 wp_send_json_error( array( 'message' => $state->get_error_message() ), 400 );
             }
