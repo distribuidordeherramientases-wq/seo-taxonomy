@@ -66,9 +66,11 @@ final class TaxoCommerce_System_Check_Module_Audit {
             }
             $rows[] = array(
                 'id' => 'audit:' . $id,
+                // translators: %s: name of the active WordPress plugin being checked.
                 'label' => sprintf( __( 'Plugin check: %s', 'taxocommerce-system-check' ), (string) ( $module['name'] ?? $id ) ),
                 'status' => $status,
                 'detail' => sprintf(
+                    // translators: %1$d: functional tests, %2$d: files checked, %3$d: total plugin PHP files.
                     __( 'Browser-driven check, not PHP background execution; function tests: %1$d, code files: %2$d/%3$d.', 'taxocommerce-system-check' ),
                     count( $state['functional_rows'] ?? array() ),
                     absint( $state['code_cursor'] ?? 0 ),
