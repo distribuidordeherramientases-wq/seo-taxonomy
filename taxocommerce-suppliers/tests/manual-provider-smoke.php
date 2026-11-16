@@ -12,6 +12,12 @@ if ( ! function_exists( 'sanitize_text_field' ) ) {
 	}
 }
 
+if ( ! function_exists( 'absint' ) ) {
+	function absint( $value ) {
+		return abs( (int) $value );
+	}
+}
+
 final class TCSUP_Manual_Provider_Test_DB {
 	public $prefix = 'wp_';
 	public $catalogue = array( 'Imported Supplier' => true );
