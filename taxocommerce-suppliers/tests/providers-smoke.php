@@ -22,8 +22,8 @@ tcsup_assert( false !== strpos( $profiles, 'COALESCE(i.productos,0) AS productos
 tcsup_assert( false !== strpos( $profiles, 'public static function supplier_in_directory( $name )' ), 'manual name resolution is independent of CSV catalogue' );
 tcsup_assert( false !== strpos( $profiles, "name=\"new_supplier\" value=\"1\"" ), 'explicit manual form opt-in' );
 tcsup_assert( false !== strpos( $profiles, 'Add supplier manually' ), 'manual create action is visible' );
-tcsup_assert( false !== strpos( $profiles, "if ( '' === $supplier || $length > 190 )" ), 'validate new supplier name length before writing' );
-tcsup_assert( false !== strpos( $profiles, "self::supplier_in_directory( $supplier )" ), 'reject duplicate manual and imported names' );
+tcsup_assert( false !== strpos( $profiles, "if ( '' === \$supplier || \$length > 190 )" ), 'validate new supplier name length before writing' );
+tcsup_assert( false !== strpos( $profiles, "self::supplier_in_directory( \$supplier )" ), 'reject duplicate manual and imported names' );
 tcsup_assert( false !== strpos( $profiles, "check_admin_referer( 'tcsup_profile_save' )" ), 'profile update verifies nonce before reading payload' );
 tcsup_assert( false !== strpos( $profiles, "check_admin_referer( 'tcsup_profile_delete' )" ), 'profile deletion verifies nonce before reading payload' );
 tcsup_assert( false === strpos( $profiles, "private static function posted_supplier()" ), 'no unverified request in shared supplier helper' );
