@@ -44,6 +44,7 @@ final class TCSUP_Manual_Provider_Test_DB {
 	}
 }
 
+require_once dirname( __DIR__ ) . '/includes/class-tcsup-schema.php';
 require_once dirname( __DIR__ ) . '/includes/class-tcsup-profiles.php';
 global $wpdb;
 $wpdb = new TCSUP_Manual_Provider_Test_DB();
