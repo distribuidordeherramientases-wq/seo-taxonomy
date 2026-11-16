@@ -2,7 +2,7 @@
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce System Check 0.2.41\n"
+"Project-Id-Version: TaxoCommerce System Check 0.2.42\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/taxocommerce-system-check\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2069,4 +2069,31 @@ msgid "Acciones"
 msgstr ""
 
 msgid "Native functional checks are used when available. Basic checks never imply a full integration check; local source reviews are not official WordPress Plugin Check."
+msgstr ""
+
+msgid "Plugin check: %s"
+msgstr ""
+
+msgid "Browser-driven check, not PHP background execution; function tests: %1$d, code files: %2$d/%3$d."
+msgstr ""
+
+msgid "Paused from Processes."
+msgstr ""
+
+msgid "Plugin validation started."
+msgstr ""
+
+msgid "Stopped by administrator; active PHP requests cannot be interrupted."
+msgstr ""
+
+msgid "Validation resumed in browser."
+msgstr ""
+
+msgid "Execution log"
+msgstr ""
+
+msgid "The server returned an invalid JSON response. Check PHP notices or the server error log."
+msgstr ""
+
+msgid "The browser is not processing batches; press Resume to continue."
 msgstr ""

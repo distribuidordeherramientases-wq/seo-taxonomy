@@ -18,6 +18,9 @@ final class TaxoCommerce_System_Check_Module_Audit {
     public static function boot() {
         add_action( 'wp_ajax_' . self::ACTION, array( __CLASS__, 'ajax' ) );
         add_action( 'admin_post_' . self::EXPORT, array( __CLASS__, 'export' ) );
+        // Browser-driven checks are application jobs, never Action Scheduler jobs.
+        add_filter( 'taxocommerce_system_check_process_workers', array( __CLASS__, 'process_rows' ) );
+        add_filter( 'taxocommerce_system_check_stop_worker', array( __CLASS__, 'process_stop' ), 10, 2 );
     }
 
     private static function key( $id ) {
@@ -27,6 +30,76 @@ final class TaxoCommerce_System_Check_Module_Audit {
     private static function state( $id ) {
         $value = get_transient( self::key( $id ) );
         return is_array( $value ) && isset( $value['module'], $value['status'] ) && $id === $value['module'] ? $value : false;
+    }
+
+    private static function recent_key() {
+        return 'tcs_module_audit_recent_' . get_current_blog_id() . '_' . get_current_user_id();
+    }
+
+    /** A bounded execution trail; no credentials, request arguments or PHP paths. */
+    private static function event( &$state, $action, $message = '' ) {
+        $state['events'] = isset( $state['events'] ) && is_array( $state['events'] ) ? $state['events'] : array();
+        $state['events'][] = array(
+            'at' => gmdate( 'c' ),
+            'action' => sanitize_key( (string) $action ),
+            'phase' => sanitize_key( (string) ( $state['phase'] ?? '' ) ),
+            'message' => sanitize_text_field( (string) $message ),
+            'functional_done' => count( $state['functional_rows'] ?? array() ),
+            'code_done' => absint( $state['code_cursor'] ?? 0 ),
+        );
+        $state['events'] = array_slice( $state['events'], -60 );
+    }
+
+    /** Read-only snapshot of the current administrator's check jobs. */
+    public static function process_rows( $rows ) {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return $rows;
+        }
+        foreach ( taxocommerce_system_check_registered_modules() as $id => $module ) {
+            $state = self::state( $id );
+            if ( ! $state ) {
+                continue;
+            }
+            $status = (string) $state['status'];
+            if ( 'running' === $status ) {
+                $status = time() - absint( $state['heartbeat'] ?? 0 ) > 30 ? 'waiting' : 'running';
+            }
+            $rows[] = array(
+                'id' => 'audit:' . $id,
+                // translators: %s: name of the active WordPress plugin being checked.
+                'label' => sprintf( __( 'Plugin check: %s', 'taxocommerce-system-check' ), (string) ( $module['name'] ?? $id ) ),
+                'status' => $status,
+                'detail' => sprintf(
+                    // translators: %1$d: functional tests, %2$d: files checked, %3$d: total plugin PHP files.
+                    __( 'Browser-driven check, not PHP background execution; function tests: %1$d, code files: %2$d/%3$d.', 'taxocommerce-system-check' ),
+                    count( $state['functional_rows'] ?? array() ),
+                    absint( $state['code_cursor'] ?? 0 ),
+                    count( $state['code_files'] ?? array() )
+                ),
+                'can_stop' => 'running' === ( $state['status'] ?? '' ),
+            );
+        }
+        return $rows;
+    }
+
+    /** Cooperatively pause only the signed-in administrator's own report. */
+    public static function process_stop( $stopped, $id ) {
+        if ( $stopped || ! current_user_can( 'manage_options' ) || ! is_string( $id )
+            || ! preg_match( '/^audit:([a-z0-9_-]+)$/', $id, $match ) ) {
+            return $stopped;
+        }
+        $module = $match[1];
+        if ( ! self::module( $module ) ) {
+            return false;
+        }
+        $state = self::state( $module );
+        if ( ! $state || 'running' !== $state['status'] ) {
+            return false;
+        }
+        $state['status'] = 'paused';
+        self::event( $state, 'stop', __( 'Paused from Processes.', 'taxocommerce-system-check' ) );
+        set_transient( self::key( $module ), $state, self::TTL );
+        return true;
     }
 
     /** Core is the source of active modules, not a duplicated plugin list. */
@@ -156,11 +229,17 @@ final class TaxoCommerce_System_Check_Module_Audit {
             'cases' => $cases, 'functional_cursor' => 0, 'functional_rows' => $excluded,
             'code_class' => $code_class, 'code_cursor' => 0, 'code_files' => $files,
             'code_results' => array(), 'inventory_truncated' => count( $files ) >= 250,
+            'run_id' => wp_generate_uuid4(), 'heartbeat' => time(), 'events' => array(),
             'note' => $functional_class ? '' : __( 'Only basic availability checks are supported by this plugin.', 'taxocommerce-system-check' ),
         );
     }
 
     private static function append_rows( &$state, $report ) {
+        // Some native Autocheck implementations (including Billing and Suppliers)
+        // return a list of rows directly rather than a report envelope.
+        if ( is_array( $report ) && isset( $report[0] ) && is_array( $report[0] ) ) {
+            $report = array( 'rows' => $report );
+        }
         if ( ! is_array( $report ) || ! isset( $report['rows'] ) || ! is_array( $report['rows'] ) ) {
             $state['functional_rows'][] = array( 'id' => 'invalid_report', 'group' => '', 'label' => 'Autocheck', 'status' => 'fail', 'message' => __( 'The native test returned an invalid report.', 'taxocommerce-system-check' ) );
             return;
@@ -262,6 +341,8 @@ final class TaxoCommerce_System_Check_Module_Audit {
             }
         }
         $state['updated_at'] = gmdate( 'c' );
+        $state['heartbeat'] = time();
+        self::event( $state, 'step', (string) $state['phase'] );
         return $state;
     }
 
@@ -330,6 +411,7 @@ final class TaxoCommerce_System_Check_Module_Audit {
         return array(
             'schema' => 2, 'plugin' => $state['module'], 'name' => $state['name'],
             'version' => $state['version'], 'executed_at' => $state['updated_at'],
+            'execution_log' => $state['events'] ?? array(),
             'summary' => self::summary( $state ), 'functional_tests' => $state['functional_rows'],
             'code_findings' => self::code_entries( $state ),
             'limitations' => array(
@@ -362,16 +444,32 @@ final class TaxoCommerce_System_Check_Module_Audit {
             if ( is_wp_error( $state ) ) {
                 wp_send_json_error( array( 'message' => $state->get_error_message() ), 400 );
             }
+            self::event( $state, 'start', __( 'Plugin validation started.', 'taxocommerce-system-check' ) );
+            set_transient( self::recent_key(), $id, self::TTL );
         } elseif ( $state && 'stop' === $op && 'running' === $state['status'] ) {
             $state['status'] = 'paused';
-        } elseif ( $state && 'resume' === $op && 'paused' === $state['status'] ) {
+            self::event( $state, 'stop', __( 'Stopped by administrator; active PHP requests cannot be interrupted.', 'taxocommerce-system-check' ) );
+        } elseif ( $state && 'resume' === $op && in_array( $state['status'], array( 'paused', 'running' ), true ) ) {
             $state['status'] = 'running';
+            unset( $state['error'] );
+            $state['heartbeat'] = time();
+            self::event( $state, 'resume', __( 'Validation resumed in browser.', 'taxocommerce-system-check' ) );
         } elseif ( $state && 'step' === $op && 'running' === $state['status'] ) {
             try {
                 $state = self::advance( $state );
             } catch ( Throwable $error ) {
                 $state['status'] = 'paused';
                 $state['error'] = __( 'The check was paused after an execution error.', 'taxocommerce-system-check' );
+                self::event( $state, 'error', get_class( $error ) );
+            }
+            // A stop or a fresh start may have arrived during the previous step.
+            // Never resurrect a paused job or overwrite a new generation.
+            $latest = self::state( $id );
+            if ( $latest && ( $latest['run_id'] ?? '' ) !== ( $state['run_id'] ?? '' ) ) {
+                $state = $latest;
+            } elseif ( $latest && 'paused' === ( $latest['status'] ?? '' ) ) {
+                $state['status'] = 'paused';
+                $state['events'] = array_slice( array_merge( $state['events'] ?? array(), array_slice( $latest['events'] ?? array(), -1 ) ), -60 );
             }
         }
         if ( $state ) {
@@ -410,6 +508,11 @@ final class TaxoCommerce_System_Check_Module_Audit {
         exit;
     }
 
+    private static function recent() {
+        $id = get_transient( self::recent_key() );
+        return is_string( $id ) && self::module( $id ) ? self::summary( self::state( $id ) ) : false;
+    }
+
     public static function row( $id ) {
         $state = self::state( $id );
         $summary = self::summary( $state );
@@ -429,7 +532,10 @@ final class TaxoCommerce_System_Check_Module_Audit {
         echo '<td data-tcs-module-functional="' . esc_attr( $id ) . '">' . esc_html( $function_status ) . '</td>';
         echo '<td data-tcs-module-code="' . esc_attr( $id ) . '">' . esc_html( $code_status ) . '</td>';
         echo '<td><button type="button" class="button button-small" data-tcs-module-start="' . esc_attr( $id ) . '">' . esc_html__( 'Check plugin', 'taxocommerce-system-check' ) . '</button> ';
-        echo '<button type="button" class="button button-small" data-tcs-module-report="' . esc_attr( $id ) . '">' . esc_html__( 'View results', 'taxocommerce-system-check' ) . '</button></td>';
+        echo '<button type="button" class="button button-small" data-tcs-module-report="' . esc_attr( $id ) . '">' . esc_html__( 'View results', 'taxocommerce-system-check' ) . '</button> ';
+        $can_toggle = $state && in_array( $state['status'], array( 'running', 'paused' ), true );
+        $button_label = $state && 'running' === $state['status'] ? __( 'Stop', 'taxocommerce-system-check' ) : __( 'Resume', 'taxocommerce-system-check' );
+        echo '<button type="button" class="button button-small" data-tcs-module-toggle="' . esc_attr( $id ) . '"' . ( $can_toggle ? '' : ' disabled="disabled"' ) . '>' . esc_html( $button_label ) . '</button></td>';
     }
 
     public static function render() {
@@ -449,6 +555,7 @@ final class TaxoCommerce_System_Check_Module_Audit {
         echo '</section>';
         wp_add_inline_script( 'taxocommerce-system-check-module-audit', 'window.tcsModuleAudit=' . wp_json_encode( array(
             'url' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( self::ACTION ),
+            'initial' => self::recent(),
             'export' => wp_nonce_url( admin_url( 'admin-post.php?action=' . self::EXPORT ), self::EXPORT ),
             'i18n' => array(
                 'request_failed' => __( 'Unable to execute the check.', 'taxocommerce-system-check' ),
@@ -477,6 +584,11 @@ final class TaxoCommerce_System_Check_Module_Audit {
                 'preparing' => __( 'Preparing check for ', 'taxocommerce-system-check' ),
                 'functions' => __( 'Functions', 'taxocommerce-system-check' ),
                 'code' => __( 'Code', 'taxocommerce-system-check' ),
+                'execution_log' => __( 'Execution log', 'taxocommerce-system-check' ),
+                'invalid_json' => __( 'The server returned an invalid JSON response. Check PHP notices or the server error log.', 'taxocommerce-system-check' ),
+                'resume_hint' => __( 'The browser is not processing batches; press Resume to continue.', 'taxocommerce-system-check' ),
+                'stop' => __( 'Stop', 'taxocommerce-system-check' ),
+                'resume' => __( 'Resume', 'taxocommerce-system-check' ),
             ),
         ) ) . ';', 'before' );
     }

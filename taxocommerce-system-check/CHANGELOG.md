@@ -1,3 +1,12 @@
+## [0.2.42] — 2026-11-16 — Estado y logs de validación individual recuperables (#2748)
+
+- El chequeo de Billing/Facturación y otros autochecks que devuelven directamente una lista de filas se normaliza correctamente; no se clasifican como informe inválido.
+- Los chequeos por plugin generan historial de ejecución acotado (inicio, lotes, errores, parada y reanudación), consultable en «Ver resultados» y en el JSON propio. Los fallos funcionales y los avisos de código conservan su detalle.
+- Mejoras para móvil: avance visible en la fila del plugin, botón «Parar/Reanudar» en la misma fila y mensaje comprensible cuando la respuesta AJAX no es JSON válido (por avisos PHP o HTML del servidor).
+- Se recupera la última selección tras recargar la página. La parada es cooperativa y un lote completado no reactiva un proceso detenido; una nueva ejecución no puede ser sobrescrita por la respuesta de un lote antiguo.
+- Los chequeos del usuario se muestran en System Check → Procesos como tareas AJAX gestionadas por el navegador, identificadas expresamente como tales y sin confundirse con procesos PHP activos ni Action Scheduler. Desde Procesos también se puede solicitar la parada.
+- No se cambia el motor de autocheck de Core ni otros plugins, no se ejecutan operaciones reales, no se modifica el monolítico ni se toca producción. Pruebas de regresión y compatibilidad WordPress/Plugin Check.
+
 ## [0.2.41] — 2026-11-16 — Chequeo individual por plugin y detalle de incidencias (#2742)
 
 - La pestaña Plugin Validation permite ejecutar el autocheck del plugin seleccionado en su propia fila, con resultados independientes por administrador, sitio y plugin.

@@ -14,6 +14,7 @@ $GLOBALS['module_audit_nonce'] = true;
 
 function test_check( $ok, $message ) { if ( ! $ok ) { throw new RuntimeException( $message ); } }
 function add_action( $name, $callback ) { $GLOBALS['module_audit_hooks'][ $name ] = $callback; }
+function add_filter( $name, $callback ) { $GLOBALS['module_audit_filters'][ $name ] = $callback; }
 function get_current_blog_id() { return 1; }
 function get_current_user_id() { return 2; }
 function get_transient( $key ) { return $GLOBALS['module_audit_storage'][ $key ] ?? false; }
@@ -23,6 +24,8 @@ function check_ajax_referer( $action, $field ) { if ( ! $GLOBALS['module_audit_n
 function sanitize_key( $s ) { return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $s ) ); }
 function wp_unslash( $s ) { return $s; }
 function absint( $s ) { return abs( (int) $s ); }
+function sanitize_text_field( $s ) { return strip_tags( (string) $s ); }
+function wp_generate_uuid4() { static $seq = 0; return '00000000-0000-4000-8000-' . str_pad( (string) ++$seq, 12, '0', STR_PAD_LEFT ); }
 function is_wp_error( $v ) { return $v instanceof WP_Error; }
 function __( $s, $d = '' ) { return $s; }
 function esc_html__( $s, $d = '' ) { return htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' ); }
@@ -99,9 +102,26 @@ function call_audit( $module, $op ) {
 TaxoCommerce_System_Check_Module_Audit::boot();
 test_check( isset( $GLOBALS['module_audit_hooks']['wp_ajax_tcs_module_audit'] ), 'Missing AJAX handler' );
 test_check( isset( $GLOBALS['module_audit_hooks']['admin_post_tcs_module_audit_export'] ), 'Missing JSON export handler' );
+test_check( isset( $GLOBALS['module_audit_filters']['taxocommerce_system_check_process_workers'] ), 'Process monitor not connected' );
+test_check( isset( $GLOBALS['module_audit_filters']['taxocommerce_system_check_stop_worker'] ), 'Cooperative stop not connected' );
+// Billing returns a list of rows, not an envelope. Do not show an invalid report.
+$append = new ReflectionMethod( 'TaxoCommerce_System_Check_Module_Audit', 'append_rows' );
+$append->setAccessible( true );
+$fixture = array( 'functional_rows' => array() );
+$billing_rows = array( array( 'group' => 'Billing', 'name' => 'WooCommerce API', 'status' => 'warning', 'detail' => 'No order API' ) );
+$append->invokeArgs( null, array( &$fixture, $billing_rows ) );
+test_check( count( $fixture['functional_rows'] ) === 1 && 'warning' === $fixture['functional_rows'][0]['status'] && 'WooCommerce API' === $fixture['functional_rows'][0]['label'], 'Billing-style direct row list accepted with real warning' );
 
 $s = call_audit( 'system_check', 'start' );
 test_check( 'running' === $s['status'] && 'system_check' === $s['plugin'], 'Wrong plugin started' );
+test_check( 'system_check' === get_transient( 'tcs_module_audit_recent_1_2' ), 'Selection persists after navigation' );
+$processes = TaxoCommerce_System_Check_Module_Audit::process_rows( array() );
+test_check( 1 === count( $processes ) && 'audit:system_check' === $processes[0]['id'] && $processes[0]['can_stop'], 'Check appears in Processes for its owner' );
+test_check( TaxoCommerce_System_Check_Module_Audit::process_stop( false, 'audit:system_check' ), 'Stop from Processes acknowledged' );
+$s = call_audit( 'system_check', 'status' );
+test_check( 'paused' === $s['status'], 'Process stop persisted as paused' );
+$s = call_audit( 'system_check', 'resume' );
+test_check( 'running' === $s['status'], 'Resume after reload works' );
 $s = call_audit( 'system_check', 'step' );
 test_check( 'code' === $s['phase'] && 1 === $s['functional']['totals']['fail'] && 1 === $s['functional']['totals']['warning'], 'Native functional failures must appear' );
 $s = call_audit( 'system_check', 'step' );
@@ -111,6 +131,8 @@ $report = call_audit( 'system_check', 'report' );
 test_check( count( $report['functional_tests'] ) === 4, 'Excluded UAT still documented, not executed' );
 test_check( count( $report['code_findings']['warnings'] ) === 2, 'Detailed code findings preserved' );
 test_check( 'Specific failure reason' === $report['functional_tests'][2]['message'], 'Specific functional error present' );
+test_check( count( $report['execution_log'] ) >= 5, 'Start/stop/resume and batch history included in report' );
+test_check( 1 === count( TaxoCommerce_System_Check_Module_Audit::process_rows( array() ) ), 'Completed check remains visible for audit' );
 
 $other = call_audit( 'core', 'status' );
 test_check( 'not_run' === $other['status'], 'Different plugin must have independent report state' );
@@ -129,4 +151,5 @@ ob_start();
 TaxoCommerce_System_Check_Module_Audit::row( 'system_check' );
 $html = ob_get_clean();
 test_check( false !== strpos( $html, 'data-tcs-module-start="system_check"' ), 'Specific plugin row button missing' );
+test_check( false !== strpos( $html, 'data-tcs-module-toggle="system_check"' ), 'Per-row Stop/Resume missing' );
 echo "module-audit-smoke: PASS\n";

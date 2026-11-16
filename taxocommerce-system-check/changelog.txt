@@ -1,3 +1,8 @@
+= 0.2.42 (2026-11-16) =
+* Fix per-plugin functional report normalization for Billing and other Autotests that return rows directly.
+* Show per-plugin batch progress on each row, persist selected jobs across page reloads, support per-row Stop/Resume and show explicit AJAX invalid-JSON errors.
+* Add bounded execution events to detailed reports/JSON and expose browser-driven validation jobs in Processes with a cooperative stop, without claiming to kill PHP requests. Issue #2748.
+
 = 0.2.41 (2026-11-16) =
 * Validate one active plugin at a time from its Plugin Validation row, with native read-only Autocheck adapters when available, bounded code inspection, per-test failures and file-level findings; JSON export, per-user isolation and safe stop/resume. Preserve previous Core pilot. Issue #2742.
 

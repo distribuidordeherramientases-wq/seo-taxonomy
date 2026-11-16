@@ -2253,3 +2253,30 @@ msgstr "Acciones"
 
 msgid "Native functional checks are used when available. Basic checks never imply a full integration check; local source reviews are not official WordPress Plugin Check."
 msgstr "Se utilizan chequeos funcionales nativos cuando están disponibles. Las comprobaciones básicas no equivalen a una integración completa; los avisos de código locales no son el Plugin Check oficial de WordPress."
+
+msgid "Plugin check: %s"
+msgstr "Chequeo de plugin: %s"
+
+msgid "Browser-driven check, not PHP background execution; function tests: %1$d, code files: %2$d/%3$d."
+msgstr "Chequeo gestionado por el navegador, no es un proceso PHP en segundo plano; pruebas funcionales: %1$d, archivos de código: %2$d/%3$d."
+
+msgid "Paused from Processes."
+msgstr "Pausado desde Procesos."
+
+msgid "Plugin validation started."
+msgstr "Validación del plugin iniciada."
+
+msgid "Stopped by administrator; active PHP requests cannot be interrupted."
+msgstr "Detenido por el administrador; una petición PHP activa no puede interrumpirse."
+
+msgid "Validation resumed in browser."
+msgstr "Validación reanudada en el navegador."
+
+msgid "Execution log"
+msgstr "Registro de ejecución"
+
+msgid "The server returned an invalid JSON response. Check PHP notices or the server error log."
+msgstr "El servidor ha devuelto una respuesta JSON no válida. Comprueba los avisos PHP o el registro de errores del servidor."
+
+msgid "The browser is not processing batches; press Resume to continue."
+msgstr "El navegador no está procesando lotes; pulsa Reanudar para continuar."
