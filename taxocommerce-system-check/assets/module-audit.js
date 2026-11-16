@@ -11,6 +11,136 @@
     var current = '';
     var token = 0;
     var timer = null;
+    // A batch is deliberately browser-driven: one plugin at a time, using
+    // precisely the same authenticated AJAX endpoint as the row controls.
+    var bulk = null;
+    var bulkStorageKey = 'tcs-module-bulk:' + String(config.site || 0) + ':' + String(config.user || 0);
+    function persistBulk() {
+        try {
+            if (bulk) { window.sessionStorage.setItem(bulkStorageKey, JSON.stringify(bulk)); }
+            else { window.sessionStorage.removeItem(bulkStorageKey); }
+        } catch (error) { /* Storage may be blocked; the current tab still works. */ }
+    }
+    function restoreBulk() {
+        var saved;
+        try { saved = JSON.parse(window.sessionStorage.getItem(bulkStorageKey) || 'null'); }
+        catch (error) { return; }
+        if (!saved || !Array.isArray(saved.ids) || !saved.ids.length) { return; }
+        var active = Array.prototype.map.call(document.querySelectorAll('[data-tcs-module-start]'), function (button) {
+            return button.getAttribute('data-tcs-module-start');
+        });
+        if (saved.ids.length !== active.length || saved.ids.some(function (id, i) { return id !== active[i]; }) ||
+            !Number.isInteger(saved.index) || saved.index < 0 || saved.index >= saved.ids.length) {
+            try { window.sessionStorage.removeItem(bulkStorageKey); } catch (error) { /* Storage unavailable. */ }
+            return;
+        }
+        bulk = { ids: saved.ids, index: saved.index, paused: true,
+            findings: Number(saved.findings) || 0, errors: Number(saved.errors) || 0 };
+        current = bulk.ids[bulk.index];
+        persistBulk();
+        bulkMessage();
+        progress.textContent = t('resume_hint', 'The browser is not processing batches; press Resume to continue.');
+    }
+    function bulkMessage() {
+        var marker = document.getElementById('tcs-module-bulk-progress');
+        if (!marker || !bulk) { return; }
+        var done = bulk.index;
+        var count = bulk.ids.length;
+        marker.textContent = t('all_progress', 'Plugins checked') + ': ' + done + '/' + count +
+            ' · ' + t('all_failures', 'Checks with findings') + ': ' + bulk.findings +
+            ' · ' + t('all_errors', 'Execution errors') + ': ' + bulk.errors +
+            (bulk.paused ? ' · ' + t('all_paused', 'Paused') : '');
+        var allButton = document.querySelector('[data-tcs-module-all]');
+        if (allButton) { allButton.disabled = true; }
+        persistBulk();
+    }
+    function finishBulk() {
+        var marker = document.getElementById('tcs-module-bulk-progress');
+        var summary = bulk;
+        bulk = null;
+        persistBulk();
+        if (marker) {
+            marker.textContent = t('all_complete', 'All plugin checks finished') + ': ' +
+                summary.ids.length + '/' + summary.ids.length +
+                ' · ' + t('all_failures', 'Checks with findings') + ': ' + summary.findings +
+                ' · ' + t('all_errors', 'Execution errors') + ': ' + summary.errors;
+        }
+        var button = document.querySelector('[data-tcs-module-all]');
+        if (button) { button.disabled = false; }
+    }
+    function bulkFailure(error, mine) {
+        if (!bulk || mine !== token) { return; }
+        bulk.paused = true;
+        bulk.errors += 1;
+        var id = bulk.ids[bulk.index];
+        rowMessage(id, error.message);
+        progress.textContent = label(id, '') + ': ' + error.message + t('can_resume', ' · You can resume this check.');
+        bulkMessage();
+    }
+    function bulkStep(state, mine) {
+        if (!bulk || mine !== token || bulk.paused) { return; }
+        current = bulk.ids[bulk.index];
+        show(state);
+        if (state.status === 'completed') {
+            var functional = (state.functional || {}).totals || {};
+            var code = state.code || {};
+            if ((functional.fail || 0) || (functional.warning || 0) || (code.errors || 0) || (code.warnings || 0)) {
+                bulk.findings += 1;
+            }
+            bulk.index += 1;
+            bulkMessage();
+            bulkStart(mine);
+            return;
+        }
+        if (state.status !== 'running') {
+            bulk.paused = true;
+            progress.textContent = label(current, '') + ': ' + t('all_paused', 'Paused') + ' (' + state.status + ')';
+            bulkMessage();
+            return;
+        }
+        timer = window.setTimeout(function () {
+            if (!bulk || mine !== token || bulk.paused) { return; }
+            request(bulk.ids[bulk.index], 'step').then(function (updated) {
+                bulkStep(updated, mine);
+            }).catch(function (error) { bulkFailure(error, mine); });
+        }, Number(state.delay_ms) || 2500);
+    }
+    function bulkStart(mine) {
+        if (!bulk || mine !== token || bulk.paused) { return; }
+        if (bulk.index >= bulk.ids.length) { finishBulk(); return; }
+        current = bulk.ids[bulk.index];
+        result.hidden = true;
+        bulkMessage();
+        rowMessage(current, t('preparing', 'Preparing check for ') + current);
+        request(current, 'start').then(function (state) {
+            bulkStep(state, mine);
+        }).catch(function (error) { bulkFailure(error, mine); });
+    }
+    function bulkPause() {
+        if (!bulk || bulk.paused) { return; }
+        bulk.paused = true;
+        clearTimer();
+        bulkMessage();
+        // This changes only the cooperative state, not an active PHP request.
+        request(bulk.ids[bulk.index], 'stop').catch(function (error) {
+            rowMessage(bulk.ids[bulk.index], error.message);
+        });
+    }
+    function bulkResume() {
+        if (!bulk || !bulk.paused) { return; }
+        bulk.paused = false;
+        clearTimer();
+        var mine = token;
+        bulkMessage();
+        var id = bulk.ids[bulk.index];
+        request(id, 'status').then(function (state) {
+            if (!bulk || mine !== token || bulk.paused) { return null; }
+            if (state.status === 'completed') { return state; }
+            return request(id, state.status === 'not_run' ? 'start' : 'resume');
+        }).then(function (state) {
+            if (state) { bulkStep(state, mine); }
+        }).catch(function (error) { bulkFailure(error, mine); });
+    }
     function rowMessage(module, message) {
         var cell = document.querySelector('[data-tcs-module-functional="' + module + '"]');
         if (cell) { cell.textContent = message; }
@@ -167,10 +297,24 @@
         }, Number(state.delay_ms) || 2500);
     }
     document.addEventListener('click', function (event) {
+        var all = event.target.closest('[data-tcs-module-all]');
+        if (all) {
+            if (bulk) { return; }
+            var ids = Array.prototype.map.call(document.querySelectorAll('[data-tcs-module-start]'), function (button) {
+                return button.getAttribute('data-tcs-module-start');
+            }).filter(function (id) { return !!id; });
+            if (!ids.length) { return; }
+            clearTimer();
+            bulk = { ids: ids, index: 0, paused: false, findings: 0, errors: 0 };
+            bulkMessage();
+            bulkStart(token);
+            return;
+        }
         var start = event.target.closest('[data-tcs-module-start]');
         var report = event.target.closest('[data-tcs-module-report]');
         var toggle = event.target.closest('[data-tcs-module-toggle]');
         if (toggle) {
+            if (bulk) { return; }
             var module = toggle.getAttribute('data-tcs-module-toggle');
             current = module;
             clearTimer();
@@ -188,7 +332,7 @@
             return;
         }
         if (report) { view(report.getAttribute('data-tcs-module-report')); return; }
-        if (!start) { return; }
+        if (!start || bulk) { return; }
         current = start.getAttribute('data-tcs-module-start');
         clearTimer();
         result.hidden = true;
@@ -205,17 +349,24 @@
     });
     panel.addEventListener('click', function (event) {
         var control = event.target.closest('[data-tcs-module-op]');
-        if (!control || !current) { return; }
-        clearTimer();
+        if (!control) { return; }
         var op = control.getAttribute('data-tcs-module-op');
+        if (bulk) {
+            if (op === 'stop') { bulkPause(); }
+            if (op === 'resume') { bulkResume(); }
+            return;
+        }
+        if (!current) { return; }
+        clearTimer();
         var mine = token;
         request(current, op).then(function (state) {
             show(state);
             if (op === 'resume') { next(state, mine); }
         }).catch(function (error) { progress.textContent = error.message; });
     });
+    restoreBulk();
     // A previously started run must remain stoppable after navigation or reload.
-    if (config.initial && config.initial.plugin) {
+    if (!bulk && config.initial && config.initial.plugin) {
         current = config.initial.plugin;
         show(config.initial);
         if (config.initial.status === 'running') {

@@ -2280,3 +2280,24 @@ msgstr "El servidor ha devuelto una respuesta JSON no válida. Comprueba los avi
 
 msgid "The browser is not processing batches; press Resume to continue."
 msgstr "El navegador no está procesando lotes; pulsa Reanudar para continuar."
+
+msgid "Check all plugins"
+msgstr "Chequear todos los plugins"
+
+msgid "Plugins checked"
+msgstr "Plugins comprobados"
+
+msgid "Checks with findings"
+msgstr "Chequeos con incidencias"
+
+msgid "Execution errors"
+msgstr "Errores de ejecución"
+
+msgid "Paused"
+msgstr "En pausa"
+
+msgid "All plugin checks finished"
+msgstr "Finalizados los chequeos de todos los plugins"
+
+msgid "Check plugins individually or run all active TaxoCommerce modules sequentially. Each plugin keeps its own results, log and JSON report."
+msgstr "Comprueba los plugins por separado o ejecuta secuencialmente todos los módulos activos de TaxoCommerce. Cada plugin conserva sus resultados, su registro y su informe JSON."

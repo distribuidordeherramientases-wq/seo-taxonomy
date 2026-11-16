@@ -152,4 +152,11 @@ TaxoCommerce_System_Check_Module_Audit::row( 'system_check' );
 $html = ob_get_clean();
 test_check( false !== strpos( $html, 'data-tcs-module-start="system_check"' ), 'Specific plugin row button missing' );
 test_check( false !== strpos( $html, 'data-tcs-module-toggle="system_check"' ), 'Per-row Stop/Resume missing' );
+// Run-all is a separate browser-side orchestrator, never a second module inventory.
+ob_start();
+TaxoCommerce_System_Check_Module_Audit::render();
+$bulk_html = ob_get_clean();
+test_check( false !== strpos( $bulk_html, 'data-tcs-module-all' ), 'Run-all button missing beside CPU selector' );
+test_check( false !== strpos( $bulk_html, 'id="tcs-module-bulk-progress"' ), 'Aggregate progress marker missing' );
+test_check( false !== strpos( $GLOBALS['module_audit_scripts']['taxocommerce-system-check-module-audit'], 'Plugins checked' ), 'Aggregate progress translation missing' );
 echo "module-audit-smoke: PASS\n";

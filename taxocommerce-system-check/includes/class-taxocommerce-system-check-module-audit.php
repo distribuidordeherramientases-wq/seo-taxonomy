@@ -541,24 +541,32 @@ final class TaxoCommerce_System_Check_Module_Audit {
     public static function render() {
         echo '<section id="tcs-module-audit" class="postbox" style="padding:14px 18px;max-width:1100px">';
         echo '<h3>' . esc_html__( 'Individual plugin validation', 'taxocommerce-system-check' ) . '</h3>';
-        echo '<p>' . esc_html__( 'Select Check plugin in a row. Only that registered plugin is tested; detailed results and JSON are available without rerunning it.', 'taxocommerce-system-check' ) . '</p>';
+        echo '<p>' . esc_html__( 'Check plugins individually or run all active TaxoCommerce modules sequentially. Each plugin keeps its own results, log and JSON report.', 'taxocommerce-system-check' ) . '</p>';
         echo '<label for="tcs-module-speed">' . esc_html__( 'CPU usage', 'taxocommerce-system-check' ) . '</label> ';
         echo '<select id="tcs-module-speed">';
         foreach ( array( 1 => 'Very low', 2 => 'Low', 3 => 'Normal', 4 => 'High', 5 => 'Maximum' ) as $speed => $name ) {
             echo '<option value="' . esc_attr( (string) $speed ) . '"' . selected( 3, $speed, false ) . '>' . esc_html( $name ) . '</option>';
         }
         echo '</select> ';
+        echo '<button type="button" class="button button-primary" data-tcs-module-all>' . esc_html__( 'Check all plugins', 'taxocommerce-system-check' ) . '</button> ';
         echo '<button type="button" class="button" data-tcs-module-op="stop">' . esc_html__( 'Stop', 'taxocommerce-system-check' ) . '</button> ';
         echo '<button type="button" class="button" data-tcs-module-op="resume">' . esc_html__( 'Resume', 'taxocommerce-system-check' ) . '</button>';
+        echo '<p id="tcs-module-bulk-progress" role="status" aria-live="polite"></p>';
         echo '<p id="tcs-module-progress" role="status" aria-live="polite"></p>';
         echo '<section id="tcs-module-report" hidden aria-label="' . esc_attr__( 'Plugin validation results', 'taxocommerce-system-check' ) . '"></section>';
         echo '</section>';
         wp_add_inline_script( 'taxocommerce-system-check-module-audit', 'window.tcsModuleAudit=' . wp_json_encode( array(
             'url' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( self::ACTION ),
+            'site' => get_current_blog_id(), 'user' => get_current_user_id(),
             'initial' => self::recent(),
             'export' => wp_nonce_url( admin_url( 'admin-post.php?action=' . self::EXPORT ), self::EXPORT ),
             'i18n' => array(
                 'request_failed' => __( 'Unable to execute the check.', 'taxocommerce-system-check' ),
+                'all_progress' => __( 'Plugins checked', 'taxocommerce-system-check' ),
+                'all_failures' => __( 'Checks with findings', 'taxocommerce-system-check' ),
+                'all_errors' => __( 'Execution errors', 'taxocommerce-system-check' ),
+                'all_paused' => __( 'Paused', 'taxocommerce-system-check' ),
+                'all_complete' => __( 'All plugin checks finished', 'taxocommerce-system-check' ),
                 'failures' => __( 'failures', 'taxocommerce-system-check' ),
                 'skipped' => __( 'skipped', 'taxocommerce-system-check' ),
                 'errors' => __( 'errors', 'taxocommerce-system-check' ),

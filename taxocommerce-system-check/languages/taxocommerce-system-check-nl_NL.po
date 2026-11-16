@@ -2280,3 +2280,24 @@ msgstr "De server heeft een ongeldig JSON-antwoord teruggegeven. Controleer PHP-
 
 msgid "The browser is not processing batches; press Resume to continue."
 msgstr "De browser verwerkt geen batches; klik op Hervatten om door te gaan."
+
+msgid "Check all plugins"
+msgstr "Alle plugins controleren"
+
+msgid "Plugins checked"
+msgstr "Gecontroleerde plugins"
+
+msgid "Checks with findings"
+msgstr "Controles met bevindingen"
+
+msgid "Execution errors"
+msgstr "Uitvoeringsfouten"
+
+msgid "Paused"
+msgstr "Gepauzeerd"
+
+msgid "All plugin checks finished"
+msgstr "Alle plugincontroles voltooid"
+
+msgid "Check plugins individually or run all active TaxoCommerce modules sequentially. Each plugin keeps its own results, log and JSON report."
+msgstr "Controleer plugins afzonderlijk of voer alle actieve TaxoCommerce-modules na elkaar uit. Elke plugin behoudt resultaten, logboek en JSON-rapport."

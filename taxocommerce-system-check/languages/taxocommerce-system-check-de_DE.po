@@ -2280,3 +2280,24 @@ msgstr "Der Server hat eine ungültige JSON-Antwort zurückgegeben. Prüfen Sie 
 
 msgid "The browser is not processing batches; press Resume to continue."
 msgstr "Der Browser verarbeitet keine Stapel; klicken Sie zum Fortfahren auf Fortsetzen."
+
+msgid "Check all plugins"
+msgstr "Alle Plugins prüfen"
+
+msgid "Plugins checked"
+msgstr "Geprüfte Plugins"
+
+msgid "Checks with findings"
+msgstr "Prüfungen mit Befunden"
+
+msgid "Execution errors"
+msgstr "Ausführungsfehler"
+
+msgid "Paused"
+msgstr "Pausiert"
+
+msgid "All plugin checks finished"
+msgstr "Alle Plugin-Prüfungen abgeschlossen"
+
+msgid "Check plugins individually or run all active TaxoCommerce modules sequentially. Each plugin keeps its own results, log and JSON report."
+msgstr "Prüfen Sie Plugins einzeln oder führen Sie alle aktiven TaxoCommerce-Module nacheinander aus. Jedes Plugin behält Ergebnisse, Protokoll und JSON-Bericht."

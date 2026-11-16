@@ -1,3 +1,9 @@
+## [0.2.43] — 2026-11-16 — Chequeo secuencial de todos los plugins activos (#2755)
+
+- Botón «Chequear todos» junto al control de CPU en System Check → Plugin Validation; utiliza exclusivamente las filas de módulos activos inventariados por Core y el mismo endpoint de cada chequeo individual.
+- Ejecución secuencial, un plugin cada vez, con avance global, recuento de incidencias y errores de ejecución, parada y reanudación cooperativas. Un fallo de comunicación pausa la cola con detalle visible; no se descarta silenciosamente ningún plugin.
+- Conserva los informes, logs, controles y JSON de cada plugin; no inicia procesos en segundo plano, no ejecuta operaciones destructivas ni modifica otros módulos.
+
 ## [0.2.42] — 2026-11-16 — Estado y logs de validación individual recuperables (#2748)
 
 - El chequeo de Billing/Facturación y otros autochecks que devuelven directamente una lista de filas se normaliza correctamente; no se clasifican como informe inválido.
