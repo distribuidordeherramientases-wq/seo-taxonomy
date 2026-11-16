@@ -149,6 +149,10 @@ jobs:
           php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-process-details.php
           php -l taxocommerce-system-check/tests/process-details-smoke.php
           php taxocommerce-system-check/tests/process-details-smoke.php
+          php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-module-audit.php
+          php -l taxocommerce-system-check/tests/module-audit-smoke.php
+          php taxocommerce-system-check/tests/module-audit-smoke.php
+          node --check taxocommerce-system-check/assets/module-audit.js
           php -l taxocommerce-system-check/tests/process-details-partial-deploy-smoke.php
           php taxocommerce-system-check/tests/process-details-partial-deploy-smoke.php
           php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-code-check.php
