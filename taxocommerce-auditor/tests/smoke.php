@@ -101,10 +101,6 @@ function get_terms( $args ) {
 }
 function get_term( $id, $tax = '' ) { return $GLOBALS['tc_fake_terms'][ $id ] ?? null; }
 function wp_get_object_terms( $ids, $tax, $args = array() ) {
-    // Product tags classify an item; generic/synonym labels are not defects.
-    if ( 'product_tag' === $tax ) {
-        return array( 'Equipamiento', 'repuesto', 'Detección y Comprobación Eléctrica' );
-    }
     if ( 'tc_tipo' === $tax && is_array( $ids ) ) {
         $out = array();
         foreach ( $ids as $i ) {
