@@ -2103,3 +2103,153 @@ msgstr "View log / diagnostics"
 
 msgid "Process diagnostics are unavailable until the plugin update completes."
 msgstr "Process diagnostics are unavailable until the plugin update completes."
+
+msgid "Select an active plugin from the table."
+msgstr "Select an active plugin from the table."
+
+msgid "The active plugin directory could not be verified."
+msgstr "The active plugin directory could not be verified."
+
+msgid "Real operations are not executed by this check."
+msgstr "Real operations are not executed by this check."
+
+msgid "Only basic availability checks are supported by this plugin."
+msgstr "Only basic availability checks are supported by this plugin."
+
+msgid "The native test returned an invalid report."
+msgstr "The native test returned an invalid report."
+
+msgid "File unavailable or over the size limit."
+msgstr "File unavailable or over the size limit."
+
+msgid "Basic availability check; not a functional integration test."
+msgstr "Basic availability check; not a functional integration test."
+
+msgid "Insufficient permissions."
+msgstr "Insufficient permissions."
+
+msgid "The selected plugin is not registered as active."
+msgstr "The selected plugin is not registered as active."
+
+msgid "The check was paused after an execution error."
+msgstr "The check was paused after an execution error."
+
+msgid "Unknown plugin."
+msgstr "Unknown plugin."
+
+msgid "Complete the selected plugin check before downloading the report."
+msgstr "Complete the selected plugin check before downloading the report."
+
+msgid "failures"
+msgstr "failures"
+
+msgid "warnings to review"
+msgstr "warnings to review"
+
+msgid "Check plugin"
+msgstr "Check plugin"
+
+msgid "View results"
+msgstr "View results"
+
+msgid "Individual plugin validation"
+msgstr "Individual plugin validation"
+
+msgid "Select Check plugin in a row. Only that registered plugin is tested; detailed results and JSON are available without rerunning it."
+msgstr "Select Check plugin in a row. Only that registered plugin is tested; detailed results and JSON are available without rerunning it."
+
+msgid "CPU usage"
+msgstr "CPU usage"
+
+msgid "Plugin validation results"
+msgstr "Plugin validation results"
+
+msgid "Unable to execute the check."
+msgstr "Unable to execute the check."
+
+msgid "skipped"
+msgstr "skipped"
+
+msgid "errors"
+msgstr "errors"
+
+msgid "warnings"
+msgstr "warnings"
+
+msgid "Basic only: "
+msgstr "Basic only: "
+
+msgid "No details available."
+msgstr "No details available."
+
+msgid "Review required."
+msgstr "Review required."
+
+msgid "Recommendation: "
+msgstr "Recommendation: "
+
+msgid "No results in this category."
+msgstr "No results in this category."
+
+msgid "No report exists for this plugin yet."
+msgstr "No report exists for this plugin yet."
+
+msgid "Results for "
+msgstr "Results for "
+
+msgid "Status: "
+msgstr "Status: "
+
+msgid " · Date: "
+msgstr " · Date: "
+
+msgid "Download complete JSON for this plugin"
+msgstr "Download complete JSON for this plugin"
+
+msgid "Functional failures"
+msgstr "Functional failures"
+
+msgid "Skipped checks"
+msgstr "Skipped checks"
+
+msgid "Passed checks"
+msgstr "Passed checks"
+
+msgid "Code errors"
+msgstr "Code errors"
+
+msgid "Code warnings (manual review)"
+msgstr "Code warnings (manual review)"
+
+msgid "Unchecked files"
+msgstr "Unchecked files"
+
+msgid "Local code review is not the official WordPress Plugin Check."
+msgstr "Local code review is not the official WordPress Plugin Check."
+
+msgid " · You can resume this check."
+msgstr " · You can resume this check."
+
+msgid "Preparing check for "
+msgstr "Preparing check for "
+
+msgid "Functions"
+msgstr "Functions"
+
+msgid "Code"
+msgstr "Code"
+
+msgid "Core pilot (previous validation mode)"
+msgstr "Core pilot (previous validation mode)"
+
+msgid "Funcionalidades"
+msgstr "Funcionalidades"
+
+msgid "Código"
+msgstr "Código"
+
+msgid "Acciones"
+msgstr "Acciones"
+
+msgid "Native functional checks are used when available. Basic checks never imply a full integration check; local source reviews are not official WordPress Plugin Check."
+msgstr "Native functional checks are used when available. Basic checks never imply a full integration check; local source reviews are not official WordPress Plugin Check."

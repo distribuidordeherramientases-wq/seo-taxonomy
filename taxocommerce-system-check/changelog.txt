@@ -1,3 +1,6 @@
+= 0.2.41 (2026-11-16) =
+* Validate one active plugin at a time from its Plugin Validation row, with native read-only Autocheck adapters when available, bounded code inspection, per-test failures and file-level findings; JSON export, per-user isolation and safe stop/resume. Preserve previous Core pilot. Issue #2742.
+
 = 0.2.40 (2026-11-15) =
 * Prevent Processes fatal when the optional Process_Details class arrives after the process manager in an incremental FTPS update. Load detail class lazily and preserve existing process controls with a temporary warning. Added partial-install regression test. Issue #2711.
 

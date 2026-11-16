@@ -1,3 +1,11 @@
+## [0.2.41] — 2026-11-16 — Chequeo individual por plugin y detalle de incidencias (#2742)
+
+- La pestaña Plugin Validation permite ejecutar el autocheck del plugin seleccionado en su propia fila, con resultados independientes por administrador, sitio y plugin.
+- Reutiliza los motores nativos de Autocheck de funcionalidades y código cuando están disponibles, respetando las pruebas UAT de escritura que no deben ejecutarse; si no hay adaptador funcional nativo, muestra claramente un chequeo básico, no una integración profunda ficticia.
+- Los detalles indican cada prueba fallida con su mensaje y las incidencias de código con fichero, línea, regla y recomendación, distinguiendo errores confirmados de advertencias de análisis estático que exigen revisión humana.
+- Se puede descargar un JSON completo del plugin seleccionado sin repetir chequeos. Escaneo de PHP en lotes con cinco velocidades de CPU; cancelación/reanudación entre peticiones.
+- El piloto previo de Core permanece accesible en el desplegable de compatibilidad. No cambia el código ni el comportamiento de otros plugins ni ejecuta reparaciones.
+
 ## [0.2.40] — 2026-11-15 — Evitar fatal durante actualizaciones FTPS parciales (#2711)
 
 - Corrección urgente del error `Class TaxoCommerce_System_Check_Process_Details not found` observado en STAGING al abrir Procesos.
