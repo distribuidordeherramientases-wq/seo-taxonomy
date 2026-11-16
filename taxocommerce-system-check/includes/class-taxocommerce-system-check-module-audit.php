@@ -170,12 +170,12 @@ final class TaxoCommerce_System_Check_Module_Audit {
                 continue;
             }
             $status = (string) ( $item['status'] ?? 'fail' );
-            $status = 'ok' === $status ? 'pass' : ( 'error' === $status ? 'fail' : ( 'warning' === $status || 'not_run' === $status ? 'skip' : $status ) );
+            $status = 'ok' === $status ? 'pass' : ( 'error' === $status ? 'fail' : ( 'not_run' === $status ? 'skip' : $status ) );
             $state['functional_rows'][] = array(
                 'id' => (string) ( $item['id'] ?? $item['name'] ?? '' ),
                 'group' => (string) ( $item['group'] ?? $item['group_id'] ?? '' ),
                 'label' => (string) ( $item['label'] ?? $item['name'] ?? '' ),
-                'status' => in_array( $status, array( 'pass', 'fail', 'skip' ), true ) ? $status : 'fail',
+                'status' => in_array( $status, array( 'pass', 'fail', 'skip', 'warning' ), true ) ? $status : 'fail',
                 'message' => (string) ( $item['message'] ?? $item['detail'] ?? '' ),
             );
         }
@@ -295,7 +295,7 @@ final class TaxoCommerce_System_Check_Module_Audit {
         if ( ! $state ) {
             return array( 'status' => 'not_run', 'phase' => 'pending' );
         }
-        $totals = array( 'pass' => 0, 'fail' => 0, 'skip' => 0 );
+        $totals = array( 'pass' => 0, 'fail' => 0, 'skip' => 0, 'warning' => 0 );
         foreach ( $state['functional_rows'] as $item ) {
             $status = $item['status'] ?? 'skip';
             ++$totals[ isset( $totals[ $status ] ) ? $status : 'skip' ];
@@ -305,7 +305,7 @@ final class TaxoCommerce_System_Check_Module_Audit {
             'plugin' => $state['module'], 'name' => $state['name'], 'status' => $state['status'],
             'phase' => $state['phase'], 'updated_at' => $state['updated_at'], 'note' => $state['note'],
             'functional' => array(
-                'status' => 'functional' === $state['phase'] ? 'running' : ( $state['functional_class'] ? ( $totals['fail'] ? 'fail' : 'checked' ) : 'basic_only' ),
+                'status' => 'functional' === $state['phase'] ? 'running' : ( $state['functional_class'] ? ( $totals['fail'] ? 'fail' : ( $totals['warning'] ? 'review' : 'checked' ) ) : 'basic_only' ),
                 'done' => count( $state['functional_rows'] ),
                 'total' => 'full_suite' === $state['functional_mode'] && 'functional' !== $state['phase']
                     ? count( $state['functional_rows'] )
