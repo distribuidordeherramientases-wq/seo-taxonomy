@@ -6,6 +6,7 @@
  * No WordPress, WooCommerce, database, or external services are required.
  */
 define( 'ABSPATH', __DIR__ . '/' );
+define( 'TCCUST_VERSION', '0.1.2' );
 $GLOBALS['tccust_init_complete'] = false;
 $GLOBALS['tccust_early_translations'] = 0;
 $GLOBALS['tccust_all_translations'] = 0;
