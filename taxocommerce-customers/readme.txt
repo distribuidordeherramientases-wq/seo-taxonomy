@@ -4,7 +4,7 @@ Tags: woocommerce, crm, customers, contacts, csv
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.1
+Stable tag: 0.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,10 @@ No. Adding a manual contact does not create a WordPress user account.
 No. CSV import is purely administrative.
 
 == Changelog ==
+
+= 0.1.2 =
+* Avoid premature text-domain loading when TaxoCommerce Core registers its optional Customers module before the WordPress init hook. Preserves translated descriptions for later administrative requests. Issue #2750.
+
 
 = 0.1.1 =
 * CRM privacy erasure, granular role capabilities, manual resumable buyer sync and streamed private CSV exports.
