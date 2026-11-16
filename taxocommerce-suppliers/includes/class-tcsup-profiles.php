@@ -216,7 +216,7 @@ final class TCSUP_Profiles {
 		<section class="tcsup-card">
 			<h2><?php esc_html_e( 'Supplier management', 'taxocommerce-suppliers' ); ?></h2>
 			<p><?php esc_html_e( 'Add a supplier manually before importing any products. Imported suppliers also appear automatically.', 'taxocommerce-suppliers' ); ?></p>
-			<p><a class="button button-primary" href="<?php echo esc_url( self::url( array( 'new_supplier' => 1 ) ) ); ?>"><?php esc_html_e( 'Add supplier manually', 'taxocommerce-suppliers' ); ?></a></p>
+			<p><a class="button button-primary" href="<?php echo esc_url( self::url( array( 'new_supplier' => 1 ) ) . '#tcsup-provider-record' ); ?>"><?php esc_html_e( 'Add supplier manually', 'taxocommerce-suppliers' ); ?></a></p>
 			<?php if ( isset( $notices[ $status ] ) ) : ?>
 				<div class="notice <?php echo esc_attr( in_array( $status, array( 'error', 'missing', 'invalid' ), true ) ? 'notice-error' : 'notice-success' ); ?> inline">
 					<p><?php echo esc_html( $notices[ $status ] ); ?></p>
@@ -341,7 +341,11 @@ final class TCSUP_Profiles {
 		if ( '' !== $supplier ) {
 			$args['provider'] = $supplier;
 		}
-		wp_safe_redirect( self::url( $args ) );
+		$url = self::url( $args );
+		if ( '' !== $supplier ) {
+			$url .= '#tcsup-provider-record';
+		}
+		wp_safe_redirect( $url );
 		exit;
 	}
 
