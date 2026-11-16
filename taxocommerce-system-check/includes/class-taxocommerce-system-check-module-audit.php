@@ -442,16 +442,32 @@ final class TaxoCommerce_System_Check_Module_Audit {
             if ( is_wp_error( $state ) ) {
                 wp_send_json_error( array( 'message' => $state->get_error_message() ), 400 );
             }
+            self::event( $state, 'start', __( 'Plugin validation started.', 'taxocommerce-system-check' ) );
+            set_transient( self::recent_key(), $id, self::TTL );
         } elseif ( $state && 'stop' === $op && 'running' === $state['status'] ) {
             $state['status'] = 'paused';
-        } elseif ( $state && 'resume' === $op && 'paused' === $state['status'] ) {
+            self::event( $state, 'stop', __( 'Stopped by administrator; active PHP requests cannot be interrupted.', 'taxocommerce-system-check' ) );
+        } elseif ( $state && 'resume' === $op && in_array( $state['status'], array( 'paused', 'running' ), true ) ) {
             $state['status'] = 'running';
+            unset( $state['error'] );
+            $state['heartbeat'] = time();
+            self::event( $state, 'resume', __( 'Validation resumed in browser.', 'taxocommerce-system-check' ) );
         } elseif ( $state && 'step' === $op && 'running' === $state['status'] ) {
             try {
                 $state = self::advance( $state );
             } catch ( Throwable $error ) {
                 $state['status'] = 'paused';
                 $state['error'] = __( 'The check was paused after an execution error.', 'taxocommerce-system-check' );
+                self::event( $state, 'error', get_class( $error ) );
+            }
+            // A stop or a fresh start may have arrived during the previous step.
+            // Never resurrect a paused job or overwrite a new generation.
+            $latest = self::state( $id );
+            if ( $latest && ( $latest['run_id'] ?? '' ) !== ( $state['run_id'] ?? '' ) ) {
+                $state = $latest;
+            } elseif ( $latest && 'paused' === ( $latest['status'] ?? '' ) ) {
+                $state['status'] = 'paused';
+                $state['events'] = array_slice( array_merge( $state['events'] ?? array(), array_slice( $latest['events'] ?? array(), -1 ) ), -60 );
             }
         }
         if ( $state ) {
@@ -488,6 +504,11 @@ final class TaxoCommerce_System_Check_Module_Audit {
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON attachment, never HTML.
         echo wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE );
         exit;
+    }
+
+    private static function recent() {
+        $id = get_transient( self::recent_key() );
+        return is_string( $id ) && self::module( $id ) ? self::summary( self::state( $id ) ) : false;
     }
 
     public static function row( $id ) {
@@ -529,6 +550,7 @@ final class TaxoCommerce_System_Check_Module_Audit {
         echo '</section>';
         wp_add_inline_script( 'taxocommerce-system-check-module-audit', 'window.tcsModuleAudit=' . wp_json_encode( array(
             'url' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( self::ACTION ),
+            'initial' => self::recent(),
             'export' => wp_nonce_url( admin_url( 'admin-post.php?action=' . self::EXPORT ), self::EXPORT ),
             'i18n' => array(
                 'request_failed' => __( 'Unable to execute the check.', 'taxocommerce-system-check' ),
