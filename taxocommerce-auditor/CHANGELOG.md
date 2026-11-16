@@ -1,3 +1,9 @@
+## [0.3.24] — 2026-11-16 — Etiquetas de clasificación WooCommerce sin falsos positivos (#2746)
+
+- Retirada exclusivamente la heurística `product_tag_identity_drift`: las etiquetas `product_tag` clasifican productos y no necesitan aparecer literalmente en título, extracto, descripción, atributos o categoría.
+- Se conservan todas las etiquetas asignadas y las demás reglas de Auditor, incluida la comprobación de vocabulario editorial para páginas/entradas, las alertas de atributos, identidad, duplicados, SEO y la exportación JSON.
+- Prueba de regresión con etiquetas de clasificación genéricas, sinónimas y técnicas. No se modifica ningún producto ni otro plugin.
+
 ## [0.3.23] — 2026-11-13 — Code Check unificado con Core 0.4.82 (#2626)
 
 - Code Check ampliado con las mismas reglas, clasificación por gravedad, información por archivo/línea y JSON que Core 0.4.82; sin cambiar el Autotest funcional ni la ejecución por lotes. Issue #2626.
