@@ -196,6 +196,41 @@ final class SEO_Facturas_Quotes {
                         </p>
                     <?php endif; ?>
 
+                    <p class="form-row form-row-wide">
+                        <label for="seo-quote-address-1">Dirección</label>
+                        <input type="text" id="seo-quote-address-1" name="seo_quote_address_1" maxlength="190" autocomplete="address-line1">
+                    </p>
+                    <p class="form-row form-row-wide">
+                        <label for="seo-quote-address-2">Dirección (segunda línea, opcional)</label>
+                        <input type="text" id="seo-quote-address-2" name="seo_quote_address_2" maxlength="190" autocomplete="address-line2">
+                    </p>
+                    <p class="form-row form-row-first">
+                        <label for="seo-quote-postcode">Código postal</label>
+                        <input type="text" id="seo-quote-postcode" name="seo_quote_postcode" maxlength="20" autocomplete="postal-code">
+                    </p>
+                    <p class="form-row form-row-last">
+                        <label for="seo-quote-city">Localidad</label>
+                        <input type="text" id="seo-quote-city" name="seo_quote_city" maxlength="120" autocomplete="address-level2">
+                    </p>
+                    <p class="form-row form-row-first">
+                        <label for="seo-quote-state">Provincia</label>
+                        <input type="text" id="seo-quote-state" name="seo_quote_state" maxlength="100" autocomplete="address-level1">
+                    </p>
+                    <p class="form-row form-row-last">
+                        <label for="seo-quote-country">País</label>
+                        <?php
+                        $country_choices = (function_exists('WC') && WC() && isset(WC()->countries))
+                            ? WC()->countries->get_allowed_countries()
+                            : array('ES' => 'España');
+                        ?>
+                        <select id="seo-quote-country" name="seo_quote_country" autocomplete="country">
+                            <option value="">Seleccionar país</option>
+                            <?php foreach ($country_choices as $country_code => $country_label) : ?>
+                                <option value="<?php echo esc_attr($country_code); ?>"><?php echo esc_html($country_label); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </p>
+
                     <?php if (!empty($s['quote_ask_email'])) : ?>
                         <p class="form-row form-row-wide">
                             <label for="seo-quote-email">Email<?php echo !empty($s['quote_require_email']) ? ' *' : ' (opcional)'; ?></label>
@@ -241,6 +276,12 @@ final class SEO_Facturas_Quotes {
             'tax_id'      => sanitize_text_field(wp_unslash($_POST['seo_quote_tax_id'] ?? '')),
             'contact'     => sanitize_text_field(wp_unslash($_POST['seo_quote_contact'] ?? '')),
             'email'       => sanitize_email(wp_unslash($_POST['seo_quote_email'] ?? '')),
+            'address_1'   => sanitize_text_field(wp_unslash($_POST['seo_quote_address_1'] ?? '')),
+            'address_2'   => sanitize_text_field(wp_unslash($_POST['seo_quote_address_2'] ?? '')),
+            'postcode'    => sanitize_text_field(wp_unslash($_POST['seo_quote_postcode'] ?? '')),
+            'city'        => sanitize_text_field(wp_unslash($_POST['seo_quote_city'] ?? '')),
+            'state'       => sanitize_text_field(wp_unslash($_POST['seo_quote_state'] ?? '')),
+            'country'     => strtoupper(sanitize_text_field(wp_unslash($_POST['seo_quote_country'] ?? ''))),
             'compare_ids' => sanitize_text_field(wp_unslash($_POST['seo_facturas_compare_ids'] ?? '')),
         );
 
@@ -330,11 +371,25 @@ final class SEO_Facturas_Quotes {
 
     private static function buyer_from_request(array $validated_fields) {
         $s = SEO_Facturas_Settings::quote();
+        $country = (string) $validated_fields['country'];
+        $allowed_countries = (function_exists('WC') && WC() && isset(WC()->countries))
+            ? WC()->countries->get_allowed_countries()
+            : array('ES' => 'España');
+        if ('' !== $country && !isset($allowed_countries[$country])) {
+            return new WP_Error('seo_facturas_quote_country_invalid', 'Selecciona un país válido.');
+        }
+
         $buyer = array(
-            'company' => $validated_fields['company'],
-            'tax_id'  => $validated_fields['tax_id'],
-            'contact' => $validated_fields['contact'],
-            'email'   => $validated_fields['email'],
+            'company'   => $validated_fields['company'],
+            'tax_id'    => $validated_fields['tax_id'],
+            'contact'   => $validated_fields['contact'],
+            'email'     => $validated_fields['email'],
+            'address_1' => $validated_fields['address_1'],
+            'address_2' => $validated_fields['address_2'],
+            'postcode'  => $validated_fields['postcode'],
+            'city'      => $validated_fields['city'],
+            'state'     => $validated_fields['state'],
+            'country'   => $country,
         );
 
         if (!empty($s['quote_require_email']) && empty($buyer['email'])) {
@@ -423,21 +478,28 @@ final class SEO_Facturas_Quotes {
         }
 
         $customer = WC()->customer;
-        $billing = self::customer_address($customer, 'billing');
-        $shipping = self::customer_address($customer, 'shipping');
+        // Los datos del destinatario proceden del formulario, no de una
+        // dirección anterior conservada en la sesión de WooCommerce.
+        $billing = array(
+            'company'      => (string) $buyer['company'],
+            'contact'      => (string) $buyer['contact'],
+            'email'        => (string) $buyer['email'],
+            'tax_id'       => (string) $buyer['tax_id'],
+            'address_1'    => (string) $buyer['address_1'],
+            'address_2'    => (string) $buyer['address_2'],
+            'postcode'     => (string) $buyer['postcode'],
+            'city'         => (string) $buyer['city'],
+            'state'        => (string) $buyer['state'],
+            'state_name'   => self::state_name((string) $buyer['country'], (string) $buyer['state']),
+            'country'      => (string) $buyer['country'],
+            'country_name' => '' !== $buyer['country'] ? self::country_name((string) $buyer['country']) : '',
+        );
 
-        if (!empty($buyer['company'])) {
-            $billing['company'] = (string) $buyer['company'];
-        }
-        if (!empty($buyer['contact'])) {
-            $billing['contact'] = (string) $buyer['contact'];
-        }
-        if (!empty($buyer['email'])) {
-            $billing['email'] = (string) $buyer['email'];
-        }
-        $billing['tax_id'] = (string) $buyer['tax_id'];
-
-        $destination = !empty($shipping['country']) ? $shipping : $billing;
+        // La sesión se utiliza solo para el contexto fiscal/porte ya calculado.
+        // No se imprime como una supuesta dirección facilitada en la proforma.
+        $cart_shipping = self::customer_address($customer, 'shipping');
+        $destination = !empty($cart_shipping['country']) ? $cart_shipping : $billing;
+        $shipping = array();
         $fiscal = class_exists('SEO_Facturas_Tax')
             ? SEO_Facturas_Tax::context_for_location(
                 (string) ($destination['country'] ?? ''),
