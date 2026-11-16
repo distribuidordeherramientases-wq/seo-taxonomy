@@ -200,6 +200,7 @@ $matching_tag = Rules::inspect( 'products', get_post( 4 ) );
 verify( ! in_array( 'product_tag_numeric_conflict', array_column( $matching_tag['findings'], 'code' ), true ), 'Matching technical tag and broad classification roles remain valid' );
 $GLOBALS['tc_product_tags'] = array( '2 V' );
 $GLOBALS['tc_wc']->description = 'Sin especificaciones contrastables de tension de salida.';
+$GLOBALS['tc_wc']->short_description = '';
 $unknown_tag = Rules::inspect( 'products', get_post( 4 ) );
 verify( ! in_array( 'product_tag_numeric_conflict', array_column( $unknown_tag['findings'], 'code' ), true ), 'Insufficient technical evidence does not produce a numeric tag conflict' );
 $GLOBALS['tc_deep_product_signals'] = true;
