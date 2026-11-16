@@ -11,6 +11,10 @@
     var current = '';
     var token = 0;
     var timer = null;
+    function rowMessage(module, message) {
+        var cell = document.querySelector('[data-tcs-module-functional="' + module + '"]');
+        if (cell) { cell.textContent = message; }
+    }
     function text(tag, content, parent) {
         var element = document.createElement(tag);
         element.textContent = String(content == null ? '' : content);
@@ -26,7 +30,19 @@
         body.set('operation', operation);
         body.set('speed', speed.value);
         return fetch(config.url, { method: 'POST', credentials: 'same-origin', body: body })
-            .then(function (response) { return response.json(); })
+            .then(function (response) {
+                return response.text().then(function (raw) {
+                    var data;
+                    try { data = JSON.parse(raw); }
+                    catch (error) {
+                        throw new Error(t('invalid_json', 'Invalid server response (PHP notice or HTML). Check the PHP error log.') + ' HTTP ' + response.status);
+                    }
+                    if (!response.ok && (!data || data.success !== false)) {
+                        throw new Error(t('request_failed', 'Unable to execute the check.') + ' HTTP ' + response.status);
+                    }
+                    return data;
+                });
+            })
             .then(function (data) {
                 if (!data.success) {
                     throw new Error((data.data && data.data.message) || t('request_failed', 'Unable to execute the check.'));
@@ -52,6 +68,11 @@
             (f.done || 0) + '/' + (f.total || 0) + ': ' + (totals.fail || 0) + ' ' + t('failures', 'failures'); }
         if (ccell) { ccell.textContent = (c.done || 0) + '/' + (c.total || 0) + ': ' +
             (c.errors || 0) + ' ' + t('errors', 'errors') + ', ' + (c.warnings || 0) + ' ' + t('warnings', 'warnings'); }
+        var toggle = document.querySelector('[data-tcs-module-toggle="' + state.plugin + '"]');
+        if (toggle) {
+            toggle.textContent = state.status === 'running' ? t('stop', 'Stop') : t('resume', 'Resume');
+            toggle.disabled = state.status === 'completed' || state.status === 'not_run';
+        }
     }
     function clearTimer() {
         ++token;
@@ -102,6 +123,12 @@
         var link = text('a', t('download_json', 'Download complete JSON for this plugin'), result);
         link.href = config.export + '&module=' + encodeURIComponent(report.plugin);
         link.className = 'button button-secondary';
+        var events = report.execution_log || [];
+        section(t('execution_log', 'Execution log'), events.map(function (event) {
+            return { status: label(event.action, 'step'), group: event.phase,
+                label: event.at, message: event.message || event.phase + ': ' +
+                    label(event.functional_done, '0') + ' / ' + label(event.code_done, '0') };
+        }), 'functional', true);
         var functional = report.functional_tests || [];
         section(t('functional_failures', 'Functional failures'), functional.filter(function (x) { return x.status === 'fail'; }), 'functional', true);
         section(t('warnings', 'Warnings') + ' · ' + t('functions', 'Functions'), functional.filter(function (x) { return x.status === 'warning'; }), 'functional', false);
@@ -135,23 +162,46 @@
                 next(updated, mine);
             }).catch(function (error) {
                 progress.textContent = error.message + t('can_resume', ' · You can resume this check.');
+                rowMessage(current, error.message);
             });
         }, Number(state.delay_ms) || 2500);
     }
     document.addEventListener('click', function (event) {
         var start = event.target.closest('[data-tcs-module-start]');
         var report = event.target.closest('[data-tcs-module-report]');
+        var toggle = event.target.closest('[data-tcs-module-toggle]');
+        if (toggle) {
+            var module = toggle.getAttribute('data-tcs-module-toggle');
+            current = module;
+            clearTimer();
+            request(module, 'status').then(function (existing) {
+                if (existing.status === 'running') { return request(module, 'stop'); }
+                if (existing.status === 'paused') { return request(module, 'resume'); }
+                return existing;
+            }).then(function (state) {
+                show(state);
+                if (state.status === 'running') { next(state, token); }
+            }).catch(function (error) {
+                progress.textContent = error.message;
+                rowMessage(module, error.message);
+            });
+            return;
+        }
         if (report) { view(report.getAttribute('data-tcs-module-report')); return; }
         if (!start) { return; }
         current = start.getAttribute('data-tcs-module-start');
         clearTimer();
         result.hidden = true;
         progress.textContent = t('preparing', 'Preparing check for ') + current + '…';
+        rowMessage(current, t('preparing', 'Preparing check for ') + current + '…');
         var mine = token;
         request(current, 'start').then(function (state) {
             show(state);
             next(state, mine);
-        }).catch(function (error) { progress.textContent = error.message; });
+        }).catch(function (error) {
+            progress.textContent = error.message;
+            rowMessage(current, error.message);
+        });
     });
     panel.addEventListener('click', function (event) {
         var control = event.target.closest('[data-tcs-module-op]');
@@ -164,4 +214,12 @@
             if (op === 'resume') { next(state, mine); }
         }).catch(function (error) { progress.textContent = error.message; });
     });
+    // A previously started run must remain stoppable after navigation or reload.
+    if (config.initial && config.initial.plugin) {
+        current = config.initial.plugin;
+        show(config.initial);
+        if (config.initial.status === 'running') {
+            progress.textContent += t('resume_hint', ' · Waiting for browser. Press Resume to continue.');
+        }
+    }
 }());
