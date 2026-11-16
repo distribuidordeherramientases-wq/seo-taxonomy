@@ -2280,3 +2280,24 @@ msgstr "The server returned an invalid JSON response. Check PHP notices or the s
 
 msgid "The browser is not processing batches; press Resume to continue."
 msgstr "The browser is not processing batches; press Resume to continue."
+
+msgid "Check all plugins"
+msgstr "Check all plugins"
+
+msgid "Plugins checked"
+msgstr "Plugins checked"
+
+msgid "Checks with findings"
+msgstr "Checks with findings"
+
+msgid "Execution errors"
+msgstr "Execution errors"
+
+msgid "Paused"
+msgstr "Paused"
+
+msgid "All plugin checks finished"
+msgstr "All plugin checks finished"
+
+msgid "Check plugins individually or run all active TaxoCommerce modules sequentially. Each plugin keeps its own results, log and JSON report."
+msgstr "Check plugins individually or run all active TaxoCommerce modules sequentially. Each plugin keeps its own results, log and JSON report."
