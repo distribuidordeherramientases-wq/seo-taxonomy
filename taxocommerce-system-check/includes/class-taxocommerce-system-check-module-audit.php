@@ -300,7 +300,7 @@ final class TaxoCommerce_System_Check_Module_Audit {
             'plugin' => $state['module'], 'name' => $state['name'], 'status' => $state['status'],
             'phase' => $state['phase'], 'updated_at' => $state['updated_at'], 'note' => $state['note'],
             'functional' => array(
-                'status' => $state['functional_class'] ? ( $totals['fail'] ? 'fail' : 'checked' ) : 'basic_only',
+                'status' => 'functional' === $state['phase'] ? 'running' : ( $state['functional_class'] ? ( $totals['fail'] ? 'fail' : 'checked' ) : 'basic_only' ),
                 'done' => count( $state['functional_rows'] ),
                 'total' => count( $state['cases'] ) + ( $state['functional_class'] ? count( array_filter( $state['functional_rows'], static function ( $item ) { return 'Safety' === ( $item['group'] ?? '' ); } ) ) : 2 ),
                 'totals' => $totals,
@@ -402,8 +402,18 @@ final class TaxoCommerce_System_Check_Module_Audit {
     public static function row( $id ) {
         $state = self::state( $id );
         $summary = self::summary( $state );
-        $function_status = $state ? (string) ( $summary['functional']['totals']['fail'] ?? 0 ) . ' ' . __( 'failures', 'taxocommerce-system-check' ) : __( 'Not checked', 'taxocommerce-system-check' );
-        $code_status = $state ? (string) ( $summary['code']['warnings'] ?? 0 ) . ' ' . __( 'warnings to review', 'taxocommerce-system-check' ) : __( 'Not checked', 'taxocommerce-system-check' );
+        if ( ! $state ) {
+            $function_status = __( 'Not checked', 'taxocommerce-system-check' );
+            $code_status = __( 'Not checked', 'taxocommerce-system-check' );
+        } else {
+            $totals = $summary['functional']['totals'];
+            $function_status = 'basic_only' === $summary['functional']['status']
+                ? __( 'Basic checks only', 'taxocommerce-system-check' ) . ' · ' . $totals['fail'] . ' ' . __( 'failures', 'taxocommerce-system-check' )
+                : $summary['functional']['done'] . '/' . $summary['functional']['total'] . ' · ' . $totals['fail'] . ' ' . __( 'failures', 'taxocommerce-system-check' );
+            $code_status = $summary['code']['done'] . '/' . $summary['code']['total'] . ' · '
+                . $summary['code']['errors'] . ' ' . __( 'errors', 'taxocommerce-system-check' ) . ' · '
+                . $summary['code']['warnings'] . ' ' . __( 'warnings to review', 'taxocommerce-system-check' );
+        }
         echo '<td data-tcs-module-functional="' . esc_attr( $id ) . '">' . esc_html( $function_status ) . '</td>';
         echo '<td data-tcs-module-code="' . esc_attr( $id ) . '">' . esc_html( $code_status ) . '</td>';
         echo '<td><button type="button" class="button button-small" data-tcs-module-start="' . esc_attr( $id ) . '">' . esc_html__( 'Check plugin', 'taxocommerce-system-check' ) . '</button> ';
