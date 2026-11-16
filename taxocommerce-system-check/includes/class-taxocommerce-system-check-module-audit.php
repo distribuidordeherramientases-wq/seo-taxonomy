@@ -141,6 +141,11 @@ final class TaxoCommerce_System_Check_Module_Audit {
                 $mode = 'full_suite';
             }
         }
+        // A no-argument native suite already reports its own intentionally skipped UAT cases.
+        // Do not duplicate those rows in the family report.
+        if ( 'full_suite' === $mode ) {
+            $excluded = array();
+        }
         $files = $code_class ? $code_class::files() : self::file_inventory( $root );
         $files = is_array( $files ) ? array_values( $files ) : array();
         return array(
