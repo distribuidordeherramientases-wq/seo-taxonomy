@@ -396,3 +396,54 @@ msgstr "AEAT-XLSX-template downloaden — rechtspersonen"
 
 msgid "Download AEAT XLSX template — general"
 msgstr "AEAT-XLSX-template downloaden — algemeen"
+
+msgid "Expense CSV processed. Verify the new drafts in Expenses."
+msgstr "Uitgaven-CSV verwerkt. Controleer de nieuwe concepten bij Uitgaven."
+
+msgid "Select a valid CSV file smaller than 2 MB."
+msgstr "Selecteer een geldig CSV-bestand kleiner dan 2 MB."
+
+msgid "Invalid CSV headers. Download and use the exact template."
+msgstr "Ongeldige CSV-kolomkoppen. Download en gebruik het sjabloon ongewijzigd."
+
+msgid "CSV contains too many rows; maximum 500."
+msgstr "Het CSV-bestand overschrijdt de limiet van 500 rijen."
+
+msgid "CSV contains invalid expense data; nothing was imported."
+msgstr "Het CSV-bestand bevat ongeldige uitgaven; er is niets geïmporteerd."
+
+msgid "CSV contains no expense documents."
+msgstr "Het CSV-bestand bevat geen onkostendocumenten."
+
+msgid "Could not save the CSV batch; please retry."
+msgstr "Kan de CSV-batch niet opslaan; probeer opnieuw."
+
+msgid "Export limit exceeded; use a narrower reporting period."
+msgstr "Exportlimiet overschreden; kies een kortere periode."
+
+msgid "Expense documents: CSV import and export"
+msgstr "Onkostendocumenten: CSV importeren en exporteren"
+
+msgid "For domains, hosting, digital certificates, administrative fees, postal services, software and other association or business expenses. Imports go to Accounting > Expenses as unapproved drafts. They do not change bank/cash balances or automatically create a tax deduction."
+msgstr "Voor domeinen, hosting, digitale certificaten, heffingen, postdiensten, software en andere verenigings- of bedrijfsuitgaven. De import komt als concept terecht bij Boekhouding > Uitgaven. Bank- en kassaldi wijzigen niet en er wordt geen belastingaftrek automatisch toegepast."
+
+msgid "Download blank CSV template"
+msgstr "Leeg CSV-sjabloon downloaden"
+
+msgid "Export expense CSV for %d"
+msgstr "Uitgaven-CSV voor %d exporteren"
+
+msgid "Use UTF-8 CSV with semicolon or comma separators. Keep the template column names unchanged. Dates: YYYY-MM-DD; values: base and VAT in EUR; deductible_vat_pct is the percentage of VAT deductible, not the VAT rate (0 until verified). vat_treatment: review, domestic, intra, reverse, exempt. scope: review, association, commercial, shared."
+msgstr "Gebruik UTF-8-CSV met puntkomma of komma; wijzig de kolomnamen niet. Datum: JJJJ-MM-DD; grondslag en btw in EUR. deductible_vat_pct is het percentage aftrekbare btw, niet het btw-tarief (0 totdat dit is gecontroleerd). vat_treatment: review, domestic, intra, reverse, exempt. scope: review, association, commercial, shared."
+
+msgid "Expense CSV file"
+msgstr "CSV-bestand met uitgaven"
+
+msgid "Import expense drafts"
+msgstr "Conceptuitgaven importeren"
+
+msgid "Maximum 500 rows / 2 MB per import. Repeated documents are skipped. Attach original PDF receipts individually in Expenses, verify the legal tax treatment, then validate each entry."
+msgstr "Maximaal 500 rijen en 2 MB per import. Dubbele documenten worden overgeslagen. Voeg de oorspronkelijke pdf-bewijzen afzonderlijk toe bij Uitgaven, controleer de fiscale behandeling en valideer elke boeking."
+
+msgid "Imported: %1$d drafts. Existing/duplicate documents skipped: %2$d."
+msgstr "Geïmporteerd: %1$d concepten. Bestaande of dubbele documenten overgeslagen: %2$d."
