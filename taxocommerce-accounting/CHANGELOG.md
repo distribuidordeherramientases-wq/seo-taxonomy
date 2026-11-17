@@ -1,3 +1,11 @@
+## 0.1.10 — 2026-11-17 — Pestaña Tesorería: caja, bancos y préstamos (#2782)
+
+- Una nueva pestaña independiente **Tesorería** presenta indicadores de caja, saldos bancarios combinados, fondos disponibles, deuda declarada pendiente y cuotas mensuales previstas.
+- Alta de cajas y múltiples cuentas bancarias con saldo inicial, movimientos de entrada/salida y traspasos internos atómicos entre cuentas; resumen mensual de entradas, salidas y saldos sin mezclarlo con los indicadores de IVA.
+- Préstamos sencillos con importe inicial, entidad acreedora, cuota, próximo vencimiento y saldo pendiente editable según extracto del prestamista. No estima intereses, no descuenta mensualidades automáticamente y no registra cobros ni pagos ficticios.
+- Las facturas comerciales de WooCommerce/Billing no generan entradas o salidas de tesorería hasta registrar efectivamente un movimiento. Preservados los registros y cálculos fiscales.
+- Datos en tablas propias y permisos WordPress, acciones con nonces, validación de importes y fechas; pruebas de saldos y transferencias.
+
 ## 0.1.9 — 2026-11-17 — Traspaso automático de factura emitida a Accounting (#2778)
 
 - Captura automática mediante una acción estándar de WordPress tras la emisión de una factura de Billing: asiento de venta en borrador, sin reimportación manual ni dependencia obligatoria entre plugins.

@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.9
+Stable tag: 0.1.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,6 +15,8 @@ Independent WooCommerce fiscal register with purchase invoices, monthly VAT esti
 
 TaxoCommerce Accounting records fiscal data without changing WooCommerce orders, customers, supplier catalogues or invoice generation.
 
+* Track separate cash and multiple bank accounts in the Treasury tab: opening balances, manual receipts/payments, atomic internal transfers, current balances, and a monthly cash-flow table. These figures do not imply that a booked invoice is collected or paid.
+* Track loans with original amount, lender, monthly instalment, next payment date and manually confirmed outstanding balance; no inferred interest or automatic debiting.
 * Configure a per-store first commercial date. All earlier test orders are excluded from new sales imports.
 * Manually import paid-status WooCommerce orders in bounded batches of 25, with deduplicated draft entries.
 * Optionally receive a new issued invoice through a standard WordPress action when TaxoCommerce Billing is active, and read its immutable base, VAT, total and number into a new draft or untouched imported draft. Never adjust an issued invoice or approved ledger entry. New and existing draft sales display the matching invoice number automatically; manual entry remains possible with other invoicing systems. Proformas, quotes and refunds are not automatically associated. New imported amounts require fiscal review and validation. Conflicting issued-invoice amounts block approval.
