@@ -331,8 +331,16 @@ final class SEO_Facturas_Quotes {
         // conservar dicha direccion de prueba en la sesion del comprador.
         $customer = WC()->customer;
         $previous_address = array();
+        $previous_shipping_calculated = null;
         $document_country = strtoupper((string) ($buyer['country'] ?? ''));
-        if ($customer && '' !== $document_country) {
+        $destination_complete = '' !== $document_country
+            && '' !== trim((string) ($buyer['postcode'] ?? ''))
+            && '' !== trim((string) ($buyer['city'] ?? ''));
+
+        if ($customer) {
+            if (is_callable(array($customer, 'has_calculated_shipping'))) {
+                $previous_shipping_calculated = (bool) $customer->has_calculated_shipping();
+            }
             foreach (array('billing', 'shipping') as $address_kind) {
                 foreach (array('country', 'state', 'postcode', 'city') as $field) {
                     $getter = 'get_' . $address_kind . '_' . $field;
@@ -342,25 +350,57 @@ final class SEO_Facturas_Quotes {
                     }
                     $previous_address[$address_kind][$field] = $customer->{$getter}();
                     $new_value = 'country' === $field ? $document_country : (string) ($buyer[$field] ?? '');
+                    if ('state' === $field) {
+                        $new_value = self::woocommerce_state_code($document_country, $new_value);
+                    }
                     $customer->{$setter}($new_value);
                 }
+            }
+            if (is_callable(array($customer, 'set_calculated_shipping'))) {
+                $customer->set_calculated_shipping($destination_complete);
             }
         }
 
         try {
+            // WooCommerce requiere calcular primero las tarifas por destino y
+            // despues los totales/IVA. El formulario no modifica el cliente.
+            if (is_callable(array(WC()->cart, 'calculate_shipping'))) {
+                WC()->cart->calculate_shipping();
+            }
             WC()->cart->calculate_totals();
+
+            $shipping_error = null;
+            if (
+                $destination_complete
+                && WC()->cart->needs_shipping()
+                && (
+                    !is_callable(array(WC()->cart, 'get_shipping_methods'))
+                    || !WC()->cart->get_shipping_methods()
+                )
+            ) {
+                $shipping_error = new WP_Error(
+                    'seo_facturas_quote_no_shipping_rate',
+                    'No hay una tarifa de transporte disponible para el destino indicado. Comprueba la dirección o las reglas de Logística.'
+                );
+            }
             $tax_validation = class_exists('SEO_Facturas_Tax')
                 ? SEO_Facturas_Tax::validate_cart_tax(WC()->cart, $buyer)
                 : true;
         } finally {
-            if ($customer && $previous_address) {
+            if ($customer) {
                 foreach ($previous_address as $address_kind => $fields) {
                     foreach ($fields as $field => $old_value) {
                         $setter = 'set_' . $address_kind . '_' . $field;
                         $customer->{$setter}($old_value);
                     }
                 }
+                if (null !== $previous_shipping_calculated && is_callable(array($customer, 'set_calculated_shipping'))) {
+                    $customer->set_calculated_shipping($previous_shipping_calculated);
+                }
             }
+        }
+        if (is_wp_error($shipping_error)) {
+            self::fail($shipping_error->get_error_message());
         }
         if (is_wp_error($tax_validation)) {
             self::fail($tax_validation->get_error_message());
@@ -581,11 +621,18 @@ final class SEO_Facturas_Quotes {
                 'subtotal_items' => (float) $cart->get_subtotal(),
                 'discount_total' => (float) $cart->get_discount_total(),
                 'shipping_total' => (float) $cart->get_shipping_total(),
+                'shipping_tax'   => (float) $cart->get_shipping_tax(),
                 'shipping_pending' => (
                     $cart->needs_shipping()
-                    && $customer
-                    && is_callable(array($customer, 'has_calculated_shipping'))
-                    && !$customer->has_calculated_shipping()
+                    && (
+                        empty($billing['country'])
+                        || empty($billing['postcode'])
+                        || empty($billing['city'])
+                        || !is_callable(array($cart, 'has_calculated_shipping'))
+                        || !$cart->has_calculated_shipping()
+                        || !is_callable(array($cart, 'get_shipping_methods'))
+                        || !$cart->get_shipping_methods()
+                    )
                 ),
                 'fee_total'      => (float) $cart->get_fee_total(),
                 'total_tax'      => (float) $cart->get_total_tax(),
@@ -673,6 +720,29 @@ final class SEO_Facturas_Quotes {
             'products'  => $products,
             'rows'      => $rows,
         );
+    }
+
+    /**
+     * El formulario recibe la provincia como texto libre; WooCommerce exige
+     * el codigo ISO interno para sus zonas (p. ej., Huesca => HU).
+     */
+    private static function woocommerce_state_code($country, $state) {
+        $country = strtoupper(trim((string) $country));
+        $state = trim((string) $state);
+        if ('' === $country || '' === $state || !function_exists('WC') || !WC() || !isset(WC()->countries)) {
+            return $state;
+        }
+        $states = WC()->countries->get_states($country);
+        if (!is_array($states) || array_key_exists($state, $states)) {
+            return $state;
+        }
+        $needle = sanitize_title(remove_accents($state));
+        foreach ($states as $code => $name) {
+            if ($needle === sanitize_title(remove_accents((string) $name))) {
+                return (string) $code;
+            }
+        }
+        return $state;
     }
 
     private static function customer_address($customer, $kind) {
