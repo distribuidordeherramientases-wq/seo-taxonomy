@@ -81,7 +81,7 @@ final class TCA_Treasury {
     }
 
     private static function redirect( $notice ) {
-        wp_safe_redirect( tca_admin_url( 'treasury', array( 'notice' => $notice ) ) );
+        wp_safe_redirect( tca_admin_url( 'treasury', array( 'notice' => 'treasury_' . $notice ) ) );
         exit;
     }
 
@@ -313,8 +313,6 @@ final class TCA_Treasury {
                 $monthly += (float) $loan->monthly_payment;
             }
         }
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only a read-only status message.
-        $notice = isset( $_GET['treasury_notice'] ) ? sanitize_key( wp_unslash( $_GET['treasury_notice'] ) ) : '';
         echo '<h2>' . esc_html__( 'Treasury: cash, bank and loans', 'taxocommerce-accounting' ) . '</h2>';
         echo '<p class="description">' . esc_html__( 'Balances use only recorded opening funds and actual cash movements. Issued invoices, unpaid purchases and future loan instalments do not move money automatically.', 'taxocommerce-accounting' ) . '</p>';
         echo '<div class="tca-treasury-kpis">';
