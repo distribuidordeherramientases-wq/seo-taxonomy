@@ -106,7 +106,18 @@ Detección de zonas:
 - Ceuta: provincia **CE** o CP **51**;
 - Melilla: provincia **ML** o CP **52**.
 
-La versión actual **no calcula IGIC ni IPSI**. Para Canarias, Ceuta y Melilla puede usarse 0 % de IVA y una advertencia documental. La nota por defecto avisa de que impuestos, despacho, transporte u otros gastos en destino pueden no estar incluidos.
+Canarias se etiqueta como **IGIC** y Ceuta/Melilla como **IPSI** (tipos configurables por el comercio). No es un catálogo oficial completo de tipos; conviene revisión profesional.
+
+### B2B intracomunitario (opcional)
+
+Si se habilita **B2B UE con VIES** y se desactiva «Vender solo en España»:
+
+- el checkout pide NIF-IVA y marca de empresa UE;
+- un NIF-IVA válido en VIES aplica **IVA 0 % (ISP)** con mención legal en el PDF;
+- Canarias, Ceuta y Melilla **no** entran en este flujo;
+- OSS, IOSS, SII/Verifactu y presentación oficial 303/349 quedan fuera de alcance.
+
+La nota por defecto de destinos especiales avisa de que despacho, transporte u otros gastos en destino pueden no estar incluidos.
 
 Al guardar con la gestión fiscal activa, el módulo activa el cálculo de impuestos de WooCommerce, sincroniza sus tasas y también sincroniza si los precios almacenados **incluyen IVA**.
 

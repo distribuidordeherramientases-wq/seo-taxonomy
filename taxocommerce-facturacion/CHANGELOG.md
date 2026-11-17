@@ -1,3 +1,10 @@
+## [0.1.17] — 2026-11-17 — B2B UE (VIES/ISP) + etiquetas IGIC/IPSI (#2761 #2762)
+
+- Añade validación VIES opcional e inversión del sujeto pasivo (IVA 0 %) para empresas de otro Estado UE, con mención legal en PDF y metadatos de pedido.
+- Canarias se etiqueta como IGIC y Ceuta/Melilla como IPSI (tipos configurables); quedan fuera del flujo VIES/ISP.
+- Accounting importa pedidos con régimen ISP como `treatment=intra` (draft) copiando el NIF-IVA.
+- Fuera de alcance: OSS, IOSS, SII/Verifactu, presentación oficial 303/349, catálogo completo de tipos IGIC/IPSI.
+
 ## [0.1.16] — 2026-11-16 — IVA incluido en los tres documentos comerciales
 
 - Repara una sola vez la configuración fiscal para tiendas con PVP IVA incluido cuando WooCommerce no dispone de una tasa española aplicable, sin modificar precios ni pedidos previos.

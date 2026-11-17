@@ -1,3 +1,7 @@
+## [0.1.6] — 2026-11-17 — Import ISP → treatment intra (#2761)
+
+- Al importar pedidos WooCommerce con régimen `intra_eu_reverse_charge` / VIES válido, asigna `treatment=intra` y copia el NIF-IVA (sigue en draft).
+
 ## 0.1.5 — 2026-11-15 — Pestaña activa destacada (#2720)
 
 - La pestaña activa del menú de Accounting y la subpestaña de Hacienda se distinguen con fondo azul y texto blanco, con estado de foco visible al navegar con teclado.

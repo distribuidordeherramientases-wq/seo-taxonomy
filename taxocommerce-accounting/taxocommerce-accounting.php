@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.5
+ * Version: 0.1.6
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.5' );
+define( 'TCA_VERSION', '0.1.6' );
 define( 'TCA_DB_VERSION', '2' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
@@ -215,6 +215,13 @@ function tca_sync_sales( $page = 1 ) {
         $total = round( (float) $order->get_total(), 2 );
         $country = (string) $order->get_billing_country();
         $treatment = $currency === $settings['currency'] && $country === $settings['country'] ? 'domestic' : 'review';
+        $tax_id = '';
+        $regime = (string) $order->get_meta( '_seo_facturas_tax_regime' );
+        $vat_validated = (string) $order->get_meta( '_seo_facturas_vat_validated' );
+        if ( 'intra_eu_reverse_charge' === $regime || 'valid' === $vat_validated ) {
+            $treatment = 'intra';
+            $tax_id = (string) $order->get_meta( '_billing_vat' );
+        }
         if ( $already_imported ) {
             ++$skipped;
         } else {
@@ -222,7 +229,7 @@ function tca_sync_sales( $page = 1 ) {
             'source' => 'woocommerce', 'source_id' => $order->get_id(),
             'kind' => 'sale', 'fiscal_date' => $date->date( 'Y-m-d' ),
             'party' => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
-            'tax_id' => '', 'concept' => sprintf( 'WooCommerce #%d', $order->get_id() ),
+            'tax_id' => $tax_id, 'concept' => sprintf( 'WooCommerce #%d', $order->get_id() ),
             'amount_base' => round( $total - $tax, 2 ),
             'amount_tax' => $tax, 'amount_total' => $total,
             'deductible_pct' => 0, 'currency' => $currency,

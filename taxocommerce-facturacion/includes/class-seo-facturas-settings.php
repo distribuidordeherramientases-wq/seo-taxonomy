@@ -57,7 +57,11 @@ final class SEO_Facturas_Settings {
             'tax_canarias_rate' => 0.0,
             'tax_ceuta_rate' => 0.0,
             'tax_melilla_rate' => 0.0,
-            'tax_special_note' => 'Canarias, Ceuta y Melilla pueden estar sujetos a impuestos, despacho, transporte u otros gastos en destino que no estan incluidos en este documento. Consultar condiciones especificas antes de formalizar la operacion.',
+            'tax_special_note' => 'Canarias (IGIC), Ceuta y Melilla (IPSI) tienen regímenes fiscales propios, fuera del IVA peninsular y del IVA UE. Confirme tipos aplicables; despacho, transporte u otros gastos en destino pueden no estar incluidos.',
+            'tax_eu_b2b_enabled' => 0,
+            'tax_eu_block_if_vies_down' => 1,
+            'tax_eu_seller_vat' => '',
+            'tax_eu_reverse_charge_note' => 'Operación intracomunitaria. Inversión del sujeto pasivo (art. 25 Ley 37/1992 del IVA y normativa UE aplicable). IVA 0 %.',
         );
     }
 
@@ -257,6 +261,10 @@ final class SEO_Facturas_Settings {
             'tax_ceuta_rate'       => self::sanitize_tax_rate($input['tax_ceuta_rate'] ?? $d['tax_ceuta_rate']),
             'tax_melilla_rate'     => self::sanitize_tax_rate($input['tax_melilla_rate'] ?? $d['tax_melilla_rate']),
             'tax_special_note'     => sanitize_textarea_field($input['tax_special_note'] ?? $d['tax_special_note']),
+            'tax_eu_b2b_enabled'   => empty($input['tax_eu_b2b_enabled']) ? 0 : 1,
+            'tax_eu_block_if_vies_down' => empty($input['tax_eu_block_if_vies_down']) ? 0 : 1,
+            'tax_eu_seller_vat'    => strtoupper(sanitize_text_field($input['tax_eu_seller_vat'] ?? $d['tax_eu_seller_vat'])),
+            'tax_eu_reverse_charge_note' => sanitize_textarea_field($input['tax_eu_reverse_charge_note'] ?? $d['tax_eu_reverse_charge_note']),
         );
 
         if (!empty($clean['tax_manager_enabled']) && class_exists('SEO_Facturas_Tax')) {

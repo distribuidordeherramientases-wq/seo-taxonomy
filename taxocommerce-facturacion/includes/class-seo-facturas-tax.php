@@ -161,7 +161,7 @@ final class SEO_Facturas_Tax {
         foreach ($zones as $zone => $definition) {
             $current_id = absint($ids[$zone] ?? 0);
             $data = array(
-                'tax_rate_country'  => 'ES',
+                'tax_rate_country'  => ('intra_eu' === $zone) ? '' : 'ES',
                 'tax_rate_state'    => '',
                 'tax_rate'          => self::format_rate($definition['rate']),
                 'tax_rate_name'     => (string) $definition['label'],
@@ -235,6 +235,14 @@ final class SEO_Facturas_Tax {
             $country = 'ES';
         }
 
+        // B2B UE con VIES OK: inversión del sujeto pasivo (nunca Canarias/Ceuta/Melilla).
+        if (
+            class_exists('SEO_Facturas_Eu_Vat')
+            && SEO_Facturas_Eu_Vat::is_reverse_charge_for_location($country, $state, $postcode)
+        ) {
+            return self::managed_rate_response('intra_eu', SEO_Facturas_Settings::taxation());
+        }
+
         if ('ES' !== $country) {
             return empty(SEO_Facturas_Settings::get('tax_restrict_to_spain', 1)) ? $rates : array();
         }
@@ -246,14 +254,20 @@ final class SEO_Facturas_Tax {
             $zone = 'peninsula';
         }
 
+        return self::managed_rate_response($zone, $settings);
+    }
+
+    private static function managed_rate_response($zone, $settings) {
+        $definitions = self::zone_definitions($settings);
+        if (!isset($definitions[$zone])) {
+            return array();
+        }
         $ids = get_option(self::IDS_OPTION, array());
         $rate_id = absint(is_array($ids) ? ($ids[$zone] ?? 0) : 0);
         if (!$rate_id || !self::rate_exists($rate_id)) {
-            return $rates;
+            return array();
         }
-
         $definition = $definitions[$zone];
-
         return array(
             $rate_id => array(
                 'rate'     => self::format_rate($definition['rate']),
@@ -312,24 +326,52 @@ final class SEO_Facturas_Tax {
         $definitions = self::zone_definitions($settings);
         $definition = $definitions[$zone] ?? null;
 
+        if (
+            !$definition
+            && class_exists('SEO_Facturas_Eu_Vat')
+            && SEO_Facturas_Eu_Vat::is_reverse_charge_for_location($country, $state, $postcode)
+        ) {
+            $definition = $definitions['intra_eu'];
+            $zone = 'intra_eu';
+        }
+
         if (!$definition) {
             return array(
                 'enabled'    => self::enabled(),
                 'zone'       => 'other',
                 'zone_label' => 'Fuera de España',
+                'tax_name'   => 'IVA',
                 'rate'       => null,
                 'label'      => 'Impuestos',
+                'regime'     => 'other',
                 'note'       => '',
             );
+        }
+
+        $note = '';
+        if (in_array($zone, array('canarias', 'ceuta', 'melilla'), true)) {
+            $note = (string) ($settings['tax_special_note'] ?? '');
+        }
+        $regime = 'domestic';
+        if (
+            class_exists('SEO_Facturas_Eu_Vat')
+            && SEO_Facturas_Eu_Vat::is_reverse_charge_for_location($country, $state, $postcode)
+        ) {
+            $zone = 'intra_eu';
+            $definition = $definitions['intra_eu'];
+            $note = SEO_Facturas_Eu_Vat::legal_note();
+            $regime = 'intra_eu_reverse_charge';
         }
 
         return array(
             'enabled'    => self::enabled(),
             'zone'       => $zone,
             'zone_label' => (string) $definition['name'],
+            'tax_name'   => (string) ($definition['tax'] ?? 'IVA'),
             'rate'       => (float) $definition['rate'],
             'label'      => (string) $definition['label'],
-            'note'       => in_array($zone, array('canarias', 'ceuta', 'melilla'), true) ? (string) ($settings['tax_special_note'] ?? '') : '',
+            'regime'     => $regime,
+            'note'       => $note,
         );
     }
 
@@ -364,36 +406,47 @@ final class SEO_Facturas_Tax {
         return array(
             'peninsula' => array(
                 'name'  => 'Península',
+                'tax'   => 'IVA',
                 'rate'  => (float) ($settings['tax_peninsula_rate'] ?? 21),
-                'label' => self::rate_label((float) ($settings['tax_peninsula_rate'] ?? 21)),
+                'label' => self::rate_label('IVA', (float) ($settings['tax_peninsula_rate'] ?? 21)),
             ),
             'baleares' => array(
                 'name'  => 'Islas Baleares',
+                'tax'   => 'IVA',
                 'rate'  => (float) ($settings['tax_baleares_rate'] ?? 21),
-                'label' => self::rate_label((float) ($settings['tax_baleares_rate'] ?? 21)),
+                'label' => self::rate_label('IVA', (float) ($settings['tax_baleares_rate'] ?? 21)),
             ),
             'canarias' => array(
                 'name'  => 'Canarias',
+                'tax'   => 'IGIC',
                 'rate'  => (float) ($settings['tax_canarias_rate'] ?? 0),
-                'label' => self::rate_label((float) ($settings['tax_canarias_rate'] ?? 0)),
+                'label' => self::rate_label('IGIC', (float) ($settings['tax_canarias_rate'] ?? 0)),
             ),
             'ceuta' => array(
                 'name'  => 'Ceuta',
+                'tax'   => 'IPSI',
                 'rate'  => (float) ($settings['tax_ceuta_rate'] ?? 0),
-                'label' => self::rate_label((float) ($settings['tax_ceuta_rate'] ?? 0)),
+                'label' => self::rate_label('IPSI', (float) ($settings['tax_ceuta_rate'] ?? 0)),
             ),
             'melilla' => array(
                 'name'  => 'Melilla',
+                'tax'   => 'IPSI',
                 'rate'  => (float) ($settings['tax_melilla_rate'] ?? 0),
-                'label' => self::rate_label((float) ($settings['tax_melilla_rate'] ?? 0)),
+                'label' => self::rate_label('IPSI', (float) ($settings['tax_melilla_rate'] ?? 0)),
+            ),
+            'intra_eu' => array(
+                'name'  => 'UE B2B (ISP)',
+                'tax'   => 'IVA',
+                'rate'  => 0.0,
+                'label' => 'IVA 0% (ISP)',
             ),
         );
     }
 
-    private static function rate_label($rate) {
+    private static function rate_label($tax_name, $rate) {
         $rate = (float) $rate;
         $formatted = rtrim(rtrim(number_format($rate, 3, '.', ''), '0'), '.');
-        return 'IVA ' . $formatted . '%';
+        return trim((string) $tax_name) . ' ' . $formatted . '%';
     }
 
     private static function format_rate($rate) {
@@ -405,6 +458,7 @@ final class SEO_Facturas_Tax {
             'tax_manager_enabled', 'tax_prices_include_tax', 'tax_restrict_to_spain', 'tax_shipping',
             'tax_peninsula_rate', 'tax_baleares_rate', 'tax_canarias_rate',
             'tax_ceuta_rate', 'tax_melilla_rate',
+            'tax_eu_b2b_enabled',
         );
         $data = array();
         foreach ($keys as $key) {
@@ -480,6 +534,12 @@ final class SEO_Facturas_Tax {
         if (!self::requires_standard_iva($country, $state, $postcode)) {
             return true;
         }
+        if (
+            class_exists('SEO_Facturas_Eu_Vat')
+            && SEO_Facturas_Eu_Vat::is_reverse_charge_for_location($country, $state, $postcode)
+        ) {
+            return true;
+        }
         if (function_exists('WC') && WC() && WC()->customer
             && is_callable(array(WC()->customer, 'get_is_vat_exempt'))
             && WC()->customer->get_is_vat_exempt()) {
@@ -518,6 +578,9 @@ final class SEO_Facturas_Tax {
             $postcode = (string) $order->get_billing_postcode();
         }
         if (!self::requires_standard_iva($country, $state, $postcode)) {
+            return true;
+        }
+        if (class_exists('SEO_Facturas_Eu_Vat') && SEO_Facturas_Eu_Vat::order_is_reverse_charge($order)) {
             return true;
         }
         foreach ((array) $order->get_items('line_item') as $item) {
