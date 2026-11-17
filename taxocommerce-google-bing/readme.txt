@@ -4,13 +4,15 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.64
+Stable tag: 1.1.65
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 External connections, manual provider data downloads, and market intelligence for WooCommerce.
 
 == Description ==
+
+Version 1.1.65 introduces the evidence-only "Indicadores para la acción" report, comparing four complete Monday-Sunday weeks or three complete calendar months on shared GSC/GA4 date ranges. It exports factual JSON with source availability and coverage; no editorial actions are prescribed. Other historical report ranges (28, 60, 90 days) and exports remain available.
 
 Version 1.1.64 unifies the complete Analysis action into one CPU-paced, sequential chunked report generation, with one Stop button and a downloadable JSON retained for 24 hours after completion. Fixes the signed AJAX download link to avoid the expired-file error; individual reports remain available.
 

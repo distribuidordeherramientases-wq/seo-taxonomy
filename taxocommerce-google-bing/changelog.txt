@@ -1,3 +1,6 @@
+= 1.1.65 (2026-11-17) =
+* Evidence-only weekly (Monday-Sunday) or monthly calendar indicator report replaces the prescriptive action plan. Align GSC and GA4 date windows, preserve source coverage, and export a secure structured JSON without invented zeroes or tasks. Other report periods stay unchanged. Issue #2764.
+
 = 1.1.61 (2026-11-13) =
 * Independent competitive visibility selection: use verified Google taxonomy IDs even when Best Sellers products are not selected for display. Issue #2643.
 
