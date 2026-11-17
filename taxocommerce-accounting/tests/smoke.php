@@ -68,5 +68,6 @@ if ( false === $preview || false === strpos( $preview, 'Math.round' ) || false =
     fwrite( STDERR, "Accounting purchase invoice preview contract failed.\n" );
     exit( 1 );
 }
+require __DIR__ . '/treasury-smoke.php';
 echo "TaxoCommerce Accounting isolated smoke: PASS\n";
 
