@@ -49,7 +49,9 @@ final class TCA_Corrections {
             'party', 'tax_id', 'concept', 'amount_base', 'amount_tax',
             'amount_total', 'deductible_pct', 'currency', 'treatment',
             'status', 'notes' ) as $key ) {
-            $result[ $key ] = isset( $entry->$key ) ? $entry->$key : '';
+            $value = isset( $entry->$key ) ? $entry->$key : '';
+            $result[ $key ] = in_array( $key, array( 'amount_base', 'amount_tax', 'amount_total', 'deductible_pct' ), true )
+                ? number_format( (float) $value, 2, '.', '' ) : (string) $value;
         }
         return $result;
     }
@@ -262,7 +264,7 @@ final class TCA_Corrections {
             if ( ! in_array( $key, array( 'tax_id', 'concept' ), true ) ) {
                 echo ' required';
             }
-            if ( 'woocommerce' === $entry->source && 'document_no' === $key ) {
+            if ( 'woocommerce' === $entry->source && 'document_no' === $key && '' !== TCA_Issued_Invoice::for_order( $entry->source_id ) ) {
                 echo ' readonly';
             }
             echo '></td></tr>';
@@ -292,8 +294,8 @@ final class TCA_Corrections {
         echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Date', 'taxocommerce-accounting' ) . '</th><th>' .
             esc_html__( 'Administrator ID', 'taxocommerce-accounting' ) . '</th><th>' .
             esc_html__( 'Reason', 'taxocommerce-accounting' ) . '</th><th>' .
-            esc_html__( 'Previous base / VAT / total', 'taxocommerce-accounting' ) . '</th><th>' .
-            esc_html__( 'New base / VAT / total', 'taxocommerce-accounting' ) . '</th></tr></thead><tbody>';
+            esc_html__( 'Before: date / invoice / base / VAT / total', 'taxocommerce-accounting' ) . '</th><th>' .
+            esc_html__( 'After: date / invoice / base / VAT / total', 'taxocommerce-accounting' ) . '</th></tr></thead><tbody>';
         foreach ( $logs as $log ) {
             $before = json_decode( $log->before_data, true );
             $after = json_decode( $log->after_data, true );
@@ -309,6 +311,8 @@ final class TCA_Corrections {
             return '';
         }
         return implode( ' / ', array(
+            isset( $data['fiscal_date'] ) ? (string) $data['fiscal_date'] : '',
+            isset( $data['document_no'] ) ? (string) $data['document_no'] : '',
             isset( $data['amount_base'] ) ? (string) $data['amount_base'] : '',
             isset( $data['amount_tax'] ) ? (string) $data['amount_tax'] : '',
             isset( $data['amount_total'] ) ? (string) $data['amount_total'] : '',
