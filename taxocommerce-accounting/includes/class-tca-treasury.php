@@ -458,6 +458,7 @@ final class TCA_Treasury {
         echo '<p><label>' . esc_html__( 'Next payment date', 'taxocommerce-accounting' ) . ' <input type="date" name="next_due_date" required></label></p></div></div>';
         submit_button( __( 'Save loan', 'taxocommerce-accounting' ), 'secondary', 'submit', false );
         echo '</form>';
+        TCA_Expense_CSV::render( $year );
     }
 }
 add_action( 'admin_post_tca_treasury_action', array( 'TCA_Treasury', 'handle' ) );

@@ -1,3 +1,11 @@
+## 0.1.11 — 2026-11-17 — Importación/exportación CSV de gastos desde Tesorería (#2785)
+
+- Sección en Tesorería para descargar plantilla, importar y exportar por ejercicio CSV de gastos de asociación/tienda (hosting, dominios, software, certificados, tasas y Correos), sin duplicar libros ni tratar esos documentos como compras de mercancía.
+- Cada fila se incorpora exclusivamente al registro **Expenses** como borrador revisable; conserva fecha original, emisor, documento, base, IVA, porcentaje de IVA propuesto y tratamiento. No aprueba deducciones, no modifica el IVA de documentos emitidos y no crea movimientos de caja ni banco.
+- Identificación de destino association/commercial/shared/review en las notas del mismo asiento, sin tablas o columnas adicionales; el exportador recupera esa clasificación.
+- CSV UTF-8 compatible con Excel español (punto y coma, también admite CSV con coma), límite 2 MB/500 filas por importación, validación completa previa, duplicados omitidos y exportación protegida frente a fórmulas CSV.
+- Se mantiene la adjunción cifrada de justificantes PDF desde la pestaña Expenses, usando el mismo registro manual de gastos. Pruebas de seguridad y compatibilidad con los flujos existentes.
+
 ## 0.1.10 — 2026-11-17 — Pestaña Tesorería: caja, bancos y préstamos (#2782)
 
 - Una nueva pestaña independiente **Tesorería** presenta indicadores de caja, saldos bancarios combinados, fondos disponibles, deuda declarada pendiente y cuotas mensuales previstas.

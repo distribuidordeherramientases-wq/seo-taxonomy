@@ -395,3 +395,54 @@ msgstr "Download AEAT XLSX template — legal entities"
 
 msgid "Download AEAT XLSX template — general"
 msgstr "Download AEAT XLSX template — general"
+
+msgid "Expense CSV processed. Verify the new drafts in Expenses."
+msgstr "Expense CSV processed. Verify the new drafts in Expenses."
+
+msgid "Select a valid CSV file smaller than 2 MB."
+msgstr "Select a valid CSV file smaller than 2 MB."
+
+msgid "Invalid CSV headers. Download and use the exact template."
+msgstr "Invalid CSV headers. Download and use the exact template."
+
+msgid "CSV contains too many rows; maximum 500."
+msgstr "CSV contains too many rows; maximum 500."
+
+msgid "CSV contains invalid expense data; nothing was imported."
+msgstr "CSV contains invalid expense data; nothing was imported."
+
+msgid "CSV contains no expense documents."
+msgstr "CSV contains no expense documents."
+
+msgid "Could not save the CSV batch; please retry."
+msgstr "Could not save the CSV batch; please retry."
+
+msgid "Export limit exceeded; use a narrower reporting period."
+msgstr "Export limit exceeded; use a narrower reporting period."
+
+msgid "Expense documents: CSV import and export"
+msgstr "Expense documents: CSV import and export"
+
+msgid "For domains, hosting, digital certificates, administrative fees, postal services, software and other association or business expenses. Imports go to Accounting > Expenses as unapproved drafts. They do not change bank/cash balances or automatically create a tax deduction."
+msgstr "For domains, hosting, digital certificates, administrative fees, postal services, software and other association or business expenses. Imports go to Accounting > Expenses as unapproved drafts. They do not change bank/cash balances or automatically create a tax deduction."
+
+msgid "Download blank CSV template"
+msgstr "Download blank CSV template"
+
+msgid "Export expense CSV for %d"
+msgstr "Export expense CSV for %d"
+
+msgid "Use UTF-8 CSV with semicolon or comma separators. Keep the template column names unchanged. Dates: YYYY-MM-DD; values: base and VAT in EUR; deductible_vat_pct is the percentage of VAT deductible, not the VAT rate (0 until verified). vat_treatment: review, domestic, intra, reverse, exempt. scope: review, association, commercial, shared."
+msgstr "Use UTF-8 CSV with semicolon or comma separators. Keep the template column names unchanged. Dates: YYYY-MM-DD; values: base and VAT in EUR; deductible_vat_pct is the percentage of VAT deductible, not the VAT rate (0 until verified). vat_treatment: review, domestic, intra, reverse, exempt. scope: review, association, commercial, shared."
+
+msgid "Expense CSV file"
+msgstr "Expense CSV file"
+
+msgid "Import expense drafts"
+msgstr "Import expense drafts"
+
+msgid "Maximum 500 rows / 2 MB per import. Repeated documents are skipped. Attach original PDF receipts individually in Expenses, verify the legal tax treatment, then validate each entry."
+msgstr "Maximum 500 rows / 2 MB per import. Repeated documents are skipped. Attach original PDF receipts individually in Expenses, verify the legal tax treatment, then validate each entry."
+
+msgid "Imported: %1$d drafts. Existing/duplicate documents skipped: %2$d."
+msgstr "Imported: %1$d drafts. Existing/duplicate documents skipped: %2$d."

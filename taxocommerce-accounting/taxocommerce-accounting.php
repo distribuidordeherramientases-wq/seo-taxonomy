@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.10
+ * Version: 0.1.11
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.10' );
+define( 'TCA_VERSION', '0.1.11' );
 define( 'TCA_DB_VERSION', '4' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
@@ -36,6 +36,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-issued-invoice.ph
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-corrections.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-hacienda.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-treasury.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-expense-csv.php';
 
 /** Own data; no dependency on any TaxoCommerce module. */
 function tca_table() {
@@ -843,6 +844,13 @@ function tca_admin() {
             'treasury_saved'       => __( 'Treasury record saved.', 'taxocommerce-accounting' ),
             'treasury_error'       => __( 'Could not save the treasury record.', 'taxocommerce-accounting' ),
             'treasury_invalid'     => __( 'Check the treasury values and dates.', 'taxocommerce-accounting' ),
+            'expense_csv_done'    => __( 'Expense CSV processed. Verify the new drafts in Expenses.', 'taxocommerce-accounting' ),
+            'expense_csv_upload'  => __( 'Select a valid CSV file smaller than 2 MB.', 'taxocommerce-accounting' ),
+            'expense_csv_headers' => __( 'Invalid CSV headers. Download and use the exact template.', 'taxocommerce-accounting' ),
+            'expense_csv_limit'   => __( 'CSV contains too many rows; maximum 500.', 'taxocommerce-accounting' ),
+            'expense_csv_invalid' => __( 'CSV contains invalid expense data; nothing was imported.', 'taxocommerce-accounting' ),
+            'expense_csv_empty'   => __( 'CSV contains no expense documents.', 'taxocommerce-accounting' ),
+            'expense_csv_error'   => __( 'Could not save the CSV batch; please retry.', 'taxocommerce-accounting' ),
         );
         echo '<div class="notice notice-info"><p>' . esc_html( isset( $invoice_notices[ $notice ] ) ? $invoice_notices[ $notice ] : $notice ) . '</p></div>';
     }
