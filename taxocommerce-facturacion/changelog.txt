@@ -1,3 +1,6 @@
+= 0.1.19 (2026-11-17) =
+* Presupuestos y proformas calculan transporte segun el destino del formulario, no segun un indicador obsoleto de sesion. Muestran el neto y el precio con IVA, sin modificar reglas de Logistica ni inventario.
+
 = 0.1.18 =
 * Full IGIC/IPSI catalogs with WC tax classes. Issue #2762.
 
