@@ -12,7 +12,6 @@ $contracts = array(
     'function tca_summary(',
     'function tca_autocheck(',
     'function tca_export()',
-    'TCA_Expense_CSV::render( $year )',
     'class-tca-expense-csv.php',
     "TCA_Treasury::install_schema()",
     'TCA_Treasury::render( $year )',
