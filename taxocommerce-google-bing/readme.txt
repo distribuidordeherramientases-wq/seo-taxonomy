@@ -4,13 +4,15 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.65
+Stable tag: 1.1.66
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 External connections, manual provider data downloads, and market intelligence for WooCommerce.
 
 == Description ==
+
+Version 1.1.66 adds executive findings with source values, periods, confidence, sample size and explicit limitations. Low-volume search/category observations remain visible rather than being discarded; they are preliminary, not instructions. A strictly bounded Search Console verification may be suggested for well-supported low-click observations. JSON retains its existing data and adds `findings` in schema v2, without generating content plans or strategy.
 
 Version 1.1.65 introduces the evidence-only "Indicadores para la acción" report, comparing four complete Monday-Sunday weeks or three complete calendar months on shared GSC/GA4 date ranges. It exports factual JSON with source availability and coverage; no editorial actions are prescribed. Other historical report ranges (28, 60, 90 days) and exports remain available.
 
