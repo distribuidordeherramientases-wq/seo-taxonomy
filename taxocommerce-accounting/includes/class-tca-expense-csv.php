@@ -122,7 +122,8 @@ final class TCA_Expense_CSV {
         }
         check_admin_referer( 'tca_expense_csv_import' );
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified above, used only as a temporary upload.
+        // The authenticated administrator's uploaded file metadata is validated below.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; PHP's temporary uploaded path cannot be sanitized as normal form text.
         $file = isset( $_FILES['expense_csv'] ) && is_array( $_FILES['expense_csv'] ) ? $_FILES['expense_csv'] : array();
         if ( ! isset( $file['error'], $file['size'], $file['name'], $file['tmp_name'] ) ||
             is_array( $file['error'] ) || UPLOAD_ERR_OK !== (int) $file['error'] ||
@@ -132,12 +133,14 @@ final class TCA_Expense_CSV {
             self::redirect( 'expense_csv_upload' );
         }
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Read the verified temporary CSV upload or open the CSV download stream; WP_Filesystem cannot access PHP output streams.
         $handle = fopen( $file['tmp_name'], 'rb' );
         if ( false === $handle ) {
             self::redirect( 'expense_csv_upload' );
         }
         $first = fgets( $handle, 8192 );
         if ( false === $first ) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the CSV input or output stream.
             fclose( $handle );
             self::redirect( 'expense_csv_headers' );
         }
@@ -145,11 +148,13 @@ final class TCA_Expense_CSV {
         rewind( $handle );
         $header = fgetcsv( $handle, 65536, $delimiter, '"', '' );
         if ( ! is_array( $header ) ) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the CSV input or output stream.
             fclose( $handle );
             self::redirect( 'expense_csv_headers' );
         }
         $header[0] = preg_replace( '/^\xEF\xBB\xBF/', '', (string) $header[0] );
         if ( self::columns() !== array_map( 'trim', $header ) ) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the CSV input or output stream.
             fclose( $handle );
             self::redirect( 'expense_csv_headers' );
         }
@@ -167,11 +172,13 @@ final class TCA_Expense_CSV {
             }
             ++$count;
             if ( $count > self::MAX_ROWS ) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the CSV input or output stream.
                 fclose( $handle );
                 self::redirect( 'expense_csv_limit' );
             }
             $entry = self::parse_row( $fields, $currency );
             if ( null === $entry ) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the CSV input or output stream.
                 fclose( $handle );
                 self::redirect( 'expense_csv_invalid' );
             }
@@ -183,6 +190,7 @@ final class TCA_Expense_CSV {
             $seen[ $identity ] = true;
             $entries[] = $entry;
         }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the CSV input or output stream.
         fclose( $handle );
         if ( 0 === $count ) {
             self::redirect( 'expense_csv_empty' );
@@ -221,11 +229,13 @@ final class TCA_Expense_CSV {
         header( 'Content-Type: text/csv; charset=utf-8' );
         header( 'X-Content-Type-Options: nosniff' );
         header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Read the verified temporary CSV upload or open the CSV download stream; WP_Filesystem cannot access PHP output streams.
         $stream = fopen( 'php://output', 'wb' );
         if ( false === $stream ) {
             exit;
         }
         // UTF-8 BOM ensures Spanish Excel recognises accents.
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Write the UTF-8 BOM to the CSV download stream.
         fwrite( $stream, "\xEF\xBB\xBF" );
         return $stream;
     }
@@ -237,6 +247,7 @@ final class TCA_Expense_CSV {
         check_admin_referer( 'tca_expense_csv_template' );
         $out = self::send_csv( 'accounting-expense-template.csv' );
         fputcsv( $out, self::columns(), ';', '"', '' );
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the CSV input or output stream.
         fclose( $out );
         exit;
     }
@@ -265,6 +276,7 @@ final class TCA_Expense_CSV {
         foreach ( $rows as $row ) {
             fputcsv( $out, self::export_values( $row ), ';', '"', '' );
         }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the CSV input or output stream.
         fclose( $out );
         exit;
     }
