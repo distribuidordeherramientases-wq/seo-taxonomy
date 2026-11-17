@@ -6,7 +6,9 @@
 defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/analista-mercado-ejecutivo.php';
-require_once __DIR__ . '/analista-indicadores.php';
+if ( ! function_exists( 'taxocommerce_insights_indicators_build' ) ) {
+    require_once __DIR__ . '/analista-indicadores.php';
+}
 
 /**
  * The executive action and the detailed roadmap are one report in Insights.
