@@ -396,3 +396,54 @@ msgstr "AEAT-XLSX-Vorlage herunterladen — juristische Personen"
 
 msgid "Download AEAT XLSX template — general"
 msgstr "AEAT-XLSX-Vorlage herunterladen — allgemein"
+
+msgid "Expense CSV processed. Verify the new drafts in Expenses."
+msgstr "Ausgaben-CSV verarbeitet. Prüfen Sie die neuen Entwürfe unter Ausgaben."
+
+msgid "Select a valid CSV file smaller than 2 MB."
+msgstr "Wählen Sie eine gültige CSV-Datei unter 2 MB."
+
+msgid "Invalid CSV headers. Download and use the exact template."
+msgstr "Ungültige CSV-Spaltenüberschriften. Laden Sie die Vorlage herunter und verwenden Sie sie unverändert."
+
+msgid "CSV contains too many rows; maximum 500."
+msgstr "Die CSV-Datei überschreitet das Limit von 500 Zeilen."
+
+msgid "CSV contains invalid expense data; nothing was imported."
+msgstr "Die CSV-Datei enthält ungültige Ausgabendaten; es wurde nichts importiert."
+
+msgid "CSV contains no expense documents."
+msgstr "Die CSV-Datei enthält keine Ausgabenbelege."
+
+msgid "Could not save the CSV batch; please retry."
+msgstr "Der CSV-Stapel konnte nicht gespeichert werden. Bitte erneut versuchen."
+
+msgid "Export limit exceeded; use a narrower reporting period."
+msgstr "Exportlimit überschritten; wählen Sie einen kürzeren Zeitraum."
+
+msgid "Expense documents: CSV import and export"
+msgstr "Ausgabenbelege: CSV-Import und -Export"
+
+msgid "For domains, hosting, digital certificates, administrative fees, postal services, software and other association or business expenses. Imports go to Accounting > Expenses as unapproved drafts. They do not change bank/cash balances or automatically create a tax deduction."
+msgstr "Für Domains, Hosting, digitale Zertifikate, Gebühren, Postdienste, Software und andere Ausgaben des Vereins oder Betriebs. Der Import erstellt nur Entwürfe unter Buchhaltung > Ausgaben. Bank- und Kassenbestände bleiben unverändert; Steuerabzüge werden nicht automatisch vorgenommen."
+
+msgid "Download blank CSV template"
+msgstr "Leere CSV-Vorlage herunterladen"
+
+msgid "Export expense CSV for %d"
+msgstr "Ausgaben-CSV für %d exportieren"
+
+msgid "Use UTF-8 CSV with semicolon or comma separators. Keep the template column names unchanged. Dates: YYYY-MM-DD; values: base and VAT in EUR; deductible_vat_pct is the percentage of VAT deductible, not the VAT rate (0 until verified). vat_treatment: review, domestic, intra, reverse, exempt. scope: review, association, commercial, shared."
+msgstr "Verwenden Sie UTF-8-CSV mit Semikolon oder Komma und unveränderten Spaltennamen. Datum: JJJJ-MM-TT; Netto und MwSt. in EUR. deductible_vat_pct ist der Anteil der abzugsfähigen MwSt., nicht der Steuersatz (bis zur Prüfung 0). vat_treatment: review, domestic, intra, reverse, exempt. scope: review, association, commercial, shared."
+
+msgid "Expense CSV file"
+msgstr "Ausgaben-CSV-Datei"
+
+msgid "Import expense drafts"
+msgstr "Ausgabenentwürfe importieren"
+
+msgid "Maximum 500 rows / 2 MB per import. Repeated documents are skipped. Attach original PDF receipts individually in Expenses, verify the legal tax treatment, then validate each entry."
+msgstr "Maximal 500 Zeilen und 2 MB je Import. Doppelte Belege werden übersprungen. Fügen Sie die Original-PDFs einzeln unter Ausgaben hinzu, prüfen Sie die steuerliche Behandlung und bestätigen Sie jeden Eintrag."
+
+msgid "Imported: %1$d drafts. Existing/duplicate documents skipped: %2$d."
+msgstr "Importiert: %1$d Entwürfe. Vorhandene oder doppelte Belege übersprungen: %2$d."
