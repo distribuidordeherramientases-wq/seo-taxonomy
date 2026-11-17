@@ -244,6 +244,90 @@ function taxocommerce_insights_indicators_delta( $current, $previous ) {
 }
 
 /**
+ * Classify a measured signal without pretending to infer causes.
+ * Suggestions are limited to checking the source/URL, never creating
+ * content or changing business strategy.
+ *
+ * @param string $code Existing indicator code.
+ * @param float  $impressions Current GSC impressions.
+ * @param float  $clicks Current GSC clicks.
+ * @param float  $position Weighted average search position.
+ * @param bool   $prior_available Whether this entity has prior comparable data.
+ * @return array
+ */
+function taxocommerce_insights_indicators_explain( $code, $impressions, $clicks, $position, $prior_available ) {
+    $impressions = (float) $impressions;
+    $clicks = (float) $clicks;
+    $position = (float) $position;
+    $sample = $impressions >= 50 ? 'moderate' : 'small';
+    $confidence = $prior_available && $impressions >= 50 ? 'moderate' : 'preliminary';
+    $description = '';
+    switch ( $code ) {
+        case 'visibilidad_sin_clics_organicos':
+        case 'consulta_visible_sin_clics_organicos':
+            $description = __( 'Hay impresiones y una posición media favorable, pero no se registran clics orgánicos en este periodo.', 'taxocommerce-google-bing' );
+            break;
+        case 'nicho_pequeno_con_clics':
+            $description = __( 'La categoría dispone de pocos productos y registra clics orgánicos.', 'taxocommerce-google-bing' );
+            break;
+        case 'impresiones_en_crecimiento':
+        case 'consulta_con_impresiones_crecientes':
+            $description = __( 'Las impresiones del periodo aumentaron respecto al periodo anterior disponible.', 'taxocommerce-google-bing' );
+            break;
+    }
+    $suggestion = null;
+    // The only permitted suggestion: independently check an observed
+    // low-CTR URL/query with enough observations and corroborating history.
+    if ( $prior_available && $impressions >= 50 && 0.0 === $clicks
+        && $position > 0 && $position <= 10
+        && in_array( $code, array( 'visibilidad_sin_clics_organicos', 'consulta_visible_sin_clics_organicos' ), true ) ) {
+        $suggestion = __( 'Comprobar en Search Console las consultas, la URL y su evolución antes de decidir si procede alguna actuación.', 'taxocommerce-google-bing' );
+    }
+    return array(
+        'observation' => $description,
+        'confidence' => $confidence,
+        'sample' => $sample,
+        'suggestion' => $suggestion,
+        'limitations' => __( 'Muestra de un periodo; la posición media no garantiza presencia permanente en una posición. Los clics orgánicos no equivalen a visitas totales.', 'taxocommerce-google-bing' ),
+    );
+}
+
+/**
+ * Retain numeric evidence even when the observation is not strong enough for
+ * an executive highlight; never treat a missing previous entity as zero.
+ */
+function taxocommerce_insights_indicators_findings( array $signals, $kind, array $period ) {
+    $out = array();
+    foreach ( $signals as $row ) {
+        $metrics = (array) ( $row['metrics'] ?? array() );
+        $impressions = (float) ( $metrics['impressions'] ?? 0 );
+        $clicks = (float) ( $metrics['clicks'] ?? 0 );
+        $position = (float) ( $metrics['position'] ?? 0 );
+        $previous = isset( $metrics['previous_impressions'] );
+        foreach ( (array) ( $row['signals'] ?? array() ) as $code ) {
+            $assessment = taxocommerce_insights_indicators_explain( $code, $impressions, $clicks, $position, $previous );
+            $out[] = array(
+                'kind' => $kind,
+                'entity_id' => isset( $row['entity_id'] ) ? absint( $row['entity_id'] ) : null,
+                'name' => (string) ( $row['name'] ?? $row['query'] ?? '' ),
+                'url' => $row['url'] ?? null,
+                'code' => $code,
+                'observation' => $assessment['observation'],
+                'source' => (string) ( $row['source'] ?? 'Google Search Console' ),
+                'period' => array( 'date_from' => $period['date_from'], 'date_to' => $period['date_to'] ),
+                'metrics' => $metrics,
+                'product_count' => $row['product_count'] ?? null,
+                'confidence' => $assessment['confidence'],
+                'sample' => $assessment['sample'],
+                'limitations' => $assessment['limitations'],
+                'suggestion' => $assessment['suggestion'],
+            );
+        }
+    }
+    return array_slice( $out, 0, 100 );
+}
+
+/**
  * Resolve a category only when a GSC URL matches its real WP term permalink.
  * We do not classify URLs by words, which causes false positive families.
  *
@@ -303,10 +387,10 @@ function taxocommerce_insights_indicators_categories( array $pages, array $old_p
             ? taxocommerce_insights_indicators_delta( $impressions, (float) ( $previous['impressions'] ?? 0 ) ) : null;
         $signals = array();
 
-        if ( $impressions >= 20 && $change && $change['delta'] >= 10 ) {
+        if ( $impressions >= 10 && $change && $change['delta'] >= 5 ) {
             $signals[] = 'impresiones_en_crecimiento';
         }
-        if ( $impressions >= 50 && 0.0 === $clicks && $position > 0 && $position <= 20 ) {
+        if ( $impressions >= 10 && 0.0 === $clicks && $position > 0 && $position <= 20 ) {
             $signals[] = 'visibilidad_sin_clics_organicos';
         }
         $products = max( 0, (int) ( $term->count ?? 0 ) );
@@ -448,10 +532,10 @@ function taxocommerce_insights_indicators_build( $mode = 'week' ) {
             $change = $old_exists
                 ? taxocommerce_insights_indicators_delta( $impressions, (float) ( $old['impressions'] ?? 0 ) ) : null;
             $codes = array();
-            if ( $impressions >= 20 && $change && $change['delta'] >= 10 ) {
+            if ( $impressions >= 10 && $change && $change['delta'] >= 5 ) {
                 $codes[] = 'consulta_con_impresiones_crecientes';
             }
-            if ( $impressions >= 50 && 0.0 === $clicks && $position > 0 && $position <= 20 ) {
+            if ( $impressions >= 10 && 0.0 === $clicks && $position > 0 && $position <= 20 ) {
                 $codes[] = 'consulta_visible_sin_clics_organicos';
             }
             if ( $codes ) {
@@ -476,7 +560,7 @@ function taxocommerce_insights_indicators_build( $mode = 'week' ) {
     }
 
     return array(
-        'schema' => array( 'name' => 'taxocommerce-insights-indicadores', 'version' => 1 ),
+        'schema' => array( 'name' => 'taxocommerce-insights-indicadores', 'version' => 2 ),
         'generated_at' => gmdate( 'c' ),
         'period_mode' => $mode,
         'period_label' => 'week' === $mode ? 'Semanas completas (lunes-domingo)' : 'Meses naturales completos',
@@ -490,6 +574,10 @@ function taxocommerce_insights_indicators_build( $mode = 'week' ) {
         'signals' => array(
             'categories' => $category_signals,
             'queries' => $query_signals,
+        ),
+        'findings' => array_merge(
+            taxocommerce_insights_indicators_findings( $category_signals, 'category', $latest ),
+            taxocommerce_insights_indicators_findings( $query_signals, 'query', $latest )
         ),
         'evidence' => array(
             'gsc_pages_current_complete' => $pages_current_complete,
@@ -572,17 +660,28 @@ function taxocommerce_insights_indicators_render( array $report ) {
     if ( ! $categories && ! $queries ) {
         echo '<p>' . esc_html__( 'No se han detectado señales suficientes en los datos comparables; esto no significa que no existan oportunidades.', 'taxocommerce-google-bing' ) . '</p>';
     }
-    foreach ( array_slice( $categories, 0, 8 ) as $category ) {
-        $metrics = (array) $category['metrics'];
-        echo '<p><strong>' . esc_html( (string) $category['name'] ) . '</strong> · ';
-        echo esc_html( number_format_i18n( $metrics['impressions'], 0 ) . ' impresiones, ' . number_format_i18n( $metrics['clicks'], 0 ) . ' clics, ' . number_format_i18n( $category['product_count'], 0 ) . ' productos.' );
-        echo ' ' . esc_html( implode( ', ', (array) $category['signals'] ) ) . '</p>';
-    }
-    foreach ( array_slice( $queries, 0, 8 ) as $query ) {
-        $metrics = (array) $query['metrics'];
-        echo '<p><strong>' . esc_html( (string) $query['query'] ) . '</strong> · ';
-        echo esc_html( number_format_i18n( $metrics['impressions'], 0 ) . ' impresiones, ' . number_format_i18n( $metrics['clicks'], 0 ) . ' clics.' );
-        echo ' ' . esc_html( implode( ', ', (array) $query['signals'] ) ) . '</p>';
+    $findings = (array) ( $report['findings'] ?? array() );
+    foreach ( array_slice( $findings, 0, 15 ) as $finding ) {
+        $metrics = (array) ( $finding['metrics'] ?? array() );
+        echo '<div class="seo-analista-indicator-finding">';
+        echo '<p><strong>' . esc_html( (string) $finding['name'] ) . '</strong>';
+        echo ' · ' . esc_html( (string) ( $finding['observation'] ?? '' ) ) . '</p>';
+        echo '<p>' . esc_html( sprintf(
+            /* translators: 1: impressions, 2: clicks, 3: position */
+            __( '%1$s impresiones; %2$s clics orgánicos; posición media %3$s.', 'taxocommerce-google-bing' ),
+            number_format_i18n( (float) ( $metrics['impressions'] ?? 0 ), 0 ),
+            number_format_i18n( (float) ( $metrics['clicks'] ?? 0 ), 0 ),
+            isset( $metrics['position'] ) ? number_format_i18n( (float) $metrics['position'], 1 ) : '—'
+        ) ) . '</p>';
+        echo '<p>' . esc_html__( 'Fiabilidad:', 'taxocommerce-google-bing' ) . ' ' . esc_html(
+            'moderate' === ( $finding['confidence'] ?? '' )
+                ? __( 'Muestra moderada y antecedente comparable.', 'taxocommerce-google-bing' )
+                : __( 'Señal preliminar; muestra limitada o sin antecedente comparable.', 'taxocommerce-google-bing' )
+        ) . '</p>';
+        if ( ! empty( $finding['suggestion'] ) ) {
+            echo '<p><strong>' . esc_html__( 'Comprobación sugerida:', 'taxocommerce-google-bing' ) . '</strong> ' . esc_html( (string) $finding['suggestion'] ) . '</p>';
+        }
+        echo '</div>';
     }
     echo '</section>';
 }

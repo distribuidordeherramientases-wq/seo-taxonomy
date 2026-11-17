@@ -81,6 +81,25 @@ function seo_analista_page_rows( $property, $from, $to, $limit ) {
 
 require dirname( __DIR__ ) . '/includes/analysis/analista-indicadores.php';
 
+// Verify low-volume executive evidence that version 1.1.65 missed.
+$bolard_query = taxocommerce_insights_indicators_explain( 'consulta_visible_sin_clics_organicos', 30, 0, 5, false );
+indicator_assert( 'preliminary' === $bolard_query['confidence'], '30 impressions remain a preliminary signal' );
+indicator_assert( null === $bolard_query['suggestion'], 'Low-volume example never triggers an action' );
+$category_candidate = taxocommerce_insights_indicators_explain( 'visibilidad_sin_clics_organicos', 35, 0, 9.9, true );
+indicator_assert( null === $category_candidate['suggestion'], '35 impressions still cannot prescribe actions' );
+$verified_candidate = taxocommerce_insights_indicators_explain( 'visibilidad_sin_clics_organicos', 65, 0, 6, true );
+indicator_assert( 'moderate' === $verified_candidate['confidence'], 'Moderate repeated evidence classified separately' );
+indicator_assert( is_string( $verified_candidate['suggestion'] ) && '' !== $verified_candidate['suggestion'], 'Strong evidence allows a strictly bounded check recommendation' );
+indicator_assert( null === taxocommerce_insights_indicators_explain( 'nicho_pequeno_con_clics', 65, 4, 8, true )['suggestion'], 'Niche identification does not prescribe commercial strategy' );
+$test_findings = taxocommerce_insights_indicators_findings(
+    array( array( 'query' => 'venta de bolardos', 'source' => 'Google Search Console', 'signals' => array( 'consulta_visible_sin_clics_organicos' ), 'metrics' => array( 'impressions' => 30, 'clicks' => 0, 'position' => 5, 'previous_impressions' => null ) ) ),
+    'query',
+    array( 'date_from' => '2026-11-02', 'date_to' => '2026-11-08' )
+);
+indicator_assert( 1 === count( $test_findings ), 'Low-volume finding serialized for executive report' );
+indicator_assert( '2026-11-02' === $test_findings[0]['period']['date_from'] && 30 === $test_findings[0]['metrics']['impressions'], 'Finding preserves date and original evidence' );
+indicator_assert( null === $test_findings[0]['suggestion'], 'Unverified executive finding is descriptive only' );
+
 $weeks = taxocommerce_insights_indicators_periods( 'week', '2026-11-08', '2026-11-15', 4 );
 indicator_assert( count( $weeks ) === 4, 'Four complete weeks' );
 indicator_assert( $weeks[0]['date_from'] === '2026-11-02' && $weeks[0]['date_to'] === '2026-11-08', 'Shared last Monday-to-Sunday week' );
@@ -99,6 +118,9 @@ indicator_assert( taxocommerce_insights_indicators_delta( null, 0 ) === null, 'U
 
 $report = taxocommerce_insights_indicators_build( 'week' );
 indicator_assert( 'taxocommerce-insights-indicadores' === $report['schema']['name'], 'Evidence-only JSON schema' );
+indicator_assert( 2 === $report['schema']['version'], 'Structured executive evidence schema version 2' );
+indicator_assert( ! empty( $report['findings'] ), 'Exported JSON includes documented executive findings' );
+indicator_assert( ! empty( $report['findings'][0]['observation'] ), 'Finding contains human-readable observation' );
 indicator_assert( 'week' === $report['period_mode'], 'Calendar mode in JSON' );
 indicator_assert( count( $report['periods'] ) === 4, 'Four historical periods exported' );
 indicator_assert( '2026-11-02' === $report['periods'][0]['date_from'], 'Same current window in GSC and GA4' );
