@@ -1,3 +1,11 @@
+## [0.1.19] — 2026-11-17 — Transporte calculado en presupuestos y proformas
+
+- Recalcula el transporte usando el destino introducido en el formulario de carrito, resuelve provincia española a codigo WooCommerce y restaura la direccion original de sesion.
+- Detecta envio calculado desde WC_Cart y la tarifa seleccionada, en lugar de confundirlo con el indicador de WC_Customer.
+- Muestra coste de transporte sin IVA y, cuando aplica, total del transporte con IVA incluido para evitar confusion con el total del documento.
+- Si un producto requiere envio y no hay tarifa para la direccion completa, impide emitir el PDF con coste ficticio. No modifica tarifas, pedidos ni pesos/dimensiones de productos.
+- Normaliza Stable tag de readme.txt a la version publicada.
+
 ## [0.1.18] — 2026-11-17 — Catálogo completo IGIC e IPSI (#2762)
 
 - Añade tipos IGIC Canarias (0 / 3 / 7 / 9,5 / 15 / 20 %) y IPSI Ceuta/Melilla (0 / 0,5 / 1 / 2 / 4 / 8 / 10 %), editables.
