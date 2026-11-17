@@ -45,6 +45,10 @@ It does not create a parallel document database and does not include a destructi
 
 == Changelog ==
 
+= 0.1.16 =
+* Inclusive VAT restored for new invoices, proformas and cart quotes: one-time tax-rate repair when needed, form destination used for cart tax, and block emission when standard taxable lines have zero tax. Does not alter issued PDFs. Issue #2757.
+* Align Stable tag with plugin Version 0.1.16 so Plugin Check packaging can pass.
+
 = 0.1.12 =
 * Local Description and Plugin URI replace REST excerpt requests and caches in the header. Issue #2494.
 
