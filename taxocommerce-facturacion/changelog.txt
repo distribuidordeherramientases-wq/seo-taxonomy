@@ -1,3 +1,6 @@
+= 0.1.18 =
+* Full IGIC/IPSI catalogs with WC tax classes. Issue #2762.
+
 = 0.1.17 =
 * Optional EU B2B VIES reverse charge and IGIC/IPSI labels. Issues #2761 #2762.
 

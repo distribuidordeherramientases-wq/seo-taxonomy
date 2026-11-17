@@ -24,6 +24,7 @@ if (!defined('SEO_FACTURAS_URL')) {
 require_once SEO_FACTURAS_PATH . 'class-seo-facturas-install.php';
 require_once SEO_FACTURAS_PATH . 'class-seo-facturas-settings.php';
 require_once SEO_FACTURAS_PATH . 'class-seo-facturas-tax.php';
+require_once SEO_FACTURAS_PATH . 'class-seo-facturas-special-rates.php';
 require_once SEO_FACTURAS_PATH . 'class-seo-facturas-vies.php';
 require_once SEO_FACTURAS_PATH . 'class-seo-facturas-eu-vat.php';
 require_once SEO_FACTURAS_PATH . 'class-seo-facturas-snapshot.php';

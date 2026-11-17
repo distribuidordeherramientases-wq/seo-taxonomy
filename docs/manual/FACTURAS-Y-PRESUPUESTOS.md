@@ -106,7 +106,7 @@ Detección de zonas:
 - Ceuta: provincia **CE** o CP **51**;
 - Melilla: provincia **ML** o CP **52**.
 
-Canarias se etiqueta como **IGIC** y Ceuta/Melilla como **IPSI** (tipos configurables por el comercio). No es un catálogo oficial completo de tipos; conviene revisión profesional.
+Canarias usa el catálogo **IGIC** (0 / 3 / 7 / 9,5 / 15 / 20 %, editables) y Ceuta/Melilla el catálogo **IPSI** (0 / 0,5 / 1 / 2 / 4 / 8 / 10 %, editables por ciudad). Se aplican según la **clase fiscal WooCommerce** del producto (`igic-general`, `ipsi-4`, …); sin clase se usa el tipo general. Los porcentajes son orientativos: conviene revisión profesional.
 
 ### B2B intracomunitario (opcional)
 

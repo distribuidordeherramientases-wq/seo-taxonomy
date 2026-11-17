@@ -1,3 +1,10 @@
+## [0.1.18] — 2026-11-17 — Catálogo completo IGIC e IPSI (#2762)
+
+- Añade tipos IGIC Canarias (0 / 3 / 7 / 9,5 / 15 / 20 %) y IPSI Ceuta/Melilla (0 / 0,5 / 1 / 2 / 4 / 8 / 10 %), editables.
+- Registra clases fiscales WooCommerce (`igic-*`, `ipsi-*`) y aplica el tipo según la clase del producto y el destino.
+- Sin clase específica en Canarias/Ceuta/Melilla se usa el tipo general. Sigue fuera del flujo VIES/ISP.
+- Los porcentajes son orientativos; el comercio/asesor debe confirmar la normativa vigente.
+
 ## [0.1.17] — 2026-11-17 — B2B UE (VIES/ISP) + etiquetas IGIC/IPSI (#2761 #2762)
 
 - Añade validación VIES opcional e inversión del sujeto pasivo (IVA 0 %) para empresas de otro Estado UE, con mención legal en PDF y metadatos de pedido.

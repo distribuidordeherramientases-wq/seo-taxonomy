@@ -154,6 +154,10 @@ final class SEO_Facturas_Tax {
 
         update_option('woocommerce_calc_taxes', 'yes');
 
+        if (class_exists('SEO_Facturas_Special_Rates')) {
+            SEO_Facturas_Special_Rates::ensure_wc_tax_classes();
+        }
+
         $zones = self::zone_definitions($settings);
         $ids = get_option(self::IDS_OPTION, array());
         $ids = is_array($ids) ? $ids : array();
@@ -175,14 +179,71 @@ final class SEO_Facturas_Tax {
             if ($current_id && self::rate_exists($current_id)) {
                 self::update_rate($current_id, $data);
                 $ids[$zone] = $current_id;
-                continue;
+            } else {
+                $new_id = self::insert_rate($data);
+                if (!$new_id) {
+                    return new WP_Error('seo_facturas_tax_rate_create_failed', 'No se ha podido crear la tasa fiscal interna de ' . $definition['name'] . '.');
+                }
+                $ids[$zone] = $new_id;
             }
+        }
 
-            $new_id = self::insert_rate($data);
-            if (!$new_id) {
-                return new WP_Error('seo_facturas_tax_rate_create_failed', 'No se ha podido crear la tasa fiscal interna de ' . $definition['name'] . '.');
+        // Catálogo IGIC / IPSI: una tasa WooCommerce por tipo + clase fiscal.
+        if (!empty($settings['tax_special_rates_enabled']) && class_exists('SEO_Facturas_Special_Rates')) {
+            foreach (SEO_Facturas_Special_Rates::igic_types() as $type_key => $type) {
+                $storage = SEO_Facturas_Special_Rates::storage_key('canarias', $type_key);
+                $rate = SEO_Facturas_Special_Rates::rate_for($settings, 'canarias', $type_key);
+                $data = array(
+                    'tax_rate_country'  => 'ES',
+                    'tax_rate_state'    => '',
+                    'tax_rate'          => self::format_rate($rate),
+                    'tax_rate_name'     => SEO_Facturas_Special_Rates::label_for('canarias', $type_key, $rate),
+                    'tax_rate_priority' => 1,
+                    'tax_rate_compound' => 0,
+                    'tax_rate_shipping' => empty($settings['tax_shipping']) ? 0 : 1,
+                    'tax_rate_order'    => 0,
+                    'tax_rate_class'    => sanitize_title($type['wc_class']),
+                );
+                $current_id = absint($ids[$storage] ?? 0);
+                if ($current_id && self::rate_exists($current_id)) {
+                    self::update_rate($current_id, $data);
+                    $ids[$storage] = $current_id;
+                } else {
+                    $new_id = self::insert_rate($data);
+                    if (!$new_id) {
+                        return new WP_Error('seo_facturas_tax_rate_create_failed', 'No se ha podido crear la tasa IGIC ' . $type_key . '.');
+                    }
+                    $ids[$storage] = $new_id;
+                }
             }
-            $ids[$zone] = $new_id;
+            foreach (array('ceuta', 'melilla') as $zone) {
+                foreach (SEO_Facturas_Special_Rates::ipsi_types() as $type_key => $type) {
+                    $storage = SEO_Facturas_Special_Rates::storage_key($zone, $type_key);
+                    $rate = SEO_Facturas_Special_Rates::rate_for($settings, $zone, $type_key);
+                    $data = array(
+                        'tax_rate_country'  => 'ES',
+                        'tax_rate_state'    => '',
+                        'tax_rate'          => self::format_rate($rate),
+                        'tax_rate_name'     => SEO_Facturas_Special_Rates::label_for($zone, $type_key, $rate),
+                        'tax_rate_priority' => 1,
+                        'tax_rate_compound' => 0,
+                        'tax_rate_shipping' => empty($settings['tax_shipping']) ? 0 : 1,
+                        'tax_rate_order'    => 0,
+                        'tax_rate_class'    => sanitize_title($type['wc_class']),
+                    );
+                    $current_id = absint($ids[$storage] ?? 0);
+                    if ($current_id && self::rate_exists($current_id)) {
+                        self::update_rate($current_id, $data);
+                        $ids[$storage] = $current_id;
+                    } else {
+                        $new_id = self::insert_rate($data);
+                        if (!$new_id) {
+                            return new WP_Error('seo_facturas_tax_rate_create_failed', 'No se ha podido crear la tasa IPSI ' . $zone . '/' . $type_key . '.');
+                        }
+                        $ids[$storage] = $new_id;
+                    }
+                }
+            }
         }
 
         update_option(self::IDS_OPTION, $ids, false);
@@ -208,6 +269,28 @@ final class SEO_Facturas_Tax {
                 break;
             }
         }
+        if ($complete && !empty($settings['tax_special_rates_enabled']) && class_exists('SEO_Facturas_Special_Rates')) {
+            foreach (array_keys(SEO_Facturas_Special_Rates::igic_types()) as $type_key) {
+                $storage = SEO_Facturas_Special_Rates::storage_key('canarias', $type_key);
+                $id = absint($ids[$storage] ?? 0);
+                if (!$id || !self::rate_exists($id)) {
+                    $complete = false;
+                    break;
+                }
+            }
+            if ($complete) {
+                foreach (array('ceuta', 'melilla') as $zone) {
+                    foreach (array_keys(SEO_Facturas_Special_Rates::ipsi_types()) as $type_key) {
+                        $storage = SEO_Facturas_Special_Rates::storage_key($zone, $type_key);
+                        $id = absint($ids[$storage] ?? 0);
+                        if (!$id || !self::rate_exists($id)) {
+                            $complete = false;
+                            break 2;
+                        }
+                    }
+                }
+            }
+        }
 
         if ($complete && hash_equals($expected_hash, $saved_hash)) {
             return;
@@ -222,11 +305,7 @@ final class SEO_Facturas_Tax {
         }
 
         $args = is_array($args) ? $args : array();
-        // Respetar clases reducidas/exentas configuradas expresamente.
         $tax_class = sanitize_title((string) ($args['tax_class'] ?? ''));
-        if ('' !== $tax_class && 'standard' !== $tax_class && self::TAX_CLASS !== $tax_class) {
-            return $rates;
-        }
         $country = strtoupper((string) ($args['country'] ?? ''));
         $state = strtoupper((string) ($args['state'] ?? ''));
         $postcode = strtoupper((string) ($args['postcode'] ?? ''));
@@ -254,7 +333,42 @@ final class SEO_Facturas_Tax {
             $zone = 'peninsula';
         }
 
+        // IGIC / IPSI por clase fiscal de producto (catálogo completo).
+        if (
+            !empty($settings['tax_special_rates_enabled'])
+            && class_exists('SEO_Facturas_Special_Rates')
+            && in_array($zone, array('canarias', 'ceuta', 'melilla'), true)
+        ) {
+            $type_key = SEO_Facturas_Special_Rates::resolve_type_key($zone, $tax_class);
+            return self::special_rate_response($zone, $type_key, $settings);
+        }
+
+        // Península / Baleares: respetar clases reducidas/exentas ajenas.
+        if ('' !== $tax_class && 'standard' !== $tax_class && self::TAX_CLASS !== $tax_class) {
+            return $rates;
+        }
+
         return self::managed_rate_response($zone, $settings);
+    }
+
+    private static function special_rate_response($zone, $type_key, $settings) {
+        $storage = SEO_Facturas_Special_Rates::storage_key($zone, $type_key);
+        $ids = get_option(self::IDS_OPTION, array());
+        $rate_id = absint(is_array($ids) ? ($ids[$storage] ?? 0) : 0);
+        $rate = SEO_Facturas_Special_Rates::rate_for($settings, $zone, $type_key);
+        $label = SEO_Facturas_Special_Rates::label_for($zone, $type_key, $rate);
+        if (!$rate_id || !self::rate_exists($rate_id)) {
+            // Fallback: zona base (general) si aún no se sincronizó el catálogo.
+            return self::managed_rate_response($zone, $settings);
+        }
+        return array(
+            $rate_id => array(
+                'rate'     => self::format_rate($rate),
+                'label'    => $label,
+                'shipping' => empty($settings['tax_shipping']) ? 'no' : 'yes',
+                'compound' => 'no',
+            ),
+        );
     }
 
     private static function managed_rate_response($zone, $settings) {
@@ -419,20 +533,20 @@ final class SEO_Facturas_Tax {
             'canarias' => array(
                 'name'  => 'Canarias',
                 'tax'   => 'IGIC',
-                'rate'  => (float) ($settings['tax_canarias_rate'] ?? 0),
-                'label' => self::rate_label('IGIC', (float) ($settings['tax_canarias_rate'] ?? 0)),
+                'rate'  => (float) ($settings['tax_igic_general'] ?? $settings['tax_canarias_rate'] ?? 7),
+                'label' => self::rate_label('IGIC', (float) ($settings['tax_igic_general'] ?? $settings['tax_canarias_rate'] ?? 7)),
             ),
             'ceuta' => array(
                 'name'  => 'Ceuta',
                 'tax'   => 'IPSI',
-                'rate'  => (float) ($settings['tax_ceuta_rate'] ?? 0),
-                'label' => self::rate_label('IPSI', (float) ($settings['tax_ceuta_rate'] ?? 0)),
+                'rate'  => (float) ($settings['tax_ipsi_ceuta_general'] ?? $settings['tax_ceuta_rate'] ?? 10),
+                'label' => self::rate_label('IPSI', (float) ($settings['tax_ipsi_ceuta_general'] ?? $settings['tax_ceuta_rate'] ?? 10)),
             ),
             'melilla' => array(
                 'name'  => 'Melilla',
                 'tax'   => 'IPSI',
-                'rate'  => (float) ($settings['tax_melilla_rate'] ?? 0),
-                'label' => self::rate_label('IPSI', (float) ($settings['tax_melilla_rate'] ?? 0)),
+                'rate'  => (float) ($settings['tax_ipsi_melilla_general'] ?? $settings['tax_melilla_rate'] ?? 10),
+                'label' => self::rate_label('IPSI', (float) ($settings['tax_ipsi_melilla_general'] ?? $settings['tax_melilla_rate'] ?? 10)),
             ),
             'intra_eu' => array(
                 'name'  => 'UE B2B (ISP)',
@@ -458,7 +572,13 @@ final class SEO_Facturas_Tax {
             'tax_manager_enabled', 'tax_prices_include_tax', 'tax_restrict_to_spain', 'tax_shipping',
             'tax_peninsula_rate', 'tax_baleares_rate', 'tax_canarias_rate',
             'tax_ceuta_rate', 'tax_melilla_rate',
-            'tax_eu_b2b_enabled',
+            'tax_eu_b2b_enabled', 'tax_special_rates_enabled',
+            'tax_igic_cero', 'tax_igic_reducido', 'tax_igic_general', 'tax_igic_incrementado',
+            'tax_igic_especial_15', 'tax_igic_especial_20',
+            'tax_ipsi_ceuta_cero', 'tax_ipsi_ceuta_r05', 'tax_ipsi_ceuta_r1', 'tax_ipsi_ceuta_r2',
+            'tax_ipsi_ceuta_r4', 'tax_ipsi_ceuta_r8', 'tax_ipsi_ceuta_general',
+            'tax_ipsi_melilla_cero', 'tax_ipsi_melilla_r05', 'tax_ipsi_melilla_r1', 'tax_ipsi_melilla_r2',
+            'tax_ipsi_melilla_r4', 'tax_ipsi_melilla_r8', 'tax_ipsi_melilla_general',
         );
         $data = array();
         foreach ($keys as $key) {

@@ -27,10 +27,15 @@ class SEO_Facturas_Settings {
             'tax_peninsula_rate' => 21,
             'tax_baleares_rate' => 21,
             'tax_canarias_rate' => 7,
-            'tax_ceuta_rate' => 0,
-            'tax_melilla_rate' => 0,
+            'tax_ceuta_rate' => 10,
+            'tax_melilla_rate' => 10,
             'tax_special_note' => 'special',
             'tax_shipping' => 1,
+            'tax_special_rates_enabled' => 1,
+            'tax_igic_general' => 7,
+            'tax_igic_reducido' => 3,
+            'tax_ipsi_ceuta_general' => 10,
+            'tax_ipsi_melilla_r2' => 2,
         );
     }
 }
@@ -38,6 +43,7 @@ class SEO_Facturas_Settings {
 require_once dirname(__DIR__) . '/includes/class-seo-facturas-tax.php';
 require_once dirname(__DIR__) . '/includes/class-seo-facturas-vies.php';
 require_once dirname(__DIR__) . '/includes/class-seo-facturas-eu-vat.php';
+require_once dirname(__DIR__) . '/includes/class-seo-facturas-special-rates.php';
 
 function assert_true($cond, $msg) {
     if (!$cond) {
@@ -60,4 +66,18 @@ assert_true(!SEO_Facturas_Eu_Vat::is_eu_vat_country('US'), 'US not EU');
 assert_true(SEO_Facturas_Eu_Vat::normalize_vat('FR', '123') === 'FR123', 'normalize vat');
 $invalid = SEO_Facturas_Vies::validate('FR', '');
 assert_true($invalid['status'] === 'invalid', 'empty vat invalid');
+$igic = SEO_Facturas_Special_Rates::igic_types();
+assert_true(isset($igic['general']) && abs($igic['general']['rate'] - 7.0) < 0.001, 'IGIC general 7');
+assert_true(count($igic) === 6, 'IGIC has 6 types');
+$ipsi = SEO_Facturas_Special_Rates::ipsi_types();
+assert_true(count($ipsi) === 7, 'IPSI has 7 types');
+assert_true(SEO_Facturas_Special_Rates::resolve_type_key('canarias', 'igic-reducido') === 'reducido', 'resolve IGIC reducido');
+assert_true(SEO_Facturas_Special_Rates::resolve_type_key('ceuta', '') === 'general', 'default IPSI general');
+assert_true(SEO_Facturas_Special_Rates::resolve_type_key('melilla', 'ipsi-4') === 'r4', 'resolve IPSI 4');
+$settings = array_merge(SEO_Facturas_Settings::taxation(), array(
+    'tax_igic_general' => 7, 'tax_igic_reducido' => 3,
+    'tax_ipsi_ceuta_general' => 10, 'tax_ipsi_melilla_r2' => 2,
+));
+assert_true(abs(SEO_Facturas_Special_Rates::rate_for($settings, 'canarias', 'reducido') - 3) < 0.001, 'rate IGIC reducido');
+assert_true(abs(SEO_Facturas_Special_Rates::rate_for($settings, 'melilla', 'r2') - 2) < 0.001, 'rate IPSI melilla 2');
 echo "ALL PASS\n";

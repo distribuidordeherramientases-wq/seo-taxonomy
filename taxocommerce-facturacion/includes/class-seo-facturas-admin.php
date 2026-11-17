@@ -380,6 +380,51 @@ final class SEO_Facturas_Admin {
                 <?php self::textarea_row($option, 'tax_eu_reverse_charge_note', 'Mención legal ISP', $s['tax_eu_reverse_charge_note'] ?? '', 'Se añade al PDF cuando aplica inversión del sujeto pasivo.'); ?>
             </table>
 
+            <h3>Catálogo IGIC (Canarias)</h3>
+            <p class="description">Asigna la clase fiscal WooCommerce del producto (<code>igic-general</code>, <code>igic-reducido</code>, …). Sin clase específica se aplica el tipo general. Porcentajes orientativos y editables.</p>
+            <table class="form-table" role="presentation">
+                <?php self::checkbox_row($option, 'tax_special_rates_enabled', 'Usar catálogo completo IGIC/IPSI', $s['tax_special_rates_enabled'] ?? 1, 'Crea clases fiscales WooCommerce y tasas por tipo. Desactívalo solo si prefieres un único % por zona.'); ?>
+            </table>
+            <table class="widefat striped" style="max-width:760px">
+                <thead><tr><th>Tipo</th><th>Clase WC</th><th>%</th></tr></thead>
+                <tbody>
+                    <tr><td>Tipo cero</td><td><code>igic-cero</code></td><td><?php self::decimal_input($option, 'tax_igic_cero', $s['tax_igic_cero'] ?? 0); ?> %</td></tr>
+                    <tr><td>Reducido</td><td><code>igic-reducido</code></td><td><?php self::decimal_input($option, 'tax_igic_reducido', $s['tax_igic_reducido'] ?? 3); ?> %</td></tr>
+                    <tr><td>General</td><td><code>igic-general</code> / estándar</td><td><?php self::decimal_input($option, 'tax_igic_general', $s['tax_igic_general'] ?? 7); ?> %</td></tr>
+                    <tr><td>Incrementado</td><td><code>igic-incrementado</code></td><td><?php self::decimal_input($option, 'tax_igic_incrementado', $s['tax_igic_incrementado'] ?? 9.5); ?> %</td></tr>
+                    <tr><td>Especial 15%</td><td><code>igic-especial-15</code></td><td><?php self::decimal_input($option, 'tax_igic_especial_15', $s['tax_igic_especial_15'] ?? 15); ?> %</td></tr>
+                    <tr><td>Especial 20%</td><td><code>igic-especial-20</code></td><td><?php self::decimal_input($option, 'tax_igic_especial_20', $s['tax_igic_especial_20'] ?? 20); ?> %</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Catálogo IPSI (Ceuta)</h3>
+            <table class="widefat striped" style="max-width:760px">
+                <thead><tr><th>Tipo</th><th>Clase WC</th><th>%</th></tr></thead>
+                <tbody>
+                    <tr><td>Cero</td><td><code>ipsi-cero</code></td><td><?php self::decimal_input($option, 'tax_ipsi_ceuta_cero', $s['tax_ipsi_ceuta_cero'] ?? 0); ?> %</td></tr>
+                    <tr><td>0,5%</td><td><code>ipsi-05</code></td><td><?php self::decimal_input($option, 'tax_ipsi_ceuta_r05', $s['tax_ipsi_ceuta_r05'] ?? 0.5); ?> %</td></tr>
+                    <tr><td>1%</td><td><code>ipsi-1</code></td><td><?php self::decimal_input($option, 'tax_ipsi_ceuta_r1', $s['tax_ipsi_ceuta_r1'] ?? 1); ?> %</td></tr>
+                    <tr><td>2%</td><td><code>ipsi-2</code></td><td><?php self::decimal_input($option, 'tax_ipsi_ceuta_r2', $s['tax_ipsi_ceuta_r2'] ?? 2); ?> %</td></tr>
+                    <tr><td>4%</td><td><code>ipsi-4</code></td><td><?php self::decimal_input($option, 'tax_ipsi_ceuta_r4', $s['tax_ipsi_ceuta_r4'] ?? 4); ?> %</td></tr>
+                    <tr><td>8%</td><td><code>ipsi-8</code></td><td><?php self::decimal_input($option, 'tax_ipsi_ceuta_r8', $s['tax_ipsi_ceuta_r8'] ?? 8); ?> %</td></tr>
+                    <tr><td>General 10%</td><td><code>ipsi-general</code> / estándar</td><td><?php self::decimal_input($option, 'tax_ipsi_ceuta_general', $s['tax_ipsi_ceuta_general'] ?? 10); ?> %</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Catálogo IPSI (Melilla)</h3>
+            <table class="widefat striped" style="max-width:760px">
+                <thead><tr><th>Tipo</th><th>Clase WC</th><th>%</th></tr></thead>
+                <tbody>
+                    <tr><td>Cero</td><td><code>ipsi-cero</code></td><td><?php self::decimal_input($option, 'tax_ipsi_melilla_cero', $s['tax_ipsi_melilla_cero'] ?? 0); ?> %</td></tr>
+                    <tr><td>0,5%</td><td><code>ipsi-05</code></td><td><?php self::decimal_input($option, 'tax_ipsi_melilla_r05', $s['tax_ipsi_melilla_r05'] ?? 0.5); ?> %</td></tr>
+                    <tr><td>1%</td><td><code>ipsi-1</code></td><td><?php self::decimal_input($option, 'tax_ipsi_melilla_r1', $s['tax_ipsi_melilla_r1'] ?? 1); ?> %</td></tr>
+                    <tr><td>2%</td><td><code>ipsi-2</code></td><td><?php self::decimal_input($option, 'tax_ipsi_melilla_r2', $s['tax_ipsi_melilla_r2'] ?? 2); ?> %</td></tr>
+                    <tr><td>4%</td><td><code>ipsi-4</code></td><td><?php self::decimal_input($option, 'tax_ipsi_melilla_r4', $s['tax_ipsi_melilla_r4'] ?? 4); ?> %</td></tr>
+                    <tr><td>8%</td><td><code>ipsi-8</code></td><td><?php self::decimal_input($option, 'tax_ipsi_melilla_r8', $s['tax_ipsi_melilla_r8'] ?? 8); ?> %</td></tr>
+                    <tr><td>General 10%</td><td><code>ipsi-general</code> / estándar</td><td><?php self::decimal_input($option, 'tax_ipsi_melilla_general', $s['tax_ipsi_melilla_general'] ?? 10); ?> %</td></tr>
+                </tbody>
+            </table>
+
             <h3>Nota para destinos especiales (IGIC / IPSI)</h3>
             <table class="form-table" role="presentation">
                 <?php self::textarea_row($option, 'tax_special_note', 'Canarias, Ceuta y Melilla', $s['tax_special_note'], 'Se añade a los documentos de estos destinos. No se mezclan con el flujo VIES/ISP.'); ?>
