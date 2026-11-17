@@ -22,7 +22,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$GITHUB_REF_NAME" = "staging"
           python3 .github/scripts/select_pro_release_delta.py --all-changed --output pro-delta.json
       - name: Copiar cambios por FTPS sin monolitico
         env:

@@ -1,3 +1,11 @@
+## [1.1.65] — 2026-11-17 — Indicadores para la acción por semanas y meses naturales (#2764)
+
+- Sustituye el informe principal «Plan de acción» por «Indicadores para la acción»: evidencias medibles, evolución del tráfico y consultas/categorías con patrones objetivos, sin generar órdenes estratégicas ni propuestas de publicación.
+- Selector independiente para semanas completas (lunes-domingo, cuatro periodos) y meses naturales completos (tres periodos), alineados por la última fecha común GSC/GA4. No altera el selector histórico 28/60/90 de los otros informes.
+- Solo declara totales de Search Console comparables si existen los días completos de propiedad; si falta cobertura o GA4 no responde se indica «parcial/no disponible», nunca se inventan ceros. GA4 se consulta para los mismos días naturales y puede seguir ajustando atribuciones históricas.
+- JSON de indicadores descargable con serie histórica, fechas exactas, origen, cobertura, cambios interperiodo, consultas, páginas y categorías validadas. Mantiene los antiguos contratos internos, descargas protegidas y demás informes sin cambios.
+- Regresión PHP para semanas/meses reales, febrero bisiesto, periodos parciales, fuente ausente, categorías con clics y no ejecutar el antiguo generador de acciones.
+
 ## [1.1.64] — 2026-11-15 — Un solo informe completo por bloques y descarga JSON válida
 
 - «Ejecutar informe completo» es la única ejecución integral: 21 bloques AJAX secuenciales con selector de control de CPU 1–5, avance y un único botón Detener. Se elimina la segunda acción «Preparar JSON completo por bloques» y su control de detención duplicado.

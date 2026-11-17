@@ -1,6 +1,13 @@
 ## [0.1.6] — 2026-11-17 — Import ISP → treatment intra (#2761)
 
 - Al importar pedidos WooCommerce con régimen `intra_eu_reverse_charge` / VIES válido, asigna `treatment=intra` y copia el NIF-IVA (sigue en draft).
+## 0.1.6 — 2026-11-17 — Asociación automática de factura emitida y venta (#2767)
+
+- Accounting obtiene de manera opcional el número de la factura **emitida** en Billing utilizando el identificador exacto de pedido WooCommerce. No hay dependencia obligatoria de otro plugin TaxoCommerce.
+- Para pedidos nuevos se registra la referencia si ya existe; para ventas antiguas todavía en borrador se propone el número en pantalla sin modificar datos previos. En el momento de aprobar la venta se vuelve a comprobar en el servidor la factura real del pedido y no se acepta como referencia un valor cambiado desde el navegador.
+- Si Billing no está instalado o no hay factura emitida, se conserva la referencia manual para otros sistemas de facturación. Proformas, presupuestos, facturas de proveedor y devoluciones no se confunden con la factura de venta.
+- El enlace de la referencia **no aprueba automáticamente** IVA, facturas incorrectas ni asientos contables. Se conservan las revisiones fiscales, la numeración y los datos existentes.
+- Añadida prueba de regresión PHP del vínculo, su ausencia cuando falta Billing y validación del identificador exacto de pedido. Plugin Check y CI requeridos.
 
 ## 0.1.5 — 2026-11-15 — Pestaña activa destacada (#2720)
 

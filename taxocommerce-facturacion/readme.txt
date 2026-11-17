@@ -5,6 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: 0.1.18
+Stable tag: 0.1.16
 License: MIT
 
 WooCommerce invoices, proformas and quotations migrated from TaxoCommerce SEO.
@@ -52,6 +53,9 @@ It does not create a parallel document database and does not include a destructi
 = 0.1.17 =
 * Optional EU B2B VIES reverse charge and IGIC/IPSI tax labels for Canarias/Ceuta/Melilla. Issues #2761 #2762.
 
+= 0.1.16 =
+* Inclusive VAT restored for new invoices, proformas and cart quotes: one-time tax-rate repair when needed, form destination used for cart tax, and block emission when standard taxable lines have zero tax. Does not alter issued PDFs. Issue #2757.
+* Align Stable tag with plugin Version 0.1.16 so Plugin Check packaging can pass.
 
 = 0.1.12 =
 * Local Description and Plugin URI replace REST excerpt requests and caches in the header. Issue #2494.
