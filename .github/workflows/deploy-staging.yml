@@ -138,6 +138,9 @@ jobs:
           php -l taxocommerce-accounting/includes/class-tca-issued-invoice.php
           php -l taxocommerce-accounting/tests/issued-invoice-link-smoke.php
           php taxocommerce-accounting/tests/issued-invoice-link-smoke.php
+          php -l taxocommerce-accounting/includes/class-tca-corrections.php
+          php -l taxocommerce-accounting/tests/corrections-smoke.php
+          php taxocommerce-accounting/tests/corrections-smoke.php
           php -l taxocommerce-accounting/tests/live-tax-preparation-smoke.php
           php taxocommerce-accounting/tests/live-tax-preparation-smoke.php
           php taxocommerce-accounting/tests/smoke.php

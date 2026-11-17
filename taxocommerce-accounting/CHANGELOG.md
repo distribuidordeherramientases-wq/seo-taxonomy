@@ -1,3 +1,12 @@
+## 0.1.7 — 2026-11-17 — Corrección controlada de asientos validados (#2771)
+
+- Botones **Corregir asiento** e **Historial** en Ventas, Facturas recibidas y los demás registros contables.
+- Edición acotada de fecha, referencia, cliente/proveedor, NIF, concepto, base imponible, IVA y porcentaje deducible, con motivo obligatorio; el total se calcula como base más IVA.
+- Toda corrección se registra en una tabla propia con datos antes/después, usuario, fecha y motivo; escritura atómica de asiento e historial (sin sobrescribir el historial anterior). La modificación devuelve el asiento a **borrador** para nueva validación y lo excluye de totales fiscales validados hasta entonces.
+- La factura emitida de Billing, el PDF del proveedor y los pedidos WooCommerce no se modifican. Si el documento fiscal original es incorrecto, debe corregirse en origen por el procedimiento adecuado, normalmente mediante factura rectificativa; ajustar la contabilidad no lo sustituye.
+- Control de permisos, nonce específico, validación de importes y fechas, comprobación del número de factura de Billing en servidor y protección ante edición simultánea.
+- Prueba PHP independiente para recálculo, reversión, trazabilidad, retención del original y facturas de proveedor. Compatibilidad con WordPress.org y despliegue acotado a STAGING.
+
 ## [0.1.6] — 2026-11-17 — Import ISP → treatment intra (#2761)
 
 - Al importar pedidos WooCommerce con régimen `intra_eu_reverse_charge` / VIES válido, asigna `treatment=intra` y copia el NIF-IVA (sigue en draft).
