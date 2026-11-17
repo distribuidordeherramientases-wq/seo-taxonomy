@@ -1,3 +1,9 @@
+= 0.1.18 =
+* Full IGIC/IPSI catalogs with WC tax classes. Issue #2762.
+
+= 0.1.17 =
+* Optional EU B2B VIES reverse charge and IGIC/IPSI labels. Issues #2761 #2762.
+
 = 0.1.16 (2026-11-16) =
 * Restauración fiscal de IVA incluido para nuevos documentos: autocorrección puntual de tasas ausentes, destino del formulario usado para calcular el carrito y validación de IVA de productos ordinarios antes de emitir documentos. No altera ventas ni PDF emitidos.
 
