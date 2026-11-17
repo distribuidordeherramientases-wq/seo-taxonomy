@@ -852,8 +852,8 @@ function tca_admin() {
                 tca_needs_zero_vat_confirmation( $row );
         } );
         if ( $zero_vat_sales ) {
-            /* translators: %d: Number of validated domestic sales with zero VAT. */
             echo '<div class="notice notice-warning inline"><p>' . esc_html( sprintf(
+                /* translators: %d: Number of validated domestic sales with zero VAT. */
                 __( '%d validated domestic WooCommerce sales have positive values but zero VAT. Review the original invoice and the tax treatment; these entries still contribute zero output VAT to this summary.', 'taxocommerce-accounting' ),
                 count( $zero_vat_sales )
             ) ) . ' <a href="' . esc_url( tca_admin_url( 'sales', array( 'year' => $year ) ) ) . '">' . esc_html__( 'Review sales', 'taxocommerce-accounting' ) . '</a></p></div>';
