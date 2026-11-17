@@ -4,6 +4,7 @@ Tags: woocommerce, invoices, proforma, quotes, pdf
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
+Stable tag: 0.1.18
 Stable tag: 0.1.16
 License: MIT
 
@@ -44,6 +45,13 @@ It does not create a parallel document database and does not include a destructi
 5. Confirm PDF generation and permitted customer downloads in a staging environment before live billing.
 
 == Changelog ==
+
+= 0.1.18 =
+* Full IGIC and IPSI rate catalogs with WooCommerce tax classes. Issue #2762.
+
+
+= 0.1.17 =
+* Optional EU B2B VIES reverse charge and IGIC/IPSI tax labels for Canarias/Ceuta/Melilla. Issues #2761 #2762.
 
 = 0.1.16 =
 * Inclusive VAT restored for new invoices, proformas and cart quotes: one-time tax-rate repair when needed, form destination used for cart tax, and block emission when standard taxable lines have zero tax. Does not alter issued PDFs. Issue #2757.

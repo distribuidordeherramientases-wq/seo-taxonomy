@@ -75,6 +75,7 @@ No. Input VAT defaults to 0% deductible and records start in draft. A qualified 
 == Changelog ==
 
 = 0.1.6 =
+* Import WooCommerce ISP/VIES orders as treatment=intra with VAT ID. Issue #2761.
 * Optionally associate WooCommerce sales with actual issued Billing invoices by exact order ID, without requiring Billing or changing prior validated ledger data. Includes regression tests. Issue #2767.
 
 

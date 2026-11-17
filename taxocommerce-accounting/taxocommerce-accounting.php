@@ -216,6 +216,13 @@ function tca_sync_sales( $page = 1 ) {
         $total = round( (float) $order->get_total(), 2 );
         $country = (string) $order->get_billing_country();
         $treatment = $currency === $settings['currency'] && $country === $settings['country'] ? 'domestic' : 'review';
+        $tax_id = '';
+        $regime = (string) $order->get_meta( '_seo_facturas_tax_regime' );
+        $vat_validated = (string) $order->get_meta( '_seo_facturas_vat_validated' );
+        if ( 'intra_eu_reverse_charge' === $regime || 'valid' === $vat_validated ) {
+            $treatment = 'intra';
+            $tax_id = (string) $order->get_meta( '_billing_vat' );
+        }
         if ( $already_imported ) {
             ++$skipped;
         } else {
@@ -224,7 +231,7 @@ function tca_sync_sales( $page = 1 ) {
             'kind' => 'sale', 'fiscal_date' => $date->date( 'Y-m-d' ),
             'document_no' => TCA_Issued_Invoice::for_order( $order->get_id() ),
             'party' => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
-            'tax_id' => '', 'concept' => sprintf( 'WooCommerce #%d', $order->get_id() ),
+            'tax_id' => $tax_id, 'concept' => sprintf( 'WooCommerce #%d', $order->get_id() ),
             'amount_base' => round( $total - $tax, 2 ),
             'amount_tax' => $tax, 'amount_total' => $total,
             'deductible_pct' => 0, 'currency' => $currency,
