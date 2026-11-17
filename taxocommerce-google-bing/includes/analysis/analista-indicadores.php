@@ -256,6 +256,9 @@ function taxocommerce_insights_indicators_delta( $current, $previous ) {
  * @return array
  */
 function taxocommerce_insights_indicators_explain( $code, $impressions, $clicks, $position, $prior_available ) {
+    $impressions = (float) $impressions;
+    $clicks = (float) $clicks;
+    $position = (float) $position;
     $sample = $impressions >= 50 ? 'moderate' : 'small';
     $confidence = $prior_available && $impressions >= 50 ? 'moderate' : 'preliminary';
     $description = '';
