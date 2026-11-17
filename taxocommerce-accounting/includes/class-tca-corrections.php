@@ -154,10 +154,34 @@ final class TCA_Corrections {
             self::redirect( $tab, 'correction_unchanged' );
         }
 
+        if ( ! self::save( $entry, $new, $reason ) ) {
+            self::redirect( $tab, 'correction_failed' );
+        }
+        self::redirect( $tab, 'correction_saved' );
+    }
+
+    /**
+     * Update the own ledger and append an audit event atomically.
+     * Never write to WooCommerce or Billing.
+     *
+     * @param object $entry Previous row.
+     * @param array $new Allowed values returned by prepare().
+     * @param string $reason Non-empty reason.
+     * @return bool True only if ledger, log and commit succeeded.
+     */
+    public static function save( $entry, $new, $reason ) {
+        global $wpdb;
+        if ( '' === trim( (string) $reason ) ) {
+            return false;
+        }
+        $id = absint( $entry->id );
+        $before = self::snapshot( $entry );
+        $after = self::snapshot( (object) array_merge( (array) $entry, $new ) );
+
         // Both changes must succeed, or neither may persist on transactional WP tables.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Ledger correction transaction.
         if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
-            self::redirect( $tab, 'correction_failed' );
+            return false;
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Conditional update of own ledger.
         $updated = $wpdb->update(
@@ -168,7 +192,7 @@ final class TCA_Corrections {
         if ( 1 !== $updated ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Roll back when record changed concurrently.
             $wpdb->query( 'ROLLBACK' );
-            self::redirect( $tab, 'correction_failed' );
+            return false;
         }
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Immutable correction log in own database.
@@ -186,13 +210,13 @@ final class TCA_Corrections {
         if ( ! $logged ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Keep original if audit cannot be written.
             $wpdb->query( 'ROLLBACK' );
-            self::redirect( $tab, 'correction_failed' );
+            return false;
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Commit corrected draft and audit together.
         if ( false === $wpdb->query( 'COMMIT' ) ) {
-            self::redirect( $tab, 'correction_failed' );
+            return false;
         }
-        self::redirect( $tab, 'correction_saved' );
+        return true;
     }
 
     private static function same_values( $before, $after ) {
