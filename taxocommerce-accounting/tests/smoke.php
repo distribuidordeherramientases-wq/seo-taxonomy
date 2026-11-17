@@ -13,7 +13,7 @@ $contracts = array(
     'function tca_autocheck(',
     'function tca_export()',
     "TCA_Treasury::install_schema()",
-    "TCA_Treasury::render( $year )",
+    'TCA_Treasury::render( $year )',
     "'treasury' => 'Treasury'",
     "'Treasury' => __( 'Treasury', 'taxocommerce-accounting' )",
     'check_admin_referer( ',
