@@ -1,3 +1,11 @@
+## 0.1.8 — 2026-11-17 — Guía para IVA deducible y revisión de ventas con IVA cero (#2773)
+
+- Se conservan los importes de ventas importados desde WooCommerce, sin reescribir automáticamente documentos emitidos ni asientos validados.
+- Las ventas WooCommerce con base positiva e IVA cero muestran aviso de revisión: para validarlas como operación doméstica se exige confirmación expresa tras contrastar la factura y el tratamiento; no se aplica artificialmente el 21 % a cualquier producto.
+- En la incorporación manual de facturas de proveedores, el porcentaje de IVA deducible no comienza en 0 por defecto y debe indicarse expresamente. Se explica la diferencia entre **tipo de IVA** y **porcentaje deducible** (0 %, 100 % u otro legalmente aplicable).
+- Vista previa automática del total de factura (base + cuota) y del importe de IVA potencialmente deducible. Solo ayuda a revisar los datos, no decide el tratamiento fiscal.
+- Pruebas de regresión y validación de sintaxis JavaScript. Sin cambio de registros existentes, WooCommerce, Billing ni producción.
+
 ## 0.1.7 — 2026-11-17 — Corrección controlada de asientos validados (#2771)
 
 - Botones **Corregir asiento** e **Historial** en Ventas, Facturas recibidas y los demás registros contables.
