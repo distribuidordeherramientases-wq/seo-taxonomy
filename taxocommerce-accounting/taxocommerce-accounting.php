@@ -624,6 +624,9 @@ function tca_table_rows( $rows, $kind = '' ) {
         if ( tca_sale_invoice_mismatch( $row ) ) {
             echo '<p class="description" style="color:#b32d2e">' . esc_html__( 'Issued invoice and accounting totals disagree. Check the original invoice and the order; validation is blocked until reconciled.', 'taxocommerce-accounting' ) . '</p>';
         }
+        if ( 'validated' === $row->status && 'domestic' === $row->treatment && tca_needs_zero_vat_confirmation( $row ) ) {
+            echo '<p class="description" style="color:#b32d2e">' . esc_html__( 'Validated sale has zero VAT. Check its original invoice and applicable tax regime.', 'taxocommerce-accounting' ) . '</p>';
+        }
         echo '</td><td>';
         if ( 'draft' === $row->status ) {
             tca_form_open( 'validate' );
@@ -782,6 +785,17 @@ function tca_admin() {
     echo '<a href="' . esc_url( tca_admin_url( $tab, array( 'year' => $year - 1 ) ) ) . '">←</a> &nbsp; <a href="' . esc_url( tca_admin_url( $tab, array( 'year' => $year + 1 ) ) ) . '">→</a></p>';
 
     if ( 'summary' === $tab ) {
+        $zero_vat_sales = array_filter( $rows, static function ( $row ) {
+            return 'validated' === $row->status && 'domestic' === $row->treatment &&
+                tca_needs_zero_vat_confirmation( $row );
+        } );
+        if ( $zero_vat_sales ) {
+            /* translators: %d: Number of validated domestic sales with zero VAT. */
+            echo '<div class="notice notice-warning inline"><p>' . esc_html( sprintf(
+                __( '%d validated domestic WooCommerce sales have positive values but zero VAT. Review the original invoice and the tax treatment; these entries still contribute zero output VAT to this summary.', 'taxocommerce-accounting' ),
+                count( $zero_vat_sales )
+            ) ) . ' <a href="' . esc_url( tca_admin_url( 'sales', array( 'year' => $year ) ) ) . '">' . esc_html__( 'Review sales', 'taxocommerce-accounting' ) . '</a></p></div>';
+        }
         $months = range( 1, 12 );
         echo '<h2>' . esc_html__( 'Monthly fiscal summary (validated domestic entries only)', 'taxocommerce-accounting' ) . '</h2><table class="widefat striped"><thead><tr>';
         foreach ( array( 'Month', 'Sales', 'Purchases / expenses', 'Output VAT', 'Deductible input VAT', 'Difference', 'Pending review' ) as $heading ) echo '<th>' . esc_html( tca_label( $heading ) ) . '</th>';
