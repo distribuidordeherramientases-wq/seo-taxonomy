@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.6
+ * Version: 0.1.7
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,8 +14,8 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.6' );
-define( 'TCA_DB_VERSION', '2' );
+define( 'TCA_VERSION', '0.1.7' );
+define( 'TCA_DB_VERSION', '3' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
 add_action( 'init', static function () {
@@ -33,6 +33,7 @@ add_action( 'init', static function () {
 
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-provider-invoices.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-issued-invoice.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-corrections.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-hacienda.php';
 
 /** Own data; no dependency on any TaxoCommerce module. */
@@ -81,6 +82,7 @@ function tca_install() {
     ) {$wpdb->get_charset_collate()};";
     dbDelta( $sql );
     TCA_Provider_Invoices::install_schema();
+    TCA_Corrections::install_schema();
     update_option( 'tca_db_version', TCA_DB_VERSION, false );
     if ( false === get_option( TCA_OPTION, false ) ) {
         add_option( TCA_OPTION, tca_settings(), '', false );
@@ -576,6 +578,7 @@ function tca_table_rows( $rows, $kind = '' ) {
         } else {
             echo esc_html( '—' );
         }
+        TCA_Corrections::render_row_action( $row );
         TCA_Provider_Invoices::render_row_controls( $row, $documents );
         echo '</td></tr>';
     }
@@ -681,6 +684,10 @@ function tca_admin() {
             'tca_invoice_storage'    => __( 'Could not store the encrypted supplier invoice. No accounting data was changed.', 'taxocommerce-accounting' ),
             'tca_invoice_crypto'     => __( 'Secure invoice encryption is unavailable.', 'taxocommerce-accounting' ),
             'invoice_not_found'      => __( 'The purchase record was not found.', 'taxocommerce-accounting' ),
+            'correction_saved'      => __( 'Correction saved. This entry is now a draft and must be validated again.', 'taxocommerce-accounting' ),
+            'correction_invalid'    => __( 'Could not correct the entry. Check all fields and the mandatory reason.', 'taxocommerce-accounting' ),
+            'correction_unchanged'  => __( 'No data changed; nothing was recorded.', 'taxocommerce-accounting' ),
+            'correction_failed'     => __( 'The correction failed. The previous ledger entry was retained.', 'taxocommerce-accounting' ),
         );
         echo '<div class="notice notice-info"><p>' . esc_html( isset( $invoice_notices[ $notice ] ) ? $invoice_notices[ $notice ] : $notice ) . '</p></div>';
     }
@@ -717,9 +724,11 @@ function tca_admin() {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only next-page link.
         $max = isset( $_GET['sync_pages'] ) ? absint( $_GET['sync_pages'] ) : 0;
         if ( $max > $page ) echo '<p><a href="' . esc_url( tca_admin_url( 'sales', array( 'sync_page' => $page + 1, 'sync_pages' => $max ) ) ) . '">' . esc_html__( 'Next import page', 'taxocommerce-accounting' ) . '</a></p>';
+        TCA_Corrections::render_editor( 'sales' );
         tca_table_rows( array_filter( $rows, static function ( $row ) { return in_array( $row->kind, array( 'sale', 'refund' ), true ); } ) );
     } elseif ( in_array( $tab, array( 'received', 'expenses', 'assets', 'intra' ), true ) ) {
         $kind = array( 'received' => 'purchase', 'expenses' => 'expense', 'assets' => 'asset', 'intra' => 'intra' )[ $tab ];
+        TCA_Corrections::render_editor( $tab );
         tca_new_invoice_form( $kind );
         tca_table_rows( $rows, $kind );
     } elseif ( 'exports' === $tab ) {
