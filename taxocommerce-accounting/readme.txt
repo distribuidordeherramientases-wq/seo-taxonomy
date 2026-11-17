@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.5
+Stable tag: 0.1.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,6 +17,7 @@ TaxoCommerce Accounting records fiscal data without changing WooCommerce orders,
 
 * Configure a per-store first commercial date. All earlier test orders are excluded from new sales imports.
 * Manually import paid-status WooCommerce orders in bounded batches of 25, with deduplicated draft entries.
+* Optionally look up an actual issued invoice for the exact WooCommerce order when TaxoCommerce Billing is active. New and existing draft sales display the matching invoice number automatically; manual entry remains possible with other invoicing systems. Proformas, quotes and refunds are not automatically associated. Invoice references do not validate tax amounts.
 * Capture supplier purchase invoices, business expenses, capital assets and special cross-border operations manually.
 * Attach one or more original supplier PDF invoices to each saved purchase-side record (purchases, expenses, assets and intra-EU operations). Store original PDF bytes encrypted; authenticated, nonce-protected downloads only, never a public media URL. Maximum 10 MB per PDF.
 * Invoices are uploaded manually after the purchase record exists. This is a secure document archive, NOT automatic invoice parsing, OCR, remote supplier integration or fiscal verification.
@@ -72,6 +73,10 @@ No. It is a working summary of validated domestic records, not an official AEAT 
 No. Input VAT defaults to 0% deductible and records start in draft. A qualified professional should verify the tax treatment.
 
 == Changelog ==
+
+= 0.1.6 =
+* Optionally associate WooCommerce sales with actual issued Billing invoices by exact order ID, without requiring Billing or changing prior validated ledger data. Includes regression tests. Issue #2767.
+
 
 = 0.1.5 =
 * Highlight the active main and Tax Agency tabs in the Accounting admin page with an accessible blue background and white text. Issue #2720.
