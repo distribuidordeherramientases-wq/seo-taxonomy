@@ -10,19 +10,24 @@ concurrency:
 jobs:
   copiar:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v6
+      - name: Obtener codigo de STAGING
+        uses: actions/checkout@v6
         with:
           ref: staging
           fetch-depth: 0
-      - name: Copiar cambios de staging a PRO
+      - name: Seleccionar cambios para PRO
         env:
           GH_TOKEN: ${{ github.token }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/select_pro_release_delta.py --all-changed --output pro-delta.json
+      - name: Copiar cambios por FTPS sin monolitico
+        env:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
           set -euo pipefail
-          python3 .github/scripts/select_pro_release_delta.py --all-changed --output "$RUNNER_TEMP/pro-changes.json"
-          python3 .github/scripts/deploy_pro_ftps_native.py "$RUNNER_TEMP/pro-changes.json"
+          python3 .github/scripts/deploy_pro_ftps_native.py pro-delta.json

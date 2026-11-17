@@ -47,6 +47,37 @@ def read_hash(ftp, filename):
     return digest.hexdigest()
 
 
+def find_live_plugin_root(ftp):
+    """Find only an existing WordPress plugins root; never create another one.
+
+    The previous uploader created wp-content/plugins *inside* an unrelated
+    FTPS chroot and falsely reported 103 successful production updates.
+    This checks two files at a fixed root, not an installed-plugin inventory.
+    """
+    home = ftp.pwd()
+    matches = set()
+    try:
+        for candidate in ("", PLUGINS_DIR):
+            ftp.cwd(home)
+            try:
+                if candidate:
+                    ftp.cwd(candidate)
+                if (read_hash(ftp, "woocommerce/woocommerce.php") is not None
+                        and read_hash(ftp, "taxocommerce-core/taxocommerce-core.php") is not None):
+                    matches.add(ftp.pwd())
+            except ftplib.error_perm as exc:
+                if not str(exc).startswith("550"):
+                    raise
+        if len(matches) != 1:
+            raise RuntimeError(
+                "Wrong production FTPS root: no unique WooCommerce and TaxoCommerce plugins directory. "
+                "No files were copied; configure FTP_SERVER/FTP_USERNAME/FTP_PASSWORD for the real PRO site."
+            )
+        return next(iter(matches))
+    finally:
+        ftp.cwd(home)
+
+
 def copy_changed(ftp, slug, relative, root):
     """Copy just one modified file; skip identical content and verify SHA-256."""
     if not valid_path(slug, relative):
@@ -140,9 +171,10 @@ def main():
         ftp.connect(os.environ["FTP_SERVER"], 21)
         ftp.login(os.environ["FTP_USERNAME"], os.environ["FTP_PASSWORD"])
         ftp.prot_p()
-        # A single fixed WordPress plugins directory, not a scan or lookup.
-        ftp.cwd(PLUGINS_DIR)
-        root = ftp.pwd()
+        # No WordPress inventory: only confirm that the FTPS account can
+        # access the existing real WooCommerce plugin root before any write.
+        root = find_live_plugin_root(ftp)
+        print("PRO WordPress plugins root verified; comparing changed files.", flush=True)
         total = 0
         for slug, paths in sorted(delta.items()):
             for relative in sorted(paths):
@@ -158,8 +190,22 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (ftplib.Error, OSError, ValueError, RuntimeError) as exc:
-        # FTP server errors sometimes include account paths, so avoid printing
-        # untrusted exception text or credentials.
+    except RuntimeError as exc:
+        # A working login is not enough: it must reach the actual WP plugins
+        # directory, not the old seo-taxonomy account's confined FTP home.
+        if str(exc).startswith("Wrong production FTPS root:"):
+            print(
+                "::error::The existing FTP login cannot access the real PRO "
+                "wp-content/plugins directory. No production files copied. "
+                "The previous ZIP process could reach sibling plugin folders "
+                "only through WordPress; direct FTP requires that destination "
+                "to be accessible to this FTP account.",
+                file=sys.stderr,
+            )
+        else:
+            print("::error::PRO file copy failed: RuntimeError", file=sys.stderr)
+        sys.exit(1)
+    except (ftplib.Error, OSError, ValueError) as exc:
+        # FTP errors may contain private paths; do not print raw server text.
         print("::error::PRO file copy failed: " + type(exc).__name__, file=sys.stderr)
         sys.exit(1)

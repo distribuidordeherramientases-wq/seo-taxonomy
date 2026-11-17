@@ -1,3 +1,26 @@
+## [0.2.43] — 2026-11-16 — Chequeo secuencial de todos los plugins activos (#2755)
+
+- Botón «Chequear todos» junto al control de CPU en System Check → Plugin Validation; utiliza exclusivamente las filas de módulos activos inventariados por Core y el mismo endpoint de cada chequeo individual.
+- Ejecución secuencial, un plugin cada vez, con avance global, recuento de incidencias y errores de ejecución, parada y reanudación cooperativas. Un fallo de comunicación pausa la cola con detalle visible; no se descarta silenciosamente ningún plugin.
+- Conserva los informes, logs, controles y JSON de cada plugin; no inicia procesos en segundo plano, no ejecuta operaciones destructivas ni modifica otros módulos.
+
+## [0.2.42] — 2026-11-16 — Estado y logs de validación individual recuperables (#2748)
+
+- El chequeo de Billing/Facturación y otros autochecks que devuelven directamente una lista de filas se normaliza correctamente; no se clasifican como informe inválido.
+- Los chequeos por plugin generan historial de ejecución acotado (inicio, lotes, errores, parada y reanudación), consultable en «Ver resultados» y en el JSON propio. Los fallos funcionales y los avisos de código conservan su detalle.
+- Mejoras para móvil: avance visible en la fila del plugin, botón «Parar/Reanudar» en la misma fila y mensaje comprensible cuando la respuesta AJAX no es JSON válido (por avisos PHP o HTML del servidor).
+- Se recupera la última selección tras recargar la página. La parada es cooperativa y un lote completado no reactiva un proceso detenido; una nueva ejecución no puede ser sobrescrita por la respuesta de un lote antiguo.
+- Los chequeos del usuario se muestran en System Check → Procesos como tareas AJAX gestionadas por el navegador, identificadas expresamente como tales y sin confundirse con procesos PHP activos ni Action Scheduler. Desde Procesos también se puede solicitar la parada.
+- No se cambia el motor de autocheck de Core ni otros plugins, no se ejecutan operaciones reales, no se modifica el monolítico ni se toca producción. Pruebas de regresión y compatibilidad WordPress/Plugin Check.
+
+## [0.2.41] — 2026-11-16 — Chequeo individual por plugin y detalle de incidencias (#2742)
+
+- La pestaña Plugin Validation permite ejecutar el autocheck del plugin seleccionado en su propia fila, con resultados independientes por administrador, sitio y plugin.
+- Reutiliza los motores nativos de Autocheck de funcionalidades y código cuando están disponibles, respetando las pruebas UAT de escritura que no deben ejecutarse; si no hay adaptador funcional nativo, muestra claramente un chequeo básico, no una integración profunda ficticia.
+- Los detalles indican cada prueba fallida con su mensaje y las incidencias de código con fichero, línea, regla y recomendación, distinguiendo errores confirmados de advertencias de análisis estático que exigen revisión humana.
+- Se puede descargar un JSON completo del plugin seleccionado sin repetir chequeos. Escaneo de PHP en lotes con cinco velocidades de CPU; cancelación/reanudación entre peticiones.
+- El piloto previo de Core permanece accesible en el desplegable de compatibilidad. No cambia el código ni el comportamiento de otros plugins ni ejecuta reparaciones.
+
 ## [0.2.40] — 2026-11-15 — Evitar fatal durante actualizaciones FTPS parciales (#2711)
 
 - Corrección urgente del error `Class TaxoCommerce_System_Check_Process_Details not found` observado en STAGING al abrir Procesos.

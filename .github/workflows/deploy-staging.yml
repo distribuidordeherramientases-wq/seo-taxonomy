@@ -126,6 +126,8 @@ jobs:
           php taxocommerce-tasks/tests/standalone-bootstrap-smoke.php
           php -l taxocommerce-customers/tests/standalone-bootstrap-smoke.php
           php taxocommerce-customers/tests/standalone-bootstrap-smoke.php
+          php -l taxocommerce-customers/tests/early-core-translation-smoke.php
+          php taxocommerce-customers/tests/early-core-translation-smoke.php
           php -l taxocommerce-accounting/taxocommerce-accounting.php
           php -l taxocommerce-accounting/includes/class-tca-provider-invoices.php
           php -l taxocommerce-accounting/tests/provider-invoice-pdf-smoke.php
@@ -133,6 +135,9 @@ jobs:
           php -l taxocommerce-accounting/includes/class-tca-hacienda.php
           php -l taxocommerce-accounting/tests/hacienda-workspace-smoke.php
           php taxocommerce-accounting/tests/hacienda-workspace-smoke.php
+          php -l taxocommerce-accounting/includes/class-tca-issued-invoice.php
+          php -l taxocommerce-accounting/tests/issued-invoice-link-smoke.php
+          php taxocommerce-accounting/tests/issued-invoice-link-smoke.php
           php -l taxocommerce-accounting/tests/live-tax-preparation-smoke.php
           php taxocommerce-accounting/tests/live-tax-preparation-smoke.php
           php taxocommerce-accounting/tests/smoke.php
@@ -149,6 +154,13 @@ jobs:
           php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-process-details.php
           php -l taxocommerce-system-check/tests/process-details-smoke.php
           php taxocommerce-system-check/tests/process-details-smoke.php
+          php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-module-audit.php
+          php -l taxocommerce-system-check/tests/module-audit-smoke.php
+          php taxocommerce-system-check/tests/module-audit-smoke.php
+          php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-module-audit.php
+          php -l taxocommerce-system-check/tests/module-audit-smoke.php
+          node --check taxocommerce-system-check/assets/module-audit.js
+          node taxocommerce-system-check/tests/module-audit-all-smoke.js
           php -l taxocommerce-system-check/tests/process-details-partial-deploy-smoke.php
           php taxocommerce-system-check/tests/process-details-partial-deploy-smoke.php
           php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-code-check.php
@@ -186,6 +198,9 @@ jobs:
           php -l taxocommerce-google-bing/includes/class-taxocommerce-google-bing-google-service.php
           php taxocommerce-google-bing/tests/gsc-sync-bridge-smoke.php
           php taxocommerce-google-bing/tests/analysis-unified-smoke.php
+          php -l taxocommerce-google-bing/includes/analysis/analista-indicadores.php
+          php -l taxocommerce-google-bing/tests/analysis-indicators-smoke.php
+          php taxocommerce-google-bing/tests/analysis-indicators-smoke.php
           php -l taxocommerce-google-bing/tests/analysis-mobile-smoke.php
           php taxocommerce-google-bing/tests/analysis-mobile-smoke.php
           php -l taxocommerce-google-bing/tests/analysis-chunked-json-smoke.php
@@ -342,9 +357,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAXOCOMMERCE_FULL_SYNC: ${{ inputs.full_sync && '1' || '0' }}
-          # Never mistake the last successful *partial* job for a verified
-          # whole-family release; inspect installed entrypoints on both sites.
-          TAXOCOMMERCE_REMOTE_VERIFY: '1'
+          # Only the Git delta is selected. Never inventory plugins from WordPress
+          # or convert an incremental upload into a whole-family reconciliation.
           STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
           STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
           STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
@@ -381,12 +395,6 @@ jobs:
         # deploy() has a bounded 3-attempt reconnect loop; never retry it 3x in bash.
         # Unbuffered output records progress and the actual failing FTPS phase.
         run: python3 -u .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target staging --slug "$SLUG" --full "$SYNC"
-      - name: Activate and verify new Accounting plugin on STAGING only
-        if: ${{ matrix.slug == 'taxocommerce-accounting' }}
-        env:
-          TC_STAGING_WP_USER: ${{ secrets.TC_STAGING_WP_USER }}
-          TC_STAGING_WP_PASSWORD: ${{ secrets.TC_STAGING_WP_PASSWORD }}
-        run: python3 .github/scripts/activate_accounting_staging.py
 
   deploy-focazul:
     name: Focazul / ${{ matrix.slug }}

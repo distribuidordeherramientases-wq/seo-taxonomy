@@ -1,3 +1,10 @@
+## [0.1.16] — 2026-11-16 — IVA incluido en los tres documentos comerciales
+
+- Repara una sola vez la configuración fiscal para tiendas con PVP IVA incluido cuando WooCommerce no dispone de una tasa española aplicable, sin modificar precios ni pedidos previos.
+- Presupuesto y proforma del carrito calculan el IVA según la dirección introducida por el comprador; se restauran los datos de sesión después del cálculo.
+- Factura y proforma asociadas a pedidos se alimentan de los impuestos originales de WooCommerce. Si falta el IVA esperado para un producto ordinario sujeto a impuesto, se rechaza emitir un documento nuevo y se muestra un error explícito en vez de certificar una base falsa.
+- Conserva las clases fiscales especiales y los documentos ya emitidos. El transporte sigue las tasas configuradas en WooCommerce.
+
 ## [0.1.15] — 2026-11-13 — Code Check equiparado a Core 0.4.82 (#2626)
 
 - Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.

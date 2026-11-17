@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.5
+ * Version: 0.1.6
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.5' );
+define( 'TCA_VERSION', '0.1.6' );
 define( 'TCA_DB_VERSION', '2' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
@@ -32,6 +32,7 @@ add_action( 'init', static function () {
 }, 5 );
 
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-provider-invoices.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-issued-invoice.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-hacienda.php';
 
 /** Own data; no dependency on any TaxoCommerce module. */
@@ -221,6 +222,7 @@ function tca_sync_sales( $page = 1 ) {
         $inserted = tca_insert( array(
             'source' => 'woocommerce', 'source_id' => $order->get_id(),
             'kind' => 'sale', 'fiscal_date' => $date->date( 'Y-m-d' ),
+            'document_no' => TCA_Issued_Invoice::for_order( $order->get_id() ),
             'party' => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
             'tax_id' => '', 'concept' => sprintf( 'WooCommerce #%d', $order->get_id() ),
             'amount_base' => round( $total - $tax, 2 ),
@@ -371,6 +373,14 @@ function tca_handle() {
         if ( ! $entry || 'draft' !== $entry->status ) tca_redirect( 'summary', 'invalid' );
         // Imported orders and refunds require the original/credit-note reference.
         $doc = tca_input( 'document_no' );
+        // Prefer the immutable issued invoice linked to this exact WooCommerce order.
+        // Never trust or accept a different number sent by the browser.
+        if ( 'woocommerce' === $entry->source && 'sale' === $entry->kind ) {
+            $issued = TCA_Issued_Invoice::for_order( $entry->source_id );
+            if ( '' !== $issued ) {
+                $doc = $issued;
+            }
+        }
         if ( in_array( $entry->source, array( 'woocommerce', 'wc_refund' ), true ) && '' === $doc ) tca_redirect( 'sales', 'invalid' );
         $treatment = sanitize_key( tca_input( 'treatment' ) );
         if ( ! in_array( $treatment, array( 'domestic', 'intra', 'reverse', 'exempt' ), true ) ) tca_redirect( 'summary', 'review' );
@@ -531,13 +541,19 @@ function tca_table_rows( $rows, $kind = '' ) {
     foreach ( $rows as $row ) {
         if ( $kind && $kind !== $row->kind ) continue;
         ++$count;
-        echo '<tr><td>' . esc_html( $row->fiscal_date ) . '</td><td>' . esc_html( $row->document_no ) . '</td><td>' . esc_html( $row->party ) . '</td><td>' . esc_html( $row->concept ) . '</td>';
+        $invoice_number = 'draft' === $row->status && 'woocommerce' === $row->source && 'sale' === $row->kind
+            ? TCA_Issued_Invoice::for_order( $row->source_id ) : '';
+        $shown_document = '' !== $invoice_number ? $invoice_number : $row->document_no;
+        echo '<tr><td>' . esc_html( $row->fiscal_date ) . '</td><td>' . esc_html( $shown_document ) . '</td><td>' . esc_html( $row->party ) . '</td><td>' . esc_html( $row->concept ) . '</td>';
         echo '<td>' . esc_html( tca_money( $row->amount_base ) ) . '</td><td>' . esc_html( tca_money( $row->amount_tax ) ) . '</td><td>' . esc_html( tca_money( $row->amount_total ) ) . '</td>';
         echo '<td>' . esc_html( $row->status . ' / ' . $row->treatment ) . '</td><td>';
         if ( 'draft' === $row->status ) {
             tca_form_open( 'validate' );
             echo '<input type="hidden" name="entry_id" value="' . esc_attr( $row->id ) . '">';
-            if ( in_array( $row->source, array( 'woocommerce', 'wc_refund' ), true ) ) {
+            if ( '' !== $invoice_number ) {
+                echo '<span><strong>' . esc_html( $invoice_number ) . '</strong> ' . esc_html__( '(automatically linked to this WooCommerce order)', 'taxocommerce-accounting' ) . '</span>';
+                echo '<input type="hidden" name="document_no" value="' . esc_attr( $invoice_number ) . '">';
+            } elseif ( in_array( $row->source, array( 'woocommerce', 'wc_refund' ), true ) ) {
                 echo '<input name="document_no" aria-label="' . esc_attr__( 'Issued invoice number', 'taxocommerce-accounting' ) . '" placeholder="' . esc_attr__( 'Invoice number', 'taxocommerce-accounting' ) . '" required>';
             }
             echo '<label>' . esc_html__( 'VAT treatment', 'taxocommerce-accounting' ) . ' <select name="treatment" required>';

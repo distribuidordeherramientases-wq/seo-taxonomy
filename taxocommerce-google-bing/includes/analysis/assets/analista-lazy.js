@@ -90,7 +90,8 @@ jQuery(function ($) {
                     action: 'taxocommerce_insights_analysis',
                     nonce: config.nonce,
                     report: item.report,
-                    days: config.days
+                    days: config.days,
+                    period_mode: String($('#tgb-indicators-period').val() || 'week')
                 }
             }).done(function (response) {
                 if (cancelled) {
