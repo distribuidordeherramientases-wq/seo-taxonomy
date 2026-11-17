@@ -840,9 +840,9 @@ function tca_admin() {
             'correction_failed'     => __( 'The correction failed. The previous ledger entry was retained.', 'taxocommerce-accounting' ),
             'review_zero_vat'      => __( 'This WooCommerce sale has zero VAT. Check its issued invoice and confirm the domestic VAT treatment before validating it.', 'taxocommerce-accounting' ),
             'invoice_mismatch'     => __( 'Accounting totals do not match the immutable issued invoice. Validation was blocked; reconcile the original document and WooCommerce order.', 'taxocommerce-accounting' ),
-            'saved'                => __( 'Treasury record saved.', 'taxocommerce-accounting' ),
-            'error'                => __( 'Could not save the treasury record.', 'taxocommerce-accounting' ),
-            'invalid'              => __( 'Check the treasury values and dates.', 'taxocommerce-accounting' ),
+            'treasury_saved'       => __( 'Treasury record saved.', 'taxocommerce-accounting' ),
+            'treasury_error'       => __( 'Could not save the treasury record.', 'taxocommerce-accounting' ),
+            'treasury_invalid'     => __( 'Check the treasury values and dates.', 'taxocommerce-accounting' ),
         );
         echo '<div class="notice notice-info"><p>' . esc_html( isset( $invoice_notices[ $notice ] ) ? $invoice_notices[ $notice ] : $notice ) . '</p></div>';
     }
