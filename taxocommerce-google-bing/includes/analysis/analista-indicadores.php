@@ -296,8 +296,11 @@ function taxocommerce_insights_indicators_categories( array $pages, array $old_p
         $impressions = max( 0, (float) ( $row['impressions'] ?? 0 ) );
         $clicks = max( 0, (float) ( $row['clicks'] ?? 0 ) );
         $position = (float) ( $row['position'] ?? 0 );
-        $previous = (array) ( $old[ rtrim( strtolower( $url ), '/' ) ] ?? array() );
-        $change = taxocommerce_insights_indicators_delta( $impressions, (float) ( $previous['impressions'] ?? 0 ) );
+        $old_url = rtrim( strtolower( $url ), '/' );
+        $previous_exists = isset( $old[ $old_url ] );
+        $previous = $previous_exists ? (array) $old[ $old_url ] : array();
+        $change = $previous_exists
+            ? taxocommerce_insights_indicators_delta( $impressions, (float) ( $previous['impressions'] ?? 0 ) ) : null;
         $signals = array();
 
         if ( $impressions >= 20 && $change && $change['delta'] >= 10 ) {
@@ -323,7 +326,7 @@ function taxocommerce_insights_indicators_categories( array $pages, array $old_p
             'source' => 'Google Search Console / WooCommerce',
             'metrics' => array(
                 'impressions' => $impressions,
-                'previous_impressions' => max( 0, (float) ( $previous['impressions'] ?? 0 ) ),
+                'previous_impressions' => $previous_exists ? max( 0, (float) ( $previous['impressions'] ?? 0 ) ) : null,
                 'impression_change' => $change,
                 'clicks' => $clicks,
                 'position' => $position > 0 ? round( $position, 2 ) : null,
@@ -400,6 +403,8 @@ function taxocommerce_insights_indicators_build( $mode = 'week' ) {
     $page_rows = array();
     $category_signals = array();
     $query_signals = array();
+    $pages_current_complete = null;
+    $pages_previous_complete = null;
     if ( $property && $latest && 'available' === ( $latest['gsc']['state'] ?? '' ) ) {
         $query_rows = function_exists( 'seo_analista_query_rows' )
             ? (array) seo_analista_query_rows( $property, $latest['date_from'], $latest['date_to'], 500 ) : array();
@@ -409,7 +414,15 @@ function taxocommerce_insights_indicators_build( $mode = 'week' ) {
             ? (array) seo_analista_query_rows( $property, $previous['date_from'], $previous['date_to'], 500 ) : array();
         $prior_page_rows = $previous && 'available' === ( $previous['gsc']['state'] ?? '' ) && function_exists( 'seo_analista_page_rows' )
             ? (array) seo_analista_page_rows( $property, $previous['date_from'], $previous['date_to'], 250 ) : array();
-        $category_signals = taxocommerce_insights_indicators_categories( $page_rows, $prior_page_rows );
+        // GSC page-query rows can be privacy-filtered or partially imported.
+        // Do not call missing pages "no clicks" or compare incomplete periods.
+        $pages_current_complete = function_exists( 'seo_google_pages_period_complete' )
+            ? (bool) seo_google_pages_period_complete( $property, $latest['date_from'], $latest['date_to'] ) : false;
+        $pages_previous_complete = $previous && function_exists( 'seo_google_pages_period_complete' )
+            ? (bool) seo_google_pages_period_complete( $property, $previous['date_from'], $previous['date_to'] ) : false;
+        if ( $pages_current_complete && $pages_previous_complete ) {
+            $category_signals = taxocommerce_insights_indicators_categories( $page_rows, $prior_page_rows );
+        }
         $prior_queries = array();
         foreach ( $prior_query_rows as $row ) {
             $name = trim( strtolower( (string) ( $row['query_text'] ?? '' ) ) );
@@ -425,8 +438,11 @@ function taxocommerce_insights_indicators_build( $mode = 'week' ) {
             $impressions = max( 0, (float) ( $row['impressions'] ?? 0 ) );
             $clicks = max( 0, (float) ( $row['clicks'] ?? 0 ) );
             $position = (float) ( $row['position'] ?? 0 );
-            $old = (array) ( $prior_queries[ strtolower( $query ) ] ?? array() );
-            $change = taxocommerce_insights_indicators_delta( $impressions, (float) ( $old['impressions'] ?? 0 ) );
+            $key = strtolower( $query );
+            $old_exists = isset( $prior_queries[ $key ] );
+            $old = $old_exists ? (array) $prior_queries[ $key ] : array();
+            $change = $old_exists
+                ? taxocommerce_insights_indicators_delta( $impressions, (float) ( $old['impressions'] ?? 0 ) ) : null;
             $codes = array();
             if ( $impressions >= 20 && $change && $change['delta'] >= 10 ) {
                 $codes[] = 'consulta_con_impresiones_crecientes';
@@ -441,7 +457,7 @@ function taxocommerce_insights_indicators_build( $mode = 'week' ) {
                     'source' => 'Google Search Console',
                     'metrics' => array(
                         'impressions' => $impressions,
-                        'previous_impressions' => (float) ( $old['impressions'] ?? 0 ),
+                        'previous_impressions' => $old_exists ? (float) ( $old['impressions'] ?? 0 ) : null,
                         'impression_change' => $change,
                         'clicks' => $clicks,
                         'position' => $position,
@@ -472,6 +488,8 @@ function taxocommerce_insights_indicators_build( $mode = 'week' ) {
             'queries' => $query_signals,
         ),
         'evidence' => array(
+            'gsc_pages_current_complete' => $pages_current_complete,
+            'gsc_pages_previous_complete' => $pages_previous_complete,
             'top_queries' => array_slice( $query_rows, 0, 100 ),
             'top_pages' => array_slice( $page_rows, 0, 100 ),
         ),
