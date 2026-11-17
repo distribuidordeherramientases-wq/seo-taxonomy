@@ -420,8 +420,12 @@ function taxocommerce_insights_indicators_build( $mode = 'week' ) {
             ? (bool) seo_google_pages_period_complete( $property, $latest['date_from'], $latest['date_to'] ) : false;
         $pages_previous_complete = $previous && function_exists( 'seo_google_pages_period_complete' )
             ? (bool) seo_google_pages_period_complete( $property, $previous['date_from'], $previous['date_to'] ) : false;
-        if ( $pages_current_complete && $pages_previous_complete ) {
-            $category_signals = taxocommerce_insights_indicators_categories( $page_rows, $prior_page_rows );
+        if ( $pages_current_complete ) {
+            // Keep positive current-period observations when the previous
+            // page history is unavailable, but never invent a growth delta.
+            $category_signals = taxocommerce_insights_indicators_categories(
+                $page_rows, $pages_previous_complete ? $prior_page_rows : array()
+            );
         }
         $prior_queries = array();
         foreach ( $prior_query_rows as $row ) {
