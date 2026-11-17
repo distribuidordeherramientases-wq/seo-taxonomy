@@ -1,3 +1,20 @@
+## 0.1.8 — 2026-11-17 — Guía para IVA deducible y revisión de ventas con IVA cero (#2773)
+
+- Se conservan los importes de ventas importados desde WooCommerce, sin reescribir automáticamente documentos emitidos ni asientos validados.
+- Las ventas WooCommerce con base positiva e IVA cero muestran aviso de revisión: para validarlas como operación doméstica se exige confirmación expresa tras contrastar la factura y el tratamiento; no se aplica artificialmente el 21 % a cualquier producto.
+- En la incorporación manual de facturas de proveedores, el porcentaje de IVA deducible no comienza en 0 por defecto y debe indicarse expresamente. Se explica la diferencia entre **tipo de IVA** y **porcentaje deducible** (0 %, 100 % u otro legalmente aplicable).
+- Vista previa automática del total de factura (base + cuota) y del importe de IVA potencialmente deducible. Solo ayuda a revisar los datos, no decide el tratamiento fiscal.
+- Pruebas de regresión y validación de sintaxis JavaScript. Sin cambio de registros existentes, WooCommerce, Billing ni producción.
+
+## 0.1.7 — 2026-11-17 — Corrección controlada de asientos validados (#2771)
+
+- Botones **Corregir asiento** e **Historial** en Ventas, Facturas recibidas y los demás registros contables.
+- Edición acotada de fecha, referencia, cliente/proveedor, NIF, concepto, base imponible, IVA y porcentaje deducible, con motivo obligatorio; el total se calcula como base más IVA.
+- Toda corrección se registra en una tabla propia con datos antes/después, usuario, fecha y motivo; escritura atómica de asiento e historial (sin sobrescribir el historial anterior). La modificación devuelve el asiento a **borrador** para nueva validación y lo excluye de totales fiscales validados hasta entonces.
+- La factura emitida de Billing, el PDF del proveedor y los pedidos WooCommerce no se modifican. Si el documento fiscal original es incorrecto, debe corregirse en origen por el procedimiento adecuado, normalmente mediante factura rectificativa; ajustar la contabilidad no lo sustituye.
+- Control de permisos, nonce específico, validación de importes y fechas, comprobación del número de factura de Billing en servidor y protección ante edición simultánea.
+- Prueba PHP independiente para recálculo, reversión, trazabilidad, retención del original y facturas de proveedor. Compatibilidad con WordPress.org y despliegue acotado a STAGING.
+
 ## [0.1.6] — 2026-11-17 — Import ISP → treatment intra (#2761)
 
 - Al importar pedidos WooCommerce con régimen `intra_eu_reverse_charge` / VIES válido, asigna `treatment=intra` y copia el NIF-IVA (sigue en draft).
