@@ -5,6 +5,9 @@
  * @package TaxoCommerceAccounting
  */
 defined( 'ABSPATH' ) || define( 'ABSPATH', __DIR__ . '/' );
+if ( ! function_exists( 'add_action' ) ) {
+    function add_action( $hook, $callback, $priority = 10, $accepted_args = 1 ) {}
+}
 require_once dirname( __DIR__ ) . '/includes/class-tca-treasury.php';
 
 function tca_treasury_assert( $condition, $reason ) {
