@@ -122,6 +122,9 @@ function taxocommerce_insights_action_plan_export( array $plan, $days ) {
  */
 function taxocommerce_insights_last_plan_export() {
     $export = get_option( 'taxocommerce_insights_last_plan_json', array() );
+    if ( ! is_array( $export ) ) {
+        return array();
+    }
     $schema = (string) ( $export['schema']['name'] ?? '' );
     $is_indicators = 'taxocommerce-insights-indicadores' === $schema
         && isset( $export['periods'] ) && is_array( $export['periods'] );
