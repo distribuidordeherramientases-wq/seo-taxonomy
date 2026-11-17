@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.7
+Stable tag: 0.1.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,7 +18,8 @@ TaxoCommerce Accounting records fiscal data without changing WooCommerce orders,
 * Configure a per-store first commercial date. All earlier test orders are excluded from new sales imports.
 * Manually import paid-status WooCommerce orders in bounded batches of 25, with deduplicated draft entries.
 * Optionally look up an actual issued invoice for the exact WooCommerce order when TaxoCommerce Billing is active. New and existing draft sales display the matching invoice number automatically; manual entry remains possible with other invoicing systems. Proformas, quotes and refunds are not automatically associated. Invoice references do not validate tax amounts.
-* Capture supplier purchase invoices, business expenses, capital assets and special cross-border operations manually.
+* Capture supplier purchase invoices, business expenses, capital assets and special cross-border operations manually. Supplier VAT deduction percentage is explicitly required (not prefilled at 0), with guidance and live preview of invoice total and deductible input VAT; 100% is only appropriate if the input VAT is legally fully deductible.
+* Domestic WooCommerce sale drafts with positive base and zero VAT prompt an additional acknowledgement before fiscal validation; the plugin does not invent tax rates or overwrite issued invoices.
 * Attach one or more original supplier PDF invoices to each saved purchase-side record (purchases, expenses, assets and intra-EU operations). Store original PDF bytes encrypted; authenticated, nonce-protected downloads only, never a public media URL. Maximum 10 MB per PDF.
 * Invoices are uploaded manually after the purchase record exists. This is a secure document archive, NOT automatic invoice parsing, OCR, remote supplier integration or fiscal verification.
 * Store taxable base, input/output VAT, total, tax classification, deductible percentage, document number and supplier data.
@@ -74,6 +75,10 @@ No. It is a working summary of validated domestic records, not an official AEAT 
 No. Input VAT defaults to 0% deductible and records start in draft. A qualified professional should verify the tax treatment.
 
 == Changelog ==
+
+= 0.1.8 =
+* Require deliberate supplier VAT deduction percentage and show invoice/deductible VAT preview. Warn and require explicit confirmation before approving domestic WooCommerce zero-VAT sales. No automatic adjustment to issued documents. Issue #2773.
+
 
 = 0.1.7 =
 * Audited correction workflow for validated entries: automatic total, compulsory reason, immutable history, draft re-review, no original invoice/order changes. Issue #2771.

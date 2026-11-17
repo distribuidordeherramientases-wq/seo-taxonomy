@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.7
+ * Version: 0.1.8
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.7' );
+define( 'TCA_VERSION', '0.1.8' );
 define( 'TCA_DB_VERSION', '3' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
@@ -125,6 +125,13 @@ function tca_enqueue_admin_styles( $hook_suffix ) {
         plugin_dir_url( __FILE__ ) . 'assets/admin.css',
         array(),
         TCA_VERSION
+    );
+    wp_enqueue_script(
+        'taxocommerce-accounting-purchase-preview',
+        plugin_dir_url( __FILE__ ) . 'assets/purchase-preview.js',
+        array(),
+        TCA_VERSION,
+        true
     );
 }
 add_action( 'admin_enqueue_scripts', 'tca_enqueue_admin_styles' );
@@ -326,6 +333,20 @@ function tca_input( $key ) {
     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller verifies the nonce before invoking this accessor.
     return isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : '';
 }
+/**
+ * Imported ordinary domestic sales with positive value and no VAT require
+ * explicit fiscal review. Zero VAT may be legal for other treatments.
+ *
+ * @param object $entry Ledger row.
+ * @return bool
+ */
+function tca_needs_zero_vat_confirmation( $entry ) {
+    return 'woocommerce' === $entry->source
+        && 'sale' === $entry->kind
+        && (float) $entry->amount_base > 0.0
+        && abs( (float) $entry->amount_tax ) < 0.005;
+}
+
 function tca_redirect( $tab, $message, $args = array() ) {
     wp_safe_redirect( tca_admin_url( $tab, array_merge( $args, array( 'notice' => $message ) ) ) );
     exit;
@@ -393,6 +414,9 @@ function tca_handle() {
         if ( in_array( $entry->source, array( 'woocommerce', 'wc_refund' ), true ) && '' === $doc ) tca_redirect( 'sales', 'invalid' );
         $treatment = sanitize_key( tca_input( 'treatment' ) );
         if ( ! in_array( $treatment, array( 'domestic', 'intra', 'reverse', 'exempt' ), true ) ) tca_redirect( 'summary', 'review' );
+        if ( 'domestic' === $treatment && tca_needs_zero_vat_confirmation( $entry ) && '1' !== tca_input( 'zero_vat_reviewed' ) ) {
+            tca_redirect( 'sales', 'review_zero_vat' );
+        }
         $data = array( 'status' => 'validated', 'treatment' => $treatment, 'updated_at' => current_time( 'mysql' ) );
         if ( '' !== $doc ) $data['document_no'] = $doc;
         if ( in_array( $entry->kind, array( 'purchase', 'expense', 'asset', 'intra' ), true ) ) {
@@ -570,8 +594,13 @@ function tca_table_rows( $rows, $kind = '' ) {
                 echo '<option value="' . esc_attr( $key ) . '" ' . selected( $row->treatment, $key, false ) . '>' . esc_html( tca_label( $label ) ) . '</option>';
             }
             echo '</select></label>';
+            if ( tca_needs_zero_vat_confirmation( $row ) ) {
+                echo '<p class="description">' . esc_html__( 'WooCommerce imported this sale with zero VAT. Check its invoice and the correct fiscal treatment before approving.', 'taxocommerce-accounting' ) . '</p>';
+                echo '<label><input type="checkbox" name="zero_vat_reviewed" value="1"> ' . esc_html__( 'I have checked the zero VAT amount and confirm its domestic tax treatment.', 'taxocommerce-accounting' ) . '</label>';
+            }
             if ( in_array( $row->kind, array( 'purchase', 'expense', 'asset', 'intra' ), true ) ) {
                 echo '<label>' . esc_html__( 'Deductible VAT percentage (review first)', 'taxocommerce-accounting' ) . ' <input type="number" min="0" max="100" step="0.01" name="deductible_pct" value="' . esc_attr( $row->deductible_pct ) . '" required></label>';
+                echo '<p class="description">' . esc_html__( 'Deductible percentage of the VAT amount, NOT the invoice VAT rate. 0% means no deduction; 100% only when fully deductible.', 'taxocommerce-accounting' ) . '</p>';
             }
             submit_button( __( 'Validate', 'taxocommerce-accounting' ), 'secondary small', 'submit', false );
             echo '</form>';
@@ -596,7 +625,7 @@ function tca_new_invoice_form( $kind ) {
         'concept' => array( 'Concept', 'text', '' ),
         'amount_base' => array( 'Taxable base', 'number', '' ),
         'amount_tax' => array( 'Input VAT amount', 'number', '' ),
-        'deductible_pct' => array( 'Deductible VAT percentage (review first)', 'number', '0' ),
+        'deductible_pct' => array( 'Deductible VAT percentage (review first)', 'number', '' ),
         'notes' => array( 'Notes / document reference', 'text', '' ),
     );
     echo '<input type="hidden" name="kind" value="' . esc_attr( $kind ) . '">';
@@ -604,9 +633,18 @@ function tca_new_invoice_form( $kind ) {
         echo '<tr><th><label for="tca-' . esc_attr( $id ) . '">' . esc_html( tca_label( $spec[0] ) ) . '</label></th><td>';
         echo '<input class="regular-text" id="tca-' . esc_attr( $id ) . '" name="' . esc_attr( $id ) . '" type="' . esc_attr( $spec[1] ) . '" value="' . esc_attr( $spec[2] ) . '"';
         if ( 'number' === $spec[1] ) echo ' step="0.01" min="0"';
-        if ( in_array( $id, array( 'fiscal_date', 'document_no', 'party', 'amount_base', 'amount_tax' ), true ) ) echo ' required';
-        echo '></td></tr>';
+        if ( in_array( $id, array( 'fiscal_date', 'document_no', 'party', 'amount_base', 'amount_tax', 'deductible_pct' ), true ) ) echo ' required';
+        echo '>';
+        if ( 'deductible_pct' === $id ) {
+            echo '<p class="description">' . esc_html__( 'Enter the percentage of VAT legally deductible, NOT the VAT rate: 0% if not deductible, 100% only if fully deductible, or another applicable percentage. You must choose a value.', 'taxocommerce-accounting' ) . '</p>';
+        }
+        echo '</td></tr>';
     }
+    echo '<tr><th scope="row">' . esc_html__( 'Invoice amount checks', 'taxocommerce-accounting' ) . '</th><td>';
+    echo '<p>' . esc_html__( 'Total of supplier invoice (base + VAT):', 'taxocommerce-accounting' ) . ' <strong id="tca-purchase-total" data-currency="' . esc_attr( tca_settings()['currency'] ) . '">—</strong></p>';
+    echo '<p>' . esc_html__( 'Potential deductible VAT (VAT × deductible percentage):', 'taxocommerce-accounting' ) . ' <strong id="tca-purchase-deductible">—</strong></p>';
+    echo '<p class="description">' . esc_html__( 'Compare these amounts with the supplier invoice. This preview is not a tax deduction decision.', 'taxocommerce-accounting' ) . '</p>';
+    echo '</td></tr>';
     echo '<tr><th><label for="tca-treatment">' . esc_html__( 'VAT treatment', 'taxocommerce-accounting' ) . '</label></th><td><select id="tca-treatment" name="treatment">';
     foreach ( array( 'review' => 'Requires review', 'domestic' => 'Domestic VAT (verify)', 'intra' => 'Intra-EU', 'reverse' => 'Reverse charge', 'exempt' => 'Exempt' ) as $key => $label ) {
         echo '<option value="' . esc_attr( $key ) . '">' . esc_html( tca_label( $label ) ) . '</option>';
@@ -688,6 +726,7 @@ function tca_admin() {
             'correction_invalid'    => __( 'Could not correct the entry. Check all fields and the mandatory reason.', 'taxocommerce-accounting' ),
             'correction_unchanged'  => __( 'No data changed; nothing was recorded.', 'taxocommerce-accounting' ),
             'correction_failed'     => __( 'The correction failed. The previous ledger entry was retained.', 'taxocommerce-accounting' ),
+            'review_zero_vat'      => __( 'This WooCommerce sale has zero VAT. Check its issued invoice and confirm the domestic VAT treatment before validating it.', 'taxocommerce-accounting' ),
         );
         echo '<div class="notice notice-info"><p>' . esc_html( isset( $invoice_notices[ $notice ] ) ? $invoice_notices[ $notice ] : $notice ) . '</p></div>';
     }
