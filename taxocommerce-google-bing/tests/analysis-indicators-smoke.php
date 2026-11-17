@@ -54,7 +54,7 @@ function seo_analista_period_metrics( $property, $from, $to ) {
     $days = ( new DateTimeImmutable( $from ) )->diff( new DateTimeImmutable( $to ) )->days + 1;
     return array(
         'source' => 'gsc_property_web_final',
-        'days_available' => $days,
+        'days_available' => '2026-11-15' === $to ? $days - 1 : $days,
         'days_expected' => $days,
         'impressions' => '2026-11-02' === $from ? 153 : 21,
         'clicks' => '2026-11-02' === $from ? 2 : 1,
@@ -89,8 +89,8 @@ indicator_assert( count( $months ) === 3, 'Three complete months' );
 indicator_assert( '2026-10-01' === $months[0]['date_from'] && '2026-10-31' === $months[0]['date_to'], 'October is last complete month' );
 indicator_assert( '2026-09-01' === $months[1]['date_from'] && '2026-09-30' === $months[1]['date_to'], 'September has 30 days' );
 indicator_assert( '2026-08-01' === $months[2]['date_from'] && '2026-08-31' === $months[2]['date_to'], 'August has 31 days' );
-$march = taxocommerce_insights_indicators_periods( 'month', '2027-03-30', '2027-03-30', 3 );
-indicator_assert( '2027-02-01' === $march[0]['date_from'] && '2027-02-28' === $march[0]['date_to'], 'Month end never overflows into March' );
+$march = taxocommerce_insights_indicators_periods( 'month', '2026-03-30', '2026-03-30', 3 );
+indicator_assert( '2026-02-01' === $march[0]['date_from'] && '2026-02-28' === $march[0]['date_to'], 'Month end never overflows into March' );
 $leap = taxocommerce_insights_indicators_periods( 'month', '2024-03-02', '2024-03-02', 1 );
 indicator_assert( '2024-02-29' === $leap[0]['date_to'], 'Leap-year February is complete' );
 indicator_assert( taxocommerce_insights_indicators_delta( 10, 0 )['growth_pct'] === null, 'Zero baseline is not an infinite percentage' );
