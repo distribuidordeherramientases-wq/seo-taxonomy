@@ -60,9 +60,12 @@ final class TCA_Treasury {
     }
 
     private static function posted( $key ) {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Called only after check_admin_referer() in handle().
-        return isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] )
-            ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This helper is called only after verifying the action nonce in handle().
+        if ( ! isset( $_POST[ $key ] ) || ! is_scalar( $_POST[ $key ] ) ) {
+            return '';
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The action nonce was checked in handle().
+        return sanitize_text_field( wp_unslash( $_POST[ $key ] ) );
     }
 
     private static function money( $value, $allow_negative = false ) {
