@@ -69,6 +69,7 @@ function seo_analista_query_rows( $property, $from, $to, $limit ) {
         'position' => 15.0,
     ) );
 }
+function seo_google_pages_period_complete( $property, $from, $to ) { return true; }
 function seo_analista_page_rows( $property, $from, $to, $limit ) {
     return array( array(
         'page_url' => 'https://example.test/tienda/limpiadores-ultrasonicos/',
