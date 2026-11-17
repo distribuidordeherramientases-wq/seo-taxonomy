@@ -1,3 +1,11 @@
+## 0.1.9 — 2026-11-17 — Traspaso automático de factura emitida a Accounting (#2778)
+
+- Captura automática mediante una acción estándar de WordPress tras la emisión de una factura de Billing: asiento de venta en borrador, sin reimportación manual ni dependencia obligatoria entre plugins.
+- Para nuevas ventas utiliza número, base imponible, IVA y total del snapshot fiscal inmutable de la factura si está disponible; si no hay Billing, conserva la importación convencional de WooCommerce.
+- Reconcilia únicamente borradores intactos que se importaron antes de emitir su factura. No modifica documentos originales, pedidos, asientos validados ni correcciones auditadas.
+- Impide aprobar borradores que discrepen de los importes de una factura emitida y avisa cuando ya existen ventas validadas con IVA cero.
+- No recalcula ni inventa cuotas de IVA: la prueba simulada de 621,60 € con 107,88 € de IVA corresponde exclusivamente al asiento corregido de prueba; el documento histórico conserva los 0 € de IVA emitidos.
+
 ## 0.1.8 — 2026-11-17 — Guía para IVA deducible y revisión de ventas con IVA cero (#2773)
 
 - Se conservan los importes de ventas importados desde WooCommerce, sin reescribir automáticamente documentos emitidos ni asientos validados.

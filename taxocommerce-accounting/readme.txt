@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.8
+Stable tag: 0.1.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,7 +17,7 @@ TaxoCommerce Accounting records fiscal data without changing WooCommerce orders,
 
 * Configure a per-store first commercial date. All earlier test orders are excluded from new sales imports.
 * Manually import paid-status WooCommerce orders in bounded batches of 25, with deduplicated draft entries.
-* Optionally look up an actual issued invoice for the exact WooCommerce order when TaxoCommerce Billing is active. New and existing draft sales display the matching invoice number automatically; manual entry remains possible with other invoicing systems. Proformas, quotes and refunds are not automatically associated. Invoice references do not validate tax amounts.
+* Optionally receive a new issued invoice through a standard WordPress action when TaxoCommerce Billing is active, and read its immutable base, VAT, total and number into a new draft or untouched imported draft. Never adjust an issued invoice or approved ledger entry. New and existing draft sales display the matching invoice number automatically; manual entry remains possible with other invoicing systems. Proformas, quotes and refunds are not automatically associated. New imported amounts require fiscal review and validation. Conflicting issued-invoice amounts block approval.
 * Capture supplier purchase invoices, business expenses, capital assets and special cross-border operations manually. Supplier VAT deduction percentage is explicitly required (not prefilled at 0), with guidance and live preview of invoice total and deductible input VAT; 100% is only appropriate if the input VAT is legally fully deductible.
 * Domestic WooCommerce sale drafts with positive base and zero VAT prompt an additional acknowledgement before fiscal validation; the plugin does not invent tax rates or overwrite issued invoices.
 * Attach one or more original supplier PDF invoices to each saved purchase-side record (purchases, expenses, assets and intra-EU operations). Store original PDF bytes encrypted; authenticated, nonce-protected downloads only, never a public media URL. Maximum 10 MB per PDF.

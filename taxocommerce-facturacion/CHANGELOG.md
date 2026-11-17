@@ -1,3 +1,9 @@
+## [0.1.20] — 2026-11-17 — Comunicación de factura emitida a contabilidad (#2778)
+
+- Tras completar el PDF y guardar el snapshot fiscal inmutable de una factura emitida, dispara la acción opcional `taxocommerce_billing_invoice_issued` con identificador de pedido y documento emitido.
+- Cualquier plugin puede suscribirse sin que Billing dependa de Accounting ni se modifiquen pedidos, PDFs o documentos históricos.
+- No duplica eventos para una factura previamente emitida; Accounting recibe la nueva emisión y conserva una revisión fiscal previa a la aprobación.
+
 ## [0.1.19] — 2026-11-17 — Transporte calculado en presupuestos y proformas
 
 - Recalcula el transporte usando el destino introducido en el formulario de carrito, resuelve provincia española a codigo WooCommerce y restaura la direccion original de sesion.
