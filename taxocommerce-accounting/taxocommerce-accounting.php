@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.9
+ * Version: 0.1.10
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,8 +14,8 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.9' );
-define( 'TCA_DB_VERSION', '3' );
+define( 'TCA_VERSION', '0.1.10' );
+define( 'TCA_DB_VERSION', '4' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
 add_action( 'init', static function () {
@@ -35,6 +35,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-provider-invoices
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-issued-invoice.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-corrections.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-hacienda.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-treasury.php';
 
 /** Own data; no dependency on any TaxoCommerce module. */
 function tca_table() {
@@ -83,6 +84,7 @@ function tca_install() {
     dbDelta( $sql );
     TCA_Provider_Invoices::install_schema();
     TCA_Corrections::install_schema();
+    TCA_Treasury::install_schema();
     update_option( 'tca_db_version', TCA_DB_VERSION, false );
     if ( false === get_option( TCA_OPTION, false ) ) {
         add_option( TCA_OPTION, tca_settings(), '', false );
@@ -652,6 +654,7 @@ function tca_label( $label ) {
         'Assets' => __( 'Assets', 'taxocommerce-accounting' ),
         'Tax returns' => __( 'Tax returns', 'taxocommerce-accounting' ),
         'Hacienda' => __( 'Hacienda', 'taxocommerce-accounting' ),
+        'Treasury' => __( 'Treasury', 'taxocommerce-accounting' ),
         'Exports' => __( 'Exports', 'taxocommerce-accounting' ),
         'Settings' => __( 'Settings', 'taxocommerce-accounting' ),
         'Autocheck' => __( 'Autocheck', 'taxocommerce-accounting' ),
@@ -806,7 +809,7 @@ function tca_admin() {
     $tabs = array(
         'summary' => 'Summary', 'sales' => 'Sales', 'received' => 'Received invoices',
         'expenses' => 'Expenses', 'assets' => 'Assets', 'intra' => 'Intra-EU',
-        'hacienda' => 'Hacienda', 'exports' => 'Exports', 'settings' => 'Settings',
+        'hacienda' => 'Hacienda', 'treasury' => 'Treasury', 'exports' => 'Exports', 'settings' => 'Settings',
         'autocheck' => 'Autocheck', 'manual' => 'Manual',
     );
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab/year filters.
@@ -837,6 +840,9 @@ function tca_admin() {
             'correction_failed'     => __( 'The correction failed. The previous ledger entry was retained.', 'taxocommerce-accounting' ),
             'review_zero_vat'      => __( 'This WooCommerce sale has zero VAT. Check its issued invoice and confirm the domestic VAT treatment before validating it.', 'taxocommerce-accounting' ),
             'invoice_mismatch'     => __( 'Accounting totals do not match the immutable issued invoice. Validation was blocked; reconcile the original document and WooCommerce order.', 'taxocommerce-accounting' ),
+            'saved'                => __( 'Treasury record saved.', 'taxocommerce-accounting' ),
+            'error'                => __( 'Could not save the treasury record.', 'taxocommerce-accounting' ),
+            'invalid'              => __( 'Check the treasury values and dates.', 'taxocommerce-accounting' ),
         );
         echo '<div class="notice notice-info"><p>' . esc_html( isset( $invoice_notices[ $notice ] ) ? $invoice_notices[ $notice ] : $notice ) . '</p></div>';
     }
@@ -871,6 +877,8 @@ function tca_admin() {
         if ( count( $rows ) >= 400 ) echo '<p class="notice notice-warning">' . esc_html__( 'Year contains over 400 entries; use the exports for full reporting. This dashboard is limited.', 'taxocommerce-accounting' ) . '</p>';
     } elseif ( 'hacienda' === $tab ) {
         TCA_Hacienda::render( $year );
+    } elseif ( 'treasury' === $tab ) {
+        TCA_Treasury::render( $year );
     } elseif ( 'sales' === $tab ) {
         echo '<h2>' . esc_html__( 'WooCommerce sales / refunds', 'taxocommerce-accounting' ) . '</h2>';
         echo '<p>' . esc_html__( 'Imports only paid-status orders dated after the configured start. All imported records remain drafts until invoice and VAT verification; repeated imports do not duplicate them.', 'taxocommerce-accounting' ) . '</p>';
