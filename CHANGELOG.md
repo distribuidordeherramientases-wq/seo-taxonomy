@@ -1,3 +1,10 @@
+## 2026-11-17 - Resolución de conflicto de ramas en PR #2759
+
+- Fusionado el historial de `main` en `staging` para resolver el conflicto `add/add` de `.github/workflows/staging-a-pro-manual.yml`, conservando todos los cambios de plugins de ambas ramas.
+- El YAML de producción mantiene ejecución **exclusivamente manual** (`workflow_dispatch`), selección de diferencias de Git y transferencia FTPS; no se ejecutó despliegue a producción.
+- Eliminada la comprobación incorrecta de `GITHUB_REF_NAME=staging` en el disparador manual publicado desde `main`; el código que se copia sigue obteniéndose explícitamente desde `staging`.
+- PR #2759 reabierto y comprobado fusionable; pendiente de revisión/merge a `main` de la entrega del milestone.
+
 ## 2026-11-14 - Retirada del puente temporal TaxoCommerce Connections (#2671)
 
 - Eliminado de GitHub el plugin autónomo `taxocommerce-connections/` (Compatibility Bridge), ya consolidado en TaxoCommerce Insights.
