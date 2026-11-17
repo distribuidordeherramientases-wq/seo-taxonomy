@@ -121,4 +121,20 @@ tca_invoice_assert(
 );
 tca_invoice_assert( false !== strpos( $source, 'function tca_sale_invoice_mismatch(' ), 'Existing ledger rows remain independent but discrepancies can be detected' );
 tca_invoice_assert( false !== strpos( $source, "tca_redirect( 'sales', 'invoice_mismatch' )" ), 'Conflicting invoices must block approval' );
+// Billing emits a single optional WordPress event only after issuing the PDF.
+$billing = file_get_contents( dirname( dirname( __DIR__ ) ) . '/taxocommerce-facturacion/includes/class-seo-facturas-documents.php' );
+tca_invoice_assert( false !== $billing, 'Billing source can be inspected' );
+tca_invoice_assert(
+    false !== strpos( $billing, "do_action('taxocommerce_billing_invoice_issued'" ),
+    'Successful invoice issuance triggers an optional accounting event'
+);
+tca_invoice_assert(
+    false !== strpos( $source, "add_action( 'taxocommerce_billing_invoice_issued', 'tca_on_billing_invoice_issued', 10, 2 )" ),
+    'Accounting subscribes to the optional invoice-issued action'
+);
+tca_invoice_assert(
+    false !== strpos( $source, "tca_find_source( 'woocommerce', \$order_id )" ) &&
+    false !== strpos( $source, "'draft' === (string) \$existing->status" ),
+    'Existing validated entries are not overwritten and imports deduplicate'
+);
 echo "Accounting issued-invoice optional link: PASS\n";
