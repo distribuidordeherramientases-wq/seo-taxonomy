@@ -197,7 +197,19 @@ final class SEO_Facturas_Documents {
             array('%d')
         );
 
-        return self::get(absint($document->id));
+        $issued = self::get(absint($document->id));
+        if ($issued && 'issued' === (string) $issued->status &&
+            self::TYPE_INVOICE === (string) $issued->document_type) {
+            /**
+             * Fires after a sales invoice PDF and its immutable snapshot are issued.
+             * Optional accounting plugins may import it via read-only lookups.
+             *
+             * @param int    $order_id WooCommerce order ID.
+             * @param object $issued   Issued invoice document.
+             */
+            do_action('taxocommerce_billing_invoice_issued', absint($issued->order_id), $issued);
+        }
+        return $issued;
     }
 
     public static function get($document_id) {
