@@ -5,13 +5,16 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.33
+Stable tag: 0.4.34
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Import and export catalog, content and Media for WordPress/WooCommerce.
 
 == Description ==
+
+Version 0.4.34 localizes CSV validation, batch queue and export administration messages in five WordPress locales. It does not change processing behavior, data formats or plugin dependencies.
+
 
 Version 0.4.33 fixes stalled CSV exports when the hosting blocks non-blocking internal loopback requests: an open admin browser assists with bounded AJAX steps, without removing the server worker or using scheduled cron actions. Autocheck now validates saved CSV files and flags stale or failed jobs instead of reporting a retired scheduled worker as missing. HTTP downloads still require an end-to-end administrator check.
 
