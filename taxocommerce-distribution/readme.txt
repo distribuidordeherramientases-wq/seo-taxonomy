@@ -15,6 +15,8 @@ Publish WooCommerce commercial feeds and professional XML sitemaps with bounded 
 
 TaxoCommerce Distribution separates technical catalog publication from marketing, templates and supplier imports.
 
+= Key Features =
+
 * An administrator checkbox in Distribution > Sitemaps enables or relinquishes TaxoCommerce XML sitemap publication. With it disabled, native WordPress or another plugin can publish sitemaps; commercial feeds are unaffected. The existing WordPress filter continues to support third-party ownership.
 
 
