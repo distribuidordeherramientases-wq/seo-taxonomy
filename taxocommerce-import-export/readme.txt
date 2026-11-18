@@ -5,13 +5,16 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.32
+Stable tag: 0.4.33
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Import and export catalog, content and Media for WordPress/WooCommerce.
 
 == Description ==
+
+Version 0.4.33 fixes stalled CSV exports when the hosting blocks non-blocking internal loopback requests: an open admin browser assists with bounded AJAX steps, without removing the server worker or using scheduled cron actions. Autocheck now validates saved CSV files and flags stale or failed jobs instead of reporting a retired scheduled worker as missing. HTTP downloads still require an end-to-end administrator check.
+
 
 Version 0.4.31 adds five-language translations for Media Library ZIP import/export, error messages, forms and progress tracking. The 0.4.30 CSV queue and export controls remain translated. Longer instructions and some administration strings still need localization; the active WordPress language determines the interface.
 
