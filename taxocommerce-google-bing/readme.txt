@@ -4,13 +4,16 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.67
+Stable tag: 1.1.68
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 External connections, manual provider data downloads, and market intelligence for WooCommerce.
 
 == Description ==
+
+Version 1.1.68 improves administration translations in five WordPress languages for connection/OAuth controls and GSC, GA4 and Bing report messages. Provider calls, stored data and reporting behavior remain unchanged.
+
 
 Version 1.1.67 restores the full executive report that previous 1.1.65/1.1.66 releases did not implement. A readable business summary, organic GSC rankings by verified WooCommerce entity (categories/products/posts/pages), GA4 page views and product views/cart additions, top gainers with comparable history, session-source breakdown, supplier catalogue status, Google Trends signals, competitor position availability and internal search appear in one report. Data is retained as structured JSON v3; missing or partial data remains explicitly unknown, never zero. The report offers verifiable checks rather than content or campaign instructions. Historical week/month source alignment is unchanged.
 
