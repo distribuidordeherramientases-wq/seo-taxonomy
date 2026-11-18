@@ -1,3 +1,6 @@
+= 0.3.26 =
+* Added an evidence-based AI discovery recommendations tab under Products. Read-only, with explicit sample-coverage limitations.
+
 = 0.3.25 (2026-11-16) =
 * Precision-first product checks: do not report low-confidence duplicate product title/description templates or weak literal body matches by default; retain optional deep-check filter and checks for other scopes. Report incompatible numeric unit tags only with unique matching evidence in title and description. Issue #2752.
 
