@@ -1,3 +1,8 @@
+## Documentation — 2026-11-18 — Public readme descriptions (#2814)
+
+- Reordered the `Description` introductions in 20 TaxoCommerce plugin `readme.txt` files to lead with purpose and existing functionality instead of release notes or internal admin-header details.
+- Preserved the other readme sections and independent version-history files. Customers and Accounting already followed the expected introductory pattern and were left unchanged. No PHP/runtime changes.
+
 ## 2026-11-17 - Resolución de conflicto de ramas en PR #2759
 
 - Fusionado el historial de `main` en `staging` para resolver el conflicto `add/add` de `.github/workflows/staging-a-pro-manual.yml`, conservando todos los cambios de plugins de ambas ramas.
