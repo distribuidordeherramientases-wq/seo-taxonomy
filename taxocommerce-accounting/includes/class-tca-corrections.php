@@ -183,6 +183,14 @@ final class TCA_Corrections {
         if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
             return false;
         }
+        // Lock the same entry as settlements and retain all earlier payments.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Same transaction lock as payment registration.
+        $locked = $wpdb->get_row( $wpdb->prepare( 'SELECT id FROM %i WHERE id = %d FOR UPDATE', tca_table(), $id ) );
+        if ( ! $locked || TCA_Settlements::sum( $id ) > abs( (float) $after['amount_total'] ) ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Reject a correction that would overpay the invoice.
+            $wpdb->query( 'ROLLBACK' );
+            return false;
+        }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Conditional update of own ledger.
         $updated = $wpdb->update(
             tca_table(),
