@@ -13,7 +13,7 @@ Manage shipping costs, package weight and dimensions in WooCommerce with manual 
 
 TaxoCommerce Logistics is the shipping-cost domain for the TaxoCommerce family.
 
-Features:
+= Key Features =
 
 * Active WooCommerce order weight audit.
 * Missing product-weight detection.
