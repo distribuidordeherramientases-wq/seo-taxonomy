@@ -15,6 +15,8 @@ An auditable catalog assistant for WooCommerce, with independent learning, seman
 
 TaxoCommerce Assistant builds searchable product knowledge from the site's WooCommerce catalog and available editorial content.
 
+= Key Features =
+
 * L1-L10: bounded, auditable learning steps with source snapshots and quality checks.
 * M11: semantic interpretation and relevance evaluation; uncertain matches can ask for clarification.
 * M12: incremental updates when products or related content change.
