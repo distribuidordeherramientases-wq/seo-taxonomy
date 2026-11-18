@@ -14,6 +14,8 @@ External connections, manual provider data downloads, and market intelligence fo
 
 TaxoCommerce Insights keeps external service connections and manual data downloads in one place.
 
+= Key Features =
+
 * Analysis: individual reports and full report generation via authenticated AJAX. The complete unified JSON is assembled from authenticated, sequential, bounded requests in a private temporary file and streamed after validation. No one-shot heavy export, cron or browser-side Blob.
 
 
