@@ -1,7 +1,7 @@
 ## Documentation — 2026-11-18 — Public readme descriptions (#2814)
 
-- Reordered the `Description` introductions in 20 TaxoCommerce plugin `readme.txt` files to lead with purpose and existing functionality instead of release notes or internal admin-header details.
-- Preserved the other readme sections and independent version-history files. Customers and Accounting already followed the expected introductory pattern and were left unchanged. No PHP/runtime changes.
+- Standardized all 22 TaxoCommerce plugin `readme.txt` descriptions: purpose first, shared `Key Features` subsection, no introductory release notes or internal admin-header details; added missing installation instructions for Logistics and Import-Export.
+- Preserved the other readme sections and independent version-history files. Customers and Accounting already had suitable introductory text; both now use the same features subheading. No PHP/runtime changes or changes to requirements, versions, license metadata or independent history files.
 
 ## 2026-11-17 - Resolución de conflicto de ramas en PR #2759
 
