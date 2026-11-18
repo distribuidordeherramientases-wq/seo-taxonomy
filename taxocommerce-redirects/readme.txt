@@ -13,6 +13,8 @@ Manage SEO redirects and assisted content deletion for WordPress and WooCommerce
 
 Independent WordPress/WooCommerce 301/302 manager with assisted deletion.
 
+= Key Features =
+
 * Existing redirect chains are served as one HTTP hop to their terminal destination. Administrators can flatten individual stored chains after reviewing the target.
 * During assisted deletion of a published WooCommerce product, a populated specific product category is suggested as an optional destination. The administrator must confirm suitability; no blanket redirects from missing pages are created.
 
