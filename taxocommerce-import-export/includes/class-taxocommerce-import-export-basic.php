@@ -481,6 +481,128 @@ final class TaxoCommerce_Import_Export_Basic {
 		return $data;
 	}
 
+	/**
+	 * Resolve a delimited list of existing native terms without creating categories.
+	 *
+	 * @param string $value CSV value, slugs/names separated by | or comma.
+	 * @param string $taxonomy WordPress taxonomy.
+	 * @return array|WP_Error Term IDs or failure.
+	 */
+	private function term_ids( $value, $taxonomy ) {
+		$tax = get_taxonomy( $taxonomy );
+		if ( ! $tax || ! current_user_can( $tax->cap->assign_terms ) ) {
+			return new WP_Error( 'terms_forbidden', __( 'Sin permisos para asignar esta taxonomía.', 'taxocommerce-import-export' ) );
+		}
+		$ids = array();
+		foreach ( preg_split( '/[|,]/u', (string) $value, -1, PREG_SPLIT_NO_EMPTY ) as $entry ) {
+			$entry = trim( $entry );
+			if ( '' === $entry ) {
+				continue;
+			}
+			$term = get_term_by( 'slug', sanitize_title( $entry ), $taxonomy );
+			if ( ! $term ) {
+				$term = get_term_by( 'name', $entry, $taxonomy );
+			}
+			if ( ! $term ) {
+				/* translators: %s: Name or slug of the term absent from WordPress. */
+				return new WP_Error( 'term_missing', sprintf( __( 'La categoría o etiqueta «%s» no existe. Importa primero las categorías o crea la etiqueta.', 'taxocommerce-import-export' ), $entry ) );
+			}
+			$ids[] = (int) $term->term_id;
+		}
+		return array_values( array_unique( $ids ) );
+	}
+
+	/**
+	 * Resolve an image already in WordPress Media (local ID or URL).
+	 * External images are deliberately not fetched.
+	 *
+	 * @param string $value Attachment ID or URL.
+	 * @return int|WP_Error
+	 */
+	private function media_image_id( $value ) {
+		$value = trim( (string) $value );
+		// WooCommerce CSV's Images column can contain multiple URLs.
+		$value = trim( explode( ',', $value )[0] );
+		$id = ctype_digit( $value ) ? absint( $value ) : attachment_url_to_postid( esc_url_raw( $value ) );
+		if ( ! $id || ! wp_attachment_is_image( $id ) ) {
+			return new WP_Error( 'image_missing', __( 'La imagen no está en la biblioteca Media. Importa el archivo en Media antes de relacionarlo.', 'taxocommerce-import-export' ) );
+		}
+		return $id;
+	}
+
+	/**
+	 * Normalize native yes/no CSV fields and reject ambiguous values.
+	 *
+	 * @param string $value CSV value.
+	 * @return bool|WP_Error
+	 */
+	private function csv_boolean( $value ) {
+		$value = strtolower( remove_accents( trim( (string) $value ) ) );
+		if ( in_array( $value, array( '1', 'yes', 'si', 'true', 'on' ), true ) ) {
+			return true;
+		}
+		if ( in_array( $value, array( '0', 'no', 'false', 'off' ), true ) ) {
+			return false;
+		}
+		return new WP_Error( 'invalid_boolean', __( 'El campo de sí/no debe contener yes/no, sí/no, true/false o 1/0.', 'taxocommerce-import-export' ) );
+	}
+
+	/**
+	 * Resolve an existing WordPress user by login, email or local ID.
+	 *
+	 * @param string $value CSV author value.
+	 * @return int|WP_Error
+	 */
+	private function author_id( $value ) {
+		$value = trim( (string) $value );
+		$user = ctype_digit( $value ) ? get_user_by( 'id', absint( $value ) ) : get_user_by( 'login', $value );
+		if ( ! $user && is_email( $value ) ) {
+			$user = get_user_by( 'email', $value );
+		}
+		return $user ? (int) $user->ID : new WP_Error( 'author_missing', __( 'El usuario autor no existe en WordPress.', 'taxocommerce-import-export' ) );
+	}
+
+	/**
+	 * Resolve optional product/post taxonomies before saving the main record.
+	 *
+	 * @param string $type Content type.
+	 * @param array  $data Mapped row.
+	 * @return array|WP_Error Taxonomy => term IDs.
+	 */
+	private function mapped_terms( $type, $data ) {
+		$taxonomies = 'product' === $type ? array( 'categories' => 'product_cat', 'tags' => 'product_tag' ) :
+			( 'post' === $type ? array( 'categories' => 'category', 'tags' => 'post_tag' ) : array() );
+		$resolved = array();
+		foreach ( $taxonomies as $field => $taxonomy ) {
+			if ( ! isset( $data[ $field ] ) ) {
+				continue;
+			}
+			$ids = $this->term_ids( $data[ $field ], $taxonomy );
+			if ( is_wp_error( $ids ) ) {
+				return $ids;
+			}
+			$resolved[ $taxonomy ] = $ids;
+		}
+		return $resolved;
+	}
+
+	/**
+	 * Save only explicitly mapped term relationships.
+	 *
+	 * @param int   $id Object ID.
+	 * @param array $terms Taxonomy => term IDs.
+	 * @return true|WP_Error
+	 */
+	private function save_terms( $id, $terms ) {
+		foreach ( $terms as $taxonomy => $ids ) {
+			$result = wp_set_object_terms( $id, $ids, $taxonomy, false );
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+		}
+		return true;
+	}
+
 	private function import_record( $type, $data, $mode ) {
 		if ( ! $data ) return new WP_Error( 'empty', __( 'Fila sin campos con valores.', 'taxocommerce-import-export' ) );
 		$cap = array( 'product' => 'edit_products', 'product_cat' => 'manage_product_terms',
