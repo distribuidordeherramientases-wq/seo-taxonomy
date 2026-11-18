@@ -13,7 +13,9 @@ Import and export catalog, content and Media for WordPress/WooCommerce.
 
 == Description ==
 
-TaxoCommerce Import-Export is an independent member of the TaxoCommerce family.
+TaxoCommerce Import-Export provides CSV imports and exports for WordPress content and WooCommerce catalogues, including resumable batch jobs and selective field updates.
+
+= Key Features =
 
 * Dedicated Exportación tab with resumable block-based CSV generation.
 * Selectable exports for full products, reduced portable product inventory, product categories, posts and pages.
