@@ -4,6 +4,7 @@
  */
 define( 'ABSPATH', __DIR__ );
 define( 'MINUTE_IN_SECONDS', 60 );
+define( 'DAY_IN_SECONDS', 86400 );
 function indicator_assert( $condition, $message ) {
     if ( ! $condition ) {
         fwrite( STDERR, 'FAIL indicators: ' . $message . PHP_EOL );
@@ -152,6 +153,8 @@ indicator_assert( ! empty( $report['executive']['summary'] ), 'Executive summary
 indicator_assert( 'available' === $report['executive']['ga4_pages']['state'], 'GA4 pageviews grouped by pages' );
 indicator_assert( 'product' === $report['executive']['ga4_pages']['rows'][0]['type'], 'Recognized product page' );
 indicator_assert( 'post' === $report['executive']['ga4_pages']['rows'][1]['type'], 'Recognized recent entry' );
+indicator_assert( ! empty( $report['executive']['ga4_pages_by_type']['product'][0] ), 'GA4 product visits are presented separately' );
+indicator_assert( ! empty( $report['executive']['ga4_pages_by_type']['post'][0] ), 'GA4 article visits are presented separately' );
 indicator_assert( 14 === $report['executive']['ga4_items']['rows'][0]['views'], 'Products viewed in GA4, not inferred from GSC' );
 indicator_assert( 3 === $report['executive']['ga4_items']['most_added_to_cart'][0]['added_to_cart'], 'Cart product ranking available' );
 indicator_assert( 'google / organic' === $report['executive']['ga4_traffic_sources']['rows'][0]['name'], 'Traffic provenance exposed' );
@@ -182,6 +185,7 @@ indicator_assert( false !== strpos( $html, 'Indicadores para la acción' ), 'New
 indicator_assert( false === strpos( $html, 'HACER AHORA' ), 'No execution queue in indicator report' );
 indicator_assert( false !== strpos( $html, 'Resumen para dirección' ), 'Main report displays clear executive summary' );
 indicator_assert( false !== strpos( $html, 'Productos más consultados' ), 'Executive product ranking is visible' );
+indicator_assert( false !== strpos( $html, 'Categorías más visitadas (GA4)' ), 'Executives can see category visits separately' );
 indicator_assert( false !== strpos( $html, 'Tendencias, proveedores y competencia' ), 'External source sections are visible even if unavailable' );
 
 $monthly = taxocommerce_insights_indicators_build( 'month' );
