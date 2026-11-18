@@ -424,13 +424,63 @@ function taxocommerce_insights_executive_build( array $report ) {
         $gsc_pages,
         ! empty( $report['evidence']['gsc_pages_previous_complete'] ) ? $old_pages : array()
     );
+    $by_type = array( 'category' => array(), 'product' => array(), 'post' => array(), 'page' => array() );
+    foreach ( (array) $pages['rows'] as $page_row ) {
+        $type = (string) ( $page_row['type'] ?? '' );
+        if ( isset( $by_type[ $type ] ) && count( $by_type[ $type ] ) < 10 ) {
+            $by_type[ $type ][] = $page_row;
+        }
+    }
     $market = taxocommerce_insights_executive_market_context();
+    foreach ( (array) ( $market['suppliers']['rows'] ?? array() ) as $provider ) {
+        if ( (int) ( $provider['sync_errors'] ?? 0 ) > 0 ) {
+            $checks[] = array(
+                'department' => __( 'Comercial / operaciones', 'taxocommerce-google-bing' ),
+                'subject' => (string) ( $provider['name'] ?? '' ),
+                'evidence' => sprintf(
+                    /* translators: %d: supplier sync errors */
+                    __( 'La fuente local registra %d errores de sincronización para este proveedor.', 'taxocommerce-google-bing' ),
+                    (int) $provider['sync_errors']
+                ),
+                'check' => __( 'Verificar la fecha y el estado de la sincronización del catálogo del proveedor.', 'taxocommerce-google-bing' ),
+            );
+            break;
+        }
+    }
+    if ( (int) ( $market['internal_search']['zero_results'] ?? 0 ) > 0 ) {
+        $checks[] = array(
+            'department' => __( 'Comercial / marketing', 'taxocommerce-google-bing' ),
+            'subject' => __( 'Búsquedas internas sin resultados', 'taxocommerce-google-bing' ),
+            'evidence' => sprintf(
+                /* translators: %d: internal searches with zero results */
+                __( 'Se registraron %d búsquedas internas sin productos encontrados durante los últimos 28 días.', 'taxocommerce-google-bing' ),
+                (int) $market['internal_search']['zero_results']
+            ),
+            'check' => __( 'Consultar qué términos buscaron los visitantes antes de valorar cambios de oferta.', 'taxocommerce-google-bing' ),
+        );
+    }
+    if ( ! empty( $report['source_cutoffs']['gsc_latest_imported_date'] ) ) {
+        $last_gsc = strtotime( (string) $report['source_cutoffs']['gsc_latest_imported_date'] );
+        if ( $last_gsc && time() - $last_gsc > 7 * DAY_IN_SECONDS ) {
+            $checks[] = array(
+                'department' => 'IT',
+                'subject' => __( 'Actualización de Search Console', 'taxocommerce-google-bing' ),
+                'evidence' => sprintf(
+                    /* translators: %s: last imported GSC day */
+                    __( 'Los datos importados de GSC llegan hasta el %s.', 'taxocommerce-google-bing' ),
+                    (string) $report['source_cutoffs']['gsc_latest_imported_date']
+                ),
+                'check' => __( 'Verificar la sincronización antes de concluir que esta última semana representa el tráfico actual.', 'taxocommerce-google-bing' ),
+            );
+        }
+    }
     return array(
         'summary' => $summary,
         'narrative' => $notes,
         'reviews' => $checks,
         'ga4_traffic_sources' => $sources,
         'ga4_pages' => $pages,
+        'ga4_pages_by_type' => $by_type,
         'ga4_items' => $items,
         'growing_pages' => array_slice( $page_growth, 0, 10 ),
         'growing_items' => array_slice( $item_growth, 0, 10 ),
@@ -489,6 +539,12 @@ function taxocommerce_insights_executive_render( array $report ) {
 
     echo '<section class="seo-analista-section"><h2>' . esc_html__( 'Qué se consulta dentro de la tienda', 'taxocommerce-google-bing' ) . '</h2>';
     echo '<p>' . esc_html__( 'Datos registrados por Google Analytics 4; no deben confundirse con impresiones o clics orgánicos.', 'taxocommerce-google-bing' ) . '</p>';
+    echo '<h3>' . esc_html__( 'Categorías más visitadas (GA4)', 'taxocommerce-google-bing' ) . '</h3>';
+    taxocommerce_insights_executive_render_rows( (array) ( $executive['ga4_pages_by_type']['category'] ?? array() ), 'ga4_pages' );
+    echo '<h3>' . esc_html__( 'Entradas más leídas (GA4)', 'taxocommerce-google-bing' ) . '</h3>';
+    taxocommerce_insights_executive_render_rows( (array) ( $executive['ga4_pages_by_type']['post'] ?? array() ), 'ga4_pages' );
+    echo '<h3>' . esc_html__( 'Productos más visitados (GA4)', 'taxocommerce-google-bing' ) . '</h3>';
+    taxocommerce_insights_executive_render_rows( (array) ( $executive['ga4_pages_by_type']['product'] ?? array() ), 'ga4_pages' );
     echo '<h3>' . esc_html__( 'Páginas con más visualizaciones', 'taxocommerce-google-bing' ) . '</h3>';
     taxocommerce_insights_executive_render_rows( (array) ( $executive['ga4_pages']['rows'] ?? array() ), 'ga4_pages' );
     echo '<h3>' . esc_html__( 'Páginas que más han crecido', 'taxocommerce-google-bing' ) . '</h3>';
