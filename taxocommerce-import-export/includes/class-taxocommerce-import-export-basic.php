@@ -331,30 +331,94 @@ final class TaxoCommerce_Import_Export_Basic {
 		return preg_match( '/^[=+@\t\r]/u', $value ) ? "'" . $value : $value;
 	}
 
+	/**
+	 * Export a list of existing native term slugs, never TaxoCommerce taxonomy IDs.
+	 *
+	 * @param int    $object_id WordPress object ID.
+	 * @param string $taxonomy Native taxonomy.
+	 * @return string
+	 */
+	private function export_term_slugs( $object_id, $taxonomy ) {
+		$terms = wp_get_object_terms( $object_id, $taxonomy, array( 'fields' => 'slugs' ) );
+		return is_wp_error( $terms ) ? '' : implode( '|', (array) $terms );
+	}
+
+	/**
+	 * Return one natively stored field value.
+	 *
+	 * @param string $type Type of record.
+	 * @param int    $id Record ID.
+	 * @param string $field Selected field.
+	 * @return string
+	 */
 	private function export_value( $type, $id, $field ) {
 		if ( 'product' === $type ) {
-			$p = wc_get_product( $id );
-			if ( ! $p ) return '';
-			$methods = array( 'id' => 'get_id', 'sku' => 'get_sku', 'name' => 'get_name', 'slug' => 'get_slug',
-				'status' => 'get_status', 'regular_price' => 'get_regular_price', 'sale_price' => 'get_sale_price',
-				'stock_quantity' => 'get_stock_quantity', 'description' => 'get_description',
-				'short_description' => 'get_short_description' );
+			$product = wc_get_product( $id );
+			if ( ! $product ) {
+				return '';
+			}
+			if ( 'categories' === $field || 'tags' === $field ) {
+				return $this->export_term_slugs( $id, 'categories' === $field ? 'product_cat' : 'product_tag' );
+			}
+			if ( 'featured_image' === $field ) {
+				return $product->get_image_id() ? (string) wp_get_attachment_url( $product->get_image_id() ) : '';
+			}
+			$methods = array(
+				'id' => 'get_id', 'sku' => 'get_sku', 'name' => 'get_name',
+				'slug' => 'get_slug', 'status' => 'get_status',
+				'regular_price' => 'get_regular_price', 'sale_price' => 'get_sale_price',
+				'stock_quantity' => 'get_stock_quantity', 'stock_status' => 'get_stock_status',
+				'manage_stock' => 'get_manage_stock',
+				'description' => 'get_description', 'short_description' => 'get_short_description',
+				'weight' => 'get_weight', 'length' => 'get_length', 'width' => 'get_width',
+				'height' => 'get_height', 'catalog_visibility' => 'get_catalog_visibility',
+				'featured' => 'get_featured', 'virtual' => 'get_virtual',
+				'sold_individually' => 'get_sold_individually',
+			);
 			$method = $methods[ $field ] ?? '';
-			return $method ? (string) $p->$method() : '';
+			if ( ! $method ) {
+				return '';
+			}
+			$value = $product->$method();
+			return is_bool( $value ) ? ( $value ? 'yes' : 'no' ) : (string) $value;
 		}
 		if ( in_array( $type, array( 'category', 'product_cat' ), true ) ) {
-			$t = get_term( $id, $type );
-			if ( ! $t || is_wp_error( $t ) ) return '';
+			$term = get_term( $id, $type );
+			if ( ! $term || is_wp_error( $term ) ) {
+				return '';
+			}
 			if ( 'parent_slug' === $field ) {
-				$parent = $t->parent ? get_term( $t->parent, $type ) : null;
+				$parent = $term->parent ? get_term( $term->parent, $type ) : null;
 				return $parent && ! is_wp_error( $parent ) ? $parent->slug : '';
 			}
-			return (string) ( $t->$field ?? '' );
+			return (string) ( $term->$field ?? '' );
 		}
-		$p = get_post( $id );
-		$key = array( 'id' => 'ID', 'title' => 'post_title', 'slug' => 'post_name',
-			'status' => 'post_status', 'excerpt' => 'post_excerpt', 'content' => 'post_content' )[ $field ] ?? '';
-		return $p && $key ? (string) $p->$key : '';
+		$post = get_post( $id );
+		if ( ! $post ) {
+			return '';
+		}
+		if ( 'categories' === $field || 'tags' === $field ) {
+			return $this->export_term_slugs( $id, 'categories' === $field ? 'category' : 'post_tag' );
+		}
+		if ( 'featured_image' === $field ) {
+			$image_id = get_post_thumbnail_id( $id );
+			return $image_id ? (string) wp_get_attachment_url( $image_id ) : '';
+		}
+		if ( 'author' === $field ) {
+			$author = get_userdata( (int) $post->post_author );
+			return $author ? $author->user_login : '';
+		}
+		if ( 'parent_slug' === $field ) {
+			$parent = $post->post_parent ? get_post( $post->post_parent ) : null;
+			return $parent ? $parent->post_name : '';
+		}
+		$key = array(
+			'id' => 'ID', 'title' => 'post_title', 'slug' => 'post_name',
+			'status' => 'post_status', 'excerpt' => 'post_excerpt',
+			'content' => 'post_content', 'date' => 'post_date',
+			'menu_order' => 'menu_order', 'comment_status' => 'comment_status',
+		)[ $field ] ?? '';
+		return $key ? (string) $post->$key : '';
 	}
 
 	public function export() {
