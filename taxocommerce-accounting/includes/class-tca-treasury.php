@@ -2,8 +2,8 @@
 /**
  * Simple, independent cash/bank and loan register for Accounting.
  *
- * Actual balances are based solely on opening funds and manually recorded
- * cash movements. Invoices and projected loan instalments never imply cash.
+ * Actual balances are based solely on opening funds and confirmed
+ * cash movements. Unpaid invoices and projected loan instalments never imply cash.
  *
  * @package TaxoCommerceAccounting
  */
@@ -13,6 +13,15 @@ final class TCA_Treasury {
     private static function table( $suffix ) {
         global $wpdb;
         return $wpdb->prefix . 'tca_treasury_' . $suffix;
+    }
+
+    /** Owned tables shared with the invoice-settlement component. */
+    public static function accounts_table() {
+        return self::table( 'accounts' );
+    }
+
+    public static function movements_table() {
+        return self::table( 'movements' );
     }
 
     public static function install_schema() {
@@ -317,7 +326,7 @@ final class TCA_Treasury {
             }
         }
         echo '<h2>' . esc_html__( 'Treasury: cash, bank and loans', 'taxocommerce-accounting' ) . '</h2>';
-        echo '<p class="description">' . esc_html__( 'Balances use only recorded opening funds and actual cash movements. Issued invoices, unpaid purchases and future loan instalments do not move money automatically.', 'taxocommerce-accounting' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Balances use opening funds and confirmed payments/receipts (including invoice-linked settlements). Unpaid invoices and future loan instalments never move money.', 'taxocommerce-accounting' ) . '</p>';
         echo '<div class="tca-treasury-kpis">';
         $indicators = array(
             __( 'Cash on hand', 'taxocommerce-accounting' ) => $cash,
