@@ -155,6 +155,8 @@ jobs:
           php -l taxocommerce-system-check/tests/url-process-progress-smoke.php
           php taxocommerce-system-check/tests/url-process-progress-smoke.php
           php taxocommerce-system-check/tests/processes-smoke.php
+          php -l taxocommerce-system-check/tests/i18n-admin-ui-smoke.php
+          php taxocommerce-system-check/tests/i18n-admin-ui-smoke.php
           php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-process-details.php
           php -l taxocommerce-system-check/tests/process-details-smoke.php
           php taxocommerce-system-check/tests/process-details-smoke.php
