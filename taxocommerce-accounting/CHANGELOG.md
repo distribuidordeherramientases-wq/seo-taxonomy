@@ -1,3 +1,12 @@
+## 0.1.13 — 2026-11-18 — Pagos y cobros de facturas asociados a Tesorería (#2817)
+
+- Cada asiento de venta, devolución, compra, gasto o activo ofrece **Registrar pago / Registrar cobro** con selección explícita de cuenta bancaria o caja, fecha real e importe, incluyendo pagos parciales.
+- El movimiento se incorpora al registro existente de Tesorería y se enlaza al asiento fiscal sin cambiar base, IVA, estado ni documentos. El resumen muestra importe pagado/cobrado y pendiente.
+- Se añade tabla propia de vínculos y protección contra doble envío (clave de idempotencia única, bloqueo por asiento y transacción atómica). El importe nunca puede superar el saldo pendiente.
+- Las facturas importadas o validadas **no generan movimientos automáticamente sin confirmación de que están pagadas**. No se presume el pago de facturas antiguas ni se duplican los saldos iniciales; los pagos ya anotados manualmente deben conciliarse antes de registrar otro.
+- La misma lógica cubre efectivo y múltiples bancos, con entrada para ventas y salida para compras, gastos y devoluciones. No modifica WooCommerce, Billing, movimientos existentes o datos de producción.
+- Añadido smoke test aislado; pendiente QA operativa con extractos reales antes de considerar completada la conciliación.
+
 ## 0.1.12 — 2026-11-18 — Facturas de proveedores y servicios con originales cifrados (#2795)
 
 - Nuevo importador/exportador CSV de **compras a proveedores** en «Facturas recibidas», separado de las facturas de **gastos y servicios** en «Gastos» y de su acceso anterior en «Tesorería».
