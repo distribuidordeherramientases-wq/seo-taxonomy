@@ -23,6 +23,7 @@ defined( 'ABSPATH' ) || exit;
 function taxocommerce_insights_executive_ga4_breakdown( $type, array $period ) {
     $unavailable = array( 'state' => 'unavailable', 'rows' => array(), 'period' => $period );
     if ( ! function_exists( 'seo_google_analytics_run_report' )
+        || empty( $period['date_from'] ) || empty( $period['date_to'] )
         || ! in_array( $type, array( 'sources', 'pages', 'items' ), true ) ) {
         return $unavailable;
     }
@@ -253,6 +254,8 @@ function taxocommerce_insights_executive_market_context() {
         ? (array) seo_analista_market_signals( 10 ) : array();
     $competition = function_exists( 'seo_analista_competition_snapshot' )
         ? (array) seo_analista_competition_snapshot( 10 ) : array();
+    $internal = function_exists( 'seo_analista_internal_search_snapshot' )
+        ? (array) seo_analista_internal_search_snapshot( 28, 10 ) : array();
     $rows = array();
     foreach ( array_slice( (array) ( $suppliers['rows'] ?? array() ), 0, 10 ) as $row ) {
         $rows[] = array(
@@ -288,6 +291,14 @@ function taxocommerce_insights_executive_market_context() {
         'competition' => array(
             'state' => ! empty( $competition['available'] ) ? 'available' : 'unavailable',
             'positions_count' => ! empty( $competition['available'] ) ? (int) ( $competition['row_count'] ?? 0 ) : null,
+            'keyword_gaps' => ! empty( $competition['available'] ) ? array_slice( (array) ( $competition['keyword_gaps'] ?? array() ), 0, 5 ) : array(),
+        ),
+        'internal_search' => array(
+            'state' => ! empty( $internal['available'] ) ? 'available' : 'unavailable',
+            'period_days' => 28,
+            'total' => ! empty( $internal['available'] ) ? (int) ( $internal['total'] ?? 0 ) : null,
+            'zero_results' => ! empty( $internal['available'] ) ? (int) ( $internal['zero_results'] ?? 0 ) : null,
+            'top' => ! empty( $internal['available'] ) ? array_slice( (array) ( $internal['top'] ?? array() ), 0, 8 ) : array(),
         ),
     );
 }
@@ -327,14 +338,12 @@ function taxocommerce_insights_executive_build( array $report ) {
 
     $notes = array();
     if ( isset( $ga4['sessions'], $old_ga4['sessions'] ) ) {
-        $diff = $ga4['sessions'] - $old_ga4['sessions'];
         $notes[] = sprintf(
             /* translators: 1: current sessions, 2: prior sessions */
             __( 'La web registra %1$d sesiones frente a %2$d en el periodo anterior.', 'taxocommerce-google-bing' ),
             (int) $ga4['sessions'],
             (int) $old_ga4['sessions']
         );
-        unset( $diff );
     }
     if ( isset( $gsc['clicks'], $old_gsc['clicks'] ) ) {
         $notes[] = sprintf(
@@ -400,6 +409,14 @@ function taxocommerce_insights_executive_build( array $report ) {
     $items['most_added_to_cart'] = array_slice( array_filter( $top_items, static function ( $row ) {
         return $row['added_to_cart'] > 0;
     } ), 0, 10 );
+    $page_growth = array_values( array_filter( (array) $pages['rows'], static function ( $row ) {
+        return isset( $row['change']['delta'] ) && $row['pageviews'] >= 5 && $row['change']['delta'] >= 3;
+    } ) );
+    usort( $page_growth, static function ( $a, $b ) { return $b['change']['delta'] <=> $a['change']['delta']; } );
+    $item_growth = array_values( array_filter( (array) $items['rows'], static function ( $row ) {
+        return isset( $row['change']['delta'] ) && $row['views'] >= 5 && $row['change']['delta'] >= 3;
+    } ) );
+    usort( $item_growth, static function ( $a, $b ) { return $b['change']['delta'] <=> $a['change']['delta']; } );
 
     $gsc_pages = (array) ( $report['evidence']['top_pages'] ?? array() );
     $old_pages = (array) ( $report['evidence']['previous_pages'] ?? array() );
@@ -415,6 +432,8 @@ function taxocommerce_insights_executive_build( array $report ) {
         'ga4_traffic_sources' => $sources,
         'ga4_pages' => $pages,
         'ga4_items' => $items,
+        'growing_pages' => array_slice( $page_growth, 0, 10 ),
+        'growing_items' => array_slice( $item_growth, 0, 10 ),
         'gsc_rankings' => $rankings,
         'market' => $market,
         'period' => $current,
@@ -472,8 +491,12 @@ function taxocommerce_insights_executive_render( array $report ) {
     echo '<p>' . esc_html__( 'Datos registrados por Google Analytics 4; no deben confundirse con impresiones o clics orgánicos.', 'taxocommerce-google-bing' ) . '</p>';
     echo '<h3>' . esc_html__( 'Páginas con más visualizaciones', 'taxocommerce-google-bing' ) . '</h3>';
     taxocommerce_insights_executive_render_rows( (array) ( $executive['ga4_pages']['rows'] ?? array() ), 'ga4_pages' );
+    echo '<h3>' . esc_html__( 'Páginas que más han crecido', 'taxocommerce-google-bing' ) . '</h3>';
+    taxocommerce_insights_executive_render_rows( (array) ( $executive['growing_pages'] ?? array() ), 'ga4_pages' );
     echo '<h3>' . esc_html__( 'Productos más consultados', 'taxocommerce-google-bing' ) . '</h3>';
     taxocommerce_insights_executive_render_rows( (array) ( $executive['ga4_items']['rows'] ?? array() ), 'items' );
+    echo '<h3>' . esc_html__( 'Productos que más crecen en consultas', 'taxocommerce-google-bing' ) . '</h3>';
+    taxocommerce_insights_executive_render_rows( (array) ( $executive['growing_items'] ?? array() ), 'items' );
     echo '<h3>' . esc_html__( 'Productos más añadidos al carrito', 'taxocommerce-google-bing' ) . '</h3>';
     taxocommerce_insights_executive_render_rows( (array) ( $executive['ga4_items']['most_added_to_cart'] ?? array() ), 'items' );
     echo '<h3>' . esc_html__( 'De dónde llegan las visitas', 'taxocommerce-google-bing' ) . '</h3>';
@@ -485,6 +508,18 @@ function taxocommerce_insights_executive_render( array $report ) {
     echo '<h3>' . esc_html__( 'Tendencias observadas', 'taxocommerce-google-bing' ) . '</h3>';
     taxocommerce_insights_executive_render_rows( (array) ( $market['trends']['rows'] ?? array() ), 'trends' );
     echo '<p class="description">' . esc_html( (string) ( $market['trends']['note'] ?? '' ) ) . '</p>';
+    echo '<h3>' . esc_html__( 'Búsquedas dentro de la tienda (últimos 28 días)', 'taxocommerce-google-bing' ) . '</h3>';
+    $internal = (array) ( $market['internal_search'] ?? array() );
+    if ( 'available' === ( $internal['state'] ?? '' ) ) {
+        echo '<p>' . esc_html( sprintf(
+            /* translators: 1: searches, 2: searches without results */
+            __( '%1$d búsquedas registradas; %2$d sin resultados.', 'taxocommerce-google-bing' ),
+            (int) ( $internal['total'] ?? 0 ), (int) ( $internal['zero_results'] ?? 0 )
+        ) ) . '</p>';
+        taxocommerce_insights_executive_render_rows( (array) ( $internal['top'] ?? array() ), 'internal' );
+    } else {
+        echo '<p>' . esc_html__( 'Búsqueda interna no disponible.', 'taxocommerce-google-bing' ) . '</p>';
+    }
     echo '<h3>' . esc_html__( 'Catálogo de proveedores', 'taxocommerce-google-bing' ) . '</h3>';
     taxocommerce_insights_executive_render_rows( (array) ( $market['suppliers']['rows'] ?? array() ), 'suppliers' );
     echo '<p>' . esc_html__( 'Posiciones verificadas de competidores:', 'taxocommerce-google-bing' ) . ' ';
@@ -528,6 +563,12 @@ function taxocommerce_insights_executive_render_rows( array $rows, $type ) {
             );
         } elseif ( 'ga4_pages' === $type ) {
             $detail = sprintf( __( '%d páginas vistas.', 'taxocommerce-google-bing' ), (int) ( $row['pageviews'] ?? 0 ) );
+        } elseif ( 'internal' === $type ) {
+            $name = (string) ( $row['search_term'] ?? $row['normalized_term'] ?? '' );
+            $detail = sprintf(
+                __( '%1$d búsquedas; %2$d veces sin resultados.', 'taxocommerce-google-bing' ),
+                (int) ( $row['searches'] ?? 0 ), (int) ( $row['zero_count'] ?? 0 )
+            );
         } elseif ( 'suppliers' === $type ) {
             $detail = sprintf(
                 __( '%1$d productos de catálogo; %2$d vinculados; %3$d errores de sincronización.', 'taxocommerce-google-bing' ),
