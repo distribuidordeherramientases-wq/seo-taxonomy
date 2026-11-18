@@ -15,6 +15,8 @@ Independent WooCommerce fiscal register with purchase invoices, monthly VAT esti
 
 TaxoCommerce Accounting records fiscal data without changing WooCommerce orders, customers, supplier catalogues or invoice generation.
 
+= Key Features =
+
 * **Supplier purchases:** import/export CSV in **Received invoices** (goods purchased for resale). Download a CSV template, import bounded batches as unvalidated purchase drafts, then attach the original PDF or image to each record.
 * **Service/operating expenses:** import/export CSV in **Expenses**, also accessible under **Treasury** for existing workflows. Domains, hosting, digital certificates, AI/software and similar bills are kept as unvalidated expense drafts, separate from supplier merchandise.
 * Original receipt uploads accept PDF, JPG/JPEG, PNG and WEBP up to 10 MB each. Originals are encrypted in WordPress uploads under taxocommerce-accounting/encrypted-invoices and downloaded only by authorised users via nonce-protected admin actions. Multiple originals per entry are supported. They are **not** added to the public media library.

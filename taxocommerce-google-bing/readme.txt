@@ -12,45 +12,15 @@ External connections, manual provider data downloads, and market intelligence fo
 
 == Description ==
 
-Version 1.1.68 improves administration translations in five WordPress languages for connection/OAuth controls and GSC, GA4 and Bing report messages. Provider calls, stored data and reporting behavior remain unchanged.
+TaxoCommerce Insights keeps external service connections and manual data downloads in one place.
 
-
-Version 1.1.67 restores the full executive report that previous 1.1.65/1.1.66 releases did not implement. A readable business summary, organic GSC rankings by verified WooCommerce entity (categories/products/posts/pages), GA4 page views and product views/cart additions, top gainers with comparable history, session-source breakdown, supplier catalogue status, Google Trends signals, competitor position availability and internal search appear in one report. Data is retained as structured JSON v3; missing or partial data remains explicitly unknown, never zero. The report offers verifiable checks rather than content or campaign instructions. Historical week/month source alignment is unchanged.
-
-Version 1.1.66 adds executive findings with source values, periods, confidence, sample size and explicit limitations. Low-volume search/category observations remain visible rather than being discarded; they are preliminary, not instructions. A strictly bounded Search Console verification may be suggested for well-supported low-click observations. JSON retains its existing data and adds `findings` in schema v2, without generating content plans or strategy.
-
-Version 1.1.65 introduces the evidence-only "Indicadores para la acción" report, comparing four complete Monday-Sunday weeks or three complete calendar months on shared GSC/GA4 date ranges. It exports factual JSON with source availability and coverage; no editorial actions are prescribed. Other historical report ranges (28, 60, 90 days) and exports remain available.
-
-Version 1.1.64 unifies the complete Analysis action into one CPU-paced, sequential chunked report generation, with one Stop button and a downloadable JSON retained for 24 hours after completion. Fixes the signed AJAX download link to avoid the expired-file error; individual reports remain available.
-
-
-Version 1.1.61 ensures Merchant competitive visibility remains available when Best Sellers is used internally to obtain official Google category IDs but is not selected for display in the report. The unselected indicator is marked clearly without hiding competitive visibility.
-
-
-Version 1.1.60 refreshes selected competitive-market sources in bounded sequential AJAX requests: one Merchant Best Sellers page, the existing cached/rate-limited Trends sync, and up to three separate Google-category visibility requests. Reports include source diagnostics and do not regenerate on display. External data remains subject to Merchant account permissions, eligibility and Google availability.
-
-
-Version 1.1.59 restores the Competition analysis panel after generating an official-source report or saving its configuration. The administrator returns to the saved report, keeping the chosen reporting period, without running Merchant or Trends requests again.
-
-
-Version 1.1.58 makes the Competition report configurable per store: market scope, WooCommerce category filters, explicit company/supplier lists, and selected official-source indicators. Selected supplier identities are not presented as verified commercial data; no competitor sites are crawled.
-
-
-Version 1.1.56 improves native translations for Connections and provider integrations across Spanish, English, French, German and Dutch. Settings, OAuth errors, connection checks and Merchant/Pinterest/Amazon/Bing buttons are translated. The entire Insights interface is not yet localized; further work remains under #2062.
-
-
-Version 1.1.54 adds five-language WordPress translations for 124 analyst dashboard strings: reports, keywords, competitor comparisons, positions, data quality, supplier tracking and export permissions. Untranslated messages continue to fall back to their original source text. Full translation of longer report guidance remains in progress under #2062.
-
-
-* Admin header: plugin title, a single local `Description` with the static `Plugin URI` link below it (left); a wider collapsed `CHANGELOG.md` history (center); local version and release date (right). No duplicated information panel or external requests.
+= Key Features =
 
 * Analysis: individual reports and full report generation via authenticated AJAX. The complete unified JSON is assembled from authenticated, sequential, bounded requests in a private temporary file and streamed after validation. No one-shot heavy export, cron or browser-side Blob.
 
-* The admin header shows the local bundled Description and Plugin URI metadata without external requests or excerpt caching. CHANGELOG.md provides independent version history.
 
 
 
-TaxoCommerce Insights keeps external service connections and manual data downloads in one place.
 
 * Connections: Google Search Console, Google Analytics, Google Merchant Center, Bing Webmaster, Amazon and Pinterest.
 * Google Search downloads and explicit day-by-day synchronization of the historical Search Console tables used by Analysis, authorized via current Connections OAuth or service-account credentials.

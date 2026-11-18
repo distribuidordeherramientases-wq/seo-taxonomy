@@ -15,6 +15,8 @@ A private, modular CRM for WooCommerce purchasers and manual contacts, with bulk
 TaxoCommerce Customers is independent of other TaxoCommerce extensions.
 It reads paid orders through WooCommerce public APIs (HPOS compatible), including guests, and stores only minimal purchaser identities and CRM fields, not copies of WooCommerce orders. New paid orders update the CRM automatically; existing orders can be synchronized explicitly in small, resumable batches without WP-Cron.
 
+= Key Features =
+
 * Private directory: paid WooCommerce buyers and manually created contacts (email, phone or WhatsApp).
 * Customer records: name, company, contact and address details, preferred channel, labels and private notes.
 * New contacts do NOT become WooCommerce/WordPress accounts. No emails or WhatsApp messages are sent.
