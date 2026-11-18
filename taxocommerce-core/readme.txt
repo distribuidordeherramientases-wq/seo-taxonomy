@@ -12,10 +12,6 @@ Manage WooCommerce catalog structure and WordPress content from a modular dashbo
 
 == Description ==
 
-* Hides only the Action Scheduler overdue-actions admin notice. Scheduled actions and other notices remain unchanged.
-
-
-
 TaxoCommerce Core provides a modular foundation for WordPress and WooCommerce catalog and content management. WordPress posts, pages, terms and WooCommerce products remain the canonical data sources; Core does not duplicate them into a separate content store.
 
 * Editorial management for products, product categories, posts and pages using native WordPress editing.
