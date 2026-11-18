@@ -888,103 +888,103 @@ msgstr "Regel"
 #: includes/class-taxocommerce-connections-admin.php:38
 #: includes/class-taxocommerce-connections-google-bing.php:260
 msgid "You do not have permission to manage connections."
-msgstr ""
+msgstr "Sie haben keine Berechtigung, Verbindungen zu verwalten."
 
 #: includes/class-taxocommerce-connections-admin.php:60
 msgid "Amazon Creators API responded successfully."
-msgstr ""
+msgstr "Die Amazon Creators API hat erfolgreich geantwortet."
 
 #: includes/class-taxocommerce-connections-admin.php:85
 msgid "Pinterest responded successfully and the selected board is accessible."
-msgstr ""
+msgstr "Pinterest hat erfolgreich geantwortet und die ausgewählte Pinnwand ist erreichbar."
 
 #: includes/class-taxocommerce-connections-admin.php:108
 msgid "Google settings saved."
-msgstr ""
+msgstr "Google-Einstellungen gespeichert."
 
 #: includes/class-taxocommerce-connections-admin.php:109
 msgid "The Google Measurement ID format is invalid."
-msgstr ""
+msgstr "Das Format der Google-Mess-ID ist ungültig."
 
 #: includes/class-taxocommerce-connections-admin.php:110
 msgid "The Google service account JSON is invalid."
-msgstr ""
+msgstr "Das JSON des Google-Dienstkontos ist ungültig."
 
 #: includes/class-taxocommerce-connections-admin.php:111
 msgid "Google Merchant Center settings saved."
-msgstr ""
+msgstr "Google Merchant Center-Einstellungen gespeichert."
 
 #: includes/class-taxocommerce-connections-admin.php:112
 msgid "The Google Merchant Center ID is invalid."
-msgstr ""
+msgstr "Die Google Merchant Center-ID ist ungültig."
 
 #: includes/class-taxocommerce-connections-admin.php:113
 msgid "Bing Webmaster settings saved."
-msgstr ""
+msgstr "Bing Webmaster-Einstellungen gespeichert."
 
 #: includes/class-taxocommerce-connections-admin.php:114
 msgid "Amazon settings saved."
-msgstr ""
+msgstr "Amazon-Einstellungen gespeichert."
 
 #: includes/class-taxocommerce-connections-admin.php:115
 msgid "Amazon settings could not be saved."
-msgstr ""
+msgstr "Die Amazon-Einstellungen konnten nicht gespeichert werden."
 
 #: includes/class-taxocommerce-connections-admin.php:116
 msgid "Pinterest settings saved."
-msgstr ""
+msgstr "Pinterest-Einstellungen gespeichert."
 
 #: includes/class-taxocommerce-connections-admin.php:117
 msgid "Pinterest settings could not be saved."
-msgstr ""
+msgstr "Die Pinterest-Einstellungen konnten nicht gespeichert werden."
 
 #: includes/class-taxocommerce-connections-admin.php:118
 msgid "Pinterest authorized through OAuth."
-msgstr ""
+msgstr "Pinterest über OAuth autorisiert."
 
 #: includes/class-taxocommerce-connections-admin.php:119
 msgid "Save the Pinterest App ID and App Secret first."
-msgstr ""
+msgstr "Speichern Sie zuerst die Pinterest-App-ID und das App-Geheimnis."
 
 #: includes/class-taxocommerce-connections-admin.php:120
 msgid "Pinterest Merchant settings saved."
-msgstr ""
+msgstr "Pinterest Merchant-Einstellungen gespeichert."
 
 #: includes/class-taxocommerce-connections-admin.php:121
 msgid "Pinterest Merchant verification is invalid."
-msgstr ""
+msgstr "Die Pinterest Merchant-Verifizierung ist ungültig."
 
 #: includes/class-taxocommerce-connections-admin.php:127
 msgid "Google OAuth settings saved."
-msgstr ""
+msgstr "Google OAuth-Einstellungen gespeichert."
 
 #: includes/class-taxocommerce-connections-admin.php:128
 msgid "Google Search Console authorized successfully."
-msgstr ""
+msgstr "Google Search Console wurde erfolgreich autorisiert."
 
 #: includes/class-taxocommerce-connections-admin.php:129
 msgid "Google OAuth authorization removed."
-msgstr ""
+msgstr "Google OAuth-Autorisierung entfernt."
 
 #: includes/class-taxocommerce-connections-admin.php:130
 msgid "Google OAuth connection verified."
-msgstr ""
+msgstr "Google OAuth-Verbindung überprüft."
 
 #: includes/class-taxocommerce-connections-admin.php:131
 msgid "Google OAuth Client ID or Client Secret is missing."
-msgstr ""
+msgstr "Google OAuth-Client-ID oder Client-Geheimnis fehlt."
 
 #: includes/class-taxocommerce-connections-admin.php:132
 msgid "Google OAuth state validation failed."
-msgstr ""
+msgstr "Die Google OAuth-Statusvalidierung ist fehlgeschlagen."
 
 #: includes/class-taxocommerce-connections-admin.php:133
 msgid "Google did not return an authorization code."
-msgstr ""
+msgstr "Google hat keinen Autorisierungscode zurückgegeben."
 
 #: includes/class-taxocommerce-connections-admin.php:134
 msgid "Google OAuth authorization could not be completed."
-msgstr ""
+msgstr "Die Google OAuth-Autorisierung konnte nicht abgeschlossen werden."
 
 #: includes/class-taxocommerce-connections-admin.php:135
 msgid "Google OAuth test failed."
