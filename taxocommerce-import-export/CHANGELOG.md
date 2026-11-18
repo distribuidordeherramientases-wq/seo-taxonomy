@@ -1,3 +1,9 @@
+## [0.4.36] — 2026-11-18 — Asistente CSV básico para WordPress y WooCommerce (#2809)
+
+- La pestaña Importación individual incorpora exportación de campos seleccionables y carga de CSV con mapeo de columnas a campos nativos para productos, categorías WooCommerce, categorías WordPress, páginas y entradas.
+- Las importaciones procesan bloques pequeños por AJAX tras cargar y revisar las columnas, preservan los campos no mapeados, omiten celdas vacías y ofrecen actualización o creación explícita.
+- La importación por lotes y los formatos avanzados continúan sin cambios; no se modifica producción.
+
 ## [0.4.35] — 2026-11-18 — CSV seguro para anexar enlaces a páginas (#2804)
 
 - Nueva importación CSV por filas `page` con columnas `record_type,id,slug,content_append`: únicamente añade un bloque HTML filtrado a páginas existentes identificadas por ID y slug; no crea páginas ni modifica título, extracto, estado u otros campos.
