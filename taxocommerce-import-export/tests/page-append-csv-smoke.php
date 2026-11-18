@@ -13,6 +13,7 @@ class WP_Error {
 function is_wp_error( $value ) { return $value instanceof WP_Error; }
 function __( $text, $domain = '' ) { return $text; }
 function absint( $value ) { return abs( (int) $value ); }
+function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $value ) ); }
 function sanitize_title( $value ) { return strtolower( trim( (string) $value ) ); }
 function wp_kses_post( $value ) { return strip_tags( $value, '<p><a><strong>' ); }
 function get_post( $id ) { return $GLOBALS['append_posts'][ $id ] ?? null; }
