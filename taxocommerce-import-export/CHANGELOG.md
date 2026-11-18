@@ -1,3 +1,10 @@
+## [0.4.35] — 2026-11-18 — CSV seguro para anexar enlaces a páginas (#2804)
+
+- Nueva importación CSV por filas `page` con columnas `record_type,id,slug,content_append`: únicamente añade un bloque HTML filtrado a páginas existentes identificadas por ID y slug; no crea páginas ni modifica título, extracto, estado u otros campos.
+- Importaciones repetidas evitan duplicar fragmentos o enlaces a un ZIP ya presente.
+- Corrige la incompatibilidad del CSV entregado para Focazul; el importador anterior requería `record_type` y el importador convencional podía vaciar los demás campos omitidos.
+- Mantiene el contrato CSV completo sin cambios, tests y verificación de sintaxis. Issue #2804.
+
 ## [0.4.34] — 2026-11-18 — Localize administrative import/export messages (#2783)
 
 - Translate 66 previously untranslated administration strings across es_ES, en_US, fr_FR, de_DE and nl_NL: CSV validation, batch queue states, import and export failures, brand/hierarchy checks, progress guidance and safe Autocheck messages.

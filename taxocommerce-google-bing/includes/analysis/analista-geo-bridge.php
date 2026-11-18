@@ -6,6 +6,7 @@
 defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/analista-mercado-ejecutivo.php';
+require_once __DIR__ . '/analista-direccion.php';
 if ( ! function_exists( 'taxocommerce_insights_indicators_build' ) ) {
     require_once __DIR__ . '/analista-indicadores.php';
 }
