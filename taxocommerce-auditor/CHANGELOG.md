@@ -1,3 +1,9 @@
+## [0.3.26] — 2026-11-18 — Recomendaciones IA en Productos (#2807)
+
+- Nueva subpestaña «Recomendaciones IA» dentro del informe de Productos, con tareas editoriales específicas derivadas exclusivamente de hallazgos comprobados de la muestra persistida.
+- Identidad, usos, atributos, clasificación y coherencia: evidencia, prioridad, propuesta y enlace de edición. Solo lectura; no inventa especificaciones ni predice recomendaciones de asistentes.
+- Avisa de la cobertura limitada de la muestra y conserva las auditorías, el JSON completo, el procesado por lotes y los demás ámbitos sin cambios.
+
 ## [0.3.25] — 2026-11-16 — Primer pase de alta precisión en productos (#2752)
 
 - La auditoría normal de productos prioriza errores verificables: campos ausentes, categorías, conflictos técnicos y evidencias de identidad. Se dejan de emitir por defecto las señales heurísticas `duplicate_content_template_candidate`, `duplicate_title_candidate` y `product_description_alignment_weak` para productos.
