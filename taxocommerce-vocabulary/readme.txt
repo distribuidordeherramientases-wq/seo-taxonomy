@@ -14,6 +14,8 @@ Canonical semantic vocabulary, product characteristics and assisted classificati
 
 TaxoCommerce Vocabulary helps site administrators maintain canonical labels, technical attributes and assignments to WooCommerce content.
 
+= Key Features =
+
 * Uses canonical existing vocabulary, role-mapping and technical attribute storage on migrating installations.
 * Provides a classifier with proposals based on product titles, descriptions, WooCommerce tags, brands, categories, SKU and optional supplier metadata; classification is not applied automatically.
 * Recovers controlled term aliases and technical unit extraction from the original classifier, with reviewable source evidence, without a monolith dependency.
