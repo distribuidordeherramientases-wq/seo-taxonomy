@@ -1,3 +1,10 @@
+## [0.4.33] — 2026-11-18 — Recuperación de exportaciones CSV y Autocheck real (#2791)
+
+- La pestaña Exportación recupera mediante AJAX del navegador los bloques que queden detenidos cuando fallen las autollamadas HTTP del servidor, respetando el bloqueo exclusivo, el control de velocidad, los checkpoints CSV, la cancelación y el worker autónomo existente. No se restauran cron ni Action Scheduler.
+- Validación de archivos CSV antes de servir la descarga: directorio privado, lectura, tamaño guardado, cabecera correspondiente al tipo y presencia de datos si se han escrito filas.
+- Autocheck: elimina el falso fallo del worker programado retirado en 0.4.29, comprueba el worker real y sus rutas, detecta trabajos exportadores fallidos/atascados, archivos ausentes o corruptos y bloquea despliegues con trabajos aún en cola o cancelándose.
+- La descarga HTTP real se sigue mostrando como validación manual; el chequeo estático no afirma haberla ejecutado. Pruebas de regresión del CSV y del respaldo AJAX. Issue #2791.
+
 ## [0.4.32] — 2026-11-13 — Code Check equiparado a Core 0.4.82 (#2626)
 
 - Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.
