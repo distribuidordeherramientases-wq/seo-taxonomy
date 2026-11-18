@@ -1602,51 +1602,51 @@ msgstr "Accès non autorisé."
 msgid ""
 "Charts are generated from the latest saved data. Opening the page or "
 "changing the period does not call external APIs."
-msgstr ""
+msgstr "Les graphiques sont générés à partir des dernières données enregistrées. Ouvrir la page ou changer la période n'appelle aucune API externe."
 
 #: includes/class-taxocommerce-google-bing-reports.php:89
 msgid "Aplicar fechas (sin actualizar)"
-msgstr ""
+msgstr "Appliquer les dates (sans actualiser)"
 
 #: includes/class-taxocommerce-google-bing-reports.php:116
 msgid ""
 "No saved report exists for the requested dates. The latest available "
 "snapshot is shown without downloading new data."
-msgstr ""
+msgstr "Aucun rapport enregistré pour les dates demandées. La dernière capture disponible est affichée sans télécharger de nouvelles données."
 
 #: includes/class-taxocommerce-google-bing-reports.php:120
 msgid "Saved reports:"
-msgstr ""
+msgstr "Rapports enregistrés :"
 
 #: includes/class-taxocommerce-google-bing-reports.php:139
 msgid ""
 "No hay datos guardados todavía. Pulsa “Actualizar datos” para consultar la "
 "API."
-msgstr ""
+msgstr "Aucune donnée enregistrée pour l'instant. Cliquez sur « Actualiser les données » pour interroger l'API."
 
 #: includes/class-taxocommerce-google-bing-reports.php:167
 msgid ""
 "GA4 records events and sessions, not HTTP requests. Search Console and Bing "
 "show search-engine traffic, not total site visits. Periods may be incomplete"
 " because each provider has its own processing delay."
-msgstr ""
+msgstr "GA4 enregistre des événements et des sessions, pas des requêtes HTTP. Search Console et Bing affichent le trafic des moteurs de recherche, et non toutes les visites. Les périodes peuvent être incomplètes à cause des délais de traitement de chaque fournisseur."
 
 #: includes/class-taxocommerce-google-bing-reports.php:179
 #: includes/class-taxocommerce-google-bing-reports.php:235
 msgid "Invalid report."
-msgstr ""
+msgstr "Rapport non valide."
 
 #: includes/class-taxocommerce-google-bing-reports.php:245
 msgid "Report not available. Download it first."
-msgstr ""
+msgstr "Rapport indisponible. Téléchargez-le d'abord."
 
 #: includes/class-taxocommerce-google-bing-reports.php:321
 msgid "Google Search performance"
-msgstr ""
+msgstr "Performances dans Google Search"
 
 #: includes/class-taxocommerce-google-bing-reports.php:322
 msgid "Web results: trends, queries, pages, countries, and devices."
-msgstr ""
+msgstr "Résultats Web : tendances, requêtes, pages, pays et appareils."
 
 #: includes/class-taxocommerce-google-bing-reports.php:322
 #: includes/google/seo-google-growth-guidance.php:58
@@ -1654,23 +1654,23 @@ msgstr ""
 #: includes/google/seo-google-opportunity-engine.php:1710
 #: includes/google/seo-google-trends.php:2641
 msgid "Search Console"
-msgstr ""
+msgstr "Search Console"
 
 #: includes/class-taxocommerce-google-bing-reports.php:363
 msgid "No records for this period."
-msgstr ""
+msgstr "Aucun enregistrement pour cette période."
 
 #: includes/class-taxocommerce-google-bing-reports.php:367
 msgid "Query / page"
-msgstr ""
+msgstr "Requête / page"
 
 #: includes/class-taxocommerce-google-bing-reports.php:367
 msgid "Clicks"
-msgstr ""
+msgstr "Clics"
 
 #: includes/class-taxocommerce-google-bing-reports.php:367
 msgid "Impressions"
-msgstr ""
+msgstr "Impressions"
 
 #: includes/class-taxocommerce-google-bing-reports.php:367
 #: includes/google/seo-google-demand-catalog.php:1669
@@ -1679,57 +1679,57 @@ msgstr ""
 #: includes/google/seo-google-info.php:3366
 #: includes/google/seo-google-info.php:4550
 msgid "CTR"
-msgstr ""
+msgstr "CTR"
 
 #: includes/class-taxocommerce-google-bing-reports.php:367
 msgid "Average position"
-msgstr ""
+msgstr "Position moyenne"
 
 #: includes/class-taxocommerce-google-bing-reports.php:392
 msgid "Google Analytics 4"
-msgstr ""
+msgstr "Google Analytics 4"
 
 #: includes/class-taxocommerce-google-bing-reports.php:392
 msgid "Traffic, users, recurrence, engagement, and geographic origin."
-msgstr ""
+msgstr "Trafic, utilisateurs, récurrence, engagement et origine géographique."
 
 #: includes/class-taxocommerce-google-bing-reports.php:482
 msgid ""
 "Purchases and key events are shown only when GA4 receives the corresponding "
 "events."
-msgstr ""
+msgstr "Les achats et les événements clés n'apparaissent que lorsque GA4 reçoit les événements correspondants."
 
 #: includes/class-taxocommerce-google-bing-reports.php:487
 msgid "Most viewed pages (GA4)"
-msgstr ""
+msgstr "Pages les plus consultées (GA4)"
 
 #: includes/class-taxocommerce-google-bing-reports.php:489
 msgid "No pages recorded for this period."
-msgstr ""
+msgstr "Aucune page enregistrée pour cette période."
 
 #: includes/class-taxocommerce-google-bing-reports.php:492
 msgid "Path"
-msgstr ""
+msgstr "Chemin"
 
 #: includes/class-taxocommerce-google-bing-reports.php:492
 msgid "Current views"
-msgstr ""
+msgstr "Vues actuelles"
 
 #: includes/class-taxocommerce-google-bing-reports.php:492
 msgid "Previous views"
-msgstr ""
+msgstr "Vues précédentes"
 
 #: includes/class-taxocommerce-google-bing-reports.php:492
 msgid "Change"
-msgstr ""
+msgstr "Variation"
 
 #: includes/class-taxocommerce-google-bing-reports.php:507
 msgid "Organic traffic, search terms, top pages, indexing, and crawl health."
-msgstr ""
+msgstr "Trafic organique, termes de recherche, pages principales, indexation et état de l'exploration."
 
 #: includes/class-taxocommerce-google-bing-reports.php:507
 msgid "Bing"
-msgstr ""
+msgstr "Bing"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:201
 msgid "Tendencias de clústeres y hubs primarios"
