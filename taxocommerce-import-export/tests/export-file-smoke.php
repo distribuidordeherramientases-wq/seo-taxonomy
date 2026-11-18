@@ -35,6 +35,13 @@ function wp_upload_dir( $time = null, $create_dir = true ) {
     return array( 'basedir' => $GLOBALS['tcie_csv_fixture_basedir'] );
 }
 
+function tc_ie_export_file_check( $condition, $message ) {
+    if ( ! $condition ) {
+        fwrite( STDERR, 'FAIL: ' . $message . PHP_EOL );
+        exit( 1 );
+    }
+}
+
 class TaxoCommerce_Import_Export_CSV {
     public function export_header_for_job( $type ) {
         return array( 'record_type', 'id', 'title' );
@@ -45,7 +52,7 @@ require dirname( __DIR__ ) . '/includes/class-taxocommerce-import-export-exporte
 
 $base = sys_get_temp_dir() . '/tc-ie-export-' . bin2hex( random_bytes( 6 ) );
 $dir = $base . '/taxocommerce-import-export/exports';
-tc_ie_background_check( mkdir( $dir, 0700, true ), 'Create isolated CSV test directory' );
+tc_ie_export_file_check( mkdir( $dir, 0700, true ), 'Create isolated CSV test directory' );
 $GLOBALS['tcie_csv_fixture_basedir'] = $base;
 $path = $dir . '/export.csv';
 file_put_contents( $path, "\xEF\xBB\xBFrecord_type,id,title\npage,123,Sample\n" );
@@ -60,32 +67,32 @@ $state = array(
     'file_size' => filesize( $path ),
 );
 
-tc_ie_background_check( true === TaxoCommerce_Import_Export_Exporter::validate_export_file( $state ), 'Completed CSV with BOM, header and row accepted' );
+tc_ie_export_file_check( true === TaxoCommerce_Import_Export_Exporter::validate_export_file( $state ), 'Completed CSV with BOM, header and row accepted' );
 
 file_put_contents( $path, "\xEF\xBB\xBFrecord_type,id,title\n" );
 clearstatcache( true, $path );
 $state['file_size'] = filesize( $path );
-tc_ie_background_check( is_wp_error( TaxoCommerce_Import_Export_Exporter::validate_export_file( $state ) ), 'Completed export without promised rows rejected' );
+tc_ie_export_file_check( is_wp_error( TaxoCommerce_Import_Export_Exporter::validate_export_file( $state ) ), 'Completed export without promised rows rejected' );
 
 $state['complete'] = false;
 $state['processed'] = 0;
-tc_ie_background_check( true === TaxoCommerce_Import_Export_Exporter::validate_export_file( $state ), 'Header-only partial export is valid while running' );
+tc_ie_export_file_check( true === TaxoCommerce_Import_Export_Exporter::validate_export_file( $state ), 'Header-only partial export is valid while running' );
 
 file_put_contents( $path, "wrong,header\n" );
 clearstatcache( true, $path );
 $state['file_size'] = filesize( $path );
-tc_ie_background_check( is_wp_error( TaxoCommerce_Import_Export_Exporter::validate_export_file( $state ) ), 'Incorrect CSV header rejected' );
+tc_ie_export_file_check( is_wp_error( TaxoCommerce_Import_Export_Exporter::validate_export_file( $state ) ), 'Incorrect CSV header rejected' );
 
 file_put_contents( $path, "\xEF\xBB\xBFrecord_type,id,title\npage,123,Sample\n" );
 clearstatcache( true, $path );
 $state['file_size'] = filesize( $path ) + 10;
-tc_ie_background_check( is_wp_error( TaxoCommerce_Import_Export_Exporter::validate_export_file( $state ) ), 'Truncated CSV rejected' );
+tc_ie_export_file_check( is_wp_error( TaxoCommerce_Import_Export_Exporter::validate_export_file( $state ) ), 'Truncated CSV rejected' );
 
 $outside = $base . '/outside.csv';
 file_put_contents( $outside, "\xEF\xBB\xBFrecord_type,id,title\npage,123,Sample\n" );
 $state['path'] = $outside;
 $state['file_size'] = filesize( $outside );
-tc_ie_background_check( is_wp_error( TaxoCommerce_Import_Export_Exporter::validate_export_file( $state ) ), 'CSV outside plugin private exports directory rejected' );
+tc_ie_export_file_check( is_wp_error( TaxoCommerce_Import_Export_Exporter::validate_export_file( $state ) ), 'CSV outside plugin private exports directory rejected' );
 
 unlink( $outside );
 unlink( $path );
