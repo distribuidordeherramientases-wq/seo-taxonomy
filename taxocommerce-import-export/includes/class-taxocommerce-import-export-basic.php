@@ -333,6 +333,11 @@ final class TaxoCommerce_Import_Export_Basic {
 		if ( ! isset( self::types()[ $type ] ) || ! $allowed ) {
 			wp_die( esc_html__( 'Tipo no válido.', 'taxocommerce-import-export' ) );
 		}
+		$cap = array( 'product' => 'edit_products', 'product_cat' => 'manage_product_terms',
+			'category' => 'manage_categories', 'page' => 'edit_pages', 'post' => 'edit_posts' )[ $type ];
+		if ( ! current_user_can( $cap ) ) {
+			wp_die( esc_html__( 'Sin permiso para exportar este tipo de contenido.', 'taxocommerce-import-export' ) );
+		}
 		$requested = isset( $_POST['fields'][ $type ] ) ? (array) wp_unslash( $_POST['fields'][ $type ] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Whitelist against fields.
 		$selected = array_values( array_intersect( array_keys( $allowed ), array_map( 'sanitize_key', $requested ) ) );
 		if ( ! $selected ) {
@@ -359,6 +364,7 @@ final class TaxoCommerce_Import_Export_Basic {
 			}
 			if ( is_wp_error( $ids ) ) break;
 			foreach ( $ids as $id ) {
+				if ( ! in_array( $type, array( 'category', 'product_cat' ), true ) && ! current_user_can( 'edit_post', $id ) ) continue;
 				$row = array();
 				foreach ( $selected as $field ) $row[] = $this->safe_csv( $this->export_value( $type, $id, $field ) );
 				fputcsv( $out, $row, ',', '"', '' );
@@ -381,6 +387,11 @@ final class TaxoCommerce_Import_Export_Basic {
 
 	private function import_record( $type, $data, $mode ) {
 		if ( ! $data ) return new WP_Error( 'empty', __( 'Fila sin campos con valores.', 'taxocommerce-import-export' ) );
+		$cap = array( 'product' => 'edit_products', 'product_cat' => 'manage_product_terms',
+			'category' => 'manage_categories', 'page' => 'edit_pages', 'post' => 'edit_posts' )[ $type ] ?? '';
+		if ( ! $cap || ! current_user_can( $cap ) ) {
+			return new WP_Error( 'forbidden', __( 'Sin permisos para modificar este tipo de contenido.', 'taxocommerce-import-export' ) );
+		}
 		if ( in_array( $type, array( 'category', 'product_cat' ), true ) ) {
 			// Portable slug takes precedence over source-site numeric IDs.
 			$term = ! empty( $data['slug'] ) ? get_term_by( 'slug', sanitize_title( $data['slug'] ), $type ) : null;
@@ -413,6 +424,8 @@ final class TaxoCommerce_Import_Export_Basic {
 			if ( ! $id && empty( $data['sku'] ) && empty( $data['slug'] ) && isset( $data['id'] ) && 'product' === get_post_type( absint( $data['id'] ) ) ) $id = absint( $data['id'] );
 			if ( ! $id && 'update' === $mode ) return new WP_Error( 'not_found', __( 'Producto no encontrado.', 'taxocommerce-import-export' ) );
 			if ( ! $id && empty( $data['name'] ) ) return new WP_Error( 'missing_name', __( 'Falta el nombre del producto.', 'taxocommerce-import-export' ) );
+			if ( $id && ! current_user_can( 'edit_post', $id ) ) return new WP_Error( 'forbidden', __( 'Sin permiso para editar el producto.', 'taxocommerce-import-export' ) );
+			if ( ! $id && isset( $data['status'] ) && 'publish' === $data['status'] && ! current_user_can( 'publish_products' ) ) return new WP_Error( 'forbidden', __( 'Sin permiso para publicar productos.', 'taxocommerce-import-export' ) );
 			$p = $id ? wc_get_product( $id ) : new WC_Product_Simple();
 			if ( ! $id && empty( $data['status'] ) ) $p->set_status( 'draft' );
 			if ( ! $p ) return new WP_Error( 'invalid_product', __( 'Producto no válido.', 'taxocommerce-import-export' ) );
@@ -447,6 +460,8 @@ final class TaxoCommerce_Import_Export_Basic {
 			if ( $p ) $id = $p->ID;
 		}
 		if ( ! $id && empty( $data['slug'] ) && isset( $data['id'] ) && $type === get_post_type( absint( $data['id'] ) ) ) $id = absint( $data['id'] );
+		if ( $id && ! current_user_can( 'edit_post', $id ) ) return new WP_Error( 'forbidden', __( 'Sin permiso para editar esta página o entrada.', 'taxocommerce-import-export' ) );
+		if ( ! $id && isset( $data['status'] ) && 'publish' === $data['status'] && ! current_user_can( 'page' === $type ? 'publish_pages' : 'publish_posts' ) ) return new WP_Error( 'forbidden', __( 'Sin permiso para publicar este contenido.', 'taxocommerce-import-export' ) );
 		if ( ! $id && 'update' === $mode ) return new WP_Error( 'not_found', __( 'Página o entrada no encontrada.', 'taxocommerce-import-export' ) );
 		if ( ! $id && empty( $data['title'] ) ) return new WP_Error( 'missing_title', __( 'Falta el título para crear el contenido.', 'taxocommerce-import-export' ) );
 		$fields = array( 'title' => 'post_title', 'slug' => 'post_name', 'status' => 'post_status',
