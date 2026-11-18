@@ -187,7 +187,7 @@ final class TCA_Corrections {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Same transaction lock as payment registration.
         $locked = $wpdb->get_row( $wpdb->prepare( 'SELECT id FROM %i WHERE id = %d FOR UPDATE', tca_table(), $id ) );
         if ( ! $locked || TCA_Settlements::sum( $id ) > abs( (float) $after['amount_total'] ) ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Reject a correction that would overpay the invoice.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reject a correction that would overpay the invoice.
             $wpdb->query( 'ROLLBACK' );
             return false;
         }
