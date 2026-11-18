@@ -14,6 +14,8 @@ Manage authorized social connections, publication templates and a content calend
 
 TaxoCommerce Social supports optional Facebook, Instagram, LinkedIn, Pinterest and X connections, manual publication planning, CSV-based scheduling and queue/history views.
 
+= Key Features =
+
 * Administration areas: Connections, Templates, Calendar, Auto Test and Manual.
 * Auto Test: 16 local checks of providers, routes, tables, scheduler and security, without remote requests, publishing or file operations. Two recent results per administrator are stored for 30 days.
 * Two distinct, indexed in-plugin manuals: step-by-step user guide and detailed technical reference for future developers, including architecture, hooks, data models, security and CI.
