@@ -16,6 +16,8 @@ TaxoCommerce Scrappers separates external market and technical research from the
 
 The plugin provides five administration areas:
 
+= Key Features =
+
 * Connections: shared SerpApi and ScraperAPI credentials, usage and connection test.
 * Ojeador: category-first Google Shopping market intelligence, price position, discovered products, Merchant comparison and operational logs.
 * Ingeniero: technical documentation, practical experience, current-sector research, traceable evidence and editorial dossiers.
