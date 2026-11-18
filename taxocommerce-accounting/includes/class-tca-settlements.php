@@ -70,7 +70,8 @@ final class TCA_Settlements {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Idempotency key unique across all payments.
         $existing = $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE request_key = %s', self::table(), $key ) );
         if ( $existing ) {
-            $wpdb->query( 'COMMIT' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- End idempotent request.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- End idempotent request.
+            $wpdb->query( 'COMMIT' );
             return true;
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Validate chosen account still exists.
@@ -79,11 +80,13 @@ final class TCA_Settlements {
             ! $account || ! in_array( $account->kind, array( 'cash', 'bank' ), true ) ||
             $date < $account->opened_on ||
             $amount > self::outstanding( $entry->amount_total, self::sum( $entry_id ) ) ) {
-            $wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Invalid settlement never posts movement.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Invalid settlement never posts movement.
+            $wpdb->query( 'ROLLBACK' );
             return new WP_Error( 'settlement_invalid', __( 'Payment exceeds the outstanding amount or has invalid dates/account.', 'taxocommerce-accounting' ) );
         }
         $direction = self::direction( $entry->kind );
         // Refund entries are negative totals in some WooCommerce installations; use absolute amount and money out.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic write to the owned treasury ledger.
         $saved = $wpdb->insert( TCA_Treasury::movements_table(), array(
             'account_id' => $account_id,
             'posted_on' => $date,
@@ -93,15 +96,18 @@ final class TCA_Settlements {
             'created_at' => current_time( 'mysql' ),
         ), array( '%d', '%s', '%s', '%f', '%s', '%s' ) );
         $movement_id = $saved ? (int) $wpdb->insert_id : 0;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Unique settlement link within the same transaction.
         $link = $saved && $wpdb->insert( self::table(), array(
             'entry_id' => $entry_id, 'movement_id' => $movement_id,
             'request_key' => $key, 'created_at' => current_time( 'mysql' ),
         ), array( '%d', '%d', '%s', '%s' ) );
         if ( ! $link ) {
-            $wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- No orphan movement.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- No orphan movement.
+            $wpdb->query( 'ROLLBACK' );
             return new WP_Error( 'settlement_failed', __( 'Payment could not be recorded.', 'taxocommerce-accounting' ) );
         }
-        $wpdb->query( 'COMMIT' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Payment and ledger link committed together.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Commit the payment and ledger link together.
+        $wpdb->query( 'COMMIT' );
         return true;
     }
 
