@@ -30,7 +30,11 @@ final class TCA_Settlements {
     }
 
     public static function direction( $kind ) {
-        return in_array( $kind, array( 'sale', 'refund_in' ), true ) ? 'in' : 'out';
+        return 'sale' === $kind ? 'in' : 'out';
+    }
+
+    public static function outstanding( $total, $already_paid ) {
+        return max( 0.0, round( abs( (float) $total ) - (float) $already_paid, 2 ) );
     }
 
     public static function sum( $entry_id ) {
@@ -46,7 +50,7 @@ final class TCA_Settlements {
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Needed to select an actual cash or bank account.
         return (array) $wpdb->get_results( $wpdb->prepare(
-            'SELECT id, name, kind, opened_on FROM %i ORDER BY kind, name, id', TCA_Treasury::accounts_table()
+            'SELECT id, name, kind, opened_on FROM %i ORDER BY kind DESC, name, id', TCA_Treasury::accounts_table()
         ) );
     }
 
@@ -73,12 +77,12 @@ final class TCA_Settlements {
         $account = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', TCA_Treasury::accounts_table(), $account_id ) );
         if ( ! $entry || ! in_array( $entry->kind, array( 'sale', 'refund', 'purchase', 'expense', 'asset', 'intra' ), true ) ||
             ! $account || ! in_array( $account->kind, array( 'cash', 'bank' ), true ) ||
-            $date < $account->opened_on || $date < $entry->fiscal_date ||
-            round( self::sum( $entry_id ) + $amount, 2 ) > round( (float) $entry->amount_total, 2 ) ) {
+            $date < $account->opened_on ||
+            $amount > self::outstanding( $entry->amount_total, self::sum( $entry_id ) ) ) {
             $wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Invalid settlement never posts movement.
             return new WP_Error( 'settlement_invalid', __( 'Payment exceeds the outstanding amount or has invalid dates/account.', 'taxocommerce-accounting' ) );
         }
-        $direction = 'sale' === $entry->kind ? 'in' : 'out';
+        $direction = self::direction( $entry->kind );
         // Refund entries are negative totals in some WooCommerce installations; use absolute amount and money out.
         $saved = $wpdb->insert( TCA_Treasury::movements_table(), array(
             'account_id' => $account_id,
@@ -123,7 +127,7 @@ final class TCA_Settlements {
     public static function render( $entry ) {
         $total = abs( (float) $entry->amount_total );
         $paid = self::sum( (int) $entry->id );
-        $due = max( 0, round( $total - $paid, 2 ) );
+        $due = self::outstanding( $total, $paid );
         echo '<p><strong>' . esc_html__( 'Paid/received:', 'taxocommerce-accounting' ) . '</strong> ' . esc_html( tca_money( $paid ) ) . ' / ' . esc_html( tca_money( $total ) ) . '</p>';
         if ( $due <= 0 ) {
             return;
