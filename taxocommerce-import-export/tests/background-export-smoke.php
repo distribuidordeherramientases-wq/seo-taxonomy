@@ -47,7 +47,7 @@ tc_ie_background_check( false === strpos( $exporter, 'add_action( self::WORKER_H
 tc_ie_background_check( false !== strpos( $exporter, "'blocking' => false" ), 'Server-to-server loopback remains active' );
 tc_ie_background_check( false !== strpos( $browser, "request('taxocommerce_ie_export_step', fields)" ), 'Browser must rescue stalled loopbacks via AJAX' );
 tc_ie_background_check( false !== strpos( $browser, 'Date.now() - lastProgressAt >= 15000' ), 'Browser fallback must only engage after progress stalls' );
-tc_ie_background_check( false !== strpos( $exporter, '\$this->background_worker( get_current_user_id(), $job, false )' ), 'Browser step must reuse locked worker without loopback redispach' );
+tc_ie_background_check( false !== strpos( $exporter, '$this->background_worker( get_current_user_id(), $job, false )' ), 'Browser step must reuse locked worker without loopback redispach' );
 tc_ie_background_check( false !== strpos( $browser, "request('taxocommerce_ie_export_status')" ), 'Browser must observe state' );
 tc_ie_background_check( false !== strpos( $browser, "request('taxocommerce_ie_export_resume')" ), 'Browser must be able to retry failed job' );
 tc_ie_background_check( false !== strpos( $browser, 'Math.max(2000, Number(data.delay) || 0) : 5000' ), 'Progress polling must be bounded by speed setting' );
