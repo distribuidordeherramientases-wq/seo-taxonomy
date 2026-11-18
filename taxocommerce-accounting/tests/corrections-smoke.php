@@ -30,6 +30,10 @@ class TCA_Issued_Invoice {
         return 274750 === (int) $id ? self::$invoice : '';
     }
 }
+class TCA_Settlements {
+    public static $paid = 0.0;
+    public static function sum( $entry_id ) { return self::$paid; }
+}
 class TCA_Mock_DB {
     public $prefix = 'wp_';
     public $queries = array();
@@ -39,6 +43,8 @@ class TCA_Mock_DB {
     public $update_ok = 1;
     public $insert_ok = 1;
     public function query( $sql ) { $this->queries[] = $sql; return 1; }
+    public function prepare( $sql, ...$values ) { return $sql; }
+    public function get_row( $sql ) { return (object) array( 'id' => 2 ); }
     public function update( $table, $values, $where ) {
         $this->update_data = $values;
         $this->updated_where = $where;
@@ -87,6 +93,11 @@ tca_test( 'Error detected in the sale VAT' === $GLOBALS['wpdb']->insert_data['re
 $old = json_decode( $GLOBALS['wpdb']->insert_data['before_data'], true );
 $after = json_decode( $GLOBALS['wpdb']->insert_data['after_data'], true );
 tca_test( '0.00' === $old['amount_tax'] && '107.88' === $after['amount_tax'] && 'draft' === $after['status'], 'Audit retains old and new values and status' );
+TCA_Settlements::$paid = 700.0;
+$GLOBALS['wpdb'] = new TCA_Mock_DB();
+tca_test( false === TCA_Corrections::save( $entry, $new, $input['reason'] ), 'Reject correction below already received money' );
+tca_test( array( 'START TRANSACTION', 'ROLLBACK' ) === $GLOBALS['wpdb']->queries, 'Overpaid correction rolls back before editing fiscal entry' );
+TCA_Settlements::$paid = 0.0;
 $GLOBALS['wpdb'] = new TCA_Mock_DB();
 $GLOBALS['wpdb']->insert_ok = 0;
 tca_test( false === TCA_Corrections::save( $entry, $new, $input['reason'] ), 'Refuses unlogged ledger corrections' );
