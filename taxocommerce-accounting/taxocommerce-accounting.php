@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.11
+ * Version: 0.1.12
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.11' );
+define( 'TCA_VERSION', '0.1.12' );
 define( 'TCA_DB_VERSION', '4' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
@@ -829,8 +829,8 @@ function tca_admin() {
     $notice = isset( $_GET['notice'] ) ? sanitize_key( wp_unslash( $_GET['notice'] ) ) : '';
     if ( $notice ) {
         $invoice_notices = array(
-            'invoice_uploaded'        => __( 'Supplier invoice PDF securely attached to the purchase.', 'taxocommerce-accounting' ),
-            'invoice_invalid_upload' => __( 'Select a valid PDF smaller than 10 MB.', 'taxocommerce-accounting' ),
+            'invoice_uploaded'        => __( 'Original PDF or image securely archived with this accounting entry.', 'taxocommerce-accounting' ),
+            'invoice_invalid_upload' => __( 'Select a valid original PDF, JPG, PNG or WEBP document smaller than 10 MB.', 'taxocommerce-accounting' ),
             'invoice_storage'        => __( 'Could not store the encrypted supplier invoice. No accounting data was changed.', 'taxocommerce-accounting' ),
             'tca_invoice_storage'    => __( 'Could not store the encrypted supplier invoice. No accounting data was changed.', 'taxocommerce-accounting' ),
             'tca_invoice_crypto'     => __( 'Secure invoice encryption is unavailable.', 'taxocommerce-accounting' ),
@@ -851,6 +851,13 @@ function tca_admin() {
             'expense_csv_invalid' => __( 'CSV contains invalid expense data; nothing was imported.', 'taxocommerce-accounting' ),
             'expense_csv_empty'   => __( 'CSV contains no expense documents.', 'taxocommerce-accounting' ),
             'expense_csv_error'   => __( 'Could not save the CSV batch; please retry.', 'taxocommerce-accounting' ),
+            'purchase_csv_done'    => __( 'Supplier purchase CSV processed. Check the drafts in Received invoices.', 'taxocommerce-accounting' ),
+            'purchase_csv_upload'  => __( 'Select a valid supplier purchase CSV smaller than 2 MB.', 'taxocommerce-accounting' ),
+            'purchase_csv_headers' => __( 'Invalid purchase CSV headers; use the downloaded template.', 'taxocommerce-accounting' ),
+            'purchase_csv_limit'   => __( 'Purchase CSV contains more than 500 rows.', 'taxocommerce-accounting' ),
+            'purchase_csv_invalid' => __( 'Invalid supplier purchase data; no rows imported.', 'taxocommerce-accounting' ),
+            'purchase_csv_empty'   => __( 'Supplier purchase CSV contains no documents.', 'taxocommerce-accounting' ),
+            'purchase_csv_error'   => __( 'Could not save the supplier purchase batch; please retry.', 'taxocommerce-accounting' ),
         );
         echo '<div class="notice notice-info"><p>' . esc_html( isset( $invoice_notices[ $notice ] ) ? $invoice_notices[ $notice ] : $notice ) . '</p></div>';
     }
@@ -905,6 +912,9 @@ function tca_admin() {
     } elseif ( in_array( $tab, array( 'received', 'expenses', 'assets', 'intra' ), true ) ) {
         $kind = array( 'received' => 'purchase', 'expenses' => 'expense', 'assets' => 'asset', 'intra' => 'intra' )[ $tab ];
         TCA_Corrections::render_editor( $tab );
+        if ( in_array( $kind, array( 'purchase', 'expense' ), true ) ) {
+            TCA_Expense_CSV::render( $year, $kind );
+        }
         tca_new_invoice_form( $kind );
         tca_table_rows( $rows, $kind );
     } elseif ( 'exports' === $tab ) {

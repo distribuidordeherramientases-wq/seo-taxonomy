@@ -28,7 +28,10 @@ final class TCA_Expense_CSV {
      * Imported treatment and percentage are proposals only: every entry is
      * saved as a draft and must be reviewed before it affects the VAT summary.
      */
-    public static function parse_row( $values, $currency ) {
+    public static function parse_row( $values, $currency, $kind = 'expense' ) {
+        if ( ! in_array( $kind, array( 'expense', 'purchase' ), true ) ) {
+            return null;
+        }
         if ( count( $values ) !== count( self::columns() ) ) {
             return null;
         }
@@ -57,7 +60,7 @@ final class TCA_Expense_CSV {
             return null;
         }
 
-        return array(
+        $entry = array(
             'source' => 'manual',
             'kind' => 'expense',
             'fiscal_date' => $date,
@@ -74,6 +77,11 @@ final class TCA_Expense_CSV {
             'status' => 'draft',
             'notes' => '[scope=' . $scope . '] ' . $notes,
         );
+        // Reuse one strict CSV format for goods and services, but keep distinct ledgers.
+        if ( 'purchase' === $kind ) {
+            $entry['kind'] = 'purchase';
+        }
+        return $entry;
     }
 
     public static function split_notes( $notes ) {
@@ -104,8 +112,11 @@ final class TCA_Expense_CSV {
         );
     }
 
-    private static function redirect( $code, $created = 0, $skipped = 0 ) {
-        wp_safe_redirect( tca_admin_url( 'treasury', array(
+    private static function redirect( $code, $created = 0, $skipped = 0, $kind = 'expense' ) {
+        if ( 'purchase' === $kind ) {
+            $code = str_replace( 'expense_csv_', 'purchase_csv_', $code );
+        }
+        wp_safe_redirect( tca_admin_url( 'purchase' === $kind ? 'received' : 'treasury', array(
             'notice' => $code,
             'created' => absint( $created ),
             'skipped' => absint( $skipped ),
@@ -116,33 +127,44 @@ final class TCA_Expense_CSV {
     /**
      * Process a capped CSV upload. Validate the entire input before writing.
      */
-    public static function import() {
+    public static function import( $kind = 'expense' ) {
+        $kind = 'purchase' === $kind ? 'purchase' : 'expense';
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
             wp_die( esc_html__( 'Insufficient permissions.', 'taxocommerce-accounting' ) );
         }
-        check_admin_referer( 'tca_expense_csv_import' );
+        if ( 'purchase' === $kind ) {
+            check_admin_referer( 'tca_purchase_csv_import' );
+        } else {
+            check_admin_referer( 'tca_expense_csv_import' );
+        }
 
-        // The authenticated administrator's uploaded file metadata is validated below.
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; PHP's temporary uploaded path cannot be sanitized as normal form text.
-        $file = isset( $_FILES['expense_csv'] ) && is_array( $_FILES['expense_csv'] ) ? $_FILES['expense_csv'] : array();
+        // Both upload keys are fixed and their nonces were verified above.
+        // PHP upload metadata and temporary paths are checked immediately below.
+        if ( 'purchase' === $kind ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Private uploaded file checked after nonce and validated below.
+            $file = isset( $_FILES['purchase_csv'] ) && is_array( $_FILES['purchase_csv'] ) ? $_FILES['purchase_csv'] : array();
+        } else {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Private uploaded file checked after nonce and validated below.
+            $file = isset( $_FILES['expense_csv'] ) && is_array( $_FILES['expense_csv'] ) ? $_FILES['expense_csv'] : array();
+        }
         if ( ! isset( $file['error'], $file['size'], $file['name'], $file['tmp_name'] ) ||
             is_array( $file['error'] ) || UPLOAD_ERR_OK !== (int) $file['error'] ||
             (int) $file['size'] < 1 || (int) $file['size'] > self::MAX_BYTES ||
             ! is_string( $file['name'] ) || ! preg_match( '/\.csv$/i', $file['name'] ) ||
             ! is_string( $file['tmp_name'] ) || ! is_uploaded_file( $file['tmp_name'] ) ) {
-            self::redirect( 'expense_csv_upload' );
+            self::redirect( 'expense_csv_upload', 0, 0, $kind );
         }
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Read the verified temporary CSV upload or open the CSV download stream; WP_Filesystem cannot access PHP output streams.
         $handle = fopen( $file['tmp_name'], 'rb' );
         if ( false === $handle ) {
-            self::redirect( 'expense_csv_upload' );
+            self::redirect( 'expense_csv_upload', 0, 0, $kind );
         }
         $first = fgets( $handle, 8192 );
         if ( false === $first ) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the CSV input or output stream.
             fclose( $handle );
-            self::redirect( 'expense_csv_headers' );
+            self::redirect( 'expense_csv_headers', 0, 0, $kind );
         }
         $delimiter = substr_count( $first, ';' ) >= count( self::columns() ) - 1 ? ';' : ',';
         rewind( $handle );
@@ -150,13 +172,13 @@ final class TCA_Expense_CSV {
         if ( ! is_array( $header ) ) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the CSV input or output stream.
             fclose( $handle );
-            self::redirect( 'expense_csv_headers' );
+            self::redirect( 'expense_csv_headers', 0, 0, $kind );
         }
         $header[0] = preg_replace( '/^\xEF\xBB\xBF/', '', (string) $header[0] );
         if ( self::columns() !== array_map( 'trim', $header ) ) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the CSV input or output stream.
             fclose( $handle );
-            self::redirect( 'expense_csv_headers' );
+            self::redirect( 'expense_csv_headers', 0, 0, $kind );
         }
 
         $entries = array();
@@ -174,13 +196,13 @@ final class TCA_Expense_CSV {
             if ( $count > self::MAX_ROWS ) {
                 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the CSV input or output stream.
                 fclose( $handle );
-                self::redirect( 'expense_csv_limit' );
+                self::redirect( 'expense_csv_limit', 0, 0, $kind );
             }
-            $entry = self::parse_row( $fields, $currency );
+            $entry = self::parse_row( $fields, $currency, $kind );
             if ( null === $entry ) {
                 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the CSV input or output stream.
                 fclose( $handle );
-                self::redirect( 'expense_csv_invalid' );
+                self::redirect( 'expense_csv_invalid', 0, 0, $kind );
             }
             $identity = hash( 'sha256', $entry['fiscal_date'] . '|' . $entry['document_no'] . '|' . $entry['party'] );
             if ( isset( $seen[ $identity ] ) ) {
@@ -193,7 +215,7 @@ final class TCA_Expense_CSV {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the CSV input or output stream.
         fclose( $handle );
         if ( 0 === $count ) {
-            self::redirect( 'expense_csv_empty' );
+            self::redirect( 'expense_csv_empty', 0, 0, $kind );
         }
 
         global $wpdb;
@@ -215,13 +237,13 @@ final class TCA_Expense_CSV {
             if ( ! tca_insert( $entry ) ) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Roll back batch if its insertion failed.
                 $wpdb->query( 'ROLLBACK' );
-                self::redirect( 'expense_csv_error' );
+                self::redirect( 'expense_csv_error', 0, 0, $kind );
             }
             ++$created;
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Complete owned ledger batch.
         $wpdb->query( 'COMMIT' );
-        self::redirect( 'expense_csv_done', $created, $skipped );
+        self::redirect( 'expense_csv_done', $created, $skipped, $kind );
     }
 
     private static function send_csv( $filename ) {
@@ -240,23 +262,33 @@ final class TCA_Expense_CSV {
         return $stream;
     }
 
-    public static function download_template() {
+    public static function download_template( $kind = 'expense' ) {
+        $kind = 'purchase' === $kind ? 'purchase' : 'expense';
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
             wp_die( esc_html__( 'Insufficient permissions.', 'taxocommerce-accounting' ) );
         }
-        check_admin_referer( 'tca_expense_csv_template' );
-        $out = self::send_csv( 'accounting-expense-template.csv' );
+        if ( 'purchase' === $kind ) {
+            check_admin_referer( 'tca_purchase_csv_template' );
+        } else {
+            check_admin_referer( 'tca_expense_csv_template' );
+        }
+        $out = self::send_csv( 'purchase' === $kind ? 'accounting-purchase-template.csv' : 'accounting-expense-template.csv' );
         fputcsv( $out, self::columns(), ';', '"', '' );
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the CSV input or output stream.
         fclose( $out );
         exit;
     }
 
-    public static function download_export() {
+    public static function download_export( $kind = 'expense' ) {
+        $kind = 'purchase' === $kind ? 'purchase' : 'expense';
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
             wp_die( esc_html__( 'Insufficient permissions.', 'taxocommerce-accounting' ) );
         }
-        check_admin_referer( 'tca_expense_csv_export' );
+        if ( 'purchase' === $kind ) {
+            check_admin_referer( 'tca_purchase_csv_export' );
+        } else {
+            check_admin_referer( 'tca_expense_csv_export' );
+        }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Verified above.
         $year = isset( $_GET['year'] ) ? absint( $_GET['year'] ) : (int) current_time( 'Y' );
         if ( $year < 2000 || $year > 2100 ) {
@@ -266,12 +298,12 @@ final class TCA_Expense_CSV {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read only plugin's own ledger, capped.
         $rows = (array) $wpdb->get_results( $wpdb->prepare(
             'SELECT * FROM %i WHERE kind = %s AND fiscal_date BETWEEN %s AND %s ORDER BY fiscal_date ASC, id ASC LIMIT %d',
-            tca_table(), 'expense', $year . '-01-01', $year . '-12-31', self::MAX_EXPORT + 1
+            tca_table(), $kind, $year . '-01-01', $year . '-12-31', self::MAX_EXPORT + 1
         ) );
         if ( count( $rows ) > self::MAX_EXPORT ) {
             wp_die( esc_html__( 'Export limit exceeded; use a narrower reporting period.', 'taxocommerce-accounting' ) );
         }
-        $out = self::send_csv( 'accounting-expenses-' . $year . '.csv' );
+        $out = self::send_csv( 'purchase' === $kind ? 'accounting-purchases-' . $year . '.csv' : 'accounting-expenses-' . $year . '.csv' );
         fputcsv( $out, self::columns(), ';', '"', '' );
         foreach ( $rows as $row ) {
             fputcsv( $out, self::export_values( $row ), ';', '"', '' );
@@ -281,33 +313,39 @@ final class TCA_Expense_CSV {
         exit;
     }
 
-    public static function render( $year ) {
+    public static function render( $year, $kind = 'expense' ) {
+        $kind = 'purchase' === $kind ? 'purchase' : 'expense';
+        $prefix = 'tca_' . $kind . '_csv_';
         $template = wp_nonce_url(
-            add_query_arg( array( 'action' => 'tca_expense_csv_template' ), admin_url( 'admin-post.php' ) ),
-            'tca_expense_csv_template'
+            add_query_arg( array( 'action' => $prefix . 'template' ), admin_url( 'admin-post.php' ) ),
+            $prefix . 'template'
         );
         $export = wp_nonce_url(
-            add_query_arg( array( 'action' => 'tca_expense_csv_export', 'year' => $year ), admin_url( 'admin-post.php' ) ),
-            'tca_expense_csv_export'
+            add_query_arg( array( 'action' => $prefix . 'export', 'year' => $year ), admin_url( 'admin-post.php' ) ),
+            $prefix . 'export'
         );
-        echo '<hr><h3>' . esc_html__( 'Expense documents: CSV import and export', 'taxocommerce-accounting' ) . '</h3>';
-        echo '<p>' . esc_html__( 'For domains, hosting, digital certificates, administrative fees, postal services, software and other association or business expenses. Imports go to Accounting > Expenses as unapproved drafts. They do not change bank/cash balances or automatically create a tax deduction.', 'taxocommerce-accounting' ) . '</p>';
+        echo '<hr><h3>' . ( 'purchase' === $kind
+            ? esc_html__( 'Supplier purchases: CSV import and export', 'taxocommerce-accounting' )
+            : esc_html__( 'Expense documents: CSV import and export', 'taxocommerce-accounting' ) ) . '</h3>';
+        echo '<p>' . ( 'purchase' === $kind
+            ? esc_html__( 'Import supplier invoices for merchandise bought for resale. All entries are draft purchases and require review. Upload the original PDF or image to each row after importing.', 'taxocommerce-accounting' )
+            : esc_html__( 'For domains, hosting, digital certificates, administrative fees, postal services, software and other association or business expenses. Imports go to Accounting > Expenses as unapproved drafts. They do not change bank/cash balances or automatically create a tax deduction.', 'taxocommerce-accounting' ) ) . '</p>';
         echo '<p><a class="button button-secondary" href="' . esc_url( $template ) . '">' . esc_html__( 'Download blank CSV template', 'taxocommerce-accounting' ) . '</a> ';
         echo '<a class="button button-secondary" href="' . esc_url( $export ) . '">' . esc_html( sprintf(
             /* translators: %d: fiscal year. */
-            __( 'Export expense CSV for %d', 'taxocommerce-accounting' ), $year
+            'purchase' === $kind ? __( 'Export supplier purchases CSV for %d', 'taxocommerce-accounting' ) : __( 'Export expense CSV for %d', 'taxocommerce-accounting' ), $year
         ) ) . '</a></p>';
         echo '<p class="description">' . esc_html__( 'Use UTF-8 CSV with semicolon or comma separators. Keep the template column names unchanged. Dates: YYYY-MM-DD; values: base and VAT in EUR; deductible_vat_pct is the percentage of VAT deductible, not the VAT rate (0 until verified). vat_treatment: review, domestic, intra, reverse, exempt. scope: review, association, commercial, shared.', 'taxocommerce-accounting' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" enctype="multipart/form-data">';
-        wp_nonce_field( 'tca_expense_csv_import' );
-        echo '<input type="hidden" name="action" value="tca_expense_csv_import">';
-        echo '<p><label for="tca-expense-csv">' . esc_html__( 'Expense CSV file', 'taxocommerce-accounting' ) . '</label> ';
-        echo '<input id="tca-expense-csv" type="file" name="expense_csv" accept=".csv,text/csv" required> ';
-        submit_button( __( 'Import expense drafts', 'taxocommerce-accounting' ), 'secondary', 'submit', false );
-        echo '</p></form><p class="description">' . esc_html__( 'Maximum 500 rows / 2 MB per import. Repeated documents are skipped. Attach original PDF receipts individually in Expenses, verify the legal tax treatment, then validate each entry.', 'taxocommerce-accounting' ) . '</p>';
+        wp_nonce_field( $prefix . 'import' );
+        echo '<input type="hidden" name="action" value="' . esc_attr( $prefix . 'import' ) . '">';
+        echo '<p><label for="tca-' . esc_attr( $kind ) . '-csv">' . ( 'purchase' === $kind ? esc_html__( 'Supplier purchases CSV file', 'taxocommerce-accounting' ) : esc_html__( 'Expense CSV file', 'taxocommerce-accounting' ) ) . '</label> ';
+        echo '<input id="tca-' . esc_attr( $kind ) . '-csv" type="file" name="' . esc_attr( $kind . '_csv' ) . '" accept=".csv,text/csv" required> ';
+        submit_button( 'purchase' === $kind ? __( 'Import supplier purchase drafts', 'taxocommerce-accounting' ) : __( 'Import expense drafts', 'taxocommerce-accounting' ), 'secondary', 'submit', false );
+        echo '</p></form><p class="description">' . esc_html__( 'Maximum 500 rows / 2 MB per import. Repeated documents are skipped. Attach PDF, JPG, PNG or WEBP originals to each imported row, then verify VAT and approve. CSV imports never attach the original document or register a payment.', 'taxocommerce-accounting' ) . '</p>';
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only outcome of the verified admin-post importer.
         $notice = isset( $_GET['notice'] ) ? sanitize_key( wp_unslash( $_GET['notice'] ) ) : '';
-        if ( 'expense_csv_done' === $notice ) {
+        if ( ( 'purchase' === $kind ? 'purchase_csv_done' : 'expense_csv_done' ) === $notice ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only counters for the visible result.
             $created = isset( $_GET['created'] ) ? absint( $_GET['created'] ) : 0;
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only counters for the visible result.
@@ -319,8 +357,23 @@ final class TCA_Expense_CSV {
             ) ) . '</strong></p>';
         }
     }
+
+    public static function import_purchase() {
+        self::import( 'purchase' );
+    }
+
+    public static function download_purchase_template() {
+        self::download_template( 'purchase' );
+    }
+
+    public static function download_purchase_export() {
+        self::download_export( 'purchase' );
+    }
 }
 
 add_action( 'admin_post_tca_expense_csv_import', array( 'TCA_Expense_CSV', 'import' ) );
 add_action( 'admin_post_tca_expense_csv_template', array( 'TCA_Expense_CSV', 'download_template' ) );
 add_action( 'admin_post_tca_expense_csv_export', array( 'TCA_Expense_CSV', 'download_export' ) );
+add_action( 'admin_post_tca_purchase_csv_import', array( 'TCA_Expense_CSV', 'import_purchase' ) );
+add_action( 'admin_post_tca_purchase_csv_template', array( 'TCA_Expense_CSV', 'download_purchase_template' ) );
+add_action( 'admin_post_tca_purchase_csv_export', array( 'TCA_Expense_CSV', 'download_purchase_export' ) );

@@ -1,3 +1,12 @@
+## 0.1.12 — 2026-11-18 — Facturas de proveedores y servicios con originales cifrados (#2795)
+
+- Nuevo importador/exportador CSV de **compras a proveedores** en «Facturas recibidas», separado de las facturas de **gastos y servicios** en «Gastos» y de su acceso anterior en «Tesorería».
+- Se reutilizan las mismas validaciones de CSV, plantilla UTF-8, límites de 500 filas/2 MB, deduplicación entre libros y descarga por ejercicio; cada documento se incorpora como borrador de compra o gasto y nunca valida deducciones ni registra movimientos de Tesorería.
+- Una vez importado el CSV, cada registro permite adjuntar el original PDF, JPG/JPEG, PNG o WEBP (hasta 10 MB), con varios documentos por asiento. Se verifican tipo real y firma de archivo; se almacena cifrado en wp-content/uploads/taxocommerce-accounting/encrypted-invoices/, no en la biblioteca multimedia pública.
+- Descarga autenticada mediante capacidad y nonce, validación de hash y contenido, sin URL pública del original. Se conservan los PDF anteriores y la clave derivada de las sales de WordPress; las copias deben incluir tanto BD como uploads y sales.
+- El CSV no adjunta automáticamente archivos ni pretende realizar OCR o deducibilidad automática. Después del importador, utilizar «Adjuntar documento» en la fila del asiento.
+- Regresiones para compras y gastos diferenciados, tipos de archivo no permitidos, cifrado y compatibilidad previa; Plugin Check WordPress.org obligatorio. Sin cambios de producción.
+
 ## 0.1.11 — 2026-11-17 — Importación/exportación CSV de gastos desde Tesorería (#2785)
 
 - Sección en Tesorería para descargar plantilla, importar y exportar por ejercicio CSV de gastos de asociación/tienda (hosting, dominios, software, certificados, tasas y Correos), sin duplicar libros ni tratar esos documentos como compras de mercancía.
