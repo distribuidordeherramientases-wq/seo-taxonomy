@@ -13,7 +13,8 @@ Supplier catalogue management and a private directory with manual supplier recor
 
 TaxoCommerce Suppliers owns the supplier intake and intermediate supplier catalogue workflow.
 
-Included:
+= Key Features =
+
 * Supplier management with manually created and imported supplier names, including providers with zero catalogue products, private business/contact/address/lead-time records and free-form notes.
 * Bulk CSV import/export of private supplier contact profiles for imported and manually created suppliers, including providers with zero products, with CPU-batched processing and error reporting. Unknown CSV supplier names are not created automatically; deleting a private profile never removes catalogue products.
 * CSV-only supplier imports.
