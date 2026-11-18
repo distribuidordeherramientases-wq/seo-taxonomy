@@ -14,6 +14,8 @@ Audit WordPress and WooCommerce content quality, structure, duplicate risks and 
 
 TaxoCommerce Auditor provides independent read-only content reviews across five scopes:
 
+= Key Features =
+
 * Products: descriptions, titles, SKUs, categories, attributes and verifiable conflicts. WooCommerce product tags classify items; a tag is not invalid merely because it is absent from literal copy. A single technical value/unit tag is flagged only when the title and description independently agree on a different unique value. Heuristic product title/template similarity is disabled by default for fewer false positives; developers can opt in through the `taxocommerce_auditor_enable_deep_product_signals` filter.
 * Product categories and SEO architecture: taxonomy completeness, native relationships and evidence-based restructuring candidates.
 * Posts: titles, slugs, content patterns and potential overlap with landing pages.
