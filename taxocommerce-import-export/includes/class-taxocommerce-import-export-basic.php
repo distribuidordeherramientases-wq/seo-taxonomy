@@ -632,7 +632,17 @@ final class TaxoCommerce_Import_Export_Basic {
 			return ! is_wp_error( wp_insert_term( sanitize_text_field( $data['name'] ), $type, $args ) );
 		}
 		if ( 'product' === $type ) {
-			if ( ! function_exists( 'wc_get_product' ) ) return new WP_Error( 'woocommerce_missing', 'WooCommerce unavailable' );
+			if ( ! function_exists( 'wc_get_product' ) ) return new WP_Error( 'woocommerce_missing', __( 'WooCommerce no está activo.', 'taxocommerce-import-export' ) );
+			$terms = $this->mapped_terms( $type, $data );
+			if ( is_wp_error( $terms ) ) return $terms;
+			$image_id = null;
+			if ( isset( $data['featured_image'] ) ) {
+				$image_id = $this->media_image_id( $data['featured_image'] );
+				if ( is_wp_error( $image_id ) ) return $image_id;
+			}
+			if ( isset( $data['status'] ) && ! in_array( $data['status'], array( 'publish', 'draft', 'pending', 'private', 'future' ), true ) ) {
+				return new WP_Error( 'invalid_status', __( 'Estado de producto no válido.', 'taxocommerce-import-export' ) );
+			}
 			$id = 0;
 			if ( ! empty( $data['sku'] ) ) $id = wc_get_product_id_by_sku( sanitize_text_field( $data['sku'] ) );
 			if ( ! $id && ! empty( $data['slug'] ) ) {
@@ -647,18 +657,45 @@ final class TaxoCommerce_Import_Export_Basic {
 			$p = $id ? wc_get_product( $id ) : new WC_Product_Simple();
 			if ( ! $id && empty( $data['status'] ) ) $p->set_status( 'draft' );
 			if ( ! $p ) return new WP_Error( 'invalid_product', __( 'Producto no válido.', 'taxocommerce-import-export' ) );
-			$methods = array( 'sku' => 'set_sku', 'name' => 'set_name', 'slug' => 'set_slug',
-				'status' => 'set_status', 'description' => 'set_description', 'short_description' => 'set_short_description',
-				'regular_price' => 'set_regular_price', 'sale_price' => 'set_sale_price' );
+			$methods = array(
+				'sku' => 'set_sku', 'name' => 'set_name', 'slug' => 'set_slug',
+				'status' => 'set_status', 'description' => 'set_description',
+				'short_description' => 'set_short_description',
+				'regular_price' => 'set_regular_price', 'sale_price' => 'set_sale_price',
+				'stock_status' => 'set_stock_status', 'manage_stock' => 'set_manage_stock',
+				'weight' => 'set_weight', 'length' => 'set_length',
+				'width' => 'set_width', 'height' => 'set_height',
+				'catalog_visibility' => 'set_catalog_visibility',
+				'featured' => 'set_featured', 'virtual' => 'set_virtual',
+				'sold_individually' => 'set_sold_individually',
+			);
 			try {
 				foreach ( $methods as $field => $method ) {
 					if ( ! isset( $data[ $field ] ) ) continue;
 					$value = $data[ $field ];
-					if ( in_array( $field, array( 'description', 'short_description' ), true ) ) $value = wp_kses_post( $value );
-					elseif ( in_array( $field, array( 'regular_price', 'sale_price' ), true ) ) {
-						if ( ! is_numeric( $value ) || (float) $value < 0 ) return new WP_Error( 'invalid_price', __( 'Precio no válido.', 'taxocommerce-import-export' ) );
+					if ( in_array( $field, array( 'description', 'short_description' ), true ) ) {
+						$value = wp_kses_post( $value );
+					} elseif ( in_array( $field, array( 'regular_price', 'sale_price', 'weight', 'length', 'width', 'height' ), true ) ) {
 						$value = wc_format_decimal( $value );
-					} else $value = sanitize_text_field( $value );
+						if ( ! is_numeric( $value ) || (float) $value < 0 ) {
+							return new WP_Error( 'invalid_number', __( 'Precio, peso o dimensión no válidos.', 'taxocommerce-import-export' ) );
+						}
+					} elseif ( in_array( $field, array( 'manage_stock', 'featured', 'virtual', 'sold_individually' ), true ) ) {
+						$value = $this->csv_boolean( $value );
+						if ( is_wp_error( $value ) ) return $value;
+					} elseif ( 'stock_status' === $field ) {
+						if ( ! in_array( $value, array( 'instock', 'outofstock', 'onbackorder' ), true ) ) {
+							return new WP_Error( 'invalid_stock_status', __( 'Estado de existencias no válido.', 'taxocommerce-import-export' ) );
+						}
+					} elseif ( 'catalog_visibility' === $field ) {
+						if ( ! in_array( $value, array( 'visible', 'catalog', 'search', 'hidden' ), true ) ) {
+							return new WP_Error( 'invalid_visibility', __( 'Visibilidad del catálogo no válida.', 'taxocommerce-import-export' ) );
+						}
+					} elseif ( 'slug' === $field ) {
+						$value = sanitize_title( $value );
+					} else {
+						$value = sanitize_text_field( $value );
+					}
 					$p->$method( $value );
 				}
 				if ( isset( $data['stock_quantity'] ) ) {
@@ -666,11 +703,14 @@ final class TaxoCommerce_Import_Export_Basic {
 					$p->set_manage_stock( true );
 					$p->set_stock_quantity( (int) $data['stock_quantity'] );
 				}
+				if ( null !== $image_id ) {
+					$p->set_image_id( $image_id );
+				}
 				$p->save();
 			} catch ( Exception $e ) {
 				return new WP_Error( 'product_save', $e->getMessage() );
 			}
-			return true;
+			return $this->save_terms( $p->get_id(), $terms );
 		}
 		$id = 0;
 		if ( ! empty( $data['slug'] ) ) {
