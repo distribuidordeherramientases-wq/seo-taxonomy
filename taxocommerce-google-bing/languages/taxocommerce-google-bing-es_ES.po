@@ -1512,91 +1512,91 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-oauth.php:151
 msgid "Google Search Console · OAuth"
-msgstr ""
+msgstr "Google Search Console · OAuth"
 
 #: includes/class-taxocommerce-google-bing-oauth.php:151
 msgid ""
 "Credentials, authorization, and tokens. It does not download queries, "
 "clicks, impressions, or positions."
-msgstr ""
+msgstr "Credenciales, autorización y tokens. No descarga consultas, clics, impresiones ni posiciones."
 
 #: includes/class-taxocommerce-google-bing-oauth.php:158
 msgid "Legacy OAuth migrated to the modern plugin."
-msgstr ""
+msgstr "El OAuth antiguo se ha migrado al plugin actual."
 
 #: includes/class-taxocommerce-google-bing-oauth.php:166
 #: includes/google/seo-google-info.php:2202
 msgid "Client ID"
-msgstr ""
+msgstr "ID de cliente"
 
 #: includes/class-taxocommerce-google-bing-oauth.php:168
 msgid "OAuth 2.0 client of type Web application."
-msgstr ""
+msgstr "Cliente OAuth 2.0 de tipo Aplicación web."
 
 #: includes/class-taxocommerce-google-bing-oauth.php:170
 #: includes/google/seo-google-info.php:2207
 msgid "Client Secret"
-msgstr ""
+msgstr "Secreto de cliente"
 
 #: includes/class-taxocommerce-google-bing-oauth.php:172
 msgid "Stored in WordPress and never displayed again."
-msgstr ""
+msgstr "Se almacena en WordPress y no se vuelve a mostrar."
 
 #: includes/class-taxocommerce-google-bing-oauth.php:174
 msgid "Redirect URI"
-msgstr ""
+msgstr "URI de redirección"
 
 #: includes/class-taxocommerce-google-bing-oauth.php:176
 msgid "Must exactly match the authorized URI in Google Cloud."
-msgstr ""
+msgstr "Debe coincidir exactamente con la URI autorizada en Google Cloud."
 
 #: includes/class-taxocommerce-google-bing-oauth.php:178
 msgid "Search Console property"
-msgstr ""
+msgstr "Propiedad de Search Console"
 
 #: includes/class-taxocommerce-google-bing-oauth.php:180
 msgid ""
 "Opening this screen does not query Search Console. The property is validated"
 " only when you click Test connection."
-msgstr ""
+msgstr "Abrir esta pantalla no consulta Search Console. La propiedad solo se valida al pulsar «Probar conexión»."
 
 #: includes/class-taxocommerce-google-bing-oauth.php:208
 msgid "How to obtain these credentials"
-msgstr ""
+msgstr "Cómo obtener estas credenciales"
 
 #: includes/class-taxocommerce-google-bing-oauth.php:209
 msgid "Google Cloud Console → the corresponding project."
-msgstr ""
+msgstr "Google Cloud Console → proyecto correspondiente."
 
 #: includes/class-taxocommerce-google-bing-oauth.php:210
 msgid "Enable the Google Search Console API."
-msgstr ""
+msgstr "Activa la API de Google Search Console."
 
 #: includes/class-taxocommerce-google-bing-oauth.php:211
 msgid "Google Auth Platform → Clients."
-msgstr ""
+msgstr "Google Auth Platform → Clientes."
 
 #: includes/class-taxocommerce-google-bing-oauth.php:212
 msgid "Create or open an OAuth 2.0 client of type Web application."
-msgstr ""
+msgstr "Crea o abre un cliente OAuth 2.0 de tipo Aplicación web."
 
 #: includes/class-taxocommerce-google-bing-oauth.php:213
 msgid "Add exactly the Redirect URI shown above."
-msgstr ""
+msgstr "Añade exactamente la URI de redirección que se muestra arriba."
 
 #: includes/class-taxocommerce-google-bing-oauth.php:214
 msgid ""
 "Copy the Client ID and Client Secret, save them, then click Connect Google."
-msgstr ""
+msgstr "Copia el ID y el secreto de cliente, guárdalos y pulsa «Conectar Google»."
 
 #: includes/class-taxocommerce-google-bing-oauth.php:283
 msgid "You do not have permission to complete this connection."
-msgstr ""
+msgstr "No tienes permisos para completar esta conexión."
 
 #: includes/class-taxocommerce-google-bing-oauth.php:456
 #: taxocommerce-google-bing.php:123
 msgid "Unauthorized access."
-msgstr ""
+msgstr "Acceso no autorizado."
 
 #: includes/class-taxocommerce-google-bing-reports.php:73
 msgid ""
