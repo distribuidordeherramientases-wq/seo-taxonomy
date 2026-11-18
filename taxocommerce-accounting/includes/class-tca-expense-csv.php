@@ -138,10 +138,15 @@ final class TCA_Expense_CSV {
             check_admin_referer( 'tca_expense_csv_import' );
         }
 
-        // The authenticated administrator's uploaded file metadata is validated below.
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; PHP's temporary uploaded path cannot be sanitized as normal form text.
-        $upload_key = 'purchase' === $kind ? 'purchase_csv' : 'expense_csv';
-        $file = isset( $_FILES[ $upload_key ] ) && is_array( $_FILES[ $upload_key ] ) ? $_FILES[ $upload_key ] : array();
+        // Both upload keys are fixed and their nonces were verified above.
+        // PHP upload metadata and temporary paths are checked immediately below.
+        if ( 'purchase' === $kind ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Private uploaded file checked after nonce and validated below.
+            $file = isset( $_FILES['purchase_csv'] ) && is_array( $_FILES['purchase_csv'] ) ? $_FILES['purchase_csv'] : array();
+        } else {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Private uploaded file checked after nonce and validated below.
+            $file = isset( $_FILES['expense_csv'] ) && is_array( $_FILES['expense_csv'] ) ? $_FILES['expense_csv'] : array();
+        }
         if ( ! isset( $file['error'], $file['size'], $file['name'], $file['tmp_name'] ) ||
             is_array( $file['error'] ) || UPLOAD_ERR_OK !== (int) $file['error'] ||
             (int) $file['size'] < 1 || (int) $file['size'] > self::MAX_BYTES ||
