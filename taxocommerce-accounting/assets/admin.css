@@ -15,3 +15,49 @@
     border-color: #0a4b78;
     color: #fff;
 }
+
+/* Treasury indicators and compact entry forms. */
+.tca-accounting-admin .tca-treasury-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+    gap: 12px;
+    margin: 18px 0 24px;
+}
+.tca-accounting-admin .tca-treasury-kpi {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 14px;
+}
+.tca-accounting-admin .tca-treasury-kpi span {
+    display: block;
+    color: #50575e;
+    margin-bottom: 8px;
+}
+.tca-accounting-admin .tca-treasury-kpi strong {
+    display: block;
+    font-size: 22px;
+    line-height: 1.35;
+}
+.tca-accounting-admin .tca-treasury-forms {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(235px, 1fr));
+    gap: 16px;
+    margin: 16px 0 26px;
+}
+.tca-accounting-admin .tca-treasury-forms > div {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 12px 16px;
+}
+.tca-accounting-admin .tca-treasury-forms input,
+.tca-accounting-admin .tca-treasury-forms select {
+    max-width: 100%;
+}
+.tca-accounting-admin .tca-treasury-scroll {
+    overflow-x: auto;
+    margin-bottom: 24px;
+}
+.tca-accounting-admin .tca-treasury-scroll table { min-width: 680px; }
+.tca-accounting-admin .tca-treasury-scroll form input { max-width: 165px; }

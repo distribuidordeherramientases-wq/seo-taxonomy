@@ -1,3 +1,11 @@
+## [1.1.66] — 2026-11-17 — Hallazgos ejecutivos con evidencia (#2780)
+
+- Evolución de «Indicadores para la acción»: detección de señales GSC de bajo tráfico (10 impresiones en adelante), sin descartar automáticamente consultas con posiciones visibles y pocos clics. Las muestras reducidas son preliminares; no significan que exista un problema o una oportunidad comercial segura.
+- JSON compatible `taxocommerce-insights-indicadores` v2: incorpora `findings` con entidad, periodo, valores originales, fuente, observación, tamaño de muestra, fiabilidad, límites y sugerencia opcional.
+- La única sugerencia automática permitida es una comprobación acotada en Search Console cuando una URL o consulta acumule al menos 50 impresiones, no reciba clics orgánicos, tenga posición media hasta 10 y disponga de una observación anterior comparable. No decide crear contenido, modificar productos ni ejecutar campañas.
+- Presentación administrativa con observaciones y nivel de evidencia legibles en lugar de códigos internos, manteniendo semanas y meses completos y la exportación JSON existente. Sin nuevas tablas, conectores ni dependencias de IA.
+- Regresión para consultas «venta de bolardos» con 30 impresiones, categorías con 35 y ausencia de recomendaciones prematuras; datos de GA4 y periodos sin cambios.
+
 ## [1.1.65] — 2026-11-17 — Indicadores para la acción por semanas y meses naturales (#2764)
 
 - Sustituye el informe principal «Plan de acción» por «Indicadores para la acción»: evidencias medibles, evolución del tráfico y consultas/categorías con patrones objetivos, sin generar órdenes estratégicas ni propuestas de publicación.

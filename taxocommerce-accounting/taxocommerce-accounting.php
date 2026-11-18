@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.8
+ * Version: 0.1.12
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,8 +14,8 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.8' );
-define( 'TCA_DB_VERSION', '3' );
+define( 'TCA_VERSION', '0.1.12' );
+define( 'TCA_DB_VERSION', '4' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
 add_action( 'init', static function () {
@@ -35,6 +35,8 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-provider-invoices
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-issued-invoice.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-corrections.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-hacienda.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-treasury.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-expense-csv.php';
 
 /** Own data; no dependency on any TaxoCommerce module. */
 function tca_table() {
@@ -83,6 +85,7 @@ function tca_install() {
     dbDelta( $sql );
     TCA_Provider_Invoices::install_schema();
     TCA_Corrections::install_schema();
+    TCA_Treasury::install_schema();
     update_option( 'tca_db_version', TCA_DB_VERSION, false );
     if ( false === get_option( TCA_OPTION, false ) ) {
         add_option( TCA_OPTION, tca_settings(), '', false );
@@ -199,6 +202,108 @@ function tca_decimal( $value ) {
 }
 
 /**
+ * Build an unapproved sale from WooCommerce and, when installed, the immutable
+ * issued-invoice snapshot. No inferred rate or price adjustments.
+ */
+function tca_sale_entry_from_order( $order, $settings ) {
+    $date = $order->get_date_created();
+    $currency = (string) $order->get_currency();
+    $tax = round( (float) $order->get_total_tax(), 2 );
+    $total = round( (float) $order->get_total(), 2 );
+    $country = (string) $order->get_billing_country();
+    $treatment = $currency === $settings['currency'] && $country === $settings['country'] ? 'domestic' : 'review';
+    $tax_id = '';
+    $regime = (string) $order->get_meta( '_seo_facturas_tax_regime' );
+    $vat_validated = (string) $order->get_meta( '_seo_facturas_vat_validated' );
+    if ( 'intra_eu_reverse_charge' === $regime || 'valid' === $vat_validated ) {
+        $treatment = 'intra';
+        $tax_id = (string) $order->get_meta( '_billing_vat' );
+    }
+    // If the merchant issued an immutable invoice, its stored fiscal totals
+    // are authoritative for a new draft. Never silently change old records.
+    $invoice = TCA_Issued_Invoice::amounts_for_order( $order->get_id() );
+    $invoice_mismatch = is_array( $invoice ) && (
+        abs( (float) $invoice['amount_total'] - $total ) > 0.02 ||
+        abs( (float) $invoice['amount_tax'] - $tax ) > 0.02 ||
+        $invoice['currency'] !== $currency
+    );
+    $sale_base = $invoice ? $invoice['amount_base'] : round( $total - $tax, 2 );
+    $sale_tax = $invoice ? $invoice['amount_tax'] : $tax;
+    $sale_total = $invoice ? $invoice['amount_total'] : $total;
+    if ( $invoice_mismatch ) {
+        $treatment = 'review';
+    }
+    $sales_note = $invoice_mismatch
+        ? __( 'Issued invoice totals differ from the WooCommerce order. Review the original invoice and order before approving this draft.', 'taxocommerce-accounting' )
+        : __( 'Unverified order: reconcile the issued invoice, taxes and possible refunds before approval.', 'taxocommerce-accounting' );
+
+    return array(
+
+        'source' => 'woocommerce', 'source_id' => $order->get_id(),
+        'kind' => 'sale', 'fiscal_date' => $date->date( 'Y-m-d' ),
+        'document_no' => $invoice ? $invoice['document_no'] : TCA_Issued_Invoice::for_order( $order->get_id() ),
+        'party' => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
+        'tax_id' => $tax_id, 'concept' => sprintf( 'WooCommerce #%d', $order->get_id() ),
+        'amount_base' => $sale_base,
+        'amount_tax' => $sale_tax, 'amount_total' => $sale_total,
+        'deductible_pct' => 0, 'currency' => $currency,
+        'treatment' => $treatment, 'status' => 'draft',
+        'notes' => $sales_note,
+
+    );
+}
+
+/**
+ * Receive an optional invoice-issued event via a standard WordPress action.
+ * Never modify validated entries or any order, invoice, or customer.
+ */
+function tca_on_billing_invoice_issued( $order_id, $document ) {
+    if ( ! is_object( $document ) || 'issued' !== (string) ( $document->status ?? '' ) ||
+        'invoice' !== (string) ( $document->document_type ?? '' ) ||
+        absint( $order_id ) !== absint( $document->order_id ?? 0 ) ||
+        ! function_exists( 'wc_get_order' ) ) {
+        return;
+    }
+    $order = wc_get_order( absint( $order_id ) );
+    if ( ! $order instanceof WC_Order || ! $order->is_paid() ) {
+        return;
+    }
+    $date = $order->get_date_created();
+    $settings = tca_settings();
+    if ( ! $date || $date->date( 'Y-m-d' ) < $settings['start_date'] ||
+        ! TCA_Issued_Invoice::amounts_for_order( $order_id ) ) {
+        return;
+    }
+    $data = tca_sale_entry_from_order( $order, $settings );
+    $existing = tca_find_source( 'woocommerce', $order_id );
+    if ( ! $existing ) {
+        tca_insert( $data );
+        return;
+    }
+
+    // Reconcile only pristine, unapproved imported drafts. A corrected draft,
+    // approved record or historical entry remains untouched.
+    $untouched = 'draft' === (string) $existing->status &&
+        (string) $existing->created_at === (string) $existing->updated_at &&
+        0 === strpos( (string) $existing->notes, 'Unverified order:' );
+    if ( ! $untouched ) {
+        return;
+    }
+    global $wpdb;
+    $updated = array_intersect_key( $data, array_flip( array(
+        'document_no', 'amount_base', 'amount_tax', 'amount_total', 'treatment', 'notes',
+    ) ) );
+    $updated['updated_at'] = current_time( 'mysql' );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reconcile only our own unchanged draft ledger row.
+    $wpdb->update( tca_table(), $updated, array(
+        'id' => absint( $existing->id ),
+        'status' => 'draft',
+        'updated_at' => $existing->updated_at,
+    ) );
+}
+add_action( 'taxocommerce_billing_invoice_issued', 'tca_on_billing_invoice_issued', 10, 2 );
+
+/**
  * Synchronise a bounded page of paid orders. All new records are DRAFT.
  * Never change orders, invoices, previously validated entries or reimbursements.
  */
@@ -220,34 +325,10 @@ function tca_sync_sales( $page = 1 ) {
         $date = $order->get_date_created();
         if ( ! $date || $date->date( 'Y-m-d' ) < $settings['start_date'] ) continue;
         $already_imported = tca_find_source( 'woocommerce', $order->get_id() );
-        $currency = (string) $order->get_currency();
-        $tax = round( (float) $order->get_total_tax(), 2 );
-        $total = round( (float) $order->get_total(), 2 );
-        $country = (string) $order->get_billing_country();
-        $treatment = $currency === $settings['currency'] && $country === $settings['country'] ? 'domestic' : 'review';
-        $tax_id = '';
-        $regime = (string) $order->get_meta( '_seo_facturas_tax_regime' );
-        $vat_validated = (string) $order->get_meta( '_seo_facturas_vat_validated' );
-        if ( 'intra_eu_reverse_charge' === $regime || 'valid' === $vat_validated ) {
-            $treatment = 'intra';
-            $tax_id = (string) $order->get_meta( '_billing_vat' );
-        }
         if ( $already_imported ) {
             ++$skipped;
-        } else {
-        $inserted = tca_insert( array(
-            'source' => 'woocommerce', 'source_id' => $order->get_id(),
-            'kind' => 'sale', 'fiscal_date' => $date->date( 'Y-m-d' ),
-            'document_no' => TCA_Issued_Invoice::for_order( $order->get_id() ),
-            'party' => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
-            'tax_id' => $tax_id, 'concept' => sprintf( 'WooCommerce #%d', $order->get_id() ),
-            'amount_base' => round( $total - $tax, 2 ),
-            'amount_tax' => $tax, 'amount_total' => $total,
-            'deductible_pct' => 0, 'currency' => $currency,
-            'treatment' => $treatment, 'status' => 'draft',
-            'notes' => __( 'Unverified order: reconcile the issued invoice, taxes and possible refunds before approval.', 'taxocommerce-accounting' ),
-        ) );
-        if ( $inserted ) ++$created;
+        } elseif ( tca_insert( tca_sale_entry_from_order( $order, $settings ) ) ) {
+            ++$created;
         }
         // A refund may be issued after the original sale was imported.
         // Never skip refund discovery simply because the order already exists.
@@ -340,6 +421,27 @@ function tca_input( $key ) {
  * @param object $entry Ledger row.
  * @return bool
  */
+/**
+ * Compare the current ledger amounts with an immutable issued invoice.
+ * Existing entries are never overwritten by this read-only check.
+ *
+ * @param object $entry Accounting ledger entry.
+ * @return bool Whether a verified invoice disagrees with its ledger entry.
+ */
+function tca_sale_invoice_mismatch( $entry ) {
+    if ( 'woocommerce' !== $entry->source || 'sale' !== $entry->kind ) {
+        return false;
+    }
+    $invoice = TCA_Issued_Invoice::amounts_for_order( $entry->source_id );
+    if ( ! $invoice ) {
+        return false;
+    }
+    return abs( (float) $entry->amount_base - $invoice['amount_base'] ) > 0.02 ||
+        abs( (float) $entry->amount_tax - $invoice['amount_tax'] ) > 0.02 ||
+        abs( (float) $entry->amount_total - $invoice['amount_total'] ) > 0.02 ||
+        (string) $entry->currency !== $invoice['currency'];
+}
+
 function tca_needs_zero_vat_confirmation( $entry ) {
     return 'woocommerce' === $entry->source
         && 'sale' === $entry->kind
@@ -414,6 +516,9 @@ function tca_handle() {
         if ( in_array( $entry->source, array( 'woocommerce', 'wc_refund' ), true ) && '' === $doc ) tca_redirect( 'sales', 'invalid' );
         $treatment = sanitize_key( tca_input( 'treatment' ) );
         if ( ! in_array( $treatment, array( 'domestic', 'intra', 'reverse', 'exempt' ), true ) ) tca_redirect( 'summary', 'review' );
+        if ( tca_sale_invoice_mismatch( $entry ) ) {
+            tca_redirect( 'sales', 'invoice_mismatch' );
+        }
         if ( 'domestic' === $treatment && tca_needs_zero_vat_confirmation( $entry ) && '1' !== tca_input( 'zero_vat_reviewed' ) ) {
             tca_redirect( 'sales', 'review_zero_vat' );
         }
@@ -550,6 +655,7 @@ function tca_label( $label ) {
         'Assets' => __( 'Assets', 'taxocommerce-accounting' ),
         'Tax returns' => __( 'Tax returns', 'taxocommerce-accounting' ),
         'Hacienda' => __( 'Hacienda', 'taxocommerce-accounting' ),
+        'Treasury' => __( 'Treasury', 'taxocommerce-accounting' ),
         'Exports' => __( 'Exports', 'taxocommerce-accounting' ),
         'Settings' => __( 'Settings', 'taxocommerce-accounting' ),
         'Autocheck' => __( 'Autocheck', 'taxocommerce-accounting' ),
@@ -579,7 +685,14 @@ function tca_table_rows( $rows, $kind = '' ) {
         $shown_document = '' !== $invoice_number ? $invoice_number : $row->document_no;
         echo '<tr><td>' . esc_html( $row->fiscal_date ) . '</td><td>' . esc_html( $shown_document ) . '</td><td>' . esc_html( $row->party ) . '</td><td>' . esc_html( $row->concept ) . '</td>';
         echo '<td>' . esc_html( tca_money( $row->amount_base ) ) . '</td><td>' . esc_html( tca_money( $row->amount_tax ) ) . '</td><td>' . esc_html( tca_money( $row->amount_total ) ) . '</td>';
-        echo '<td>' . esc_html( $row->status . ' / ' . $row->treatment ) . '</td><td>';
+        echo '<td>' . esc_html( $row->status . ' / ' . $row->treatment );
+        if ( tca_sale_invoice_mismatch( $row ) ) {
+            echo '<p class="description" style="color:#b32d2e">' . esc_html__( 'Issued invoice and accounting totals disagree. Check the original invoice and the order; validation is blocked until reconciled.', 'taxocommerce-accounting' ) . '</p>';
+        }
+        if ( 'validated' === $row->status && 'domestic' === $row->treatment && tca_needs_zero_vat_confirmation( $row ) ) {
+            echo '<p class="description" style="color:#b32d2e">' . esc_html__( 'Validated sale has zero VAT. Check its original invoice and applicable tax regime.', 'taxocommerce-accounting' ) . '</p>';
+        }
+        echo '</td><td>';
         if ( 'draft' === $row->status ) {
             tca_form_open( 'validate' );
             echo '<input type="hidden" name="entry_id" value="' . esc_attr( $row->id ) . '">';
@@ -697,7 +810,7 @@ function tca_admin() {
     $tabs = array(
         'summary' => 'Summary', 'sales' => 'Sales', 'received' => 'Received invoices',
         'expenses' => 'Expenses', 'assets' => 'Assets', 'intra' => 'Intra-EU',
-        'hacienda' => 'Hacienda', 'exports' => 'Exports', 'settings' => 'Settings',
+        'hacienda' => 'Hacienda', 'treasury' => 'Treasury', 'exports' => 'Exports', 'settings' => 'Settings',
         'autocheck' => 'Autocheck', 'manual' => 'Manual',
     );
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab/year filters.
@@ -716,8 +829,8 @@ function tca_admin() {
     $notice = isset( $_GET['notice'] ) ? sanitize_key( wp_unslash( $_GET['notice'] ) ) : '';
     if ( $notice ) {
         $invoice_notices = array(
-            'invoice_uploaded'        => __( 'Supplier invoice PDF securely attached to the purchase.', 'taxocommerce-accounting' ),
-            'invoice_invalid_upload' => __( 'Select a valid PDF smaller than 10 MB.', 'taxocommerce-accounting' ),
+            'invoice_uploaded'        => __( 'Original PDF or image securely archived with this accounting entry.', 'taxocommerce-accounting' ),
+            'invoice_invalid_upload' => __( 'Select a valid original PDF, JPG, PNG or WEBP document smaller than 10 MB.', 'taxocommerce-accounting' ),
             'invoice_storage'        => __( 'Could not store the encrypted supplier invoice. No accounting data was changed.', 'taxocommerce-accounting' ),
             'tca_invoice_storage'    => __( 'Could not store the encrypted supplier invoice. No accounting data was changed.', 'taxocommerce-accounting' ),
             'tca_invoice_crypto'     => __( 'Secure invoice encryption is unavailable.', 'taxocommerce-accounting' ),
@@ -727,6 +840,24 @@ function tca_admin() {
             'correction_unchanged'  => __( 'No data changed; nothing was recorded.', 'taxocommerce-accounting' ),
             'correction_failed'     => __( 'The correction failed. The previous ledger entry was retained.', 'taxocommerce-accounting' ),
             'review_zero_vat'      => __( 'This WooCommerce sale has zero VAT. Check its issued invoice and confirm the domestic VAT treatment before validating it.', 'taxocommerce-accounting' ),
+            'invoice_mismatch'     => __( 'Accounting totals do not match the immutable issued invoice. Validation was blocked; reconcile the original document and WooCommerce order.', 'taxocommerce-accounting' ),
+            'treasury_saved'       => __( 'Treasury record saved.', 'taxocommerce-accounting' ),
+            'treasury_error'       => __( 'Could not save the treasury record.', 'taxocommerce-accounting' ),
+            'treasury_invalid'     => __( 'Check the treasury values and dates.', 'taxocommerce-accounting' ),
+            'expense_csv_done'    => __( 'Expense CSV processed. Verify the new drafts in Expenses.', 'taxocommerce-accounting' ),
+            'expense_csv_upload'  => __( 'Select a valid CSV file smaller than 2 MB.', 'taxocommerce-accounting' ),
+            'expense_csv_headers' => __( 'Invalid CSV headers. Download and use the exact template.', 'taxocommerce-accounting' ),
+            'expense_csv_limit'   => __( 'CSV contains too many rows; maximum 500.', 'taxocommerce-accounting' ),
+            'expense_csv_invalid' => __( 'CSV contains invalid expense data; nothing was imported.', 'taxocommerce-accounting' ),
+            'expense_csv_empty'   => __( 'CSV contains no expense documents.', 'taxocommerce-accounting' ),
+            'expense_csv_error'   => __( 'Could not save the CSV batch; please retry.', 'taxocommerce-accounting' ),
+            'purchase_csv_done'    => __( 'Supplier purchase CSV processed. Check the drafts in Received invoices.', 'taxocommerce-accounting' ),
+            'purchase_csv_upload'  => __( 'Select a valid supplier purchase CSV smaller than 2 MB.', 'taxocommerce-accounting' ),
+            'purchase_csv_headers' => __( 'Invalid purchase CSV headers; use the downloaded template.', 'taxocommerce-accounting' ),
+            'purchase_csv_limit'   => __( 'Purchase CSV contains more than 500 rows.', 'taxocommerce-accounting' ),
+            'purchase_csv_invalid' => __( 'Invalid supplier purchase data; no rows imported.', 'taxocommerce-accounting' ),
+            'purchase_csv_empty'   => __( 'Supplier purchase CSV contains no documents.', 'taxocommerce-accounting' ),
+            'purchase_csv_error'   => __( 'Could not save the supplier purchase batch; please retry.', 'taxocommerce-accounting' ),
         );
         echo '<div class="notice notice-info"><p>' . esc_html( isset( $invoice_notices[ $notice ] ) ? $invoice_notices[ $notice ] : $notice ) . '</p></div>';
     }
@@ -737,6 +868,17 @@ function tca_admin() {
     echo '<a href="' . esc_url( tca_admin_url( $tab, array( 'year' => $year - 1 ) ) ) . '">←</a> &nbsp; <a href="' . esc_url( tca_admin_url( $tab, array( 'year' => $year + 1 ) ) ) . '">→</a></p>';
 
     if ( 'summary' === $tab ) {
+        $zero_vat_sales = array_filter( $rows, static function ( $row ) {
+            return 'validated' === $row->status && 'domestic' === $row->treatment &&
+                tca_needs_zero_vat_confirmation( $row );
+        } );
+        if ( $zero_vat_sales ) {
+            echo '<div class="notice notice-warning inline"><p>' . esc_html( sprintf(
+                /* translators: %d: Number of validated domestic sales with zero VAT. */
+                __( '%d validated domestic WooCommerce sales have positive values but zero VAT. Review the original invoice and the tax treatment; these entries still contribute zero output VAT to this summary.', 'taxocommerce-accounting' ),
+                count( $zero_vat_sales )
+            ) ) . ' <a href="' . esc_url( tca_admin_url( 'sales', array( 'year' => $year ) ) ) . '">' . esc_html__( 'Review sales', 'taxocommerce-accounting' ) . '</a></p></div>';
+        }
         $months = range( 1, 12 );
         echo '<h2>' . esc_html__( 'Monthly fiscal summary (validated domestic entries only)', 'taxocommerce-accounting' ) . '</h2><table class="widefat striped"><thead><tr>';
         foreach ( array( 'Month', 'Sales', 'Purchases / expenses', 'Output VAT', 'Deductible input VAT', 'Difference', 'Pending review' ) as $heading ) echo '<th>' . esc_html( tca_label( $heading ) ) . '</th>';
@@ -750,6 +892,8 @@ function tca_admin() {
         if ( count( $rows ) >= 400 ) echo '<p class="notice notice-warning">' . esc_html__( 'Year contains over 400 entries; use the exports for full reporting. This dashboard is limited.', 'taxocommerce-accounting' ) . '</p>';
     } elseif ( 'hacienda' === $tab ) {
         TCA_Hacienda::render( $year );
+    } elseif ( 'treasury' === $tab ) {
+        TCA_Treasury::render( $year );
     } elseif ( 'sales' === $tab ) {
         echo '<h2>' . esc_html__( 'WooCommerce sales / refunds', 'taxocommerce-accounting' ) . '</h2>';
         echo '<p>' . esc_html__( 'Imports only paid-status orders dated after the configured start. All imported records remain drafts until invoice and VAT verification; repeated imports do not duplicate them.', 'taxocommerce-accounting' ) . '</p>';
@@ -768,6 +912,9 @@ function tca_admin() {
     } elseif ( in_array( $tab, array( 'received', 'expenses', 'assets', 'intra' ), true ) ) {
         $kind = array( 'received' => 'purchase', 'expenses' => 'expense', 'assets' => 'asset', 'intra' => 'intra' )[ $tab ];
         TCA_Corrections::render_editor( $tab );
+        if ( in_array( $kind, array( 'purchase', 'expense' ), true ) ) {
+            TCA_Expense_CSV::render( $year, $kind );
+        }
         tca_new_invoice_form( $kind );
         tca_table_rows( $rows, $kind );
     } elseif ( 'exports' === $tab ) {

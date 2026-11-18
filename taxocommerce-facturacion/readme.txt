@@ -4,7 +4,7 @@ Tags: woocommerce, invoices, proforma, quotes, pdf
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.19
+Stable tag: 0.1.20
 License: MIT
 
 WooCommerce invoices, proformas and quotations migrated from TaxoCommerce SEO.
@@ -25,6 +25,7 @@ Features:
 * Invoices and proforma invoices.
 * Cart quotations for classic Cart and Cart Block.
 * Order document registry and snapshots.
+* Emits an optional WordPress action after successful invoice issuance for independent accounting consumers; no mandatory Accounting dependency.
 * Document numbering and series.
 * PDF generation using the same Dompdf 3.1.6 engine as the historical module.
 * Email attachments and resending.

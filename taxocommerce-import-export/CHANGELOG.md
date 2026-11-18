@@ -1,3 +1,17 @@
+## [0.4.34] — 2026-11-18 — Localize administrative import/export messages (#2783)
+
+- Translate 66 previously untranslated administration strings across es_ES, en_US, fr_FR, de_DE and nl_NL: CSV validation, batch queue states, import and export failures, brand/hierarchy checks, progress guidance and safe Autocheck messages.
+- Compile all five MO catalogs from the updated PO files. Preserve the existing plural translations, technical identifiers, parameter placeholders and gettext fallback for untranslated documentation.
+- Keep import/export processing, data, workers, permissions, CSV formats and integration contracts unchanged. Long user-manual prose and plugin metadata remain out of scope.
+- Extend the MO regression test to verify actual locale-specific text. No production deployment.
+
+## [0.4.33] — 2026-11-18 — Recuperación de exportaciones CSV y Autocheck real (#2791)
+
+- La pestaña Exportación recupera mediante AJAX del navegador los bloques que queden detenidos cuando fallen las autollamadas HTTP del servidor, respetando el bloqueo exclusivo, el control de velocidad, los checkpoints CSV, la cancelación y el worker autónomo existente. No se restauran cron ni Action Scheduler.
+- Validación de archivos CSV antes de servir la descarga: directorio privado, lectura, tamaño guardado, cabecera correspondiente al tipo y presencia de datos si se han escrito filas.
+- Autocheck: elimina el falso fallo del worker programado retirado en 0.4.29, comprueba el worker real y sus rutas, detecta trabajos exportadores fallidos/atascados, archivos ausentes o corruptos y bloquea despliegues con trabajos aún en cola o cancelándose.
+- La descarga HTTP real se sigue mostrando como validación manual; el chequeo estático no afirma haberla ejecutado. Pruebas de regresión del CSV y del respaldo AJAX. Issue #2791.
+
 ## [0.4.32] — 2026-11-13 — Code Check equiparado a Core 0.4.82 (#2626)
 
 - Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.

@@ -8,6 +8,13 @@
     var speed = document.getElementById('tcs-module-speed');
     var i18n = config.i18n || {};
     function t(key, fallback) { return i18n[key] || fallback; }
+    function statusLabel(value) {
+        var key = String(value || 'not_run');
+        if (key === 'not_run') { return t('not_run_status', 'Not run'); }
+        if (key === 'paused') { return t('paused_status', 'Paused'); }
+        if (key === 'error') { return t('error_status', 'Error'); }
+        return Object.prototype.hasOwnProperty.call(i18n, key) ? i18n[key] : key;
+    }
     var current = '';
     var token = 0;
     var timer = null;
@@ -94,7 +101,7 @@
         }
         if (state.status !== 'running') {
             bulk.paused = true;
-            progress.textContent = label(current, '') + ': ' + t('all_paused', 'Paused') + ' (' + state.status + ')';
+            progress.textContent = label(current, '') + ': ' + t('all_paused', 'Paused') + ' (' + statusLabel(state.status) + ')';
             bulkMessage();
             return;
         }
@@ -185,7 +192,7 @@
         var f = state.functional || {};
         var c = state.code || {};
         var totals = f.totals || {};
-        progress.textContent = label(state.name, state.plugin) + ': ' + label(state.status, '') +
+        progress.textContent = label(state.name, state.plugin) + ': ' + statusLabel(state.status) +
             ' · ' + t('functions', 'Functions') + ': ' + (f.done || 0) + '/' + (f.total || 0) +
             ' (' + (totals.fail || 0) + ' ' + t('failures', 'failures') + ', ' + (totals.skip || 0) + ' ' + t('skipped', 'skipped') + ', ' + (totals.warning || 0) + ' ' + t('warnings', 'warnings') + ')' +
             ' · ' + t('code', 'Code') + ': ' + (c.done || 0) + '/' + (c.total || 0) +
@@ -211,11 +218,11 @@
     function renderRow(item, container, type) {
         var row = text('li', '', container);
         if (type === 'functional') {
-            text('strong', label(item.status, 'skip') + ' · ' + label(item.group, '') +
+            text('strong', statusLabel(item.status || 'skip') + ' · ' + label(item.group, '') +
                 ' · ' + label(item.label, item.id), row);
             text('p', label(item.message, t('no_details', 'No details available.')), row);
         } else {
-            text('strong', label(item.severity, item.status || type) +
+            text('strong', statusLabel(item.severity || item.status || type) +
                 ' · ' + label(item.file, '') +
                 (item.line == null ? '' : ':' + item.line) +
                 ' · ' + label(item.rule, item.group || ''), row);
@@ -247,7 +254,7 @@
         var title = text('h3', t('results_of', 'Results for ') + label(report.name, report.plugin), result);
         title.setAttribute('tabindex', '-1');
         var summary = report.summary;
-        text('p', t('status', 'Status: ') + label(summary.status, 'pendiente') +
+        text('p', t('status', 'Status: ') + statusLabel(summary.status || 'pending') +
             t('date', ' · Date: ') + label(report.executed_at, '—'), result);
         if (summary.note) { text('p', summary.note, result); }
         var link = text('a', t('download_json', 'Download complete JSON for this plugin'), result);

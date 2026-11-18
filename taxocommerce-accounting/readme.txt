@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.8
+Stable tag: 0.1.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,9 +15,17 @@ Independent WooCommerce fiscal register with purchase invoices, monthly VAT esti
 
 TaxoCommerce Accounting records fiscal data without changing WooCommerce orders, customers, supplier catalogues or invoice generation.
 
+* **Supplier purchases:** import/export CSV in **Received invoices** (goods purchased for resale). Download a CSV template, import bounded batches as unvalidated purchase drafts, then attach the original PDF or image to each record.
+* **Service/operating expenses:** import/export CSV in **Expenses**, also accessible under **Treasury** for existing workflows. Domains, hosting, digital certificates, AI/software and similar bills are kept as unvalidated expense drafts, separate from supplier merchandise.
+* Original receipt uploads accept PDF, JPG/JPEG, PNG and WEBP up to 10 MB each. Originals are encrypted in WordPress uploads under taxocommerce-accounting/encrypted-invoices and downloaded only by authorised users via nonce-protected admin actions. Multiple originals per entry are supported. They are **not** added to the public media library.
+* CSVs import invoice metadata only; originals are attached to the corresponding purchase/expense row separately. Back up the plugin database tables and encrypted uploads together, and preserve the same WordPress auth/secure-auth salts to keep archived originals decryptable.
+
+* In the Treasury tab, import/export CSV of ordinary expenses (domains, hosting, certificates, postal costs, software, and fees), downloading a blank template or exporting the current financial year. Imported rows enter the existing Expenses ledger as drafts requiring fiscal validation. CSV does not imply payment: cash/bank movements are registered separately. Prior-activity expenses retain their original dates. Repeated documents are skipped, each upload is limited to 500 rows / 2 MB, and the CSV exporter guards spreadsheet-formula injection. Manually attach original expense PDFs through the existing secure expense document controls.
+* Track separate cash and multiple bank accounts in the Treasury tab: opening balances, manual receipts/payments, atomic internal transfers, current balances, and a monthly cash-flow table. These figures do not imply that a booked invoice is collected or paid.
+* Track loans with original amount, lender, monthly instalment, next payment date and manually confirmed outstanding balance; no inferred interest or automatic debiting.
 * Configure a per-store first commercial date. All earlier test orders are excluded from new sales imports.
 * Manually import paid-status WooCommerce orders in bounded batches of 25, with deduplicated draft entries.
-* Optionally look up an actual issued invoice for the exact WooCommerce order when TaxoCommerce Billing is active. New and existing draft sales display the matching invoice number automatically; manual entry remains possible with other invoicing systems. Proformas, quotes and refunds are not automatically associated. Invoice references do not validate tax amounts.
+* Optionally receive a new issued invoice through a standard WordPress action when TaxoCommerce Billing is active, and read its immutable base, VAT, total and number into a new draft or untouched imported draft. Never adjust an issued invoice or approved ledger entry. New and existing draft sales display the matching invoice number automatically; manual entry remains possible with other invoicing systems. Proformas, quotes and refunds are not automatically associated. New imported amounts require fiscal review and validation. Conflicting issued-invoice amounts block approval.
 * Capture supplier purchase invoices, business expenses, capital assets and special cross-border operations manually. Supplier VAT deduction percentage is explicitly required (not prefilled at 0), with guidance and live preview of invoice total and deductible input VAT; 100% is only appropriate if the input VAT is legally fully deductible.
 * Domestic WooCommerce sale drafts with positive base and zero VAT prompt an additional acknowledgement before fiscal validation; the plugin does not invent tax rates or overwrite issued invoices.
 * Attach one or more original supplier PDF invoices to each saved purchase-side record (purchases, expenses, assets and intra-EU operations). Store original PDF bytes encrypted; authenticated, nonce-protected downloads only, never a public media URL. Maximum 10 MB per PDF.
@@ -75,6 +83,10 @@ No. It is a working summary of validated domestic records, not an official AEAT 
 No. Input VAT defaults to 0% deductible and records start in draft. A qualified professional should verify the tax treatment.
 
 == Changelog ==
+
+= 0.1.12 =
+* Distinct bulk CSV import/export of supplier merchandise purchases and operating/service expenses, linked to encrypted PDF/JPG/PNG/WEBP originals in uploads. Issue #2795.
+
 
 = 0.1.8 =
 * Require deliberate supplier VAT deduction percentage and show invoice/deductible VAT preview. Warn and require explicit confirmation before approving domestic WooCommerce zero-VAT sales. No automatic adjustment to issued documents. Issue #2773.

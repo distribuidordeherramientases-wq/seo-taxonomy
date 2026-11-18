@@ -132,6 +132,9 @@ jobs:
           php -l taxocommerce-accounting/includes/class-tca-provider-invoices.php
           php -l taxocommerce-accounting/tests/provider-invoice-pdf-smoke.php
           php taxocommerce-accounting/tests/provider-invoice-pdf-smoke.php
+          php -l taxocommerce-accounting/includes/class-tca-expense-csv.php
+          php -l taxocommerce-accounting/tests/expense-csv-smoke.php
+          php taxocommerce-accounting/tests/expense-csv-smoke.php
           php -l taxocommerce-accounting/includes/class-tca-hacienda.php
           php -l taxocommerce-accounting/tests/hacienda-workspace-smoke.php
           php taxocommerce-accounting/tests/hacienda-workspace-smoke.php
@@ -155,6 +158,8 @@ jobs:
           php -l taxocommerce-system-check/tests/url-process-progress-smoke.php
           php taxocommerce-system-check/tests/url-process-progress-smoke.php
           php taxocommerce-system-check/tests/processes-smoke.php
+          php -l taxocommerce-system-check/tests/i18n-admin-ui-smoke.php
+          php taxocommerce-system-check/tests/i18n-admin-ui-smoke.php
           php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-process-details.php
           php -l taxocommerce-system-check/tests/process-details-smoke.php
           php taxocommerce-system-check/tests/process-details-smoke.php
@@ -219,6 +224,7 @@ jobs:
           php taxocommerce-images/tests/code-check-smoke.php
           node --check taxocommerce-images/assets/autotest-code.js
           php taxocommerce-import-export/tests/auto-test-smoke.php
+          php taxocommerce-import-export/tests/export-file-smoke.php
           php taxocommerce-logistica/tests/auto-test-smoke.php
           php taxocommerce-redirects/tests/auto-test-smoke.php
           php -l taxocommerce-redirects/tests/opnv-redirects-owner-smoke.php

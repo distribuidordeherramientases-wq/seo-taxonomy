@@ -1,3 +1,36 @@
+## 0.1.12 — 2026-11-18 — Facturas de proveedores y servicios con originales cifrados (#2795)
+
+- Nuevo importador/exportador CSV de **compras a proveedores** en «Facturas recibidas», separado de las facturas de **gastos y servicios** en «Gastos» y de su acceso anterior en «Tesorería».
+- Se reutilizan las mismas validaciones de CSV, plantilla UTF-8, límites de 500 filas/2 MB, deduplicación entre libros y descarga por ejercicio; cada documento se incorpora como borrador de compra o gasto y nunca valida deducciones ni registra movimientos de Tesorería.
+- Una vez importado el CSV, cada registro permite adjuntar el original PDF, JPG/JPEG, PNG o WEBP (hasta 10 MB), con varios documentos por asiento. Se verifican tipo real y firma de archivo; se almacena cifrado en wp-content/uploads/taxocommerce-accounting/encrypted-invoices/, no en la biblioteca multimedia pública.
+- Descarga autenticada mediante capacidad y nonce, validación de hash y contenido, sin URL pública del original. Se conservan los PDF anteriores y la clave derivada de las sales de WordPress; las copias deben incluir tanto BD como uploads y sales.
+- El CSV no adjunta automáticamente archivos ni pretende realizar OCR o deducibilidad automática. Después del importador, utilizar «Adjuntar documento» en la fila del asiento.
+- Regresiones para compras y gastos diferenciados, tipos de archivo no permitidos, cifrado y compatibilidad previa; Plugin Check WordPress.org obligatorio. Sin cambios de producción.
+
+## 0.1.11 — 2026-11-17 — Importación/exportación CSV de gastos desde Tesorería (#2785)
+
+- Sección en Tesorería para descargar plantilla, importar y exportar por ejercicio CSV de gastos de asociación/tienda (hosting, dominios, software, certificados, tasas y Correos), sin duplicar libros ni tratar esos documentos como compras de mercancía.
+- Cada fila se incorpora exclusivamente al registro **Expenses** como borrador revisable; conserva fecha original, emisor, documento, base, IVA, porcentaje de IVA propuesto y tratamiento. No aprueba deducciones, no modifica el IVA de documentos emitidos y no crea movimientos de caja ni banco.
+- Identificación de destino association/commercial/shared/review en las notas del mismo asiento, sin tablas o columnas adicionales; el exportador recupera esa clasificación.
+- CSV UTF-8 compatible con Excel español (punto y coma, también admite CSV con coma), límite 2 MB/500 filas por importación, validación completa previa, duplicados omitidos y exportación protegida frente a fórmulas CSV.
+- Se mantiene la adjunción cifrada de justificantes PDF desde la pestaña Expenses, usando el mismo registro manual de gastos. Pruebas de seguridad y compatibilidad con los flujos existentes.
+
+## 0.1.10 — 2026-11-17 — Pestaña Tesorería: caja, bancos y préstamos (#2782)
+
+- Una nueva pestaña independiente **Tesorería** presenta indicadores de caja, saldos bancarios combinados, fondos disponibles, deuda declarada pendiente y cuotas mensuales previstas.
+- Alta de cajas y múltiples cuentas bancarias con saldo inicial, movimientos de entrada/salida y traspasos internos atómicos entre cuentas; resumen mensual de entradas, salidas y saldos sin mezclarlo con los indicadores de IVA.
+- Préstamos sencillos con importe inicial, entidad acreedora, cuota, próximo vencimiento y saldo pendiente editable según extracto del prestamista. No estima intereses, no descuenta mensualidades automáticamente y no registra cobros ni pagos ficticios.
+- Las facturas comerciales de WooCommerce/Billing no generan entradas o salidas de tesorería hasta registrar efectivamente un movimiento. Preservados los registros y cálculos fiscales.
+- Datos en tablas propias y permisos WordPress, acciones con nonces, validación de importes y fechas; pruebas de saldos y transferencias.
+
+## 0.1.9 — 2026-11-17 — Traspaso automático de factura emitida a Accounting (#2778)
+
+- Captura automática mediante una acción estándar de WordPress tras la emisión de una factura de Billing: asiento de venta en borrador, sin reimportación manual ni dependencia obligatoria entre plugins.
+- Para nuevas ventas utiliza número, base imponible, IVA y total del snapshot fiscal inmutable de la factura si está disponible; si no hay Billing, conserva la importación convencional de WooCommerce.
+- Reconcilia únicamente borradores intactos que se importaron antes de emitir su factura. No modifica documentos originales, pedidos, asientos validados ni correcciones auditadas.
+- Impide aprobar borradores que discrepen de los importes de una factura emitida y avisa cuando ya existen ventas validadas con IVA cero.
+- No recalcula ni inventa cuotas de IVA: la prueba simulada de 621,60 € con 107,88 € de IVA corresponde exclusivamente al asiento corregido de prueba; el documento histórico conserva los 0 € de IVA emitidos.
+
 ## 0.1.8 — 2026-11-17 — Guía para IVA deducible y revisión de ventas con IVA cero (#2773)
 
 - Se conservan los importes de ventas importados desde WooCommerce, sin reescribir automáticamente documentos emitidos ni asientos validados.
