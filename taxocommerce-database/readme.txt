@@ -13,6 +13,9 @@ Standalone migration of the original Clean Database and SEO Data Table tools fro
 == Description ==
 
 TaxoCommerce Database provides database inspection, cleanup and export tools:
+
+= Key Features =
+
 * Clean Database: Data Errors, Database Cleanup and a unified Export tab that combines complete WordPress SQL backups with SEO-table CSV/SQL/ZIP exports.
 * Validation and repair of SEO nodes, relationships, scopes, categories and bulk supplier acceptance locks.
 * All 17 original WordPress, WooCommerce and Action Scheduler cleanup actions, without a total deletion limit of 100 records or typed confirmation words. Cleanup remains manual and synchronous as in the original plugin.
