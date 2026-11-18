@@ -14,6 +14,8 @@ Manage product and page FAQs in WordPress and WooCommerce with CSV exchange, sta
 
 TaxoCommerce FAQs works with an existing canonical FAQ table on migration and optionally integrates its admin screens into TaxoCommerce Core.
 
+= Key Features =
+
 * Manage FAQs attached to pages, hubs, WooCommerce product categories and products.
 * Create, edit, enable and delete FAQ records individually.
 * Review volume, publication status, destinations and read metrics.
