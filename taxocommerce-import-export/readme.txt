@@ -5,13 +5,16 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.34
+Stable tag: 0.4.35
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Import and export catalog, content and Media for WordPress/WooCommerce.
 
 == Description ==
+
+Version 0.4.35 adds a safe append-only CSV for existing WordPress pages. Supply only `record_type,id,slug,content_append` (record_type `page`). The importer checks ID and slug, preserves the existing page metadata, and avoids duplicate ZIP download links on reimport. Standard full-page CSV imports are unchanged. Use the dedicated Import-Export upload queue; a generic WordPress CSV importer does not understand this format.
+
 
 Version 0.4.34 localizes CSV validation, batch queue and export administration messages in five WordPress locales. It does not change processing behavior, data formats or plugin dependencies.
 
