@@ -289,7 +289,7 @@ final class TaxoCommerce_Import_Export_Basic {
 			var fields=<?php echo wp_json_encode( array_map( array( __CLASS__, 'fields' ), array_keys( $types ) ) ); ?>;
 			var keys=<?php echo wp_json_encode( array_keys( $types ) ); ?>;
 			var byType={};keys.forEach(function(k,i){byType[k]=fields[i];});
-			var alias={product:{product_id:'id',product_name:'name',nombre:'name',precio:'regular_price',precio_normal:'regular_price',precio_rebajado:'sale_price',regularprice:'regular_price',saleprice:'sale_price',shortdescription:'short_description',stock:'stock_quantity',instock:'stock_status',weightkg:'weight',lengthcm:'length',widthcm:'width',heightcm:'height',images:'featured_image',imagen:'featured_image',categorias:'categories',etiquetas:'tags'},page:{post_id:'id',post_title:'title',post_content:'content',titulo:'title',contenido:'content',fecha:'date',imagen:'featured_image'},post:{post_id:'id',post_title:'title',post_content:'content',titulo:'title',contenido:'content',fecha:'date',categorias:'categories',etiquetas:'tags',imagen:'featured_image'},category:{nombre:'name',categoria:'name'},product_cat:{nombre:'name',categoria:'name'}};
+			var alias={product:{product_id:'id',product_name:'name',nombre:'name',estado:'status',published:'status',precio:'regular_price',precio_normal:'regular_price',precio_rebajado:'sale_price',regularprice:'regular_price',saleprice:'sale_price',shortdescription:'short_description',stock:'stock_quantity',instock:'stock_status',weightkg:'weight',lengthcm:'length',widthcm:'width',heightcm:'height',images:'featured_image',imagen:'featured_image',categorias:'categories',etiquetas:'tags'},page:{post_id:'id',post_title:'title',post_content:'content',titulo:'title',estado:'status',contenido:'content',fecha:'date',imagen:'featured_image'},post:{post_id:'id',post_title:'title',post_content:'content',titulo:'title',estado:'status',contenido:'content',fecha:'date',categorias:'categories',etiquetas:'tags',imagen:'featured_image'},category:{nombre:'name',categoria:'name'},product_cat:{nombre:'name',categoria:'name'}};
 			function updateFields(){
 				var type=typeSelect.value, available=byType[type]||{};
 				document.querySelectorAll('.tc-ie-basic-map').forEach(function(el){
@@ -605,6 +605,15 @@ final class TaxoCommerce_Import_Export_Basic {
 
 	private function import_record( $type, $data, $mode ) {
 		if ( ! $data ) return new WP_Error( 'empty', __( 'Fila sin campos con valores.', 'taxocommerce-import-export' ) );
+		if ( isset( $data['status'] ) ) {
+			$source_status = strtolower( trim( $data['status'] ) );
+			$native_status = array( '1' => 'publish', '0' => 'draft', '-1' => 'private', 'yes' => 'publish', 'no' => 'draft' );
+			$data['status'] = $native_status[ $source_status ] ?? $source_status;
+		}
+		if ( 'product' === $type && isset( $data['stock_status'] ) ) {
+			$source_stock = strtolower( trim( $data['stock_status'] ) );
+			$data['stock_status'] = array( '1' => 'instock', '0' => 'outofstock', 'yes' => 'instock', 'no' => 'outofstock' )[ $source_stock ] ?? $source_stock;
+		}
 		$cap = array( 'product' => 'edit_products', 'product_cat' => 'manage_product_terms',
 			'category' => 'manage_categories', 'page' => 'edit_pages', 'post' => 'edit_posts' )[ $type ] ?? '';
 		if ( ! $cap || ! current_user_can( $cap ) ) {
@@ -801,7 +810,7 @@ final class TaxoCommerce_Import_Export_Basic {
 		}
 		$result_id = (int) $result;
 		if ( null !== $image_id ) {
-			if ( ! set_post_thumbnail( $result_id, $image_id ) ) {
+			if ( (int) get_post_thumbnail_id( $result_id ) !== $image_id && ! set_post_thumbnail( $result_id, $image_id ) ) {
 				return new WP_Error( 'image_save', __( 'No se ha podido asignar la imagen destacada.', 'taxocommerce-import-export' ) );
 			}
 		}
