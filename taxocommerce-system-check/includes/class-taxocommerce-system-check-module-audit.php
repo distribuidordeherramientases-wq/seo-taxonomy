@@ -544,7 +544,7 @@ final class TaxoCommerce_System_Check_Module_Audit {
         echo '<p>' . esc_html__( 'Check plugins individually or run all active TaxoCommerce modules sequentially. Each plugin keeps its own results, log and JSON report.', 'taxocommerce-system-check' ) . '</p>';
         echo '<label for="tcs-module-speed">' . esc_html__( 'CPU usage', 'taxocommerce-system-check' ) . '</label> ';
         echo '<select id="tcs-module-speed">';
-        foreach ( array( 1 => 'Very low', 2 => 'Low', 3 => 'Normal', 4 => 'High', 5 => 'Maximum' ) as $speed => $name ) {
+        foreach ( array( 1 => __( 'Very low', 'taxocommerce-system-check' ), 2 => __( 'Low', 'taxocommerce-system-check' ), 3 => __( 'Normal', 'taxocommerce-system-check' ), 4 => __( 'High', 'taxocommerce-system-check' ), 5 => __( 'Maximum', 'taxocommerce-system-check' ) ) as $speed => $name ) {
             echo '<option value="' . esc_attr( (string) $speed ) . '"' . selected( 3, $speed, false ) . '>' . esc_html( $name ) . '</option>';
         }
         echo '</select> ';
@@ -597,6 +597,18 @@ final class TaxoCommerce_System_Check_Module_Audit {
                 'resume_hint' => __( 'The browser is not processing batches; press Resume to continue.', 'taxocommerce-system-check' ),
                 'stop' => __( 'Stop', 'taxocommerce-system-check' ),
                 'resume' => __( 'Resume', 'taxocommerce-system-check' ),
+                'running' => __( 'Running', 'taxocommerce-system-check' ),
+                'completed' => __( 'Completed', 'taxocommerce-system-check' ),
+                'pending' => __( 'Pending', 'taxocommerce-system-check' ),
+                'waiting' => __( 'Waiting', 'taxocommerce-system-check' ),
+                'pass' => __( 'Passed', 'taxocommerce-system-check' ),
+                'fail' => __( 'Failed', 'taxocommerce-system-check' ),
+                'skip' => __( 'Not run', 'taxocommerce-system-check' ),
+                'warning' => __( 'Review', 'taxocommerce-system-check' ),
+                'not_run_status' => __( 'Not run', 'taxocommerce-system-check' ),
+                'paused_status' => __( 'Paused', 'taxocommerce-system-check' ),
+                'error_status' => __( 'Error', 'taxocommerce-system-check' ),
+                'findings' => __( 'Findings', 'taxocommerce-system-check' ),
             ),
         ) ) . ';', 'before' );
     }
