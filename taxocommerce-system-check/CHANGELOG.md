@@ -1,3 +1,10 @@
+## [0.2.44] — 2026-11-18 — Traducciones de interfaz de System Check (#2789)
+
+- Corrige la mezcla de idiomas en la navegación, botones de exportación, comprobaciones básicas y opciones de CPU en Plugin Validation y el piloto Core.
+- Los estados visibles de progreso e informes se traducen según el idioma de WordPress sin modificar los identificadores internos ni los contratos JSON/AJAX.
+- Actualiza POT y cinco PO/MO (ES/EN/FR/DE/NL) con 555 entradas por idioma; corrige el inglés de «Código» y «Funcionalidades» y el encabezado español de Plugin Validation.
+- Añade una prueba de regresión de catálogos compilados. No altera los motores de chequeo, procesos ni servicios de otros plugins.
+
 ## [0.2.43] — 2026-11-16 — Chequeo secuencial de todos los plugins activos (#2755)
 
 - Botón «Chequear todos» junto al control de CPU en System Check → Plugin Validation; utiliza exclusivamente las filas de módulos activos inventariados por Core y el mismo endpoint de cada chequeo individual.
