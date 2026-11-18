@@ -58,6 +58,14 @@ tca_expense_csv_assert( 121.0 === $entry['amount_total'], 'VAT and taxable base 
 tca_expense_csv_assert( 0.0 === $entry['deductible_pct'], 'Tax deductibility is never guessed' );
 tca_expense_csv_assert( 'draft' === $entry['status'] && 'expense' === $entry['kind'], 'No automatic validation or supplier purchase' );
 tca_expense_csv_assert( 'manual' === $entry['source'], 'Existing secure manual-PDF attachment flow remains available' );
+$purchase = TCA_Expense_CSV::parse_row( $raw, 'EUR', 'purchase' );
+tca_expense_csv_assert( 'purchase' === $purchase['kind'] && 'draft' === $purchase['status'], 'Supplier CSV creates unapproved purchase, not expense' );
+tca_expense_csv_assert( 'manual' === $purchase['source'] && 121.0 === $purchase['amount_total'], 'Supplier invoice preserves total and secure document relation' );
+tca_expense_csv_assert( 'commercial' === TCA_Expense_CSV::export_values( (object) $purchase )[9], 'Purchase CSV uses existing export format and scope' );
+tca_expense_csv_assert( null === TCA_Expense_CSV::parse_row( $raw, 'EUR', 'sale' ), 'CSV cannot create a sale or alter WooCommerce' );
+$original = TCA_Expense_CSV::parse_row( $raw, 'EUR' );
+tca_expense_csv_assert( 'expense' === $original['kind'], 'Existing service-expense CSV remains unchanged' );
+
 tca_expense_csv_assert( '[scope=commercial] Service paid before first sale' === $entry['notes'], 'Expense scope preserved without extra schema' );
 
 $encoded = TCA_Expense_CSV::export_values( (object) $entry );
@@ -111,3 +119,17 @@ foreach ( array(
 tca_expense_csv_assert( false === strpos( $source, 'wc_get_orders(' ), 'No WooCommerce order mutation' );
 tca_expense_csv_assert( false === strpos( $source, 'insert_movement(' ), 'Cash is not inferred from expense imports' );
 echo "TaxoCommerce Accounting expense CSV isolated smoke: PASS\n";
+
+$actions = file_get_contents( dirname( __DIR__ ) . '/includes/class-tca-expense-csv.php' );
+foreach ( array(
+    "admin_post_tca_purchase_csv_import",
+    "admin_post_tca_purchase_csv_template",
+    "admin_post_tca_purchase_csv_export",
+    "check_admin_referer( 'tca_purchase_csv_import' )",
+    "check_admin_referer( 'tca_purchase_csv_template' )",
+    "check_admin_referer( 'tca_purchase_csv_export' )",
+    "'purchase' === \$kind ? 'received' : 'treasury'",
+    "tca_table(), \$kind, \$year . '-01-01'",
+) as $contract ) {
+    tca_expense_csv_assert( false !== strpos( $actions, $contract ), 'Purchase CSV security/ledger contract: ' . $contract );
+}
