@@ -13,7 +13,7 @@ WooCommerce invoices, proformas and quotations migrated from TaxoCommerce SEO.
 
 TaxoCommerce Billing keeps the existing document workflow while moving it into an independent plugin.
 
-Features:
+= Key Features =
 
 * Company and tax settings.
 * Invoices and proforma invoices.
