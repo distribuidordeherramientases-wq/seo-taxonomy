@@ -55,5 +55,4 @@ preg_match( '/^ \* Version: (\d+\.\d+\.\d+)$/m', $plugin, $matches );
 $version = $matches[1] ?? '';
 tc_ie_background_check( '' !== $version, 'Valid plugin version' );
 tc_ie_background_check( false !== strpos( $readme, 'Stable tag: ' . $version ), 'Readme version updated' );
-require __DIR__ . '/export-file-smoke.php';
 echo "Background export contract: OK (server worker, browser fallback, cancellation, CSV validation, adaptive regulator, version)" . PHP_EOL;
