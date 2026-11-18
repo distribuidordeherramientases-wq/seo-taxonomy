@@ -41,28 +41,60 @@ final class TaxoCommerce_Import_Export_Basic {
 	private static function fields( $type ) {
 		if ( 'product' === $type ) {
 			return array(
-				'id' => 'ID', 'sku' => 'SKU', 'name' => __( 'Nombre', 'taxocommerce-import-export' ),
-				'slug' => 'Slug', 'status' => __( 'Estado', 'taxocommerce-import-export' ),
+				'id' => 'ID',
+				'sku' => 'SKU',
+				'name' => __( 'Nombre', 'taxocommerce-import-export' ),
+				'slug' => 'Slug',
+				'status' => __( 'Estado', 'taxocommerce-import-export' ),
 				'regular_price' => __( 'Precio normal', 'taxocommerce-import-export' ),
 				'sale_price' => __( 'Precio rebajado', 'taxocommerce-import-export' ),
 				'stock_quantity' => __( 'Cantidad en stock', 'taxocommerce-import-export' ),
+				'stock_status' => __( 'Estado de existencias', 'taxocommerce-import-export' ),
+				'manage_stock' => __( 'Gestionar existencias (sí/no)', 'taxocommerce-import-export' ),
 				'description' => __( 'Descripción', 'taxocommerce-import-export' ),
 				'short_description' => __( 'Descripción corta', 'taxocommerce-import-export' ),
+				'categories' => __( 'Categorías (slugs separados por |)', 'taxocommerce-import-export' ),
+				'tags' => __( 'Etiquetas (slugs separados por |)', 'taxocommerce-import-export' ),
+				'featured_image' => __( 'Imagen destacada (URL de Media)', 'taxocommerce-import-export' ),
+				'weight' => __( 'Peso', 'taxocommerce-import-export' ),
+				'length' => __( 'Longitud', 'taxocommerce-import-export' ),
+				'width' => __( 'Anchura', 'taxocommerce-import-export' ),
+				'height' => __( 'Altura', 'taxocommerce-import-export' ),
+				'catalog_visibility' => __( 'Visibilidad en el catálogo', 'taxocommerce-import-export' ),
+				'featured' => __( 'Destacado (sí/no)', 'taxocommerce-import-export' ),
+				'virtual' => __( 'Virtual (sí/no)', 'taxocommerce-import-export' ),
+				'sold_individually' => __( 'Vender individualmente (sí/no)', 'taxocommerce-import-export' ),
 			);
 		}
 		if ( in_array( $type, array( 'category', 'product_cat' ), true ) ) {
 			return array(
-				'id' => 'ID', 'name' => __( 'Nombre', 'taxocommerce-import-export' ),
-				'slug' => 'Slug', 'description' => __( 'Descripción', 'taxocommerce-import-export' ),
+				'id' => 'ID',
+				'name' => __( 'Nombre', 'taxocommerce-import-export' ),
+				'slug' => 'Slug',
+				'description' => __( 'Descripción', 'taxocommerce-import-export' ),
 				'parent_slug' => __( 'Slug categoría padre', 'taxocommerce-import-export' ),
 			);
 		}
-		return array(
-			'id' => 'ID', 'title' => __( 'Título', 'taxocommerce-import-export' ),
-			'slug' => 'Slug', 'status' => __( 'Estado', 'taxocommerce-import-export' ),
+		$fields = array(
+			'id' => 'ID',
+			'title' => __( 'Título', 'taxocommerce-import-export' ),
+			'slug' => 'Slug',
+			'status' => __( 'Estado', 'taxocommerce-import-export' ),
 			'excerpt' => __( 'Extracto', 'taxocommerce-import-export' ),
 			'content' => __( 'Contenido', 'taxocommerce-import-export' ),
+			'date' => __( 'Fecha de publicación', 'taxocommerce-import-export' ),
+			'author' => __( 'Autor (usuario WordPress)', 'taxocommerce-import-export' ),
+			'featured_image' => __( 'Imagen destacada (URL de Media)', 'taxocommerce-import-export' ),
+			'menu_order' => __( 'Orden de menú', 'taxocommerce-import-export' ),
+			'comment_status' => __( 'Comentarios (open/closed)', 'taxocommerce-import-export' ),
 		);
+		if ( 'post' === $type ) {
+			$fields['categories'] = __( 'Categorías (slugs separados por |)', 'taxocommerce-import-export' );
+			$fields['tags'] = __( 'Etiquetas (slugs separados por |)', 'taxocommerce-import-export' );
+		} else {
+			$fields['parent_slug'] = __( 'Slug página padre', 'taxocommerce-import-export' );
+		}
+		return $fields;
 	}
 
 	private function redirect( $args ) {
@@ -231,7 +263,7 @@ final class TaxoCommerce_Import_Export_Basic {
 							<option value="update"><?php esc_html_e( 'Actualizar solo registros existentes', 'taxocommerce-import-export' ); ?></option>
 							<option value="create"><?php esc_html_e( 'Actualizar y crear los que falten', 'taxocommerce-import-export' ); ?></option>
 						</select></p>
-					<p class="description"><?php esc_html_e( 'La identidad se busca por SKU (productos), ID o slug. Los campos sin asignar y las celdas vacías no modifican datos existentes. Las altas de páginas/entradas se crean como borrador salvo que se asigne el estado.', 'taxocommerce-import-export' ); ?></p>
+					<p class="description"><?php esc_html_e( 'La identidad se busca por SKU (productos), slug o ID. Los campos sin asignar y las celdas vacías se conservan. Las altas se crean como borrador salvo estado explícito. Categorías y etiquetas se relacionan con términos existentes mediante slugs separados por |. Las imágenes destacadas deben estar ya en la biblioteca Media; no se descargan archivos externos.', 'taxocommerce-import-export' ); ?></p>
 					<table class="widefat striped"><thead><tr><th><?php esc_html_e( 'Columna del CSV', 'taxocommerce-import-export' ); ?></th><th><?php esc_html_e( 'Campo de destino', 'taxocommerce-import-export' ); ?></th><th><?php esc_html_e( 'Ejemplo', 'taxocommerce-import-export' ); ?></th></tr></thead><tbody>
 					<?php foreach ( $state['headers'] as $i => $header ) : ?>
 						<tr><td><?php echo esc_html( $header ); ?></td><td>
@@ -257,7 +289,7 @@ final class TaxoCommerce_Import_Export_Basic {
 			var fields=<?php echo wp_json_encode( array_map( array( __CLASS__, 'fields' ), array_keys( $types ) ) ); ?>;
 			var keys=<?php echo wp_json_encode( array_keys( $types ) ); ?>;
 			var byType={};keys.forEach(function(k,i){byType[k]=fields[i];});
-			var alias={product:{product_id:'id',product_name:'name',nombre:'name',precio:'regular_price',precio_normal:'regular_price',precio_rebajado:'sale_price'},page:{post_id:'id',post_title:'title',post_content:'content',titulo:'title'},post:{post_id:'id',post_title:'title',post_content:'content',titulo:'title'},category:{nombre:'name'},product_cat:{nombre:'name'}};
+			var alias={product:{product_id:'id',product_name:'name',nombre:'name',estado:'status',published:'status',precio:'regular_price',precio_normal:'regular_price',precio_rebajado:'sale_price',regularprice:'regular_price',saleprice:'sale_price',shortdescription:'short_description',stock:'stock_quantity',instock:'stock_status',weightkg:'weight',lengthcm:'length',widthcm:'width',heightcm:'height',images:'featured_image',imagen:'featured_image',categorias:'categories',etiquetas:'tags'},page:{post_id:'id',post_title:'title',post_content:'content',titulo:'title',estado:'status',contenido:'content',fecha:'date',imagen:'featured_image'},post:{post_id:'id',post_title:'title',post_content:'content',titulo:'title',estado:'status',contenido:'content',fecha:'date',categorias:'categories',etiquetas:'tags',imagen:'featured_image'},category:{nombre:'name',categoria:'name'},product_cat:{nombre:'name',categoria:'name'}};
 			function updateFields(){
 				var type=typeSelect.value, available=byType[type]||{};
 				document.querySelectorAll('.tc-ie-basic-map').forEach(function(el){
@@ -299,30 +331,94 @@ final class TaxoCommerce_Import_Export_Basic {
 		return preg_match( '/^[=+@\t\r]/u', $value ) ? "'" . $value : $value;
 	}
 
+	/**
+	 * Export a list of existing native term slugs, never TaxoCommerce taxonomy IDs.
+	 *
+	 * @param int    $object_id WordPress object ID.
+	 * @param string $taxonomy Native taxonomy.
+	 * @return string
+	 */
+	private function export_term_slugs( $object_id, $taxonomy ) {
+		$terms = wp_get_object_terms( $object_id, $taxonomy, array( 'fields' => 'slugs' ) );
+		return is_wp_error( $terms ) ? '' : implode( '|', (array) $terms );
+	}
+
+	/**
+	 * Return one natively stored field value.
+	 *
+	 * @param string $type Type of record.
+	 * @param int    $id Record ID.
+	 * @param string $field Selected field.
+	 * @return string
+	 */
 	private function export_value( $type, $id, $field ) {
 		if ( 'product' === $type ) {
-			$p = wc_get_product( $id );
-			if ( ! $p ) return '';
-			$methods = array( 'id' => 'get_id', 'sku' => 'get_sku', 'name' => 'get_name', 'slug' => 'get_slug',
-				'status' => 'get_status', 'regular_price' => 'get_regular_price', 'sale_price' => 'get_sale_price',
-				'stock_quantity' => 'get_stock_quantity', 'description' => 'get_description',
-				'short_description' => 'get_short_description' );
+			$product = wc_get_product( $id );
+			if ( ! $product ) {
+				return '';
+			}
+			if ( 'categories' === $field || 'tags' === $field ) {
+				return $this->export_term_slugs( $id, 'categories' === $field ? 'product_cat' : 'product_tag' );
+			}
+			if ( 'featured_image' === $field ) {
+				return $product->get_image_id() ? (string) wp_get_attachment_url( $product->get_image_id() ) : '';
+			}
+			$methods = array(
+				'id' => 'get_id', 'sku' => 'get_sku', 'name' => 'get_name',
+				'slug' => 'get_slug', 'status' => 'get_status',
+				'regular_price' => 'get_regular_price', 'sale_price' => 'get_sale_price',
+				'stock_quantity' => 'get_stock_quantity', 'stock_status' => 'get_stock_status',
+				'manage_stock' => 'get_manage_stock',
+				'description' => 'get_description', 'short_description' => 'get_short_description',
+				'weight' => 'get_weight', 'length' => 'get_length', 'width' => 'get_width',
+				'height' => 'get_height', 'catalog_visibility' => 'get_catalog_visibility',
+				'featured' => 'get_featured', 'virtual' => 'get_virtual',
+				'sold_individually' => 'get_sold_individually',
+			);
 			$method = $methods[ $field ] ?? '';
-			return $method ? (string) $p->$method() : '';
+			if ( ! $method ) {
+				return '';
+			}
+			$value = $product->$method();
+			return is_bool( $value ) ? ( $value ? 'yes' : 'no' ) : (string) $value;
 		}
 		if ( in_array( $type, array( 'category', 'product_cat' ), true ) ) {
-			$t = get_term( $id, $type );
-			if ( ! $t || is_wp_error( $t ) ) return '';
+			$term = get_term( $id, $type );
+			if ( ! $term || is_wp_error( $term ) ) {
+				return '';
+			}
 			if ( 'parent_slug' === $field ) {
-				$parent = $t->parent ? get_term( $t->parent, $type ) : null;
+				$parent = $term->parent ? get_term( $term->parent, $type ) : null;
 				return $parent && ! is_wp_error( $parent ) ? $parent->slug : '';
 			}
-			return (string) ( $t->$field ?? '' );
+			return (string) ( $term->$field ?? '' );
 		}
-		$p = get_post( $id );
-		$key = array( 'id' => 'ID', 'title' => 'post_title', 'slug' => 'post_name',
-			'status' => 'post_status', 'excerpt' => 'post_excerpt', 'content' => 'post_content' )[ $field ] ?? '';
-		return $p && $key ? (string) $p->$key : '';
+		$post = get_post( $id );
+		if ( ! $post ) {
+			return '';
+		}
+		if ( 'categories' === $field || 'tags' === $field ) {
+			return $this->export_term_slugs( $id, 'categories' === $field ? 'category' : 'post_tag' );
+		}
+		if ( 'featured_image' === $field ) {
+			$image_id = get_post_thumbnail_id( $id );
+			return $image_id ? (string) wp_get_attachment_url( $image_id ) : '';
+		}
+		if ( 'author' === $field ) {
+			$author = get_userdata( (int) $post->post_author );
+			return $author ? $author->user_login : '';
+		}
+		if ( 'parent_slug' === $field ) {
+			$parent = $post->post_parent ? get_post( $post->post_parent ) : null;
+			return $parent ? $parent->post_name : '';
+		}
+		$key = array(
+			'id' => 'ID', 'title' => 'post_title', 'slug' => 'post_name',
+			'status' => 'post_status', 'excerpt' => 'post_excerpt',
+			'content' => 'post_content', 'date' => 'post_date',
+			'menu_order' => 'menu_order', 'comment_status' => 'comment_status',
+		)[ $field ] ?? '';
+		return $key ? (string) $post->$key : '';
 	}
 
 	public function export() {
@@ -385,8 +481,139 @@ final class TaxoCommerce_Import_Export_Basic {
 		return $data;
 	}
 
+	/**
+	 * Resolve a delimited list of existing native terms without creating categories.
+	 *
+	 * @param string $value CSV value, slugs/names separated by | or comma.
+	 * @param string $taxonomy WordPress taxonomy.
+	 * @return array|WP_Error Term IDs or failure.
+	 */
+	private function term_ids( $value, $taxonomy ) {
+		$tax = get_taxonomy( $taxonomy );
+		if ( ! $tax || ! current_user_can( $tax->cap->assign_terms ) ) {
+			return new WP_Error( 'terms_forbidden', __( 'Sin permisos para asignar esta taxonomía.', 'taxocommerce-import-export' ) );
+		}
+		$ids = array();
+		foreach ( preg_split( '/[|,]/u', (string) $value, -1, PREG_SPLIT_NO_EMPTY ) as $entry ) {
+			$entry = trim( $entry );
+			if ( '' === $entry ) {
+				continue;
+			}
+			$term = get_term_by( 'slug', sanitize_title( $entry ), $taxonomy );
+			if ( ! $term ) {
+				$term = get_term_by( 'name', $entry, $taxonomy );
+			}
+			if ( ! $term ) {
+				/* translators: %s: Name or slug of the term absent from WordPress. */
+				return new WP_Error( 'term_missing', sprintf( __( 'La categoría o etiqueta «%s» no existe. Importa primero las categorías o crea la etiqueta.', 'taxocommerce-import-export' ), $entry ) );
+			}
+			$ids[] = (int) $term->term_id;
+		}
+		return array_values( array_unique( $ids ) );
+	}
+
+	/**
+	 * Resolve an image already in WordPress Media (local ID or URL).
+	 * External images are deliberately not fetched.
+	 *
+	 * @param string $value Attachment ID or URL.
+	 * @return int|WP_Error
+	 */
+	private function media_image_id( $value ) {
+		$value = trim( (string) $value );
+		// WooCommerce CSV's Images column can contain multiple URLs.
+		$value = trim( explode( ',', $value )[0] );
+		$id = ctype_digit( $value ) ? absint( $value ) : attachment_url_to_postid( esc_url_raw( $value ) );
+		if ( ! $id || ! wp_attachment_is_image( $id ) ) {
+			return new WP_Error( 'image_missing', __( 'La imagen no está en la biblioteca Media. Importa el archivo en Media antes de relacionarlo.', 'taxocommerce-import-export' ) );
+		}
+		return $id;
+	}
+
+	/**
+	 * Normalize native yes/no CSV fields and reject ambiguous values.
+	 *
+	 * @param string $value CSV value.
+	 * @return bool|WP_Error
+	 */
+	private function csv_boolean( $value ) {
+		$value = strtolower( remove_accents( trim( (string) $value ) ) );
+		if ( in_array( $value, array( '1', 'yes', 'si', 'true', 'on' ), true ) ) {
+			return true;
+		}
+		if ( in_array( $value, array( '0', 'no', 'false', 'off' ), true ) ) {
+			return false;
+		}
+		return new WP_Error( 'invalid_boolean', __( 'El campo de sí/no debe contener yes/no, sí/no, true/false o 1/0.', 'taxocommerce-import-export' ) );
+	}
+
+	/**
+	 * Resolve an existing WordPress user by login, email or local ID.
+	 *
+	 * @param string $value CSV author value.
+	 * @return int|WP_Error
+	 */
+	private function author_id( $value ) {
+		$value = trim( (string) $value );
+		$user = ctype_digit( $value ) ? get_user_by( 'id', absint( $value ) ) : get_user_by( 'login', $value );
+		if ( ! $user && is_email( $value ) ) {
+			$user = get_user_by( 'email', $value );
+		}
+		return $user ? (int) $user->ID : new WP_Error( 'author_missing', __( 'El usuario autor no existe en WordPress.', 'taxocommerce-import-export' ) );
+	}
+
+	/**
+	 * Resolve optional product/post taxonomies before saving the main record.
+	 *
+	 * @param string $type Content type.
+	 * @param array  $data Mapped row.
+	 * @return array|WP_Error Taxonomy => term IDs.
+	 */
+	private function mapped_terms( $type, $data ) {
+		$taxonomies = 'product' === $type ? array( 'categories' => 'product_cat', 'tags' => 'product_tag' ) :
+			( 'post' === $type ? array( 'categories' => 'category', 'tags' => 'post_tag' ) : array() );
+		$resolved = array();
+		foreach ( $taxonomies as $field => $taxonomy ) {
+			if ( ! isset( $data[ $field ] ) ) {
+				continue;
+			}
+			$ids = $this->term_ids( $data[ $field ], $taxonomy );
+			if ( is_wp_error( $ids ) ) {
+				return $ids;
+			}
+			$resolved[ $taxonomy ] = $ids;
+		}
+		return $resolved;
+	}
+
+	/**
+	 * Save only explicitly mapped term relationships.
+	 *
+	 * @param int   $id Object ID.
+	 * @param array $terms Taxonomy => term IDs.
+	 * @return true|WP_Error
+	 */
+	private function save_terms( $id, $terms ) {
+		foreach ( $terms as $taxonomy => $ids ) {
+			$result = wp_set_object_terms( $id, $ids, $taxonomy, false );
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+		}
+		return true;
+	}
+
 	private function import_record( $type, $data, $mode ) {
 		if ( ! $data ) return new WP_Error( 'empty', __( 'Fila sin campos con valores.', 'taxocommerce-import-export' ) );
+		if ( isset( $data['status'] ) ) {
+			$source_status = strtolower( trim( $data['status'] ) );
+			$native_status = array( '1' => 'publish', '0' => 'draft', '-1' => 'private', 'yes' => 'publish', 'no' => 'draft' );
+			$data['status'] = $native_status[ $source_status ] ?? $source_status;
+		}
+		if ( 'product' === $type && isset( $data['stock_status'] ) ) {
+			$source_stock = strtolower( trim( $data['stock_status'] ) );
+			$data['stock_status'] = array( '1' => 'instock', '0' => 'outofstock', 'yes' => 'instock', 'no' => 'outofstock' )[ $source_stock ] ?? $source_stock;
+		}
 		$cap = array( 'product' => 'edit_products', 'product_cat' => 'manage_product_terms',
 			'category' => 'manage_categories', 'page' => 'edit_pages', 'post' => 'edit_posts' )[ $type ] ?? '';
 		if ( ! $cap || ! current_user_can( $cap ) ) {
@@ -414,7 +641,17 @@ final class TaxoCommerce_Import_Export_Basic {
 			return ! is_wp_error( wp_insert_term( sanitize_text_field( $data['name'] ), $type, $args ) );
 		}
 		if ( 'product' === $type ) {
-			if ( ! function_exists( 'wc_get_product' ) ) return new WP_Error( 'woocommerce_missing', 'WooCommerce unavailable' );
+			if ( ! function_exists( 'wc_get_product' ) ) return new WP_Error( 'woocommerce_missing', __( 'WooCommerce no está activo.', 'taxocommerce-import-export' ) );
+			$terms = $this->mapped_terms( $type, $data );
+			if ( is_wp_error( $terms ) ) return $terms;
+			$image_id = null;
+			if ( isset( $data['featured_image'] ) ) {
+				$image_id = $this->media_image_id( $data['featured_image'] );
+				if ( is_wp_error( $image_id ) ) return $image_id;
+			}
+			if ( isset( $data['status'] ) && ! in_array( $data['status'], array( 'publish', 'draft', 'pending', 'private', 'future' ), true ) ) {
+				return new WP_Error( 'invalid_status', __( 'Estado de producto no válido.', 'taxocommerce-import-export' ) );
+			}
 			$id = 0;
 			if ( ! empty( $data['sku'] ) ) $id = wc_get_product_id_by_sku( sanitize_text_field( $data['sku'] ) );
 			if ( ! $id && ! empty( $data['slug'] ) ) {
@@ -425,22 +662,49 @@ final class TaxoCommerce_Import_Export_Basic {
 			if ( ! $id && 'update' === $mode ) return new WP_Error( 'not_found', __( 'Producto no encontrado.', 'taxocommerce-import-export' ) );
 			if ( ! $id && empty( $data['name'] ) ) return new WP_Error( 'missing_name', __( 'Falta el nombre del producto.', 'taxocommerce-import-export' ) );
 			if ( $id && ! current_user_can( 'edit_post', $id ) ) return new WP_Error( 'forbidden', __( 'Sin permiso para editar el producto.', 'taxocommerce-import-export' ) );
-			if ( ! $id && isset( $data['status'] ) && 'publish' === $data['status'] && ! current_user_can( 'publish_products' ) ) return new WP_Error( 'forbidden', __( 'Sin permiso para publicar productos.', 'taxocommerce-import-export' ) );
+			if ( isset( $data['status'] ) && in_array( $data['status'], array( 'publish', 'private', 'future' ), true ) && ! current_user_can( 'publish_products' ) ) return new WP_Error( 'forbidden', __( 'Sin permiso para publicar productos.', 'taxocommerce-import-export' ) );
 			$p = $id ? wc_get_product( $id ) : new WC_Product_Simple();
 			if ( ! $id && empty( $data['status'] ) ) $p->set_status( 'draft' );
 			if ( ! $p ) return new WP_Error( 'invalid_product', __( 'Producto no válido.', 'taxocommerce-import-export' ) );
-			$methods = array( 'sku' => 'set_sku', 'name' => 'set_name', 'slug' => 'set_slug',
-				'status' => 'set_status', 'description' => 'set_description', 'short_description' => 'set_short_description',
-				'regular_price' => 'set_regular_price', 'sale_price' => 'set_sale_price' );
+			$methods = array(
+				'sku' => 'set_sku', 'name' => 'set_name', 'slug' => 'set_slug',
+				'status' => 'set_status', 'description' => 'set_description',
+				'short_description' => 'set_short_description',
+				'regular_price' => 'set_regular_price', 'sale_price' => 'set_sale_price',
+				'stock_status' => 'set_stock_status', 'manage_stock' => 'set_manage_stock',
+				'weight' => 'set_weight', 'length' => 'set_length',
+				'width' => 'set_width', 'height' => 'set_height',
+				'catalog_visibility' => 'set_catalog_visibility',
+				'featured' => 'set_featured', 'virtual' => 'set_virtual',
+				'sold_individually' => 'set_sold_individually',
+			);
 			try {
 				foreach ( $methods as $field => $method ) {
 					if ( ! isset( $data[ $field ] ) ) continue;
 					$value = $data[ $field ];
-					if ( in_array( $field, array( 'description', 'short_description' ), true ) ) $value = wp_kses_post( $value );
-					elseif ( in_array( $field, array( 'regular_price', 'sale_price' ), true ) ) {
-						if ( ! is_numeric( $value ) || (float) $value < 0 ) return new WP_Error( 'invalid_price', __( 'Precio no válido.', 'taxocommerce-import-export' ) );
+					if ( in_array( $field, array( 'description', 'short_description' ), true ) ) {
+						$value = wp_kses_post( $value );
+					} elseif ( in_array( $field, array( 'regular_price', 'sale_price', 'weight', 'length', 'width', 'height' ), true ) ) {
 						$value = wc_format_decimal( $value );
-					} else $value = sanitize_text_field( $value );
+						if ( ! is_numeric( $value ) || (float) $value < 0 ) {
+							return new WP_Error( 'invalid_number', __( 'Precio, peso o dimensión no válidos.', 'taxocommerce-import-export' ) );
+						}
+					} elseif ( in_array( $field, array( 'manage_stock', 'featured', 'virtual', 'sold_individually' ), true ) ) {
+						$value = $this->csv_boolean( $value );
+						if ( is_wp_error( $value ) ) return $value;
+					} elseif ( 'stock_status' === $field ) {
+						if ( ! in_array( $value, array( 'instock', 'outofstock', 'onbackorder' ), true ) ) {
+							return new WP_Error( 'invalid_stock_status', __( 'Estado de existencias no válido.', 'taxocommerce-import-export' ) );
+						}
+					} elseif ( 'catalog_visibility' === $field ) {
+						if ( ! in_array( $value, array( 'visible', 'catalog', 'search', 'hidden' ), true ) ) {
+							return new WP_Error( 'invalid_visibility', __( 'Visibilidad del catálogo no válida.', 'taxocommerce-import-export' ) );
+						}
+					} elseif ( 'slug' === $field ) {
+						$value = sanitize_title( $value );
+					} else {
+						$value = sanitize_text_field( $value );
+					}
 					$p->$method( $value );
 				}
 				if ( isset( $data['stock_quantity'] ) ) {
@@ -448,33 +712,109 @@ final class TaxoCommerce_Import_Export_Basic {
 					$p->set_manage_stock( true );
 					$p->set_stock_quantity( (int) $data['stock_quantity'] );
 				}
+				if ( null !== $image_id ) {
+					$p->set_image_id( $image_id );
+				}
 				$p->save();
 			} catch ( Exception $e ) {
 				return new WP_Error( 'product_save', $e->getMessage() );
 			}
-			return true;
+			return $this->save_terms( $p->get_id(), $terms );
+		}
+		// Posts and pages use only standard WordPress data and registered taxonomies.
+		$terms = $this->mapped_terms( $type, $data );
+		if ( is_wp_error( $terms ) ) return $terms;
+		$image_id = null;
+		if ( isset( $data['featured_image'] ) ) {
+			$image_id = $this->media_image_id( $data['featured_image'] );
+			if ( is_wp_error( $image_id ) ) return $image_id;
 		}
 		$id = 0;
 		if ( ! empty( $data['slug'] ) ) {
-			$p = get_page_by_path( sanitize_title( $data['slug'] ), OBJECT, $type );
-			if ( $p ) $id = $p->ID;
+			$post = get_page_by_path( sanitize_title( $data['slug'] ), OBJECT, $type );
+			if ( $post ) $id = $post->ID;
 		}
-		if ( ! $id && empty( $data['slug'] ) && isset( $data['id'] ) && $type === get_post_type( absint( $data['id'] ) ) ) $id = absint( $data['id'] );
-		if ( $id && ! current_user_can( 'edit_post', $id ) ) return new WP_Error( 'forbidden', __( 'Sin permiso para editar esta página o entrada.', 'taxocommerce-import-export' ) );
-		if ( ! $id && isset( $data['status'] ) && 'publish' === $data['status'] && ! current_user_can( 'page' === $type ? 'publish_pages' : 'publish_posts' ) ) return new WP_Error( 'forbidden', __( 'Sin permiso para publicar este contenido.', 'taxocommerce-import-export' ) );
-		if ( ! $id && 'update' === $mode ) return new WP_Error( 'not_found', __( 'Página o entrada no encontrada.', 'taxocommerce-import-export' ) );
-		if ( ! $id && empty( $data['title'] ) ) return new WP_Error( 'missing_title', __( 'Falta el título para crear el contenido.', 'taxocommerce-import-export' ) );
-		$fields = array( 'title' => 'post_title', 'slug' => 'post_name', 'status' => 'post_status',
-			'excerpt' => 'post_excerpt', 'content' => 'post_content' );
+		if ( ! $id && empty( $data['slug'] ) && isset( $data['id'] ) && $type === get_post_type( absint( $data['id'] ) ) ) {
+			$id = absint( $data['id'] );
+		}
+		if ( $id && ! current_user_can( 'edit_post', $id ) ) {
+			return new WP_Error( 'forbidden', __( 'Sin permiso para editar esta página o entrada.', 'taxocommerce-import-export' ) );
+		}
+		if ( ! $id && 'update' === $mode ) {
+			return new WP_Error( 'not_found', __( 'Página o entrada no encontrada.', 'taxocommerce-import-export' ) );
+		}
+		if ( ! $id && empty( $data['title'] ) ) {
+			return new WP_Error( 'missing_title', __( 'Falta el título para crear el contenido.', 'taxocommerce-import-export' ) );
+		}
+		if ( isset( $data['status'] ) && ! in_array( $data['status'], array( 'publish', 'draft', 'pending', 'private', 'future' ), true ) ) {
+			return new WP_Error( 'invalid_status', __( 'Estado de publicación no válido.', 'taxocommerce-import-export' ) );
+		}
+		if ( isset( $data['status'] ) && in_array( $data['status'], array( 'publish', 'private', 'future' ), true ) && ! current_user_can( 'page' === $type ? 'publish_pages' : 'publish_posts' ) ) {
+			return new WP_Error( 'forbidden', __( 'Sin permiso para publicar este contenido.', 'taxocommerce-import-export' ) );
+		}
+		$fields = array(
+			'title' => 'post_title', 'slug' => 'post_name',
+			'status' => 'post_status', 'excerpt' => 'post_excerpt',
+			'content' => 'post_content',
+		);
 		$args = array( 'post_type' => $type );
 		if ( $id ) $args['ID'] = $id;
 		foreach ( $fields as $key => $target ) {
 			if ( ! isset( $data[ $key ] ) ) continue;
-			$args[ $target ] = in_array( $key, array( 'content', 'excerpt' ), true ) ? wp_kses_post( $data[ $key ] ) : sanitize_text_field( $data[ $key ] );
+			$args[ $target ] = in_array( $key, array( 'content', 'excerpt' ), true ) ?
+				wp_kses_post( $data[ $key ] ) : ( 'slug' === $key ? sanitize_title( $data[ $key ] ) : sanitize_text_field( $data[ $key ] ) );
+		}
+		if ( isset( $data['date'] ) ) {
+			$date = str_replace( 'T', ' ', trim( $data['date'] ) );
+			if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/D', $date ) ) {
+				$date .= ' 00:00:00';
+			}
+			$parsed = DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $date );
+			if ( ! $parsed || $parsed->format( 'Y-m-d H:i:s' ) !== $date ) {
+				return new WP_Error( 'invalid_date', __( 'Fecha no válida; utiliza AAAA-MM-DD HH:MM:SS.', 'taxocommerce-import-export' ) );
+			}
+			$args['post_date'] = $date;
+		}
+		if ( isset( $data['author'] ) ) {
+			$author_id = $this->author_id( $data['author'] );
+			if ( is_wp_error( $author_id ) ) return $author_id;
+			$existing_author = $id ? (int) get_post_field( 'post_author', $id ) : get_current_user_id();
+			if ( $author_id !== $existing_author && ! current_user_can( 'page' === $type ? 'edit_others_pages' : 'edit_others_posts' ) ) {
+				return new WP_Error( 'forbidden', __( 'Sin permiso para cambiar el autor.', 'taxocommerce-import-export' ) );
+			}
+			$args['post_author'] = $author_id;
+		}
+		if ( isset( $data['menu_order'] ) ) {
+			if ( ! ctype_digit( (string) $data['menu_order'] ) ) {
+				return new WP_Error( 'invalid_order', __( 'El orden debe ser un número entero positivo.', 'taxocommerce-import-export' ) );
+			}
+			$args['menu_order'] = (int) $data['menu_order'];
+		}
+		if ( isset( $data['comment_status'] ) ) {
+			if ( ! in_array( $data['comment_status'], array( 'open', 'closed' ), true ) ) {
+				return new WP_Error( 'invalid_comments', __( 'Comentarios: utiliza open o closed.', 'taxocommerce-import-export' ) );
+			}
+			$args['comment_status'] = $data['comment_status'];
+		}
+		if ( 'page' === $type && isset( $data['parent_slug'] ) ) {
+			$parent = get_page_by_path( sanitize_title( $data['parent_slug'] ), OBJECT, 'page' );
+			if ( ! $parent || ( $id && $id === (int) $parent->ID ) ) {
+				return new WP_Error( 'parent_missing', __( 'La página padre no existe o no es válida.', 'taxocommerce-import-export' ) );
+			}
+			$args['post_parent'] = (int) $parent->ID;
 		}
 		if ( ! $id && empty( $args['post_status'] ) ) $args['post_status'] = 'draft';
 		$result = $id ? wp_update_post( $args, true ) : wp_insert_post( $args, true );
-		return ! is_wp_error( $result ) && (int) $result > 0;
+		if ( is_wp_error( $result ) || ! $result ) {
+			return is_wp_error( $result ) ? $result : new WP_Error( 'post_save', __( 'WordPress no ha podido guardar el contenido.', 'taxocommerce-import-export' ) );
+		}
+		$result_id = (int) $result;
+		if ( null !== $image_id ) {
+			if ( (int) get_post_thumbnail_id( $result_id ) !== $image_id && ! set_post_thumbnail( $result_id, $image_id ) ) {
+				return new WP_Error( 'image_save', __( 'No se ha podido asignar la imagen destacada.', 'taxocommerce-import-export' ) );
+			}
+		}
+		return $this->save_terms( $result_id, $terms );
 	}
 
 	public function step() {
