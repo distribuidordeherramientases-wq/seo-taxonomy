@@ -12,13 +12,6 @@ Audit WordPress and WooCommerce content quality, structure, duplicate risks and 
 
 == Description ==
 
-* Admin header: plugin title, a single local `Description` with the static `Plugin URI` link below it (left); a wider collapsed `CHANGELOG.md` history (center); local version and release date (right). No duplicated information panel or external requests.
-
-* The admin panel reads the local PHP Description and Plugin URI metadata with no external request or cache; bundled CHANGELOG.md provides the version history.
-
-* Collapsible plugin information and independent version history are available without configuring external services.
-
-
 TaxoCommerce Auditor provides independent read-only content reviews across five scopes:
 
 * Products: descriptions, titles, SKUs, categories, attributes and verifiable conflicts. WooCommerce product tags classify items; a tag is not invalid merely because it is absent from literal copy. A single technical value/unit tag is flagged only when the title and description independently agree on a different unique value. Heuristic product title/template similarity is disabled by default for fewer false positives; developers can opt in through the `taxocommerce_auditor_enable_deep_product_signals` filter.
