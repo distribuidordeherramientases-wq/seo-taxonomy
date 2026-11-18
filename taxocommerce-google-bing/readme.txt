@@ -12,11 +12,13 @@ External connections, manual provider data downloads, and market intelligence fo
 
 == Description ==
 
+TaxoCommerce Insights keeps external service connections and manual data downloads in one place.
+
 * Analysis: individual reports and full report generation via authenticated AJAX. The complete unified JSON is assembled from authenticated, sequential, bounded requests in a private temporary file and streamed after validation. No one-shot heavy export, cron or browser-side Blob.
 
 
 
-TaxoCommerce Insights keeps external service connections and manual data downloads in one place.
+
 
 * Connections: Google Search Console, Google Analytics, Google Merchant Center, Bing Webmaster, Amazon and Pinterest.
 * Google Search downloads and explicit day-by-day synchronization of the historical Search Console tables used by Analysis, authorized via current Connections OAuth or service-account credentials.
