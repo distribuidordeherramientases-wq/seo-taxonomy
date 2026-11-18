@@ -380,8 +380,10 @@ final class TaxoCommerce_Import_Export_Basic {
 	private function import_record( $type, $data, $mode ) {
 		if ( ! $data ) return new WP_Error( 'empty', __( 'Fila sin campos con valores.', 'taxocommerce-import-export' ) );
 		if ( in_array( $type, array( 'category', 'product_cat' ), true ) ) {
-			$term = isset( $data['id'] ) ? get_term( absint( $data['id'] ), $type ) : null;
-			if ( ! $term || is_wp_error( $term ) ) $term = isset( $data['slug'] ) ? get_term_by( 'slug', sanitize_title( $data['slug'] ), $type ) : null;
+			// Portable slug takes precedence over source-site numeric IDs.
+			$term = ! empty( $data['slug'] ) ? get_term_by( 'slug', sanitize_title( $data['slug'] ), $type ) : null;
+			if ( ! $term && empty( $data['slug'] ) && isset( $data['id'] ) ) $term = get_term( absint( $data['id'] ), $type );
+			if ( is_wp_error( $term ) ) $term = null;
 			if ( ! $term && 'update' === $mode ) return new WP_Error( 'not_found', __( 'Categoría no encontrada.', 'taxocommerce-import-export' ) );
 			$args = array();
 			if ( isset( $data['slug'] ) ) $args['slug'] = sanitize_title( $data['slug'] );
@@ -401,15 +403,16 @@ final class TaxoCommerce_Import_Export_Basic {
 		if ( 'product' === $type ) {
 			if ( ! function_exists( 'wc_get_product' ) ) return new WP_Error( 'woocommerce_missing', 'WooCommerce unavailable' );
 			$id = 0;
-			if ( isset( $data['id'] ) && 'product' === get_post_type( absint( $data['id'] ) ) ) $id = absint( $data['id'] );
-			if ( ! $id && ! empty( $data['sku'] ) ) $id = wc_get_product_id_by_sku( sanitize_text_field( $data['sku'] ) );
+			if ( ! empty( $data['sku'] ) ) $id = wc_get_product_id_by_sku( sanitize_text_field( $data['sku'] ) );
 			if ( ! $id && ! empty( $data['slug'] ) ) {
 				$found = get_page_by_path( sanitize_title( $data['slug'] ), OBJECT, 'product' );
 				if ( $found ) $id = $found->ID;
 			}
+			if ( ! $id && empty( $data['sku'] ) && empty( $data['slug'] ) && isset( $data['id'] ) && 'product' === get_post_type( absint( $data['id'] ) ) ) $id = absint( $data['id'] );
 			if ( ! $id && 'update' === $mode ) return new WP_Error( 'not_found', __( 'Producto no encontrado.', 'taxocommerce-import-export' ) );
 			if ( ! $id && empty( $data['name'] ) ) return new WP_Error( 'missing_name', __( 'Falta el nombre del producto.', 'taxocommerce-import-export' ) );
 			$p = $id ? wc_get_product( $id ) : new WC_Product_Simple();
+			if ( ! $id && empty( $data['status'] ) ) $p->set_status( 'draft' );
 			if ( ! $p ) return new WP_Error( 'invalid_product', __( 'Producto no válido.', 'taxocommerce-import-export' ) );
 			$methods = array( 'sku' => 'set_sku', 'name' => 'set_name', 'slug' => 'set_slug',
 				'status' => 'set_status', 'description' => 'set_description', 'short_description' => 'set_short_description',
@@ -437,11 +440,11 @@ final class TaxoCommerce_Import_Export_Basic {
 			return true;
 		}
 		$id = 0;
-		if ( isset( $data['id'] ) && $type === get_post_type( absint( $data['id'] ) ) ) $id = absint( $data['id'] );
-		if ( ! $id && ! empty( $data['slug'] ) ) {
+		if ( ! empty( $data['slug'] ) ) {
 			$p = get_page_by_path( sanitize_title( $data['slug'] ), OBJECT, $type );
 			if ( $p ) $id = $p->ID;
 		}
+		if ( ! $id && empty( $data['slug'] ) && isset( $data['id'] ) && $type === get_post_type( absint( $data['id'] ) ) ) $id = absint( $data['id'] );
 		if ( ! $id && 'update' === $mode ) return new WP_Error( 'not_found', __( 'Página o entrada no encontrada.', 'taxocommerce-import-export' ) );
 		if ( ! $id && empty( $data['title'] ) ) return new WP_Error( 'missing_title', __( 'Falta el título para crear el contenido.', 'taxocommerce-import-export' ) );
 		$fields = array( 'title' => 'post_title', 'slug' => 'post_name', 'status' => 'post_status',
@@ -471,16 +474,20 @@ final class TaxoCommerce_Import_Export_Basic {
 			$allowed = self::fields( $type );
 			$map = array();
 			foreach ( $raw_map as $i => $name ) {
-				$name = sanitize_key( (string) $name );
+				$name = is_scalar( $name ) ? sanitize_key( (string) $name ) : '';
 				if ( '' !== $name && isset( $allowed[ $name ] ) && is_numeric( $i ) && isset( $state['headers'][ (int) $i ] ) ) $map[ (int) $i ] = $name;
 			}
 			if ( ! $map || count( $map ) !== count( array_unique( array_values( $map ) ) ) ) wp_send_json_error( array( 'message' => __( 'Mapeo vacío o repetido.', 'taxocommerce-import-export' ) ) );
 			$identity = 'product' === $type ? array( 'sku', 'slug', 'id' ) : array( 'slug', 'id' );
-			if ( ! array_intersect( $identity, array_values( $map ) ) ) wp_send_json_error( array( 'message' => __( 'Relaciona una columna de identidad (SKU, slug o ID).', 'taxocommerce-import-export' ) ) );
+			if ( 'update' === $mode && ! array_intersect( $identity, array_values( $map ) ) ) {
+				wp_send_json_error( array( 'message' => __( 'Para actualizar, relaciona una columna de identidad (SKU, slug o ID).', 'taxocommerce-import-export' ) ) );
+			}
 			$state['type'] = $type; $state['mode'] = $mode; $state['map'] = $map; $state['started'] = true;
 			$state['offset'] = 0;
 		}
-		if ( ! empty( $state['done'] ) ) wp_send_json_success( $state );
+		if ( ! empty( $state['done'] ) ) {
+			wp_send_json_success( array( 'processed' => $state['processed'], 'saved' => $state['saved'], 'errors' => $state['errors'], 'notices' => $state['notices'], 'done' => true ) );
+		}
 		$handle = fopen( $state['path'], 'r' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Read private, size-limited CSV in bounded increments.
 		if ( ! $handle ) wp_send_json_error( array( 'message' => __( 'No se puede abrir el CSV.', 'taxocommerce-import-export' ) ) );
 		if ( ! $state['offset'] ) {
