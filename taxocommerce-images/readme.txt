@@ -12,15 +12,15 @@ Image management for WordPress and WooCommerce with Media as the canonical sourc
 
 == Description ==
 
-TaxoCommerce Images is an independent member of the TaxoCommerce family.
+TaxoCommerce Images manages WordPress Media and WooCommerce product images, including audits, image metadata, thumbnail regeneration and reversible image resizing.
 
-Core principles:
+= Design Principles =
 
 * WordPress Media is the source of truth.
 * No custom image tables or supplier image indexes are required.
 * WordPress and WooCommerce native APIs remain authoritative.
 
-Current functionality includes:
+= Key Features =
 
 * Media dashboard.
 * On-demand read-only Auto Test, 17 checks, user-specific temporary report (no new tables).
