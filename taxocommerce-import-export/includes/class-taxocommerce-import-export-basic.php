@@ -152,6 +152,7 @@ final class TaxoCommerce_Import_Export_Basic {
 		$delimiter = $this->delimiter( (string) $first );
 		$headers = $this->csv_row( $handle, $delimiter );
 		if ( ! is_array( $headers ) || count( $headers ) > 100 || count( $headers ) < 1 ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the bounded private CSV input stream.
 			fclose( $handle );
 			wp_delete_file( $path );
 			$this->redirect( array( 'tc_ie_basic_error' => 'csv' ) );
@@ -163,6 +164,7 @@ final class TaxoCommerce_Import_Export_Basic {
 				$sample[] = array_slice( $row, 0, count( $headers ) );
 			}
 		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the bounded private CSV input stream.
 		fclose( $handle );
 		$this->store_state( $token, array(
 			'path' => $path, 'filename' => $name, 'headers' => $headers, 'sample' => $sample,
@@ -511,6 +513,7 @@ final class TaxoCommerce_Import_Export_Basic {
 		}
 		$state['offset'] = ftell( $handle );
 		$state['done'] = feof( $handle );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the bounded private CSV input stream.
 		fclose( $handle );
 		if ( $state['done'] ) wp_delete_file( $state['path'] );
 		// Return only public progress data, not internal storage paths.
