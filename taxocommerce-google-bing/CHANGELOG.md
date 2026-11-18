@@ -1,3 +1,12 @@
+## [1.1.67] — 2026-11-18 — Informe ejecutivo comercial completo (#2801)
+
+- Recupera de forma verificable los apartados que el Plan de acción tenía como fuentes y que no se migraron a las versiones 1.1.65/1.1.66. El informe principal comienza por un resumen para dirección en lenguaje natural y cifras comparadas de sesiones GA4, clics e impresiones GSC, páginas vistas y compras medidas (sin equiparar compras GA4 a pedidos WooCommerce).
+- Rankings separados y legibles: categorías, productos, noticias/entradas y páginas con visibilidad GSC; páginas vistas de GA4, artículos consultados, artículos añadidos al carrito, origen de sesiones y variaciones contrastadas; no inventa actividad de una entidad ausente en un ranking parcial.
+- Recupera instantáneas independientes de tendencias, proveedores, posiciones competitivas y búsqueda interna (últimos 28 días) usando adaptadores existentes. Fuente ausente = «no disponible»; no confunde periodos con la ventana conjunta GSC/GA4.
+- Asuntos de comprobación para IT o marketing con observación y causa verificable, sin crear planes de contenidos, precios o campañas. Se corrige la comparación con cero clics de PHP que omitía la consulta «venta de bolardos» y la categoría «Bolardos de seguridad».
+- JSON de indicadores v3 compatible (claves originales intactas) con nuevo objeto `executive`, datos GSC anteriores para trazabilidad, rankings por GA4 y fuentes de mercado; mismo download autenticado sin regeneración.
+- Función de recopilación acotada a 100 filas GA4 por ranking y caché de 15 minutos, sin tablas nuevas, sin dependencias obligatorias entre plugins ni modificaciones de contenido. Regresión PHP extendida y WordPress Plugin Check oficial obligatorio.
+
 ## [1.1.66] — 2026-11-17 — Hallazgos ejecutivos con evidencia (#2780)
 
 - Evolución de «Indicadores para la acción»: detección de señales GSC de bajo tráfico (10 impresiones en adelante), sin descartar automáticamente consultas con posiciones visibles y pocos clics. Las muestras reducidas son preliminares; no significan que exista un problema o una oportunidad comercial segura.

@@ -390,7 +390,7 @@ function taxocommerce_insights_indicators_categories( array $pages, array $old_p
         if ( $impressions >= 10 && $change && $change['delta'] >= 5 ) {
             $signals[] = 'impresiones_en_crecimiento';
         }
-        if ( $impressions >= 10 && 0.0 === $clicks && $position > 0 && $position <= 20 ) {
+        if ( $impressions >= 10 && $clicks <= 0.0 && $position > 0 && $position <= 20 ) {
             $signals[] = 'visibilidad_sin_clics_organicos';
         }
         $products = max( 0, (int) ( $term->count ?? 0 ) );
@@ -535,7 +535,7 @@ function taxocommerce_insights_indicators_build( $mode = 'week' ) {
             if ( $impressions >= 10 && $change && $change['delta'] >= 5 ) {
                 $codes[] = 'consulta_con_impresiones_crecientes';
             }
-            if ( $impressions >= 10 && 0.0 === $clicks && $position > 0 && $position <= 20 ) {
+            if ( $impressions >= 10 && $clicks <= 0.0 && $position > 0 && $position <= 20 ) {
                 $codes[] = 'consulta_visible_sin_clics_organicos';
             }
             if ( $codes ) {
@@ -559,8 +559,8 @@ function taxocommerce_insights_indicators_build( $mode = 'week' ) {
         }
     }
 
-    return array(
-        'schema' => array( 'name' => 'taxocommerce-insights-indicadores', 'version' => 2 ),
+    $report = array(
+        'schema' => array( 'name' => 'taxocommerce-insights-indicadores', 'version' => 3 ),
         'generated_at' => gmdate( 'c' ),
         'period_mode' => $mode,
         'period_label' => 'week' === $mode ? 'Semanas completas (lunes-domingo)' : 'Meses naturales completos',
@@ -584,6 +584,8 @@ function taxocommerce_insights_indicators_build( $mode = 'week' ) {
             'gsc_pages_previous_complete' => $pages_previous_complete,
             'top_queries' => array_slice( $query_rows, 0, 100 ),
             'top_pages' => array_slice( $page_rows, 0, 100 ),
+            'previous_pages' => $pages_previous_complete ? array_slice( $prior_page_rows, 0, 100 ) : array(),
+            'previous_queries' => array_slice( $prior_query_rows ?? array(), 0, 100 ),
         ),
         'limitations' => array(
             'Las fechas comparativas son idénticas para GSC y GA4. Las métricas de GSC y GA4 no son unidades intercambiables.',
@@ -594,6 +596,12 @@ function taxocommerce_insights_indicators_build( $mode = 'week' ) {
             'Estos indicadores no recomiendan crear, eliminar ni modificar contenido.',
         ),
     );
+    // Executive evidence lives in the same export snapshot as its source data.
+    // One refresh builds both presentation and JSON, with no extra run on download.
+    if ( function_exists( 'taxocommerce_insights_executive_build' ) ) {
+        $report['executive'] = taxocommerce_insights_executive_build( $report );
+    }
+    return $report;
 }
 
 /**
@@ -613,6 +621,9 @@ function taxocommerce_insights_indicators_render( array $report ) {
     if ( ! $periods ) {
         echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'No hay fechas suficientes para generar periodos completos.', 'taxocommerce-google-bing' ) . '</p></div>';
         return;
+    }
+    if ( function_exists( 'taxocommerce_insights_executive_render' ) ) {
+        taxocommerce_insights_executive_render( $report );
     }
     echo '<section class="seo-analista-section"><h3>' . esc_html__( 'Evolución por periodos completos', 'taxocommerce-google-bing' ) . '</h3>';
     echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Periodo', 'taxocommerce-google-bing' ) . '</th>';
