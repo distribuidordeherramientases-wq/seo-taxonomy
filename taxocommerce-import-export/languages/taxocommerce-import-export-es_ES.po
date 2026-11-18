@@ -199,7 +199,7 @@ msgstr "Objetivo actual"
 #. translators: %s: current target number of CSV rows in one import batch.
 #: includes/class-taxocommerce-import-export-batch.php:189
 msgid "%s filas previstas por bloque; limitadas por tiempo y memoria."
-msgstr ""
+msgstr "%s filas previstas por bloque; limitadas por tiempo y memoria."
 
 #: includes/class-taxocommerce-import-export-batch.php:191
 msgid "Rendimiento real"
@@ -478,7 +478,7 @@ msgstr "Importación detenida o pausada. Se conserva el offset del último bloqu
 
 #: includes/class-taxocommerce-import-export-batch.php:737
 msgid "No se pudo mover el siguiente CSV a processing."
-msgstr ""
+msgstr "No se pudo mover el siguiente CSV a processing."
 
 #. translators: 1: CSV file name, 2: detection error.
 #: includes/class-taxocommerce-import-export-batch.php:775
@@ -490,15 +490,15 @@ msgstr ""
 #. translators: 1: CSV file name, 2: mini-importer type.
 #: includes/class-taxocommerce-import-export-batch.php:793
 msgid "Procesando %1$s con miniimportador %2$s."
-msgstr ""
+msgstr "Procesando %1$s con miniimportador %2$s."
 
 #: includes/class-taxocommerce-import-export-batch.php:811
 msgid "El archivo actual ya no existe en processing."
-msgstr ""
+msgstr "El archivo actual ya no existe en processing."
 
 #: includes/class-taxocommerce-import-export-batch.php:817
 msgid "El miniimportador registrado ya no está disponible."
-msgstr ""
+msgstr "El miniimportador registrado ya no está disponible."
 
 #: includes/class-taxocommerce-import-export-batch.php:822
 msgid "No se pudo abrir el CSV actual."
@@ -515,7 +515,7 @@ msgstr "Bloque procesado. %1$d filas acumuladas; %2$d errores."
 
 #: includes/class-taxocommerce-import-export-batch.php:979
 msgid "El CSV terminó, pero no se pudo mover fuera de processing."
-msgstr ""
+msgstr "El CSV terminó, pero no se pudo mover fuera de processing."
 
 #: includes/class-taxocommerce-import-export-batch.php:999
 msgid "Finalizado con errores. Revisa las filas indicadas."
@@ -527,7 +527,7 @@ msgstr "Importación finalizada correctamente."
 
 #: includes/class-taxocommerce-import-export-batch.php:1020
 msgid "Archivo terminado. Cola pausada antes del siguiente archivo."
-msgstr ""
+msgstr "Archivo terminado. Cola pausada antes del siguiente archivo."
 
 #: includes/class-taxocommerce-import-export-batch.php:1024
 msgid ""
@@ -537,11 +537,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-import-export-batch.php:1025
 msgid "Archivo importado. Se programa el siguiente."
-msgstr ""
+msgstr "Archivo importado. Se programa el siguiente."
 
 #: includes/class-taxocommerce-import-export-batch.php:1059
 msgid "No se pudo mover el CSV a Fallidos; permanece en processing."
-msgstr ""
+msgstr "No se pudo mover el CSV a Fallidos; permanece en processing."
 
 #: includes/class-taxocommerce-import-export-batch.php:1091
 msgid "Productos WooCommerce"
@@ -567,7 +567,7 @@ msgstr "No se pudo abrir el CSV para detectar su tipo."
 
 #: includes/class-taxocommerce-import-export-batch.php:1123
 msgid "El CSV no contiene cabecera y al menos una fila de datos."
-msgstr ""
+msgstr "El CSV no contiene cabecera y al menos una fila de datos."
 
 #: includes/class-taxocommerce-import-export-batch.php:1157
 msgid ""
@@ -603,7 +603,7 @@ msgstr "No tienes permisos para gestionar la cola de importación."
 
 #: includes/class-taxocommerce-import-export-csv.php:35
 msgid "Tipo de contenido no válido."
-msgstr ""
+msgstr "Tipo de contenido no válido."
 
 #: includes/class-taxocommerce-import-export-csv.php:46
 msgid "No se pudo iniciar la exportación."
@@ -621,15 +621,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-import-export-csv.php:122
 msgid "País no válido: utiliza ES, US, FR, DE o NL."
-msgstr ""
+msgstr "País no válido: utiliza ES, US, FR, DE o NL."
 
 #: includes/class-taxocommerce-import-export-csv.php:676
 msgid "La fila no coincide con el miniimportador asignado al archivo."
-msgstr ""
+msgstr "La fila no coincide con el miniimportador asignado al archivo."
 
 #: includes/class-taxocommerce-import-export-csv.php:716
 msgid "record_type no reconocido."
-msgstr ""
+msgstr "record_type no reconocido."
 
 #: includes/class-taxocommerce-import-export-csv.php:740
 msgid ""
@@ -645,45 +645,45 @@ msgstr ""
 
 #: includes/class-taxocommerce-import-export-csv.php:767
 msgid "La versión inicial sólo crea productos simples o externos."
-msgstr ""
+msgstr "La versión inicial sólo crea productos simples o externos."
 
 #: includes/class-taxocommerce-import-export-csv.php:770
 msgid "Para crear un producto nuevo el CSV debe incluir name/titulo."
-msgstr ""
+msgstr "Para crear un producto nuevo el CSV debe incluir name/titulo."
 
 #: includes/class-taxocommerce-import-export-csv.php:777
 msgid "No se pudo mover el producto a la papelera."
-msgstr ""
+msgstr "No se pudo mover el producto a la papelera."
 
 #: includes/class-taxocommerce-import-export-csv.php:780
 msgid "Estado de producto no válido."
-msgstr ""
+msgstr "Estado de producto no válido."
 
 #: includes/class-taxocommerce-import-export-csv.php:792
 msgid "El nombre del producto no puede quedar vacío."
-msgstr ""
+msgstr "El nombre del producto no puede quedar vacío."
 
 #: includes/class-taxocommerce-import-export-csv.php:857
 msgid "WooCommerce no devolvió un ID al guardar el producto."
-msgstr ""
+msgstr "WooCommerce no devolvió un ID al guardar el producto."
 
 #: includes/class-taxocommerce-import-export-csv.php:937
 msgid "La taxonomía de marca indicada no existe."
-msgstr ""
+msgstr "La taxonomía de marca indicada no existe."
 
 #. translators: %d: existing brand term ID from the CSV.
 #: includes/class-taxocommerce-import-export-csv.php:1002
 msgid "La marca ID %d no existe en la taxonomía indicada."
-msgstr ""
+msgstr "La marca ID %d no existe en la taxonomía indicada."
 
 #. translators: %s: brand name from the CSV.
 #: includes/class-taxocommerce-import-export-csv.php:1026
 msgid "La marca «%s» no existe; el importador parcial no crea marcas nuevas."
-msgstr ""
+msgstr "La marca «%s» no existe; el importador parcial no crea marcas nuevas."
 
 #: includes/class-taxocommerce-import-export-csv.php:1037
 msgid "No se pudo resolver ninguna marca existente."
-msgstr ""
+msgstr "No se pudo resolver ninguna marca existente."
 
 #: includes/class-taxocommerce-import-export-csv.php:1059
 msgid "La categoría necesita nombre."
@@ -691,7 +691,7 @@ msgstr "La categoría necesita nombre."
 
 #: includes/class-taxocommerce-import-export-csv.php:1095
 msgid "No se pudo mover el contenido a la papelera."
-msgstr ""
+msgstr "No se pudo mover el contenido a la papelera."
 
 #: includes/class-taxocommerce-import-export-csv.php:1459
 msgid "No tienes permisos para importar o exportar."
@@ -710,7 +710,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-import-export-exporter.php:64
 msgid "Productos · inventario reducido portable"
-msgstr ""
+msgstr "Productos · inventario reducido portable"
 
 #: includes/class-taxocommerce-import-export-exporter.php:65
 msgid ""
@@ -725,7 +725,7 @@ msgstr "Categorías de producto"
 
 #: includes/class-taxocommerce-import-export-exporter.php:70
 msgid "ID, nombre, slug, padre, descripción e imagen de categoría."
-msgstr ""
+msgstr "ID, nombre, slug, padre, descripción e imagen de categoría."
 
 #: includes/class-taxocommerce-import-export-exporter.php:75
 msgid ""
@@ -735,7 +735,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-import-export-exporter.php:80
 msgid "Estado, título, slug, extracto, contenido, fecha y autor."
-msgstr ""
+msgstr "Estado, título, slug, extracto, contenido, fecha y autor."
 
 #: includes/class-taxocommerce-import-export-exporter.php:107
 msgid "Exportación por bloques"
@@ -759,7 +759,7 @@ msgstr "Tipo de dato"
 
 #: includes/class-taxocommerce-import-export-exporter.php:124
 msgid "Sin marcar ninguno = todos los estados válidos."
-msgstr ""
+msgstr "Sin marcar ninguno = todos los estados válidos."
 
 #: includes/class-taxocommerce-import-export-exporter.php:129
 msgid "Publicado"
@@ -843,7 +843,7 @@ msgstr "Velocidad de exportación"
 
 #: includes/class-taxocommerce-import-export-exporter.php:196
 msgid "El límite se adapta a CPU y memoria; 3 recomendado."
-msgstr ""
+msgstr "El límite se adapta a CPU y memoria; 3 recomendado."
 
 #: includes/class-taxocommerce-import-export-exporter.php:199
 msgid "Crear CSV por bloques"
@@ -901,27 +901,27 @@ msgstr ""
 
 #: includes/class-taxocommerce-import-export-exporter.php:481
 msgid "No se ha podido recuperar el CSV parcial tras una interrupción."
-msgstr ""
+msgstr "No se ha podido recuperar el CSV parcial tras una interrupción."
 
 #: includes/class-taxocommerce-import-export-exporter.php:493
 msgid "No se pudo escribir una fila del CSV. Reintenta el bloque."
-msgstr ""
+msgstr "No se pudo escribir una fila del CSV. Reintenta el bloque."
 
 #: includes/class-taxocommerce-import-export-exporter.php:506
 msgid "No se pudo confirmar el bloque escrito. Reintenta."
-msgstr ""
+msgstr "No se pudo confirmar el bloque escrito. Reintenta."
 
 #: includes/class-taxocommerce-import-export-exporter.php:703
 msgid "El Hub primario seleccionado no pertenece al Cluster indicado."
-msgstr ""
+msgstr "El Hub primario seleccionado no pertenece al Cluster indicado."
 
 #: includes/class-taxocommerce-import-export-exporter.php:709
 msgid "El Hub secundario seleccionado no pertenece al Hub primario indicado."
-msgstr ""
+msgstr "El Hub secundario seleccionado no pertenece al Hub primario indicado."
 
 #: includes/class-taxocommerce-import-export-exporter.php:723
 msgid "El Hub secundario seleccionado no pertenece al Cluster indicado."
-msgstr ""
+msgstr "El Hub secundario seleccionado no pertenece al Cluster indicado."
 
 #: includes/class-taxocommerce-import-export-exporter.php:880
 msgid "WordPress no ha podido resolver uploads."
