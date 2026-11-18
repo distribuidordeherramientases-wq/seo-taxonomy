@@ -611,30 +611,46 @@ function taxocommerce_insights_executive_render_rows( array $rows, $type ) {
         $name = (string) ( $row['name'] ?? $row['title'] ?? $row['query_text'] ?? '' );
         $url = (string) ( $row['url'] ?? '' );
         if ( 'sources' === $type ) {
-            $detail = sprintf( __( '%d sesiones.', 'taxocommerce-google-bing' ), (int) ( $row['sessions'] ?? 0 ) );
+            $detail = sprintf(
+                /* translators: %d: number of measured sessions from this source */
+                __( '%d sesiones.', 'taxocommerce-google-bing' ),
+                (int) ( $row['sessions'] ?? 0 )
+            );
         } elseif ( 'items' === $type ) {
             $detail = sprintf(
+                /* translators: 1: GA4 item view events, 2: GA4 item added-to-cart events */
                 __( '%1$d consultas del artículo; %2$d añadidos al carrito.', 'taxocommerce-google-bing' ),
                 (int) ( $row['views'] ?? 0 ), (int) ( $row['added_to_cart'] ?? 0 )
             );
         } elseif ( 'ga4_pages' === $type ) {
-            $detail = sprintf( __( '%d páginas vistas.', 'taxocommerce-google-bing' ), (int) ( $row['pageviews'] ?? 0 ) );
+            $detail = sprintf(
+                /* translators: %d: GA4 pageview events */
+                __( '%d páginas vistas.', 'taxocommerce-google-bing' ),
+                (int) ( $row['pageviews'] ?? 0 )
+            );
         } elseif ( 'internal' === $type ) {
             $name = (string) ( $row['search_term'] ?? $row['normalized_term'] ?? '' );
             $detail = sprintf(
+                /* translators: 1: total internal searches, 2: internal searches without results */
                 __( '%1$d búsquedas; %2$d veces sin resultados.', 'taxocommerce-google-bing' ),
                 (int) ( $row['searches'] ?? 0 ), (int) ( $row['zero_count'] ?? 0 )
             );
         } elseif ( 'suppliers' === $type ) {
             $detail = sprintf(
+                /* translators: 1: supplier catalog products, 2: linked products, 3: synchronization errors */
                 __( '%1$d productos de catálogo; %2$d vinculados; %3$d errores de sincronización.', 'taxocommerce-google-bing' ),
                 (int) ( $row['products'] ?? 0 ), (int) ( $row['linked_products'] ?? 0 ), (int) ( $row['sync_errors'] ?? 0 )
             );
         } elseif ( 'trends' === $type ) {
             $detail = ! empty( $row['breakout'] ) ? __( 'Término emergente en la fuente.', 'taxocommerce-google-bing' )
-                : ( isset( $row['growth'] ) ? sprintf( __( 'Crecimiento indicado: %s %% (fuente externa).', 'taxocommerce-google-bing' ), number_format_i18n( $row['growth'], 1 ) ) : __( 'Señal externa.', 'taxocommerce-google-bing' ) );
+                : ( isset( $row['growth'] ) ? sprintf(
+                    /* translators: %s: Google Trends measured growth percentage */
+                    __( 'Crecimiento indicado: %s %% (fuente externa).', 'taxocommerce-google-bing' ),
+                    number_format_i18n( $row['growth'], 1 )
+                ) : __( 'Señal externa.', 'taxocommerce-google-bing' ) );
         } else {
             $detail = sprintf(
+                /* translators: 1: GSC organic clicks, 2: GSC search impressions */
                 __( '%1$d clics orgánicos; %2$d apariciones en Google.', 'taxocommerce-google-bing' ),
                 (int) ( $row['clicks'] ?? 0 ), (int) ( $row['impressions'] ?? 0 )
             );
