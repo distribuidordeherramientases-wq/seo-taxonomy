@@ -31,6 +31,12 @@ It retains shipping as its core function. Its optional Supplier purchases screen
 
 The WordPress administration locale automatically selects the gettext language. Bundled Spanish (es_ES), English (en_US), French (fr_FR), German (de_DE) and Dutch (nl_NL) PO/MO files cover every string in the current translation template. This does not translate store products, orders or editorial content.
 
+== Installation ==
+
+1. Upload the TaxoCommerce Logistics ZIP from WordPress Plugins > Add New > Upload Plugin and activate it.
+2. Open the plugin administration to review the available shipping settings and rules.
+3. When WooCommerce is active, use the order-weight audit and shipping-rate features as needed.
+
 == Changelog ==
 
 = 0.2.21 =
