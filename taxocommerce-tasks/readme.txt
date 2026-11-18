@@ -12,7 +12,9 @@ A private task agenda with categories, priorities, assignments, calendar and ind
 
 == Description ==
 
-TaxoCommerce Tasks provides a standalone task management area in the WordPress administrator. Its administration uses the same self-contained header as the TaxoCommerce family, displaying the plugin title, installed version and publication date without requiring Core. A collapsed version history is available directly beneath the header title.
+TaxoCommerce Tasks provides a standalone task management area in the WordPress administrator.
+
+= Key Features =
 
 * Create, edit and delete tasks and private task categories.
 * Prioritize tasks as Low, Normal, High or Urgent.
