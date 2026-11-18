@@ -5,13 +5,17 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.36
+Stable tag: 0.4.37
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Import and export catalog, content and Media for WordPress/WooCommerce.
 
 == Description ==
+
+Version 0.4.37 extends the native CSV mapping assistant with common WooCommerce fields (categories, tags, featured image already in Media, stock status, stock management, dimensions, catalog visibility and product flags), and WordPress post/page fields (categories and tags for posts, author, date, featured image, menu order and page parent). Category hierarchies can be imported by parent slug. Selected fields export as standard CSV; mapping updates only populated columns. Import categories before referencing them from products or posts. No TaxoCommerce-specific columns are required. WordPress pages do not have categories by default.
+
+
 
 Version 0.4.36 introduces a simple CSV field selector and column mapping assistant for native WordPress posts, pages, categories and WooCommerce products/product categories. The browser processes small import blocks after showing a sample, instead of synchronously running the old individual upload worker. Only mapped, non-empty columns are changed. Advanced import queues and exporter remain available.
 
