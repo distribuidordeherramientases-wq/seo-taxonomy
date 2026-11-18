@@ -13,14 +13,7 @@ Publish WooCommerce commercial feeds and professional XML sitemaps with bounded 
 
 == Description ==
 
-Version 0.1.21 corrects the Spanish translation of the Overview administration tab; feed and sitemap features are unchanged.
-
-
-* Admin header: plugin title, a single local `Description` with the static `Plugin URI` link below it (left); a wider collapsed `CHANGELOG.md` history (center); local version and release date (right). No duplicated information panel or external requests.
-
 * An administrator checkbox in Distribution > Sitemaps enables or relinquishes TaxoCommerce XML sitemap publication. With it disabled, native WordPress or another plugin can publish sitemaps; commercial feeds are unaffected. The existing WordPress filter continues to support third-party ownership.
-
-* The admin header shows the plugin's bundled `Description` and links to its `Plugin URI`, without network requests or caching. Version history uses the bundled `CHANGELOG.md`.
 
 
 
