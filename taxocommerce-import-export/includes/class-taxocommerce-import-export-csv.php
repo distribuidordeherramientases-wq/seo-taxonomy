@@ -1245,7 +1245,7 @@ final class TaxoCommerce_Import_Export_CSV {
 			return true;
 		}
 		// Recognise an existing canonical ZIP URL after block-editor reformatting.
-		if ( preg_match( '~href\\s*=\\s*["\\x27](https?://[^"\\x27]+\\.zip)["\\x27]~i', $fragment, $match ) ) {
+		if ( preg_match( '~href\s*=\s*["\x27](https?://[^"\x27]+\.zip)["\x27]~i', $fragment, $match ) ) {
 			$target = html_entity_decode( $match[1], ENT_QUOTES, 'UTF-8' );
 			if ( false !== strpos( html_entity_decode( $original, ENT_QUOTES, 'UTF-8' ), $target ) ) {
 				return true;
@@ -1254,7 +1254,7 @@ final class TaxoCommerce_Import_Export_CSV {
 		$result = wp_update_post(
 			array(
 				'ID'           => $id,
-				'post_content' => rtrim( $original ) . "\\n\\n" . $fragment,
+				'post_content' => rtrim( $original ) . "\n\n" . $fragment,
 			),
 			true
 		);
