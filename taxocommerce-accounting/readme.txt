@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.12
+Stable tag: 0.1.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,7 +22,8 @@ TaxoCommerce Accounting records fiscal data without changing WooCommerce orders,
 * Original receipt uploads accept PDF, JPG/JPEG, PNG and WEBP up to 10 MB each. Originals are encrypted in WordPress uploads under taxocommerce-accounting/encrypted-invoices and downloaded only by authorised users via nonce-protected admin actions. Multiple originals per entry are supported. They are **not** added to the public media library.
 * CSVs import invoice metadata only; originals are attached to the corresponding purchase/expense row separately. Back up the plugin database tables and encrypted uploads together, and preserve the same WordPress auth/secure-auth salts to keep archived originals decryptable.
 
-* In the Treasury tab, import/export CSV of ordinary expenses (domains, hosting, certificates, postal costs, software, and fees), downloading a blank template or exporting the current financial year. Imported rows enter the existing Expenses ledger as drafts requiring fiscal validation. CSV does not imply payment: cash/bank movements are registered separately. Prior-activity expenses retain their original dates. Repeated documents are skipped, each upload is limited to 500 rows / 2 MB, and the CSV exporter guards spreadsheet-formula injection. Manually attach original expense PDFs through the existing secure expense document controls.
+* In the Treasury tab, import/export CSV of ordinary expenses (domains, hosting, certificates, postal costs, software, and fees), downloading a blank template or exporting the current financial year. Imported rows enter the existing Expenses ledger as drafts requiring fiscal validation. CSV does not imply payment: actual cash/bank movements can be linked to the invoice later using the Record payment/receipt control. Prior-activity expenses retain their original dates. Repeated documents are skipped, each upload is limited to 500 rows / 2 MB, and the CSV exporter guards spreadsheet-formula injection. Manually attach original expense PDFs through the existing secure expense document controls.
+* Confirm full or partial settlement of each invoice using its payment/receipt control, choosing the actual bank or cash account, date and amount. Every confirmed settlement creates one linked Treasury entry; draft imports and fiscal validation alone never move funds. Review older manual Treasury movements first to avoid duplicate historical payments.
 * Track separate cash and multiple bank accounts in the Treasury tab: opening balances, manual receipts/payments, atomic internal transfers, current balances, and a monthly cash-flow table. These figures do not imply that a booked invoice is collected or paid.
 * Track loans with original amount, lender, monthly instalment, next payment date and manually confirmed outstanding balance; no inferred interest or automatic debiting.
 * Configure a per-store first commercial date. All earlier test orders are excluded from new sales imports.
