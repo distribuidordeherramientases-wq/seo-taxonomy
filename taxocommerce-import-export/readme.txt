@@ -49,6 +49,12 @@ A Media export contains:
 
 The package transports original image files plus title, ALT, caption, description, post_parent and known image relationships.
 
+== Installation ==
+
+1. Install and activate WooCommerce.
+2. Upload the TaxoCommerce Import-Export ZIP from WordPress Plugins > Add New > Upload Plugin and activate it.
+3. Open the plugin administration, select a supported CSV import or export, and review the job settings before starting it.
+
 == Changelog ==
 
 = 0.4.26 =
