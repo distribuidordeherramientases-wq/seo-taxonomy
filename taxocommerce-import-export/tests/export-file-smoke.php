@@ -63,6 +63,7 @@ $state = array(
 tc_ie_background_check( true === TaxoCommerce_Import_Export_Exporter::validate_export_file( $state ), 'Completed CSV with BOM, header and row accepted' );
 
 file_put_contents( $path, "\xEF\xBB\xBFrecord_type,id,title\n" );
+clearstatcache( true, $path );
 $state['file_size'] = filesize( $path );
 tc_ie_background_check( is_wp_error( TaxoCommerce_Import_Export_Exporter::validate_export_file( $state ) ), 'Completed export without promised rows rejected' );
 
@@ -71,10 +72,12 @@ $state['processed'] = 0;
 tc_ie_background_check( true === TaxoCommerce_Import_Export_Exporter::validate_export_file( $state ), 'Header-only partial export is valid while running' );
 
 file_put_contents( $path, "wrong,header\n" );
+clearstatcache( true, $path );
 $state['file_size'] = filesize( $path );
 tc_ie_background_check( is_wp_error( TaxoCommerce_Import_Export_Exporter::validate_export_file( $state ) ), 'Incorrect CSV header rejected' );
 
 file_put_contents( $path, "\xEF\xBB\xBFrecord_type,id,title\npage,123,Sample\n" );
+clearstatcache( true, $path );
 $state['file_size'] = filesize( $path ) + 10;
 tc_ie_background_check( is_wp_error( TaxoCommerce_Import_Export_Exporter::validate_export_file( $state ) ), 'Truncated CSV rejected' );
 
