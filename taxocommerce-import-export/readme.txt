@@ -13,33 +13,9 @@ Import and export catalog, content and Media for WordPress/WooCommerce.
 
 == Description ==
 
-Version 0.4.36 introduces a simple CSV field selector and column mapping assistant for native WordPress posts, pages, categories and WooCommerce products/product categories. The browser processes small import blocks after showing a sample, instead of synchronously running the old individual upload worker. Only mapped, non-empty columns are changed. Advanced import queues and exporter remain available.
+TaxoCommerce Import-Export provides CSV imports and exports for WordPress content and WooCommerce catalogues, including resumable batch jobs and selective field updates.
 
-
-
-Version 0.4.35 adds a safe append-only CSV for existing WordPress pages. Supply only `record_type,id,slug,content_append` (record_type `page`). The importer checks ID and slug, preserves the existing page metadata, and avoids duplicate ZIP download links on reimport. Standard full-page CSV imports are unchanged. Use the dedicated Import-Export upload queue; a generic WordPress CSV importer does not understand this format.
-
-
-Version 0.4.34 localizes CSV validation, batch queue and export administration messages in five WordPress locales. It does not change processing behavior, data formats or plugin dependencies.
-
-
-Version 0.4.33 fixes stalled CSV exports when the hosting blocks non-blocking internal loopback requests: an open admin browser assists with bounded AJAX steps, without removing the server worker or using scheduled cron actions. Autocheck now validates saved CSV files and flags stale or failed jobs instead of reporting a retired scheduled worker as missing. HTTP downloads still require an end-to-end administrator check.
-
-
-Version 0.4.31 adds five-language translations for Media Library ZIP import/export, error messages, forms and progress tracking. The 0.4.30 CSV queue and export controls remain translated. Longer instructions and some administration strings still need localization; the active WordPress language determines the interface.
-
-
-* CSV batch imports and exports continue through private internal HTTP requests with adaptive load limiting. This plugin no longer creates its own Action Scheduler or WP-Cron jobs. If a loopback fails, recovery requires a later WordPress request or an explicit administrator retry.
-
-* Admin header: plugin title, a single local `Description` with the static `Plugin URI` link below it (left); a wider collapsed `CHANGELOG.md` history (center); local version and release date (right). No duplicated information panel or external requests.
-
-* The admin header shows the plugin's bundled `Description` and links to its `Plugin URI`, without network requests or caching. Version history uses the bundled `CHANGELOG.md`.
-
-
-
-TaxoCommerce Import-Export is an independent member of the TaxoCommerce family.
-
-Version 0.4.1 includes:
+= Key Features =
 
 * Dedicated Exportación tab with resumable block-based CSV generation.
 * Selectable exports for full products, reduced portable product inventory, product categories, posts and pages.
@@ -72,6 +48,12 @@ A Media export contains:
 * files/<old-attachment-id>/<original-file>
 
 The package transports original image files plus title, ALT, caption, description, post_parent and known image relationships.
+
+== Installation ==
+
+1. Install and activate WooCommerce.
+2. Upload the TaxoCommerce Import-Export ZIP from WordPress Plugins > Add New > Upload Plugin and activate it.
+3. Open the plugin administration, select a supported CSV import or export, and review the job settings before starting it.
 
 == Changelog ==
 

@@ -13,9 +13,8 @@ Independent WordPress, PHP and server diagnostics with administrator-controlled 
 == Description ==
 
 TaxoCommerce System Check helps administrators investigate their WordPress installation without requiring any other TaxoCommerce plugin.
-Version 0.2.44 corrects mixed-language administration labels and validation progress in ES/EN/FR/DE/NL without changing the check engines or JSON status codes.
 
-Version 0.2.43 adds a Check all plugins button next to CPU usage in Plugin Validation. It runs the active modules registered by Core sequentially through the existing per-plugin AJAX diagnostics; progress, cooperative Stop/Resume, individual results, logs and JSON remain available. Execution runs in the administrator browser, not a background scheduler.
+= Key Features =
 
 * Inspect WordPress, PHP, hosting and server configuration from the administration area.
 * Review WP-Cron and Action Scheduler application jobs, their available diagnostics and eligible cancellation controls; active PHP requests cannot be forcibly terminated.
