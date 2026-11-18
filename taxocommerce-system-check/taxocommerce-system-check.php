@@ -3,8 +3,8 @@
  * Plugin Name: TaxoCommerce System Check
  * Plugin URI: https://asociacionfocazul.com/taxocommerce-system-check/
  * Description: Independent WordPress, server and plugin diagnostics with local checks, reports and optional administrator notifications.
- * Version: 0.2.43
- * Release Date: 2026-11-16
+ * Version: 0.2.44
+ * Release Date: 2026-11-18
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: David Perez
@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.43' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.44' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_URL', plugin_dir_url( __FILE__ ) );
@@ -143,7 +143,7 @@ function taxocommerce_system_check_register_with_core( $core ) {
                 'name'        => 'TaxoCommerce System Check',
                 'version'     => TAXOCOMMERCE_SYSTEM_CHECK_VERSION,
                 'status'      => 'active',
-                'description' => 'Diagnostico de sistema, validacion del plugin e informes.',
+                'description' => __( 'System diagnostics, plugin checks and reports.', 'taxocommerce-system-check' ),
                 'admin_url'   => admin_url( 'admin.php?page=taxocommerce-system-check' ),
             )
         );
@@ -192,8 +192,8 @@ function taxocommerce_system_check_active_tab() {
 }
 
 function taxocommerce_system_check_render_tabs( $active ) {
-    echo '<nav class="nav-tab-wrapper" aria-label="Chequeos de System Check">';
-    foreach ( array( 'system' => 'Sistema', 'plugin' => 'Plugin Validation', 'http' => 'HTTP', 'processes' => __( 'Procesos', 'taxocommerce-system-check' ), 'auto-test' => __( 'Autocheck', 'taxocommerce-system-check' ), 'manual' => 'Manual' ) as $tab => $label ) {
+    echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'System Check tabs', 'taxocommerce-system-check' ) . '">';
+    foreach ( array( 'system' => __( 'System', 'taxocommerce-system-check' ), 'plugin' => __( 'Plugin Validation', 'taxocommerce-system-check' ), 'http' => 'HTTP', 'processes' => __( 'Procesos', 'taxocommerce-system-check' ), 'auto-test' => __( 'Autocheck', 'taxocommerce-system-check' ), 'manual' => __( 'Manual', 'taxocommerce-system-check' ) ) as $tab => $label ) {
         echo '<a class="nav-tab' . ( $active === $tab ? ' nav-tab-active' : '' ) . '" href="'
             . esc_url( taxocommerce_system_check_tab_url( $tab ) ) . '">'
             . esc_html( $label ) . '</a>';
@@ -306,9 +306,9 @@ function taxocommerce_system_check_home() {
     taxocommerce_system_check_render_tabs( $tab );
     // Each tab downloads its stored results. No scan is started here.
     $exports = array(
-        'system' => array( 'seo_system_diagnostics_download_server_json', 'Descargar JSON de Sistema' ),
-        'plugin' => array( 'taxocommerce_system_check_modules_json', 'Descargar JSON de comprobación básica' ),
-        'http'   => array( 'taxocommerce_system_check_http_json', 'Descargar JSON de HTTP' ),
+        'system' => array( 'seo_system_diagnostics_download_server_json', __( 'Download system JSON', 'taxocommerce-system-check' ) ),
+        'plugin' => array( 'taxocommerce_system_check_modules_json', __( 'Download basic checks JSON', 'taxocommerce-system-check' ) ),
+        'http'   => array( 'taxocommerce_system_check_http_json', __( 'Download HTTP JSON', 'taxocommerce-system-check' ) ),
     );
     if ( isset( $exports[ $tab ] ) ) {
         $action = $exports[ $tab ][0];
@@ -323,11 +323,11 @@ function taxocommerce_system_check_home() {
             . esc_html( $exports[ $tab ][1] ) . '</a></p>';
         if ( 'plugin' === $tab ) {
             $history_url = wp_nonce_url( add_query_arg( array( 'action' => 'seo_system_diagnostics_download_validation_json' ), admin_url( 'admin-post.php' ) ), 'seo_system_diagnostics_download_validation_json' );
-            echo '<p><a class="button button-secondary" href="' . esc_url( $history_url ) . '">Descargar JSON de chequeos anteriores (histórico)</a></p>';
+            echo '<p><a class="button button-secondary" href="' . esc_url( $history_url ) . '">' . esc_html__( 'Download previous checks JSON (history)', 'taxocommerce-system-check' ) . '</a></p>';
         }
         if ( 'system' === $tab ) {
             $complete_url = wp_nonce_url( add_query_arg( array( 'action' => 'seo_system_diagnostics_download_json' ), admin_url( 'admin-post.php' ) ), 'seo_system_diagnostics_download_json' );
-            echo '<p><a class="button button-secondary" href="' . esc_url( $complete_url ) . '">Descargar JSON completo</a></p>';
+            echo '<p><a class="button button-secondary" href="' . esc_url( $complete_url ) . '">' . esc_html__( 'Download complete JSON', 'taxocommerce-system-check' ) . '</a></p>';
         }
     }
     echo '</div>';
@@ -350,7 +350,7 @@ function taxocommerce_system_check_server_screen() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-system-check' ) );
     }
-    echo '<div class="notice notice-info inline"><p><a href="' . esc_url( admin_url( 'admin.php?page=tcs-native-php' ) ) . '">Abrir diagnóstico PHP independiente</a> · Nueva implementación autónoma.</p></div>';
+    echo '<div class="notice notice-info inline"><p><a href="' . esc_url( admin_url( 'admin.php?page=tcs-native-php' ) ) . '">' . esc_html__( 'Open independent PHP diagnostics', 'taxocommerce-system-check' ) . '</a> · ' . esc_html__( 'Independent implementation.', 'taxocommerce-system-check' ) . '</p></div>';
     if ( function_exists( 'seo_server_status' ) ) {
         seo_server_status();
         return;
@@ -382,20 +382,20 @@ function taxocommerce_system_check_registered_modules() {
 /** Basic checks available for every active module without static module lists. */
 function taxocommerce_system_check_module_checks( $id, $module ) {
     $checks = array(
-        'registered' => array( 'ok' => true, 'label' => 'Cargado y registrado' ),
+        'registered' => array( 'ok' => true, 'label' => __( 'Loaded and registered', 'taxocommerce-system-check' ) ),
         'version'    => array(
             'ok'    => ! empty( $module['version'] ),
-            'label' => 'Versión declarada',
+            'label' => __( 'Version declared', 'taxocommerce-system-check' ),
         ),
     );
     if ( 'system_check' === $id ) {
         $checks['server'] = array(
             'ok'    => function_exists( 'seo_server_status' ),
-            'label' => 'Motor de diagnóstico del sistema disponible',
+            'label' => __( 'System diagnostics engine available', 'taxocommerce-system-check' ),
         );
         $checks['http'] = array(
             'ok'    => class_exists( 'TaxoCommerce_System_Check_URL_Audit' ),
-            'label' => 'Auditor HTTP disponible',
+            'label' => __( 'HTTP auditor available', 'taxocommerce-system-check' ),
         );
     }
     return $checks;
@@ -429,7 +429,7 @@ function taxocommerce_system_check_modules_json() {
         'generated_at' => gmdate( 'c' ),
         'source' => function_exists( 'taxocommerce_core' ) ? 'core_runtime_registry' : 'standalone',
         'modules' => taxocommerce_system_check_module_results(),
-        'note' => 'Comprobación básica de carga; no equivale a un chequeo funcional exhaustivo.',
+        'note' => __( 'Basic availability checks; not a full functional validation.', 'taxocommerce-system-check' ),
     ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON download.
     exit;
 }
@@ -454,7 +454,7 @@ function taxocommerce_system_check_validation_screen() {
     foreach ( $modules as $id => $module ) {
         $messages = array();
         foreach ( $module['checks'] as $check ) {
-            $messages[] = ( $check['ok'] ? 'OK: ' : 'Aviso: ' ) . $check['label'];
+            $messages[] = ( $check['ok'] ? 'OK: ' : __( 'Warning: ', 'taxocommerce-system-check' ) ) . $check['label'];
         }
         echo '<tr><th scope="row">' . esc_html( (string) $module['name'] ) . '</th>';
         echo '<td>' . esc_html( (string) $module['version'] ) . '</td>';
