@@ -38,6 +38,13 @@ function wp_nonce_field( $action, $name = '_wpnonce' ) { echo '<input type="hidd
 function submit_button( $label, $type = 'primary', $name = 'submit', $wrap = true ) { echo '<button type="submit">' . esc_html( $label ) . '</button>'; }
 function sanitize_key( $s ) { return strtolower( preg_replace( '/[^a-z0-9_-]/i', '', (string) $s ) ); }
 function esc_sql( $value ) { return $value; }
+function get_post_meta( $post_id, $key, $single = false ) {
+    foreach ( $GLOBALS['wpdb']->schedule_rows as $row ) {
+        if ( (int) $row->post_id === (int) $post_id && $row->meta_key === $key ) return $row->meta_value;
+    }
+    return '';
+}
+function get_gmt_from_date( $date ) { return $date; }
 function wp_unslash( $s ) { return $s; }
 function wp_remote_get() { ++$GLOBALS['social_remote_calls']; throw new RuntimeException( 'Network forbidden' ); }
 function wp_remote_post() { ++$GLOBALS['social_remote_calls']; throw new RuntimeException( 'Network forbidden' ); }
