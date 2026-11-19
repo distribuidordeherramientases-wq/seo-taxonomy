@@ -125,13 +125,14 @@ $wpdb->job_rows = array( (object) array(
 $wpdb->history_rows = array( (object) array(
     'provider' => 'pinterest', 'status' => 'failed',
     'error_message' => 'Missing: boards:write',
+    'created_at' => '2026-11-19 18:30:00', 'published_at' => null,
 ) );
 $failure_report = TCSocial_Auto_Test::run_suite();
 $failed_ids = array();
 foreach ( $failure_report['rows'] as $row ) {
     if ( 'fail' === $row['status'] ) $failed_ids[] = $row['id'];
 }
-foreach ( array( 'schedule_health', 'job_health', 'recent_outcomes' ) as $id ) {
+foreach ( array( 'schedule_health', 'delivery_health', 'job_health', 'recent_outcomes' ) as $id ) {
     social_assert( in_array( $id, $failed_ids, true ), 'Functional Autocheck flags ' . $id );
 }
 $wpdb->schedule_rows = array();
@@ -140,7 +141,7 @@ $wpdb->history_rows = array();
 foreach ( $wpdb->queries as $sql ) {
     social_assert( preg_match( '/^(SELECT|SHOW) /', $sql ) === 1, 'read-only query: ' . $sql );
     if ( strpos( $sql, ' FROM wp_' ) !== false ) {
-        social_assert( preg_match( '/LIMIT (1|100|150)$/', trim( $sql ) ) === 1, 'query bounded: ' . $sql );
+        social_assert( preg_match( '/LIMIT (1|100|150|200|250)$/', trim( $sql ) ) === 1, 'query bounded: ' . $sql );
     }
 }
 
