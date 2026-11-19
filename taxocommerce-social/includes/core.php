@@ -3359,8 +3359,151 @@ function tcsocial_network_render_scheduler()
 /**
  * Subpestana Informes.
  */
+
+/**
+ * Read-only, bounded delivery audit. A connected provider and a registered
+ * WP-Cron hook are not evidence that a remote post was published.
+ *
+ * @return array Provider histories, overdue schedules and Cron mode.
+ */
+function tcsocial_network_delivery_health_snapshot()
+{
+    global $wpdb;
+
+    $settings = tcsocial_network_get_settings();
+    $networks = array();
+    foreach (tcsocial_network_get_providers() as $provider => $definition) {
+        $networks[$provider] = array(
+            'enabled'          => !empty($settings['providers'][$provider]['enabled']),
+            'last_status'      => '',
+            'last_attempt_at'  => '',
+            'last_success_at'  => '',
+            'last_error'       => '',
+            'overdue'          => 0,
+            'due_cron'         => 0,
+            'missing_cron'     => 0,
+            'stale_pending'    => 0,
+        );
+    }
+
+    $table = esc_sql(tcsocial_network_publications_table());
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Private audit table: bounded read of recent results with prepared identifier.
+    $results = $wpdb->get_results(
+        $wpdb->prepare(
+            'SELECT provider, status, created_at, published_at, error_message FROM %i ORDER BY id DESC LIMIT %d',
+            $table, 250
+        )
+    );
+    foreach ((array) $results as $row) {
+        $provider = sanitize_key((string) $row->provider);
+        if (!isset($networks[$provider])) {
+            continue;
+        }
+        if ('' === $networks[$provider]['last_status']) {
+            $networks[$provider]['last_status'] = sanitize_key((string) $row->status);
+            $networks[$provider]['last_attempt_at'] = (string) $row->created_at;
+            $networks[$provider]['last_error'] = wp_strip_all_tags((string) $row->error_message);
+        }
+        if ('published' === $row->status && '' === $networks[$provider]['last_success_at']) {
+            $networks[$provider]['last_success_at'] = (string) $row->published_at;
+        }
+        if ('pending' === $row->status && !empty($row->created_at)) {
+            $created_gmt = get_gmt_from_date((string) $row->created_at);
+            if ($created_gmt && strtotime($created_gmt . ' UTC') < time() - 600) {
+                ++$networks[$provider]['stale_pending'];
+            }
+        }
+    }
+
+    // Count at most 200 overdue postmeta rows. Do not touch the agenda and
+    // never trigger these jobs as part of a health read.
+    $like = $wpdb->esc_like('_seo_social_schedule_') . '%';
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only bounded schedule audit of native postmeta and posts.
+    $due = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT pm.post_id, pm.meta_key, pm.meta_value FROM %i pm
+             INNER JOIN %i p ON p.ID = pm.post_id
+             WHERE pm.meta_key LIKE %s AND p.post_status = 'publish'
+               AND CAST(pm.meta_value AS UNSIGNED) > 0
+               AND CAST(pm.meta_value AS UNSIGNED) < %d
+             ORDER BY CAST(pm.meta_value AS UNSIGNED) DESC LIMIT %d",
+            $wpdb->postmeta, $wpdb->posts, $like, time() - 600, 200
+        )
+    );
+    foreach ((array) $due as $row) {
+        $provider = sanitize_key(substr((string) $row->meta_key, strlen('_seo_social_schedule_')));
+        $post_id = absint($row->post_id);
+        if (!$post_id || !isset($networks[$provider]) || 'pausada' === tcsocial_network_get_schedule_state($post_id, $provider)) {
+            continue;
+        }
+        ++$networks[$provider]['overdue'];
+        $args = array($post_id, $provider);
+        $own_event = wp_next_scheduled('tcsocial_network_publish_manual_scheduled', $args);
+        $old_event = wp_next_scheduled('seo_social_network_publish_manual_scheduled', $args);
+        if (($own_event && $own_event <= time() - 600) || ($old_event && $old_event <= time() - 600)) {
+            ++$networks[$provider]['due_cron'];
+        } elseif (!$own_event && !$old_event) {
+            ++$networks[$provider]['missing_cron'];
+        }
+    }
+
+    return array(
+        'networks' => $networks,
+        'cron_web_disabled' => defined('DISABLE_WP_CRON') && DISABLE_WP_CRON,
+    );
+}
+
+/**
+ * Surface missing deliveries even when the provider has never been called.
+ * This is an audit, not a network test or a trigger for publishing.
+ */
+function tcsocial_network_render_delivery_diagnostics()
+{
+    $diagnostics = tcsocial_network_delivery_health_snapshot();
+    echo '<section class="seo-social-card">';
+    echo '<h2>' . esc_html__('Estado de entrega por red social', 'taxocommerce-social') . '</h2>';
+    echo '<p>' . esc_html__('Una conexión correcta o un evento WP-Cron registrado no confirma una publicación. Los datos siguientes proceden del historial local y de la agenda, sin reenviar publicaciones.', 'taxocommerce-social') . '</p>';
+    if ($diagnostics['cron_web_disabled']) {
+        echo '<p class="notice notice-warning" style="padding:10px">' .
+            esc_html__('WP-Cron automático está desactivado (DISABLE_WP_CRON). Comprueba que exista un ejecutor externo de wp-cron.php; no se puede confirmar desde esta pantalla.', 'taxocommerce-social') .
+            '</p>';
+    }
+    echo '<div class="seo-social-table-wrap"><table class="seo-social-table"><thead><tr>';
+    foreach (array('Red', 'Último intento', 'Última entrega confirmada', 'Vencidas sin confirmar', 'Cron vencidos', 'Problema detectado') as $column) {
+        echo '<th>' . esc_html($column) . '</th>';
+    }
+    echo '</tr></thead><tbody>';
+    foreach ($diagnostics['networks'] as $provider => $data) {
+        if (!$data['enabled'] && !$data['overdue'] && !$data['last_attempt_at']) {
+            continue;
+        }
+        $error = $data['last_error'];
+        if ($data['due_cron']) {
+            $error = sprintf(__('Hay %d eventos WP-Cron vencidos; comprobar el ejecutor.', 'taxocommerce-social'), $data['due_cron']) . ' ' . $error;
+        } elseif ($data['missing_cron']) {
+            $error = sprintf(__('Hay %d registros vencidos sin evento WP-Cron.', 'taxocommerce-social'), $data['missing_cron']) . ' ' . $error;
+        } elseif ($data['overdue'] && '' === $error) {
+            $error = __('Agenda vencida sin confirmación. Comprobar informes y la red antes de reprogramar.', 'taxocommerce-social');
+        }
+        if ($data['stale_pending']) {
+            $error .= ' ' . sprintf(__('%d intentos sin confirmación. No reintentar sin comprobar la red.', 'taxocommerce-social'), $data['stale_pending']);
+        }
+        echo '<tr><td>' . esc_html(ucfirst($provider)) . ($data['enabled'] ? '' : ' (' . esc_html__('desconectada', 'taxocommerce-social') . ')') . '</td>';
+        echo '<td>' . esc_html($data['last_attempt_at'] ? $data['last_attempt_at'] . ' (' . $data['last_status'] . ')' : __('Sin intentos registrados', 'taxocommerce-social')) . '</td>';
+        echo '<td>' . esc_html($data['last_success_at'] ?: __('Sin confirmación registrada', 'taxocommerce-social')) . '</td>';
+        echo '<td>' . esc_html((string) $data['overdue']) . '</td>';
+        echo '<td>' . esc_html((string) $data['due_cron']) . '</td>';
+        echo '<td>' . esc_html($error ?: __('Sin incidencias registradas; entrega externa no verificada', 'taxocommerce-social')) . '</td></tr>';
+    }
+    echo '</tbody></table></div>';
+    echo '<p>' . esc_html__('Los eventos vencidos y las publicaciones sin ID remoto requieren revisión: no se reenvían automáticamente para evitar duplicados.', 'taxocommerce-social') . '</p>';
+    echo '</section>';
+}
+
 function tcsocial_network_render_reports()
 {
+    tcsocial_network_render_delivery_diagnostics();
+
     global $wpdb;
     $table = esc_sql( tcsocial_network_publications_table() );
 
