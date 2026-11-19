@@ -88,6 +88,16 @@ jobs:
         with:
           php-version: '8.3'
           coverage: none
+      - name: Instalar y verificar el cliente Subversion
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v svn >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends subversion
+          fi
+          command -v svn
+          svn --version --quiet
       - name: Validar contrato de publicacion y preparar paquete
         env:
           PLUGIN: ${{ inputs.plugin }}
