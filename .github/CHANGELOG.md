@@ -1,3 +1,10 @@
+## 2026-11-19 — WordPress.org SVN: instalar cliente Subversion antes de publicar (#2827)
+
+- La primera ejecución manual de WordPress.org (Actions run 44609697722) validó correctamente Core 0.4.85 y superó Plugin Check, pero falló antes del checkout SVN por `svn: command not found` (exit 127).
+- El job de publicación instala `subversion` mediante APT solo cuando no está presente en `ubuntu-latest` y verifica `svn --version --quiet` antes de tocar el repositorio remoto.
+- Regresión que exige instalar/verificar el cliente SVN antes de ejecutar la publicación. Se mantiene publicación exclusivamente manual, un único plugin aprobado, verificación de versiones, etiquetas inmutables y credenciales en secretos de Actions.
+- Ningún archivo del plugin ni tienda de producción cambia. La publicación efectiva en SVN requiere una nueva ejecución manual desde `staging`.
+
 ## 2026-11-19 — Publicación manual de TaxoCommerce en WordPress.org vía SVN (#2824)
 
 - Nuevo workflow `publicar-taxocommerce-wordpress-org.yml` con `workflow_dispatch`, selector de plugins aprobados (solo Core inicialmente) y confirmación manual obligatoria. Rechaza ramas distintas de `staging` o revisiones superadas.

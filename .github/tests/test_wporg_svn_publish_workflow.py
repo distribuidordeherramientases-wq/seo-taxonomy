@@ -39,6 +39,14 @@ class WordPressOrgSVNWorkflowTests(unittest.TestCase):
         self.assertIn("taxocommerce_family_readme_check.py", self.yaml)
         self.assertIn("Plugin Version and Stable tag do not match", self.yaml)
 
+    def test_svn_client_is_installed_and_verified_before_publish(self):
+        install = self.yaml.index("name: Instalar y verificar el cliente Subversion")
+        publish = self.yaml.index("name: Publicar trunk y etiqueta de version")
+        self.assertLess(install, publish)
+        self.assertIn("sudo apt-get install -y --no-install-recommends subversion", self.yaml)
+        self.assertIn("svn --version --quiet", self.yaml)
+        self.assertIn("if ! command -v svn >/dev/null 2>&1; then", self.yaml)
+
     def test_distribution_is_scoped_and_tag_immutable(self):
         self.assertIn("https://plugins.svn.wordpress.org/$PLUGIN", self.yaml)
         self.assertIn('if [ -e "$SVN_WORK/tags/$VERSION" ]; then', self.yaml)
