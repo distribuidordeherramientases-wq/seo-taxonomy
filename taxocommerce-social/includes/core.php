@@ -744,7 +744,27 @@ function tcsocial_network_publish_content($content_id, $provider, $template_over
         'provider'       => $saved_provider,
     );
 
-    $result = call_user_func($provider_config['publish_callback'], $payload);
+    // An exception after an HTTP request may mean that the network accepted
+    // the publication. Keep the attempt pending for manual verification rather
+    // than automatically retrying and risking duplicate posts.
+    try {
+        $result = call_user_func($provider_config['publish_callback'], $payload);
+    } catch (Throwable $error) {
+        global $wpdb;
+        $table = esc_sql( tcsocial_network_publications_table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Persist an uncertain remote delivery in this plugin's own audit table.
+        $wpdb->update(
+            $table,
+            array(
+                'error_message' => 'Resultado remoto no confirmado: excepción al ejecutar el conector. Revisar la red antes de reintentar.',
+                'updated_at'    => current_time('mysql'),
+            ),
+            array('id' => $publication_id),
+            array('%s', '%s'),
+            array('%d')
+        );
+        return new WP_Error('social_delivery_unconfirmed', 'La publicación no tiene confirmación: error en el conector. Revisa la red y el historial antes de reintentar.');
+    }
 
     global $wpdb;
     $table = esc_sql( tcsocial_network_publications_table() );
@@ -771,6 +791,24 @@ function tcsocial_network_publish_content($content_id, $provider, $template_over
 
     $remote_id = isset($result['remote_id']) ? sanitize_text_field((string) $result['remote_id']) : '';
     $remote_url = isset($result['remote_url']) ? esc_url_raw((string) $result['remote_url']) : '';
+
+    // Never mark a provider response as published without its remote ID.
+    // All current provider callbacks return remote_id on confirmed success.
+    if ('' === $remote_id) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Preserve an unconfirmed attempt until manually checked on the external network.
+        $wpdb->update(
+            $table,
+            array(
+                'error_message' => 'La red no devolvió un identificador; resultado no confirmado. Comprobar antes de reintentar.',
+                'updated_at'    => $now,
+            ),
+            array('id' => $publication_id),
+            array('%s', '%s'),
+            array('%d')
+        );
+        return new WP_Error('social_remote_id_missing', 'La publicación no se ha confirmado: falta el identificador remoto. Comprueba la red antes de reintentar.');
+    }
+
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Actualiza la publicacion/metricas en su tabla propia, con persistencia inmediata e invalidacion temporal implicita.
     $wpdb->update(
