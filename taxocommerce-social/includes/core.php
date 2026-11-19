@@ -3480,13 +3480,16 @@ function tcsocial_network_render_delivery_diagnostics()
         }
         $error = $data['last_error'];
         if ($data['due_cron']) {
+            // translators: %d: Number of overdue WordPress Cron events for this social network.
             $error = sprintf(__('Hay %d eventos WP-Cron vencidos; comprobar el ejecutor.', 'taxocommerce-social'), $data['due_cron']) . ' ' . $error;
         } elseif ($data['missing_cron']) {
+            // translators: %d: Number of overdue social schedules without a Cron event.
             $error = sprintf(__('Hay %d registros vencidos sin evento WP-Cron.', 'taxocommerce-social'), $data['missing_cron']) . ' ' . $error;
         } elseif ($data['overdue'] && '' === $error) {
             $error = __('Agenda vencida sin confirmación. Comprobar informes y la red antes de reprogramar.', 'taxocommerce-social');
         }
         if ($data['stale_pending']) {
+            // translators: %d: Number of unconfirmed social publication attempts.
             $error .= ' ' . sprintf(__('%d intentos sin confirmación. No reintentar sin comprobar la red.', 'taxocommerce-social'), $data['stale_pending']);
         }
         echo '<tr><td>' . esc_html(ucfirst($provider)) . ($data['enabled'] ? '' : ' (' . esc_html__('desconectada', 'taxocommerce-social') . ')') . '</td>';
