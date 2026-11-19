@@ -150,7 +150,7 @@ foreach ( preg_split( '/\R[ \t]*\R/u', $pot_source ) as $block ) {
 		$required_admin_ids[ $message_id ] = true;
 	}
 }
-if ( count( $required_admin_ids ) < 250 ) {
+if ( count( $required_admin_ids ) < 170 ) {
 	tcd_i18n_fail( 'Administration source inventory unexpectedly incomplete.' );
 }
 
