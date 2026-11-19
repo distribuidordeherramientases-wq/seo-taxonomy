@@ -104,15 +104,15 @@ foreach ( array( 'Descargar plantilla CSV', 'Exportar contenidos', 'Exportar age
 // without calling other init actions that install tables.
 tcsocial_network_register_auto_publish_hook();
 social_assert( has_action( 'transition_post_status' ), 'New-post auto publisher registered without monolith' );
-social_assert( count( TCSocial_Auto_Test::cases() ) === 21, 'Twenty-one functionality checks' );
+social_assert( count( TCSocial_Auto_Test::cases() ) === 22, 'Twenty-two functionality checks' );
 
 $report = TCSocial_Auto_Test::run_suite();
 if ( $report['totals']['fail'] ) {
     foreach ( $report['rows'] as $row ) if ( 'fail' === $row['status'] ) fwrite( STDERR, "CASE FAILED " . $row['id'] . ': ' . $row['message'] . "\n" );
 }
-social_assert( $report['totals'] === array( 'pass'=>15, 'fail'=>0, 'skip'=>6 ), '15 successful checks and 6 explicit local/remote skips without live fixtures' );
+social_assert( $report['totals'] === array( 'pass'=>15, 'fail'=>0, 'skip'=>7 ), '15 successful checks and 7 explicit local/remote skips without live fixtures' );
 social_assert( $report['version'] === TAXOCOMMERCE_SOCIAL_VERSION, 'report version' );
-social_assert( count( $report['rows'] ) === 21, 'all checks represented' );
+social_assert( count( $report['rows'] ) === 22, 'all checks represented' );
 social_assert( $GLOBALS['social_remote_calls'] === 0 && $GLOBALS['social_writes'] === 0, 'no outgoing requests or writes' );
 // A missed WP-Cron event must no longer return a false green Autocheck.
 $wpdb->schedule_rows = array( (object) array(
