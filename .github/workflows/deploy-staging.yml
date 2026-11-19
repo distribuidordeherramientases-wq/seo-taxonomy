@@ -144,6 +144,9 @@ jobs:
           php -l taxocommerce-accounting/includes/class-tca-corrections.php
           php -l taxocommerce-accounting/tests/corrections-smoke.php
           php taxocommerce-accounting/tests/corrections-smoke.php
+          php -l taxocommerce-accounting/includes/class-tca-settlements.php
+          php -l taxocommerce-accounting/tests/settlements-smoke.php
+          php taxocommerce-accounting/tests/settlements-smoke.php
           php -l taxocommerce-accounting/tests/live-tax-preparation-smoke.php
           php taxocommerce-accounting/tests/live-tax-preparation-smoke.php
           php taxocommerce-accounting/tests/smoke.php
@@ -193,6 +196,8 @@ jobs:
           php -l taxocommerce-dependiente/tests/m11-checkpoint-large-lexicon.php
           php taxocommerce-dependiente/tests/m11-checkpoint-large-lexicon.php
           php taxocommerce-distribution/tests/manual-autocheck-smoke.php
+          php -l taxocommerce-distribution/tests/overview-i18n-smoke.php
+          php taxocommerce-distribution/tests/overview-i18n-smoke.php
           php taxocommerce-facturacion/tests/manual-autotest-smoke.php
           php taxocommerce-faqs/tests/auto-test-smoke.php
           php taxocommerce-google-bing/tests/auto-test-smoke.php
@@ -219,6 +224,8 @@ jobs:
           node taxocommerce-google-bing/tests/head-tags-browser-smoke.js
           php taxocommerce-google-bing/tests/indexnow-smoke.php
           php taxocommerce-google-bing/tests/indexnow-i18n-smoke.php
+          php -l taxocommerce-google-bing/tests/admin-i18n-smoke.php
+          php taxocommerce-google-bing/tests/admin-i18n-smoke.php
           php taxocommerce-images/tests/auto-test-smoke.php
           php -l taxocommerce-images/includes/class-taxocommerce-autotest-code.php
           php taxocommerce-images/tests/code-check-smoke.php

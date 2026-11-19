@@ -12,13 +12,9 @@ Canonical semantic vocabulary, product characteristics and assisted classificati
 
 == Description ==
 
-* Admin header: plugin title, a single local `Description` with the static `Plugin URI` link below it (left); a wider collapsed `CHANGELOG.md` history (center); local version and release date (right). No duplicated information panel or external requests.
-
-* The admin header shows the plugin's bundled `Description` and links to its `Plugin URI`, without network requests or caching. Version history uses the bundled `CHANGELOG.md`.
-
-
-
 TaxoCommerce Vocabulary helps site administrators maintain canonical labels, technical attributes and assignments to WooCommerce content.
+
+= Key Features =
 
 * Uses canonical existing vocabulary, role-mapping and technical attribute storage on migrating installations.
 * Provides a classifier with proposals based on product titles, descriptions, WooCommerce tags, brands, categories, SKU and optional supplier metadata; classification is not applied automatically.

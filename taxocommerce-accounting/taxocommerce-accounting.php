@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.12
+ * Version: 0.1.13
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,8 +14,8 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.12' );
-define( 'TCA_DB_VERSION', '4' );
+define( 'TCA_VERSION', '0.1.13' );
+define( 'TCA_DB_VERSION', '5' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
 add_action( 'init', static function () {
@@ -36,6 +36,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-issued-invoice.ph
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-corrections.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-hacienda.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-treasury.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-settlements.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-expense-csv.php';
 
 /** Own data; no dependency on any TaxoCommerce module. */
@@ -86,6 +87,7 @@ function tca_install() {
     TCA_Provider_Invoices::install_schema();
     TCA_Corrections::install_schema();
     TCA_Treasury::install_schema();
+    TCA_Settlements::install_schema();
     update_option( 'tca_db_version', TCA_DB_VERSION, false );
     if ( false === get_option( TCA_OPTION, false ) ) {
         add_option( TCA_OPTION, tca_settings(), '', false );
@@ -722,6 +724,7 @@ function tca_table_rows( $rows, $kind = '' ) {
         }
         TCA_Corrections::render_row_action( $row );
         TCA_Provider_Invoices::render_row_controls( $row, $documents );
+        TCA_Settlements::render( $row );
         echo '</td></tr>';
     }
     if ( ! $count ) echo '<tr><td colspan="9">' . esc_html__( 'No entries in this section.', 'taxocommerce-accounting' ) . '</td></tr>';
@@ -841,7 +844,10 @@ function tca_admin() {
             'correction_failed'     => __( 'The correction failed. The previous ledger entry was retained.', 'taxocommerce-accounting' ),
             'review_zero_vat'      => __( 'This WooCommerce sale has zero VAT. Check its issued invoice and confirm the domestic VAT treatment before validating it.', 'taxocommerce-accounting' ),
             'invoice_mismatch'     => __( 'Accounting totals do not match the immutable issued invoice. Validation was blocked; reconcile the original document and WooCommerce order.', 'taxocommerce-accounting' ),
-            'treasury_saved'       => __( 'Treasury record saved.', 'taxocommerce-accounting' ),
+            'settlement_saved'     => __( 'Actual payment/receipt recorded in Treasury.', 'taxocommerce-accounting' ),
+        'settlement_invalid'   => __( 'Payment amount, date or account is invalid or exceeds the outstanding balance.', 'taxocommerce-accounting' ),
+        'settlement_failed'    => __( 'Payment could not be recorded; no money was moved.', 'taxocommerce-accounting' ),
+        'treasury_saved'       => __( 'Treasury record saved.', 'taxocommerce-accounting' ),
             'treasury_error'       => __( 'Could not save the treasury record.', 'taxocommerce-accounting' ),
             'treasury_invalid'     => __( 'Check the treasury values and dates.', 'taxocommerce-accounting' ),
             'expense_csv_done'    => __( 'Expense CSV processed. Verify the new drafts in Expenses.', 'taxocommerce-accounting' ),

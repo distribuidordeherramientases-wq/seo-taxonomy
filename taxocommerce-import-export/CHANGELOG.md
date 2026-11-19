@@ -1,3 +1,16 @@
+## [0.4.37] — 2026-11-18 — Broader native WordPress and WooCommerce CSV fields (#2809)
+
+- Expanded selectable export and import mapping for WooCommerce products: category and tag slugs, existing Media featured image, stock controls, physical dimensions, catalog visibility and standard product flags.
+- Added native WordPress post/page date, author login, featured image, comment status, menu order, post categories/tags and page parent by slug. Normalised standard published/stock flags.
+- Category import/export remains native, with parent taxonomy slug mapping. Existing TaxoCommerce advanced batch CSV and Media ZIP workflows are unchanged.
+- The basic importer uses existing WordPress terms, users and local Media files; it does not create unrelated entities or download external images. WordPress pages have no native categories.
+
+## [0.4.36] — 2026-11-18 — Basic CSV field mapping for WordPress and WooCommerce (#2809)
+
+- The individual tab now offers selectable CSV export fields and an import assistant mapping arbitrary CSV columns to native products, product categories, WordPress categories, pages and posts.
+- Imports run in bounded browser-driven AJAX steps after a CSV sample and column mapping; unmapped fields and blank cells are preserved, with explicit update-only and create/update modes.
+- Existing multi-file batch queues, advanced formats and Media ZIP workflows remain unchanged. No production deployment.
+
 ## [0.4.35] — 2026-11-18 — CSV seguro para anexar enlaces a páginas (#2804)
 
 - Nueva importación CSV por filas `page` con columnas `record_type,id,slug,content_append`: únicamente añade un bloque HTML filtrado a páginas existentes identificadas por ID y slug; no crea páginas ni modifica título, extracto, estado u otros campos.

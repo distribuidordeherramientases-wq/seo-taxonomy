@@ -1,3 +1,6 @@
+= 1.1.68 (2026-11-18) =
+* Translate 73 administration strings in ES/EN/FR/DE/NL: connection errors and success notices, Google OAuth fields, Search Console/GA4/Bing report labels and warnings. Rebuild five PO/MO catalogs and verify compiled values. No changes to connections or reports. Issue #2783.
+
 = 1.1.67 (2026-11-18) =
 * Restore the full read-only executive report: comparable GSC/GA4 business summary, product/category/page/post rankings, GA4 item/cart activity, visitor sources, confirmed period-over-period movement, supplier/Trends/competition and internal-search snapshots with explicit availability. Correct integer-zero-click detection. JSON v3 keeps earlier keys and adds structured executive evidence; no strategies or content changes. Issue #2801.
 

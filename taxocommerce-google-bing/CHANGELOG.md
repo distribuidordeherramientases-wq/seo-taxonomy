@@ -1,3 +1,9 @@
+## [1.1.68] — 2026-11-18 — Administration translations (Issue #2783)
+
+- Localize 73 previously untranslated interface strings in es_ES, en_US, fr_FR, de_DE and nl_NL: 25 connection outcomes/errors, 20 Google OAuth field labels and instructions, and 28 GSC/GA4/Bing reporting labels and warnings.
+- Recompile five gettext MO catalogs from PO. Keep identifiers, API contracts, credentials, reporting data and execution unchanged; untranslated manual/documentation entries continue to use gettext fallbacks.
+- Add a read-only, five-locale compiled-catalog regression in CI. No production deployment.
+
 ## [1.1.67] — 2026-11-18 — Informe ejecutivo comercial completo (#2801)
 
 - Recupera de forma verificable los apartados que el Plan de acción tenía como fuentes y que no se migraron a las versiones 1.1.65/1.1.66. El informe principal comienza por un resumen para dirección en lenguaje natural y cifras comparadas de sesiones GA4, clics e impresiones GSC, páginas vistas y compras medidas (sin equiparar compras GA4 a pedidos WooCommerce).
