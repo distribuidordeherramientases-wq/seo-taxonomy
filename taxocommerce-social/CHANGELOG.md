@@ -1,3 +1,10 @@
+## [0.1.24] — 2026-11-19 — Per-network publishing and WP-Cron delivery diagnostics (#2829)
+
+- Exposes a read-only Facebook/LinkedIn/Pinterest and other provider delivery audit: last attempt, latest confirmed publication, overdue schedules, overdue WP-Cron events, missing Cron events and stale pending requests. Connected status is no longer presented as proof of successful publishing.
+- Detects unexpected provider exceptions and missing remote IDs, keeping uncertain remote results pending instead of silently declaring success or automatically retrying them.
+- Displays full provider errors and failed-attempt timestamps in Reports and the existing history CSV. Autotest now flags non-delivery by provider, not merely the presence of registered hooks.
+- Does not replay historical overdue schedules or contact external networks during tests. Actual WP-Cron runner and real network credentials still require live validation on the affected site.
+
 ## [0.1.23] — 2026-11-14 — Propiedad autónoma de tareas WP-Cron heredadas (#2688)
 
 - Social adopta programaciones futuras almacenadas en las tablas compartidas cuando el antiguo ejecutor `seo_social_network_publish_manual_scheduled` ya no está registrado: primero registra y confirma el ejecutor propio; después retira exclusivamente el evento huérfano.
