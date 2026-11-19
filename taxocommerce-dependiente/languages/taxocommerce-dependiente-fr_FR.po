@@ -176,7 +176,7 @@ msgstr "Position"
 
 #: includes/class-tcd-admin.php:230
 msgid "Origen"
-msgstr ""
+msgstr "Origine"
 
 #: includes/class-tcd-admin.php:230
 msgid "Por qué"
