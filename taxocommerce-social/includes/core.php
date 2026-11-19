@@ -2088,6 +2088,7 @@ function tcsocial_network_scheduler_exportable_history_rows()
             (string) ($row->target_url ?: ''),
             (string) ($row->remote_url ?: ''),
             (string) ($row->error_message ?: ''),
+            (string) ($row->created_at ?: ''),
         );
     }
     return $result;
@@ -2133,7 +2134,7 @@ function tcsocial_network_handle_scheduler_export()
     if ('history' === $kind) {
         tcsocial_network_scheduler_send_csv(
             'historial-social-' . $stamp . '.csv',
-            array('publicacion_id', 'contenido_id', 'titulo', 'tipo', 'red', 'estado', 'fecha_publicacion', 'visitas_web', 'reacciones', 'comentarios', 'compartidos', 'url_medida', 'url_red_social', 'error'),
+            array('publicacion_id', 'contenido_id', 'titulo', 'tipo', 'red', 'estado', 'fecha_publicacion', 'visitas_web', 'reacciones', 'comentarios', 'compartidos', 'url_medida', 'url_red_social', 'error', 'fecha_intento'),
             tcsocial_network_scheduler_exportable_history_rows()
         );
     }
@@ -3571,10 +3572,10 @@ function tcsocial_network_render_reports()
         echo '<td>' . esc_html(ucfirst($row->provider)) . '</td>';
         echo '<td><span class="seo-social-state is-' . esc_attr($row->status) . '">' . esc_html(ucfirst($row->status)) . '</span>';
         if (!empty($row->error_message)) {
-            echo '<br><small style="color:#b32d2e">' . esc_html(wp_trim_words($row->error_message, 14, '...')) . '</small>';
+            echo '<br><details><summary style="color:#b32d2e">' . esc_html(wp_trim_words($row->error_message, 14, '...')) . '</summary><small>' . esc_html($row->error_message) . '</small></details>';
         }
         echo '</td>';
-        echo '<td>' . esc_html($row->published_at ? mysql2date(get_option('date_format') . ' ' . get_option('time_format'), $row->published_at) : '-') . '</td>';
+        echo '<td>' . esc_html($row->published_at ? mysql2date(get_option('date_format') . ' ' . get_option('time_format'), $row->published_at) : (!empty($row->created_at) ? mysql2date(get_option('date_format') . ' ' . get_option('time_format'), $row->created_at) . ' (intento)' : '-')) . '</td>';
         echo '<td><strong>' . esc_html(number_format_i18n((int) $row->clicks)) . '</strong></td>';
         echo '<td>' . esc_html(number_format_i18n((int) $row->reactions)) . '</td>';
         echo '<td>' . esc_html(number_format_i18n((int) $row->comments)) . '</td>';
