@@ -457,7 +457,7 @@ msgstr "Auto Test"
 msgid ""
 "Comprueba los principales contratos de Dependiente tras cada actualización, "
 "por grupos o en una sola pasada. No modifica el aprendizaje en curso."
-msgstr ""
+msgstr "Prüft nach jedem Update die wichtigsten Schnittstellen von Dependiente, nach Gruppen oder in einem Durchlauf. Laufende Lernvorgänge werden nicht verändert."
 
 #: includes/class-tcd-auto-test.php:647
 msgid "Ejecutar Auto Test completo"
@@ -501,7 +501,7 @@ msgid ""
 "Gris: sin ejecutar o no aplicable. Las pruebas de lectura y las muestras no "
 "garantizan por sí solas el correcto funcionamiento de todas las operaciones "
 "de escritura ni la relevancia de todas las búsquedas."
-msgstr ""
+msgstr "Grün: Prüfung bestanden. Rot: technischer Rückschritt oder widersprüchliche Daten. Grau: nicht ausgeführt oder nicht anwendbar. Reine Leseprüfungen und Stichproben gewährleisten weder alle Schreibvorgänge noch die Relevanz sämtlicher Suchergebnisse."
 
 #: includes/class-tcd-backup.php:141
 msgid "Backup / Restaurar Dependiente"
@@ -513,7 +513,7 @@ msgid ""
 " Sirve como backup, traslado WordPress → WordPress o sustituto del antiguo "
 "clonador PRO → STAGING. La restauración conserva los IDs internos para no "
 "romper la relación entre snapshots, material estudiado y quality gates."
-msgstr ""
+msgstr "Vollständige funktionsfähige Sicherung des dauerhaften Zustands von Dependiente. Geeignet als Backup, zur Übertragung von WordPress zu WordPress oder als Ersatz für den früheren PRO-zu-STAGING-Kloner. Bei der Wiederherstellung bleiben interne IDs erhalten, damit Beziehungen zwischen Snapshots, Lernmaterial und Qualitätsprüfungen intakt bleiben."
 
 #: includes/class-tcd-backup.php:143
 msgid "Diferencia con Conocimiento / Importar–Exportar:"
@@ -524,7 +524,7 @@ msgid ""
 "el conocimiento portable fusiona reglas y memoria reutilizable; este backup "
 "restaura el estado completo de Dependiente y sustituye sus tablas propias "
 "por las de la copia."
-msgstr ""
+msgstr "portables Wissen führt wiederverwendbare Regeln und Erinnerungen zusammen; dieses Backup stellt den vollständigen Zustand von Dependiente wieder her und ersetzt seine eigenen Tabellen durch die aus der Sicherung."
 
 #: includes/class-tcd-backup.php:145
 msgid "Qué queda protegido por el backup"
@@ -580,7 +580,7 @@ msgstr "1. Sicherung analysieren"
 msgid ""
 "Lee toda la copia sin escribir nada y muestra exactamente las tablas, "
 "opciones y número de filas que se restaurarían."
-msgstr ""
+msgstr "Liest die gesamte Sicherung ohne Schreibzugriff und zeigt genau, welche Tabellen, Optionen und Zeilenzahlen wiederhergestellt würden."
 
 #: includes/class-tcd-backup.php:193
 msgid "Analizar backup sin modificar datos"
@@ -595,7 +595,7 @@ msgid ""
 "Sustituye únicamente las tablas y estados propios de Dependiente. No "
 "fusiona: para fusionar conocimiento utiliza la pestaña de conocimiento "
 "portable."
-msgstr ""
+msgstr "Ersetzt ausschließlich die Tabellen und Zustände von Dependiente. Es wird nichts zusammengeführt: Verwenden Sie dafür die Registerkarte für portables Wissen."
 
 #: includes/class-tcd-backup.php:200
 msgid ""
@@ -613,7 +613,7 @@ msgid ""
 "La restauración borra primero las 9 tablas propias incluidas en el backup y "
 "las repuebla conservando sus IDs. No toca datos fuente de "
 "WooCommerce/WordPress."
-msgstr ""
+msgstr "Bei der Wiederherstellung werden zunächst die neun in der Sicherung enthaltenen Dependiente-Tabellen gelöscht und unter Beibehaltung ihrer IDs neu befüllt. WooCommerce- und WordPress-Quelldaten bleiben unverändert."
 
 #: includes/class-tcd-backup.php:208
 msgid "Restaurar backup completo"
@@ -688,7 +688,7 @@ msgid ""
 "feedback de clientes que ya haya superado los umbrales se transporta "
 "únicamente como regla semántica o señal L9 consolidada. Acepta tanto el "
 "export antiguo como el formato del plugin moderno."
-msgstr ""
+msgstr "Dieses Werkzeug überträgt das konsolidierte Wissen von Dependiente, ohne Katalogindex, Sitzungen, Suchvorgänge oder einzelne Klicks zu kopieren. Kundenfeedback, das die Schwellenwerte erreicht hat, wird nur als semantische Regel oder konsolidiertes L9-Signal übertragen. Sowohl das alte Exportformat als auch das aktuelle Plugin-Format werden unterstützt."
 
 #: includes/class-tcd-knowledge-transfer.php:312
 msgid "Conocimiento moderno"
@@ -750,7 +750,7 @@ msgstr "1. Export vor dem Import analysieren"
 msgid ""
 "No escribe datos. Identifica el formato, cuenta reglas/lecciones/memoria y "
 "muestra cómo se transformaría."
-msgstr ""
+msgstr "Schreibt keine Daten. Erkennt das Format, zählt Regeln, Lektionen und Speichereinträge und zeigt die geplante Umwandlung an."
 
 #: includes/class-tcd-knowledge-transfer.php:361
 msgid "Analizar compatibilidad"
@@ -764,13 +764,13 @@ msgstr "2. Importieren und zusammenführen"
 msgid ""
 "Añade lo que falta y conserva la versión local cuando detecta un conflicto. "
 "No elimina conocimiento existente."
-msgstr ""
+msgstr "Ergänzt fehlendes Wissen und behält bei Konflikten die lokale Version. Vorhandenes Wissen wird nicht gelöscht."
 
 #: includes/class-tcd-knowledge-transfer.php:368
 msgid ""
 "Dependiente está aprendiendo. Detén el proceso antes de importar para "
 "mantener una foto coherente."
-msgstr ""
+msgstr "Dependiente lernt gerade. Stoppen Sie den Vorgang vor dem Import, um einen konsistenten Snapshot zu bewahren."
 
 #: includes/class-tcd-knowledge-transfer.php:374
 msgid "Confirmo que quiero fusionar este conocimiento con el existente."
@@ -1800,19 +1800,19 @@ msgstr ""
 
 #: includes/interpreter/class-tcd-interpreter-legacy.php:138
 msgid "No tienes permisos para acceder al Intérprete."
-msgstr ""
+msgstr "Sie haben keine Berechtigung, auf den Interpreter zuzugreifen."
 
 #: includes/interpreter/class-tcd-linguist.php:568
 msgid "No tienes permisos para exportar la formación Lingüista."
-msgstr ""
+msgstr "Sie haben keine Berechtigung, das Linguisten-Training zu exportieren."
 
 #: includes/interpreter/class-tcd-linguist.php:586
 msgid "Exportación Lingüista"
-msgstr ""
+msgstr "Linguisten-Export"
 
 #: includes/interpreter/class-tcd-linguist.php:598
 msgid "No tienes permisos para controlar Lingüista."
-msgstr ""
+msgstr "Sie haben keine Berechtigung, den Linguisten zu steuern."
 
 #. Dependiente Academy empty lesson status
 msgid "Sin material"
