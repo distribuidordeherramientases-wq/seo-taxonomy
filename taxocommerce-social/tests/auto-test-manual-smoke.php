@@ -38,6 +38,13 @@ function wp_nonce_field( $action, $name = '_wpnonce' ) { echo '<input type="hidd
 function submit_button( $label, $type = 'primary', $name = 'submit', $wrap = true ) { echo '<button type="submit">' . esc_html( $label ) . '</button>'; }
 function sanitize_key( $s ) { return strtolower( preg_replace( '/[^a-z0-9_-]/i', '', (string) $s ) ); }
 function esc_sql( $value ) { return $value; }
+function get_post_meta( $post_id, $key, $single = false ) {
+    foreach ( $GLOBALS['wpdb']->schedule_rows as $row ) {
+        if ( (int) $row->post_id === (int) $post_id && $row->meta_key === $key ) return $row->meta_value;
+    }
+    return '';
+}
+function get_gmt_from_date( $date ) { return $date; }
 function wp_unslash( $s ) { return $s; }
 function wp_remote_get() { ++$GLOBALS['social_remote_calls']; throw new RuntimeException( 'Network forbidden' ); }
 function wp_remote_post() { ++$GLOBALS['social_remote_calls']; throw new RuntimeException( 'Network forbidden' ); }
@@ -125,13 +132,14 @@ $wpdb->job_rows = array( (object) array(
 $wpdb->history_rows = array( (object) array(
     'provider' => 'pinterest', 'status' => 'failed',
     'error_message' => 'Missing: boards:write',
+    'created_at' => '2026-11-19 18:30:00', 'published_at' => null,
 ) );
 $failure_report = TCSocial_Auto_Test::run_suite();
 $failed_ids = array();
 foreach ( $failure_report['rows'] as $row ) {
     if ( 'fail' === $row['status'] ) $failed_ids[] = $row['id'];
 }
-foreach ( array( 'schedule_health', 'job_health', 'recent_outcomes' ) as $id ) {
+foreach ( array( 'schedule_health', 'delivery_health', 'job_health', 'recent_outcomes' ) as $id ) {
     social_assert( in_array( $id, $failed_ids, true ), 'Functional Autocheck flags ' . $id );
 }
 $wpdb->schedule_rows = array();
@@ -140,7 +148,7 @@ $wpdb->history_rows = array();
 foreach ( $wpdb->queries as $sql ) {
     social_assert( preg_match( '/^(SELECT|SHOW) /', $sql ) === 1, 'read-only query: ' . $sql );
     if ( strpos( $sql, ' FROM wp_' ) !== false ) {
-        social_assert( preg_match( '/LIMIT (1|100|150)$/', trim( $sql ) ) === 1, 'query bounded: ' . $sql );
+        social_assert( preg_match( '/LIMIT (1|100|150|200|250)$/', trim( $sql ) ) === 1, 'query bounded: ' . $sql );
     }
 }
 
