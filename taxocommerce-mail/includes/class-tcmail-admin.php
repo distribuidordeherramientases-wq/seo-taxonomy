@@ -59,6 +59,7 @@ final class TCMAIL_Admin {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified above.
         $input = isset( $_POST['account'] ) && is_array( $_POST['account'] )
             ? map_deep( wp_unslash( $_POST['account'] ), 'sanitize_text_field' ) : array();
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Opaque password is never output or logged and is encrypted immediately; sanitizing could change its actual bytes.
         $password = isset( $_POST['password'] ) && is_string( $_POST['password'] ) ? wp_unslash( $_POST['password'] ) : '';
         $id = isset( $_POST['id'] ) && is_string( $_POST['id'] ) ? sanitize_text_field( wp_unslash( $_POST['id'] ) ) : '';
         // phpcs:enable WordPress.Security.NonceVerification.Missing
