@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.2 — 2026-11-20
+- Fix false positive `created` message for honeypot rejection; report failure without generating a ticket.
+- Preserve inserted message ID before a separate SQL update and surface submission outcomes through privacy-minimal diagnostic events.
+- Add staff Activity log limited to 150 recent events (UTC timestamp, fixed event code and ticket ID; no IP, email or messages), JSON export.
+- Split Autocheck into Functionality Check (synthetic ticket/message/attachment create-read-delete with cleanup and real counts) and independent 5-speed Code Check (PHP, WordPress, security), with JSON exports.
+- Add WordPress-admin User Manual and Technical Manual; retain plugin independence.
+- GitHub Issue #2874. Tests and WordPress.org Plugin Check required before merge and test-site deployment.
+
+
 ## 0.1.1 — 2026-11-20
 - Prepared dual-site first installation, Core extension management and public plugin information page on Focazul (Issue #2871).
 
