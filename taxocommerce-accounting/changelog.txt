@@ -1,3 +1,6 @@
+= 0.1.14 (2026-11-20) =
+* Optional confirmed paid flag, bank/cash account and real date when entering or validating an invoice. Treasury can reconcile historical already-paid invoices in one reviewed batch without duplicating linked or manually matched payments. Explicit user confirmation is required, and CSV imports still create drafts without assumed payments. Issue #2843.
+
 = 0.1.13 (2026-11-18) =
 * Link confirmed invoice payments and receipts (including partial payments) to real cash/bank movements; dedicated ledger links, idempotency keys, exact balance reconciliation, no automatic movements from fiscal validation alone. Issue #2817.
 

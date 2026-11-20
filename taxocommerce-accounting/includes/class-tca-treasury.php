@@ -326,6 +326,22 @@ final class TCA_Treasury {
             }
         }
         echo '<h2>' . esc_html__( 'Treasury: cash, bank and loans', 'taxocommerce-accounting' ) . '</h2>';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only result message after a nonce-protected settlement form.
+        if ( isset( $_GET['notice'] ) && 'bulk_settlement_result' === sanitize_key( wp_unslash( $_GET['notice'] ) ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- These GET numbers are displayed only, not used for writes.
+            $posted = isset( $_GET['posted'] ) ? absint( wp_unslash( $_GET['posted'] ) ) : 0;
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only counts.
+            $skipped = isset( $_GET['skipped'] ) ? absint( wp_unslash( $_GET['skipped'] ) ) : 0;
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only counts.
+            $errors = isset( $_GET['errors'] ) ? absint( wp_unslash( $_GET['errors'] ) ) : 0;
+            echo '<div class="notice notice-info inline"><p>' . esc_html(
+                sprintf(
+                    /* translators: 1: payments posted, 2: payments skipped, 3: payments with errors. */
+                    __( 'Historical reconciliation: %1$d payments posted, %2$d skipped, %3$d errors. Review the bank balance before posting anything again.', 'taxocommerce-accounting' ),
+                    $posted, $skipped, $errors
+                )
+            ) . '</p></div>';
+        }
         echo '<p class="description">' . esc_html__( 'Balances use opening funds and confirmed payments/receipts (including invoice-linked settlements). Unpaid invoices and future loan instalments never move money.', 'taxocommerce-accounting' ) . '</p>';
         echo '<div class="tca-treasury-kpis">';
         $indicators = array(
@@ -358,6 +374,7 @@ final class TCA_Treasury {
             echo '<tr><td colspan="4">' . esc_html__( 'Add your cash register or first bank account to start tracking funds.', 'taxocommerce-accounting' ) . '</td></tr>';
         }
         echo '</tbody></table>';
+        TCA_Settlements::render_bulk( $year );
 
         echo '<div class="tca-treasury-forms"><div>';
         echo '<h4>' . esc_html__( 'Add cash register / bank account', 'taxocommerce-accounting' ) . '</h4>';

@@ -161,5 +161,186 @@ final class TCA_Settlements {
         echo '</form>';
         echo '<p class="description">' . esc_html__( 'Record only actual bank/cash payments. Importing or validating an invoice never assumes it was paid.', 'taxocommerce-accounting' ) . '</p>';
     }
+
+    /**
+     * Confirm a real payment when saving or validating an invoice.
+     * No fiscal validation or CSV import by itself implies a payment.
+     */
+    public static function confirmed_from_form( $entry_id ) {
+        if ( '1' !== tca_input( 'tca_payment_confirmed' ) ) {
+            return true;
+        }
+        return self::settle(
+            absint( $entry_id ),
+            absint( tca_input( 'tca_payment_account_id' ) ),
+            tca_input( 'tca_payment_date' ),
+            tca_input( 'tca_payment_amount' ),
+            tca_input( 'tca_payment_key' )
+        );
+    }
+
+    /** Optional confirmation in the existing invoice editor; no extra payment action. */
+    public static function render_confirmation_fields( $entry_or_total, $date, $kind = 'expense' ) {
+        $accounts = self::accounts();
+        if ( ! $accounts ) {
+            echo '<p class="description">' . esc_html__( 'Configure a bank or cash account in Treasury before linking a payment.', 'taxocommerce-accounting' ) . '</p>';
+            return;
+        }
+        $new_invoice = null === $entry_or_total;
+        $amount = is_object( $entry_or_total ) ? self::outstanding( $entry_or_total->amount_total, self::sum( (int) $entry_or_total->id ) ) : abs( (float) $entry_or_total );
+        if ( $amount <= 0 && ! $new_invoice ) {
+            return;
+        }
+        echo '<div class="tca-payment-confirm"><p><label><input type="checkbox" name="tca_payment_confirmed" value="1"> <strong>' .
+            esc_html( 'sale' === $kind ? __( 'Payment received and verified', 'taxocommerce-accounting' ) : __( 'Invoice already paid (confirmed)', 'taxocommerce-accounting' ) ) .
+            '</strong></label></p>';
+        echo '<p class="description">' . esc_html__( 'Select this only if the payment actually occurred. It immediately creates a linked cash/bank movement when this form is saved; leave unchecked for unpaid invoices.', 'taxocommerce-accounting' ) . '</p>';
+        echo '<input type="hidden" name="tca_payment_key" value="' . esc_attr( wp_generate_uuid4() ) . '">';
+        echo '<label>' . esc_html__( 'Bank or cash account', 'taxocommerce-accounting' ) . ' <select name="tca_payment_account_id">';
+        echo '<option value="0">' . esc_html__( 'Select an account', 'taxocommerce-accounting' ) . '</option>';
+        foreach ( $accounts as $account ) {
+            echo '<option value="' . esc_attr( (string) $account->id ) . '">' . esc_html( $account->name . ' (' . $account->kind . ')' ) . '</option>';
+        }
+        echo '</select></label> ';
+        echo '<label>' . esc_html__( 'Actual payment date', 'taxocommerce-accounting' ) .
+            ' <input type="date" name="tca_payment_date" value="' . esc_attr( $date <= current_time( 'Y-m-d' ) ? $date : current_time( 'Y-m-d' ) ) . '"></label> ';
+        echo '<label>' . esc_html__( 'Paid amount', 'taxocommerce-accounting' ) .
+            ' <input type="number" name="tca_payment_amount" min="0.01" step="0.01"' .
+            ( $new_invoice ? '' : ' max="' . esc_attr( number_format( $amount, 2, '.', '' ) ) . '"' ) .
+            ' value="' . esc_attr( $new_invoice ? '' : number_format( $amount, 2, '.', '' ) ) . '" placeholder="' . esc_attr__( 'Invoice total including VAT', 'taxocommerce-accounting' ) . '"></label></div>';
+    }
+
+    /**
+     * Historical reconciliation is opt-in: never generate payments from invoices
+     * without an explicit user confirmation and account selection.
+     */
+    public static function candidates( $year, $limit = 100 ) {
+        global $wpdb;
+        $year = absint( $year );
+        $limit = min( 100, max( 1, absint( $limit ) ) );
+        if ( $year < 2000 || $year > 2100 ) {
+            return array();
+        }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live reconciliation must read approved entries and linked settlements.
+        return (array) $wpdb->get_results( $wpdb->prepare(
+            'SELECT e.id,e.kind,e.fiscal_date,e.document_no,e.party,e.amount_total,e.status FROM %i AS e WHERE e.fiscal_date >= %s AND e.fiscal_date <= %s AND e.status = %s AND e.kind IN (%s,%s,%s,%s) AND ABS(e.amount_total) > COALESCE((SELECT SUM(m.amount) FROM %i AS s INNER JOIN %i AS m ON m.id = s.movement_id WHERE s.entry_id = e.id),0) ORDER BY e.fiscal_date ASC,e.id ASC LIMIT %d',
+            tca_table(), $year . '-01-01',
+            $year . '-12-31', 'validated', 'purchase', 'expense', 'asset', 'intra',
+            self::table(), TCA_Treasury::movements_table(), $limit
+        ) );
+    }
+
+    /** Keep already-entered manual cash/bank payments from being duplicated. */
+    private static function has_unlinked_manual_payment( $entry, $account_id ) {
+        global $wpdb;
+        if ( '' === (string) $entry->document_no ) {
+            return false;
+        }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Detect existing unlinked bank payment by identical account and invoice reference, including partial manual payments.
+        $movement_id = $wpdb->get_var( $wpdb->prepare(
+            'SELECT m.id FROM %i AS m LEFT JOIN %i AS s ON m.id = s.movement_id WHERE m.account_id = %d AND m.direction = %s AND m.reference = %s AND s.movement_id IS NULL LIMIT 1',
+            TCA_Treasury::movements_table(), self::table(), absint( $account_id ), 'out',
+            (string) $entry->document_no
+        ) );
+        return ! empty( $movement_id );
+    }
+
+    public static function render_bulk( $year ) {
+        $accounts = self::accounts();
+        if ( ! $accounts ) {
+            return;
+        }
+        $entries = self::candidates( $year );
+        if ( ! $entries ) {
+            return;
+        }
+        echo '<h3>' . esc_html__( 'Reconcile previously paid invoices', 'taxocommerce-accounting' ) . '</h3>';
+        echo '<p class="description">' . esc_html__( 'Only for invoices already paid and not yet linked to Treasury. Review each invoice, deselect unpaid items and correct the actual bank payment date; invoice dates below are suggestions only. No payments are generated until you confirm.', 'taxocommerce-accounting' ) . '</p>';
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        wp_nonce_field( 'tca_bulk_paid_' . absint( $year ) );
+        echo '<input type="hidden" name="action" value="tca_bulk_paid">';
+        echo '<input type="hidden" name="year" value="' . esc_attr( (string) absint( $year ) ) . '">';
+        echo '<p><label>' . esc_html__( 'Account from which invoices were paid', 'taxocommerce-accounting' ) . ' <select name="account_id" required>';
+        echo '<option value="0">' . esc_html__( 'Select bank or cash account', 'taxocommerce-accounting' ) . '</option>';
+        foreach ( $accounts as $account ) {
+            echo '<option value="' . esc_attr( (string) $account->id ) . '">' . esc_html( $account->name . ' (' . $account->kind . ')' ) . '</option>';
+        }
+        echo '</select></label></p><div class="tca-treasury-scroll"><table class="widefat striped"><thead><tr>';
+        foreach ( array( __( 'Paid?', 'taxocommerce-accounting' ), __( 'Invoice', 'taxocommerce-accounting' ), __( 'Supplier', 'taxocommerce-accounting' ), __( 'Outstanding', 'taxocommerce-accounting' ), __( 'Actual bank payment date', 'taxocommerce-accounting' ) ) as $label ) {
+            echo '<th>' . esc_html( $label ) . '</th>';
+        }
+        echo '</tr></thead><tbody>';
+        foreach ( $entries as $entry ) {
+            $due = self::outstanding( $entry->amount_total, self::sum( $entry->id ) );
+            echo '<tr><td><input type="checkbox" name="entry_ids[]" value="' . esc_attr( (string) $entry->id ) . '"></td><td>' .
+                esc_html( $entry->document_no ) . '</td><td>' . esc_html( $entry->party ) . '</td><td>' . esc_html( tca_money( $due ) ) . '</td><td>';
+            echo '<input type="date" name="payment_dates[' . esc_attr( (string) $entry->id ) . ']" value="' .
+                esc_attr( $entry->fiscal_date ) . '" max="' . esc_attr( current_time( 'Y-m-d' ) ) . '" aria-label="' .
+                esc_attr__( 'Actual payment date', 'taxocommerce-accounting' ) . '"></td></tr>';
+        }
+        echo '</tbody></table></div>';
+        echo '<p><label><input type="checkbox" name="payments_verified" value="1" required> ' .
+            esc_html__( 'I confirm the selected invoices were paid from this account on the dates shown, and their payments are not already recorded in Treasury.', 'taxocommerce-accounting' ) . '</label></p>';
+        submit_button( __( 'Post confirmed historical payments', 'taxocommerce-accounting' ), 'secondary', 'submit', false );
+        echo '</form>';
+        echo '<p class="description">' . esc_html__( 'At most 100 invoices are shown at once. Refresh to reconcile more. This does not change invoices, VAT deductions or financing/loan balances.', 'taxocommerce-accounting' ) . '</p>';
+    }
+
+    /** Reconcile explicitly selected historical payments; safe to retry. */
+    public static function handle_bulk() {
+        if ( ! current_user_can( 'manage_woocommerce' ) ) {
+            wp_die( esc_html__( 'Insufficient permissions.', 'taxocommerce-accounting' ) );
+        }
+        $year = isset( $_POST['year'] ) ? absint( wp_unslash( $_POST['year'] ) ) : 0;
+        check_admin_referer( 'tca_bulk_paid_' . $year );
+        $account_id = isset( $_POST['account_id'] ) ? absint( wp_unslash( $_POST['account_id'] ) ) : 0;
+        $verified = isset( $_POST['payments_verified'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['payments_verified'] ) );
+        $selected = isset( $_POST['entry_ids'] ) && is_array( $_POST['entry_ids'] ) ? array_map( 'absint', wp_unslash( $_POST['entry_ids'] ) ) : array();
+        $dates = isset( $_POST['payment_dates'] ) && is_array( $_POST['payment_dates'] ) ? map_deep( wp_unslash( $_POST['payment_dates'] ), 'sanitize_text_field' ) : array();
+        $account_exists = false;
+        foreach ( self::accounts() as $account ) {
+            if ( (int) $account->id === $account_id && in_array( $account->kind, array( 'bank', 'cash' ), true ) ) {
+                $account_exists = true;
+                break;
+            }
+        }
+        if ( ! $verified || ! $account_exists || ! $selected || count( $selected ) > 100 ) {
+            wp_safe_redirect( tca_admin_url( 'treasury', array( 'notice' => 'settlement_invalid' ) ) );
+            exit;
+        }
+        $allowed_ids = array();
+        foreach ( self::candidates( $year ) as $entry ) {
+            $allowed_ids[ (int) $entry->id ] = $entry;
+        }
+        $posted = 0;
+        $skipped = 0;
+        $errors = 0;
+        foreach ( array_unique( array_map( 'absint', $selected ) ) as $id ) {
+            if ( ! isset( $allowed_ids[ $id ] ) ) {
+                ++$skipped;
+                continue;
+            }
+            $entry = $allowed_ids[ $id ];
+            $date = isset( $dates[ $id ] ) && is_scalar( $dates[ $id ] ) ? sanitize_text_field( $dates[ $id ] ) : '';
+            $amount = self::outstanding( $entry->amount_total, self::sum( $id ) );
+            if ( ! tca_valid_date( $date ) || $date > current_time( 'Y-m-d' ) ||
+                self::has_unlinked_manual_payment( $entry, $account_id ) ) {
+                ++$skipped;
+                continue;
+            }
+            $result = self::settle( $id, $account_id, $date, number_format( $amount, 2, '.', '' ), wp_generate_uuid4() );
+            if ( is_wp_error( $result ) ) {
+                ++$errors;
+            } else {
+                ++$posted;
+            }
+        }
+        wp_safe_redirect( tca_admin_url( 'treasury', array(
+            'notice' => 'bulk_settlement_result',
+            'posted' => $posted, 'skipped' => $skipped, 'errors' => $errors,
+        ) ) );
+        exit;
+    }
 }
 add_action( 'admin_post_tca_settle_entry', array( 'TCA_Settlements', 'handle' ) );
+add_action( 'admin_post_tca_bulk_paid', array( 'TCA_Settlements', 'handle_bulk' ) );

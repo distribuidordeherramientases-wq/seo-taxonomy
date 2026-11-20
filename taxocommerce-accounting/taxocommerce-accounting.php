@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.13
+ * Version: 0.1.14
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.13' );
+define( 'TCA_VERSION', '0.1.14' );
 define( 'TCA_DB_VERSION', '5' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
@@ -496,8 +496,10 @@ function tca_handle() {
             'notes' => sanitize_textarea_field( tca_input( 'notes' ) ),
         );
         if ( ! in_array( $entry['treatment'], array( 'domestic', 'review', 'intra', 'exempt', 'reverse' ), true ) ) $entry['treatment'] = 'review';
-        if ( ! tca_insert( $entry ) ) tca_redirect( 'received', 'error' );
-        tca_redirect( 'received', 'saved' );
+        $saved_id = tca_insert( $entry );
+        if ( ! $saved_id ) tca_redirect( 'received', 'error' );
+        $payment = TCA_Settlements::confirmed_from_form( $saved_id );
+        tca_redirect( 'received', is_wp_error( $payment ) ? 'saved_payment_failed' : 'saved' );
     }
     if ( 'validate' === $operation ) {
         global $wpdb;
@@ -532,8 +534,10 @@ function tca_handle() {
             $data['deductible_pct'] = $deductible;
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Immutable post-approval fiscal record, own ledger.
-        $wpdb->update( tca_table(), $data, array( 'id' => $id, 'status' => 'draft' ) );
-        tca_redirect( 'summary', 'validated' );
+        $updated = $wpdb->update( tca_table(), $data, array( 'id' => $id, 'status' => 'draft' ) );
+        if ( 1 !== $updated ) tca_redirect( 'summary', 'error' );
+        $payment = TCA_Settlements::confirmed_from_form( $id );
+        tca_redirect( 'summary', is_wp_error( $payment ) ? 'validated_payment_failed' : 'validated' );
     }
     tca_redirect( 'summary', 'invalid' );
 }
@@ -717,6 +721,7 @@ function tca_table_rows( $rows, $kind = '' ) {
                 echo '<label>' . esc_html__( 'Deductible VAT percentage (review first)', 'taxocommerce-accounting' ) . ' <input type="number" min="0" max="100" step="0.01" name="deductible_pct" value="' . esc_attr( $row->deductible_pct ) . '" required></label>';
                 echo '<p class="description">' . esc_html__( 'Deductible percentage of the VAT amount, NOT the invoice VAT rate. 0% means no deduction; 100% only when fully deductible.', 'taxocommerce-accounting' ) . '</p>';
             }
+            TCA_Settlements::render_confirmation_fields( $row, $row->fiscal_date, $row->kind );
             submit_button( __( 'Validate', 'taxocommerce-accounting' ), 'secondary small', 'submit', false );
             echo '</form>';
         } else {
@@ -766,6 +771,7 @@ function tca_new_invoice_form( $kind ) {
         echo '<option value="' . esc_attr( $key ) . '">' . esc_html( tca_label( $label ) ) . '</option>';
     }
     echo '</select></td></tr></table>';
+    TCA_Settlements::render_confirmation_fields( null, current_time( 'Y-m-d' ), $kind );
     submit_button( __( 'Save draft', 'taxocommerce-accounting' ) );
     echo '</form>';
 }
@@ -845,6 +851,9 @@ function tca_admin() {
             'review_zero_vat'      => __( 'This WooCommerce sale has zero VAT. Check its issued invoice and confirm the domestic VAT treatment before validating it.', 'taxocommerce-accounting' ),
             'invoice_mismatch'     => __( 'Accounting totals do not match the immutable issued invoice. Validation was blocked; reconcile the original document and WooCommerce order.', 'taxocommerce-accounting' ),
             'settlement_saved'     => __( 'Actual payment/receipt recorded in Treasury.', 'taxocommerce-accounting' ),
+        'bulk_settlement_result' => __( 'Historical payment reconciliation processed; review the posted, skipped and error counts shown.', 'taxocommerce-accounting' ),
+        'saved_payment_failed' => __( 'Invoice draft saved, but the selected payment could not be recorded. Register it from the invoice row after checking account, date and amount.', 'taxocommerce-accounting' ),
+        'validated_payment_failed' => __( 'Invoice validated, but the selected payment could not be recorded. Register it from the invoice row.', 'taxocommerce-accounting' ),
         'settlement_invalid'   => __( 'Payment amount, date or account is invalid or exceeds the outstanding balance.', 'taxocommerce-accounting' ),
         'settlement_failed'    => __( 'Payment could not be recorded; no money was moved.', 'taxocommerce-accounting' ),
         'treasury_saved'       => __( 'Treasury record saved.', 'taxocommerce-accounting' ),

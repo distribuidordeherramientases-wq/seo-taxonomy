@@ -8,6 +8,7 @@ defined( 'ABSPATH' ) || define( 'ABSPATH', __DIR__ . '/' );
 if ( ! function_exists( 'add_action' ) ) {
     function add_action( $hook, $callback, $priority = 10, $accepted_args = 1 ) {}
 }
+function tca_input( $key ) { return ''; }
 require_once dirname( __DIR__ ) . '/includes/class-tca-settlements.php';
 
 function tca_settlement_assert( $condition, $message ) {
@@ -21,6 +22,8 @@ foreach ( array( 'expense', 'purchase', 'asset', 'intra', 'refund' ) as $kind ) 
     tca_settlement_assert( 'out' === TCA_Settlements::direction( $kind ), 'Outgoing entry is a money-out movement: ' . $kind );
 }
 tca_settlement_assert( 13.80 === TCA_Settlements::outstanding( 362.57, 348.77 ), 'Outstanding balance supports cents rounding' );
+tca_settlement_assert( 1.25 === round( 362.57 - 348.77 - 12.55, 2 ), 'Confirmed Satkit payment follows earlier operating expenses' );
+tca_settlement_assert( true === TCA_Settlements::confirmed_from_form( 123 ), 'An unchecked invoice never creates a payment' );
 tca_settlement_assert( 24.20 === TCA_Settlements::outstanding( 24.20, 0 ), 'Unpaid invoice remains fully outstanding' );
 tca_settlement_assert( 14.20 === TCA_Settlements::outstanding( 24.20, 10 ), 'Partial payment decreases outstanding' );
 tca_settlement_assert( 0.0 === TCA_Settlements::outstanding( 24.20, 24.20 ), 'Fully paid invoice leaves zero outstanding' );
@@ -33,4 +36,16 @@ tca_settlement_assert( false !== strpos( $source, 'FOR UPDATE' ), 'Entry lock pr
 tca_settlement_assert( false !== strpos( $source, 'UNIQUE KEY request_key' ), 'Idempotency constraint prevents retry duplication' );
 tca_settlement_assert( false !== strpos( $source, 'ROLLBACK' ) && false !== strpos( $source, 'COMMIT' ), 'Payment and link share one transaction' );
 tca_settlement_assert( false === strpos( $source, "update( tca_table()" ), 'Settlement never edits approved fiscal entries' );
+tca_settlement_assert( false !== strpos( $source, "check_admin_referer( 'tca_bulk_paid_'"), 'Bulk payments have a dedicated nonce' );
+tca_settlement_assert( false !== strpos( $source, "name=\"payments_verified\""), 'Bulk posting requires explicit confirmation' );
+tca_settlement_assert( false !== strpos( $source, "name=\"entry_ids[]\""), 'Historical payments can be selected individually' );
+tca_settlement_assert( false !== strpos( $source, "payment_dates[" ), 'Real payment dates can be corrected before posting' );
+tca_settlement_assert( false !== strpos( $source, "has_unlinked_manual_payment" ), 'Bulk reconciliation avoids matching old unlinked manual payment' );
+tca_settlement_assert( false !== strpos( $source, 'self::outstanding( $entry->amount_total' ), 'Bulk reconciliation only posts outstanding balances' );
+tca_settlement_assert( false !== strpos( $source, "name=\"tca_payment_confirmed\""), 'New invoices have optional paid checkbox' );
+$main = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-accounting.php' );
+tca_settlement_assert( false !== strpos( $main, 'TCA_Settlements::confirmed_from_form( $saved_id )' ), 'Manual invoices post confirmed payments on save' );
+tca_settlement_assert( false !== strpos( $main, 'TCA_Settlements::confirmed_from_form( $id )' ), 'Validated invoices can post confirmed payments' );
+$treasury = file_get_contents( dirname( __DIR__ ) . '/includes/class-tca-treasury.php' );
+tca_settlement_assert( false !== strpos( $treasury, 'TCA_Settlements::render_bulk( $year );' ), 'Treasury exposes historical reconciliation' );
 echo "TaxoCommerce Accounting settlement smoke: PASS\n";
