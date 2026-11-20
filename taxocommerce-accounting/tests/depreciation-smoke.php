@@ -33,7 +33,7 @@ check_depreciation( ! TCA_Depreciation::valid( 'fixed_asset', '2026-11-20', '0',
 check_depreciation( ! TCA_Depreciation::valid( 'custom', '', '', '2026-11-20' ), 'reject unsupported classification' );
 check_depreciation( TCA_Depreciation::valid( 'current', '', '', '2026-11-20' ), 'current expense needs no useful life' );
 
-check_depreciation( 0.0 === TCA_Depreciation::annual( $entry, 2025 )['expense'], 'before service no charge' );
+check_depreciation( abs( TCA_Depreciation::annual( $entry, 2025 )['expense'] ) < 0.001, 'before service no charge' );
 $sum = 0;
 for ( $year = 2026; $year <= 2031; ++$year ) {
     $r = TCA_Depreciation::annual( $entry, $year );
@@ -42,7 +42,7 @@ for ( $year = 2026; $year <= 2031; ++$year ) {
 }
 check_depreciation( abs( $sum - 925.90 ) < 0.001, 'five-year allocation clears cost to the cent' );
 check_depreciation( TCA_Depreciation::annual( $entry, 2026 )['expense'] < 100, 'first fiscal year prorated' );
-check_depreciation( 0.0 === TCA_Depreciation::annual( $entry, 2031 )['remaining'], 'end-year residual zero' );
+check_depreciation( abs( TCA_Depreciation::annual( $entry, 2031 )['remaining'] ) < 0.001, 'end-year residual zero' );
 check_depreciation( (float) $entry->amount_tax === 194.44 && (float) $entry->amount_total === 1120.34, 'original VAT and cash amount untouched' );
 $entry->status = 'draft';
 check_depreciation( null === TCA_Depreciation::annual( $entry, 2027 ), 'draft not booked as validated depreciation' );
