@@ -1,3 +1,6 @@
+= 1.1.70 (2026-11-20) =
+* Translate 16 Google Trends administration strings to five locales and rebuild compiled gettext catalogs. Issue #2783.
+
 = 1.1.69 (2026-11-20) =
 * Translate eight Autotest, Connections and Merchant administration labels in five languages and compile their MO catalogs. No business logic changes. Issue #2783.
 

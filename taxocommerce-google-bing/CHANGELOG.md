@@ -1,3 +1,8 @@
+## [1.1.70] — 2026-11-20 — Google Trends administration translations (#2783)
+
+- Translate 16 remaining Google Trends interface labels, controls and status messages across es_ES, en_US, fr_FR, de_DE and nl_NL.
+- Regenerate compiled gettext catalogs from updated PO files. No behavioral, network or business data changes. No production deployment.
+
 ## [1.1.69] — 2026-11-20 — Administrative gettext follow-up (#2783)
 
 - Translate eight operational UI labels and messages for Autotest, Connections and Merchant in ES/EN/FR/DE/NL.
