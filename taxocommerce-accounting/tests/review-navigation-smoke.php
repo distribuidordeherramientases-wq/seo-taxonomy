@@ -8,6 +8,7 @@ define( 'ABSPATH', __DIR__ );
 function __( $message, $domain = '' ) { return $message; }
 function absint( $number ) { return abs( (int) $number ); }
 function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
+function esc_html__( $message, $domain = '' ) { return esc_html( __( $message, $domain ) ); }
 function esc_url( $value ) { return esc_html( $value ); }
 function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $value ) ); }
 function sanitize_text_field( $value ) { return trim( (string) $value ); }
