@@ -52,9 +52,36 @@
         update();
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
+    function initExpenseType() {
+        document.querySelectorAll('select[name="expense_type"]').forEach(function (selector) {
+            const form = selector.closest('form');
+            if (!form) {
+                return;
+            }
+            const rows = form.querySelectorAll('.tca-asset-fields');
+            function sync() {
+                const asset = selector.value === 'fixed_asset';
+                rows.forEach(function (row) {
+                    row.hidden = !asset;
+                    row.style.display = asset ? '' : 'none';
+                    row.querySelectorAll('input').forEach(function (input) {
+                        input.required = asset;
+                    });
+                });
+            }
+            selector.addEventListener('change', sync);
+            sync();
+        });
+    }
+
+    function ready() {
         init();
+        initExpenseType();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', ready);
+    } else {
+        ready();
     }
 }());
