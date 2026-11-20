@@ -52,7 +52,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: taxocommerce-staging-focazul-${{ github.event_name == 'pull_request' && github.head_ref || 'deploy' }}
+  group: ${{ github.event_name == 'pull_request' && format('taxocommerce-pr-{0}', github.head_ref) || 'taxocommerce-site-delivery' }}
   cancel-in-progress: false
 
 jobs:
@@ -85,6 +85,9 @@ jobs:
               while IFS= read -r -d '' file; do php -l "$file" >/dev/null; done
             if [ -f "$slug/tests/standalone-bootstrap-smoke.php" ]; then
               php "$slug/tests/standalone-bootstrap-smoke.php"
+            fi
+            if [ "$slug" = "taxocommerce-ticketing" ]; then
+              php "$slug/tests/smoke.php"
             fi
           done
           python3 -m py_compile .github/scripts/deploy_staging_delta.py
@@ -547,8 +550,9 @@ jobs:
           STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
         run: python3 .github/scripts/audit_staging_mo.py
       - name: Read-only comparison of Core and both WordPress menus (no site writes)
-        # Audit findings stay visible in the summary/artifact; transient HTTP/FTPS
-        # failures must not invalidate the verified delivery baseline used by deploy.
+        # Audit only when Core changes. A no-op or an unrelated module must not
+        # hold the shared site delivery lock for minutes without uploading.
+        if: needs.plan.outputs.core == 'true'
         continue-on-error: true
         env:
           STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}

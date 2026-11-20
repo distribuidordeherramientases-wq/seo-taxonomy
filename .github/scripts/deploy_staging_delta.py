@@ -267,7 +267,8 @@ def existing_file_hash(ftp, name):
 
 
 def upload_plugin(ftp, target, slug, files, required):
-    # Issues #2290, #2644, #2651 and #2871 authorize first installation only to their named sites.
+    # Issues #2290, #2644, #2651 and #2870 authorize first installation only
+    # to their named test sites. Never create an absent plugin in production.
     # Accounting is allowed solely on STAGING, never Focazul or PRO.
     new_plugin_install = False
     try:
@@ -283,7 +284,7 @@ def upload_plugin(ftp, target, slug, files, required):
             ftp.mkd(slug)
             ftp.cwd(slug)
             new_plugin_install = True
-            issue = {"taxocommerce-accounting": "#2644", "taxocommerce-tasks": "#2290", "taxocommerce-customers": "#2651", "taxocommerce-ticketing": "#2871"}[slug]
+            issue = {"taxocommerce-accounting": "#2644", "taxocommerce-tasks": "#2290", "taxocommerce-customers": "#2651", "taxocommerce-ticketing": "#2870"}[slug]
             print(f"INSTALL {target}/{slug}: explicitly authorized by Issue {issue}")
         elif not required:
             print(f"SKIP {slug}: plugin directory absent on this WordPress")

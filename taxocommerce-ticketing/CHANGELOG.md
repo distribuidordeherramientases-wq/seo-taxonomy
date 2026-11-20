@@ -3,6 +3,7 @@
 ## 0.1.1 — 2026-11-20
 - Prepared dual-site first installation, Core extension management and public plugin information page on Focazul (Issue #2871).
 
+
 ## Unreleased — WordPress.org preflight corrections
 - Replace computed gettext domains with literal plugin text domains.
 - Clarify ordered placeholders and translator comments for WordPress Plugin Check.
@@ -16,3 +17,4 @@
 - Private customer reply link and staff notifications.
 - Optional integration hook for future Tasks adapter, no Core dependency.
 - References #2862.
+- #2870: first test-site delivery of the complete, independent plugin to STAGING and Focazul, with no automatic activation and no production rollout.

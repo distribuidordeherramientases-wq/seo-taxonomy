@@ -29,7 +29,7 @@ class GatedPipelineContract(unittest.TestCase):
         pipeline_header = self.pipeline.split("\njobs:\n", 1)[0]
         self.assertNotIn("\nconcurrency:\n", pipeline_header)
         self.assertIn("concurrency:", self.staging)
-        self.assertIn("taxocommerce-staging-focazul-", self.staging)
+        self.assertIn("taxocommerce-site-delivery", self.staging)
         self.assertIn("cancel-in-progress: false", self.staging)
         self.assertIn("git ls-remote origin refs/heads/staging", self.pipeline)
         self.assertIn("needs.preflight.outputs.current == 'true'", self.pipeline)
@@ -56,8 +56,18 @@ class GatedPipelineContract(unittest.TestCase):
         self.assertIn("uses: ./.github/workflows/deploy-staging.yml", self.pipeline)
         self.assertIn("needs: staging", self.pipeline)
         self.assertIn("needs: [staging, plugin-check]", self.pipeline)
-        self.assertIn("taxocommerce-staging-focazul-", self.staging)
+        self.assertIn("taxocommerce-site-delivery", self.staging)
         self.assertIn("cancel-in-progress: false", self.staging)
+
+    def test_staging_and_both_manual_pro_workflows_share_a_release_mutex(self):
+        alternate = (ROOT / ".github/workflows/staging-a-pro-manual.yml").read_text(encoding="utf-8")
+        self.assertIn("taxocommerce-site-delivery", self.staging)
+        self.assertIn("taxocommerce-site-delivery", self.pro)
+        self.assertIn("taxocommerce-site-delivery", alternate)
+        self.assertIn("cancel-in-progress: false", self.staging)
+        self.assertIn("cancel-in-progress: false", self.pro)
+        self.assertIn("cancel-in-progress: false", alternate)
+        self.assertIn("if: needs.plan.outputs.core == 'true'", self.staging)
 
     def test_ftps_is_serial_across_sites_but_focazul_runs_after_staging_failure(self):
         # One shared FTP account; failures are still reported independently.
