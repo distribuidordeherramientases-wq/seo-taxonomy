@@ -2,7 +2,7 @@
 
 - **Registrar o validar una factura** ahora permite marcar opcionalmente «Factura pagada» y seleccionar banco/caja, importe y fecha real: tras confirmar, el pago crea su salida en Tesorería sin repetir los datos de la factura.
 - Nueva sección **Tesorería → Conciliar facturas ya pagadas**: lista limitada de asientos validados con saldos pendientes, selección individual y fecha de pago editable. Solo genera movimientos tras marcar una confirmación expresa; nunca asume que todas las facturas están pagadas.
-- Cada pago utiliza el enlace transaccional existente y comprueba el importe pendiente para evitar duplicados en reenvíos. La conciliación también omite los pagos manuales ya registrados con la misma cuenta, referencia e importe. El resultado muestra cuántos pagos se han contabilizado, omitido o fallado.
+- Cada pago utiliza el enlace transaccional existente y comprueba el importe pendiente para evitar duplicados en reenvíos. La conciliación también omite los pagos manuales ya registrados con la misma cuenta y referencia, incluidos pagos parciales. El resultado muestra cuántos pagos se han contabilizado, omitido o fallado.
 - **No se modifican** bases, IVA, documentos ni préstamos. El saldo inicial de banco no se recalcula: las aportaciones reales de socios deben documentarse por separado.
 - El CSV sigue importando **borradores no pagados** por defecto. No se infiere que un cliente haya pagado solo porque WooCommerce haya creado un pedido; los cobros también requieren confirmación y cuenta real.
 - Pruebas de seguridad, pagos parciales, no duplicación, 362,57 € iniciales y escenario con Satkit de 12,55 €. Ninguna modificación directa de los datos de producción.
