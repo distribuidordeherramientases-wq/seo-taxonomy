@@ -1,3 +1,9 @@
+## Unreleased — WP-Cron schedule diagnostics (#2851)
+
+- The social scheduler now distinguishes overdue jobs and missing WordPress Cron events in its existing per-network queue, without triggering publication or automatic retries.
+- Existing remote API failures remain visible separately; no tokens or credentials are added to diagnostics.
+- Live verification of actual publication and site Cron execution remains required.
+
 ## [0.1.25] — 2026-11-20 — Estado visible de publicaciones y porcentaje de fallos (#2840)
 
 - El calendario muestra publicaciones ya confirmadas (verde), fallos explícitos (rojo), futuras (azul) y respuestas sin confirmar (advertencia) usando únicamente agenda e historial propios, sin reenviar ni modificar publicaciones.
