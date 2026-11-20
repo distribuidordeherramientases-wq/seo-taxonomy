@@ -463,6 +463,176 @@ final class TCV_Classifier {
     }
 
     // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+    /**
+     * Assign only an active existing canonical term to a product with no value
+     * in that group. Never replace a manually/imported assignment.
+     *
+     * @return true|WP_Error
+     */
+    private static function assign_canonical( $product_id, $group, $vocabulary_id, $confidence, $origin ) {
+        global $wpdb;
+        $product_id = absint( $product_id );
+        $vocabulary_id = absint( $vocabulary_id );
+        $group = sanitize_key( $group );
+        $product = get_post( $product_id );
+        if ( ! $product || 'product' !== $product->post_type || ! in_array( $group, self::GROUPS, true ) || ! $vocabulary_id ) {
+            return new WP_Error( 'tcv_invalid_assignment', __( 'Asignación canónica no válida.', 'taxocommerce-vocabulary' ) );
+        }
+        $t = TCV_Schema::tables();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Canonical vocabulary and assignments are authoritative and must be read immediately.
+        $valid = $wpdb->get_var( $wpdb->prepare(
+            'SELECT id FROM %i WHERE id=%d AND semantic_group=%s AND active=1',
+            $t['vocabulary'], $vocabulary_id, $group
+        ) );
+        if ( ! $valid ) {
+            return new WP_Error( 'tcv_missing_canonical_term', __( 'El término canónico ya no está activo.', 'taxocommerce-vocabulary' ) );
+        }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Guard against overwriting an existing reviewed product label.
+        $existing = $wpdb->get_var( $wpdb->prepare(
+            "SELECT ov.id FROM %i ov INNER JOIN %i v ON v.id=ov.vocabulary_id
+             WHERE ov.object_type='product' AND ov.object_id=%d AND ov.status=1 AND v.semantic_group=%s LIMIT 1",
+            $t['objects'], $t['vocabulary'], $product_id, $group
+        ) );
+        if ( $existing ) {
+            return new WP_Error( 'tcv_group_filled', __( 'El producto ya tiene una etiqueta de ese grupo; no se sobrescribe.', 'taxocommerce-vocabulary' ) );
+        }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Authorised insertion into own canonical assignment table.
+        $inserted = $wpdb->insert( $t['objects'], array(
+            'object_type' => 'product', 'object_id' => $product_id, 'vocabulary_id' => $vocabulary_id,
+            'source' => $origin, 'confidence' => max( 0, min( 1, (float) $confidence ) ),
+            'status' => 1,
+        ), array( '%s', '%d', '%d', '%s', '%f', '%d' ) );
+        if ( false === $inserted ) {
+            return new WP_Error( 'tcv_assignment_failed', __( 'No se pudo guardar la asignación canónica.', 'taxocommerce-vocabulary' ) );
+        }
+        return true;
+    }
+
+    /**
+     * Optional automatic application is stricter than the review/safe display
+     * threshold and only writes existing canonical labels, never attributes.
+     *
+     * @return int Number of new assignments.
+     */
+    public static function apply_safe_labels( $product_id, $labels ) {
+        $added = 0;
+        foreach ( (array) $labels as $proposal ) {
+            if ( ! is_array( $proposal ) || ( $proposal['state'] ?? '' ) !== 'safe'
+                || (float) ( $proposal['confidence'] ?? 0 ) < 0.90 || empty( $proposal['vocabulary_id'] ) ) {
+                continue;
+            }
+            $result = self::assign_canonical(
+                $product_id, $proposal['group'] ?? '', $proposal['vocabulary_id'],
+                $proposal['confidence'], 'classifier_auto'
+            );
+            if ( ! is_wp_error( $result ) ) {
+                ++$added;
+                global $wpdb;
+                $table = TCV_Schema::tables()['proposals'];
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Mark successful own proposal as applied without deleting its audit evidence.
+                $wpdb->update(
+                    $table, array( 'state' => 'applied', 'updated_at' => current_time( 'mysql', true ) ),
+                    array( 'product_id' => absint( $product_id ), 'semantic_group' => sanitize_key( $proposal['group'] ) ),
+                    array( '%s', '%s' ), array( '%d', '%s' )
+                );
+            }
+        }
+        return $added;
+    }
+
+    /**
+     * Apply one administrator-reviewed proposal, verifying master identifiers
+     * and preserving the existing assignment if a value is already present.
+     *
+     * @return true|WP_Error
+     */
+    public static function apply_proposal( $proposal_id ) {
+        global $wpdb;
+        $t = TCV_Schema::tables();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Immediate read of our own review queue.
+        $row = $wpdb->get_row( $wpdb->prepare(
+            'SELECT * FROM %i WHERE id=%d AND active=1', $t['proposals'], absint( $proposal_id )
+        ), ARRAY_A );
+        if ( ! $row || ! in_array( $row['state'], array( 'safe', 'review', 'derived' ), true ) ) {
+            return new WP_Error( 'tcv_proposal_not_reviewable', __( 'La propuesta no está disponible para aprobar.', 'taxocommerce-vocabulary' ) );
+        }
+        $product_id = absint( $row['product_id'] );
+        $product = get_post( $product_id );
+        if ( ! $product || 'product' !== $product->post_type ) {
+            return new WP_Error( 'tcv_product_missing', __( 'El producto ya no existe.', 'taxocommerce-vocabulary' ) );
+        }
+        $group = (string) $row['semantic_group'];
+        if ( in_array( $group, self::GROUPS, true ) ) {
+            $result = self::assign_canonical(
+                $product_id, $group, absint( $row['vocabulary_id'] ), (float) $row['confidence'], 'classifier_reviewed'
+            );
+            if ( is_wp_error( $result ) ) {
+                return $result;
+            }
+        } elseif ( 0 === strpos( $group, 'attribute:' ) ) {
+            $attribute_id = absint( substr( $group, 10 ) );
+            $payload = json_decode( (string) $row['payload_json'], true );
+            $evidence = is_array( $payload ) && is_array( $payload['evidence'] ?? null ) ? $payload['evidence'] : array();
+            if ( ! $attribute_id || absint( $evidence['attribute_id'] ?? 0 ) !== $attribute_id ) {
+                return new WP_Error( 'tcv_invalid_attribute', __( 'La propuesta de atributo no tiene evidencia válida.', 'taxocommerce-vocabulary' ) );
+            }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own canonical attribute master.
+            $attribute = $wpdb->get_row( $wpdb->prepare(
+                'SELECT id,tipo FROM %i WHERE id=%d AND activo=1', $t['attributes'], $attribute_id
+            ), ARRAY_A );
+            if ( ! $attribute ) {
+                return new WP_Error( 'tcv_attribute_missing', __( 'El atributo canónico ya no está activo.', 'taxocommerce-vocabulary' ) );
+            }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Never overwrite an already recorded technical attribute.
+            $existing = $wpdb->get_var( $wpdb->prepare(
+                'SELECT id FROM %i WHERE product_id=%d AND atributo_id=%d LIMIT 1',
+                $t['product_att'], $product_id, $attribute_id
+            ) );
+            if ( $existing ) {
+                return new WP_Error( 'tcv_attribute_exists', __( 'El producto ya tiene ese atributo; no se sobrescribe.', 'taxocommerce-vocabulary' ) );
+            }
+            $data = array( 'product_id' => $product_id, 'atributo_id' => $attribute_id );
+            $formats = array( '%d', '%d' );
+            if ( 'termino' === $attribute['tipo'] ) {
+                $term_id = absint( $evidence['term_id'] ?? 0 );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Ensure that the exact controlled term belongs to the active attribute.
+                $term = $wpdb->get_var( $wpdb->prepare(
+                    'SELECT id FROM %i WHERE id=%d AND atributo_id=%d AND activo=1',
+                    $t['terms'], $term_id, $attribute_id
+                ) );
+                if ( ! $term ) {
+                    return new WP_Error( 'tcv_term_missing', __( 'El valor controlado ya no existe.', 'taxocommerce-vocabulary' ) );
+                }
+                $data['termino_id'] = $term_id;
+                $formats[] = '%d';
+            } elseif ( in_array( $attribute['tipo'], array( 'numero', 'rango' ), true ) ) {
+                if ( ! isset( $evidence['value'] ) || ! is_numeric( $evidence['value'] ) ) {
+                    return new WP_Error( 'tcv_numeric_invalid', __( 'El valor numérico no es válido.', 'taxocommerce-vocabulary' ) );
+                }
+                $data['valor_numero'] = (float) $evidence['value'];
+                $data['unidad'] = mb_substr( sanitize_text_field( $evidence['unit'] ?? '' ), 0, 30, 'UTF-8' );
+                $formats[] = '%f';
+                $formats[] = '%s';
+            } else {
+                return new WP_Error( 'tcv_attribute_unsupported', __( 'Este tipo de atributo requiere revisión manual.', 'taxocommerce-vocabulary' ) );
+            }
+            $data['valor_original'] = sanitize_text_field( (string) ( $evidence['value'] ?? '' ) );
+            $formats[] = '%s';
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Explicit approval writes only to the own canonical attribute table.
+            if ( false === $wpdb->insert( $t['product_att'], $data, $formats ) ) {
+                return new WP_Error( 'tcv_attribute_insert_failed', __( 'No se pudo guardar el atributo.', 'taxocommerce-vocabulary' ) );
+            }
+        } else {
+            return new WP_Error( 'tcv_unrecognized_group', __( 'La propuesta no tiene un grupo válido.', 'taxocommerce-vocabulary' ) );
+        }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Keep the original evidence as an audit trail.
+        $wpdb->update( $t['proposals'], array(
+            'state' => 'applied', 'updated_at' => current_time( 'mysql', true )
+        ), array( 'id' => absint( $proposal_id ) ), array( '%s', '%s' ), array( '%d' ) );
+        return true;
+    }
+
     private static function category_context( $term_id ) {
         $term = get_term( $term_id, 'product_cat' );
         if ( ! $term || is_wp_error( $term ) ) {
