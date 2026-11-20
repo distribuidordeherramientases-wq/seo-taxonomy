@@ -429,7 +429,13 @@ KEY message_id (message_id)
 
     // phpcs:enable WordPress.Security.NonceVerification.Missing
     // phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-    private static function add_message( $ticket_id, $author, $body, $staff, $private ) {
+    /**
+     * Persist a message through the same path used by real submissions.
+     * Caller must establish ticket access before invoking this internal service.
+     *
+     * @internal
+     */
+    public static function add_message( $ticket_id, $author, $body, $staff, $private ) {
         global $wpdb;
         $tables = self::tables();
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Ticket-owned message history.
