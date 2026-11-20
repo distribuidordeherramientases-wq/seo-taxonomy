@@ -723,3 +723,24 @@ msgstr "Darlehen speichern"
 
 msgid "Treasury"
 msgstr "Liquidität"
+
+msgid "Expense type"
+msgstr "Ausgabenart"
+
+msgid "Current expense"
+msgstr "Laufender Aufwand"
+
+msgid "Fixed asset (depreciable)"
+msgstr "Anlagevermögen (abschreibungsfähig)"
+
+msgid "Fixed asset"
+msgstr "Anlagevermögen"
+
+msgid "Date put into service"
+msgstr "Datum der Inbetriebnahme"
+
+msgid "Useful life (years)"
+msgstr "Nutzungsdauer (Jahre)"
+
+msgid "Annual straight-line allocation starts when the asset is ready for use. The first and last years are prorated by days. Confirm the applicable accounting and tax rules separately."
+msgstr "Die jährliche lineare Abschreibung beginnt, sobald das Wirtschaftsgut einsatzbereit ist. Das erste und das letzte Jahr werden tagegenau anteilig berechnet. Prüfen Sie die geltenden handels- und steuerrechtlichen Regeln gesondert."
