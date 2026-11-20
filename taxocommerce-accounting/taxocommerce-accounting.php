@@ -732,7 +732,7 @@ function tca_table_rows( $rows, $kind = '' ) {
         } else {
             echo '<td>' . esc_html( tca_money( $row->amount_base ) ) . '</td><td>';
         }
-        echo . esc_html( tca_money( $row->amount_tax ) ) . '</td><td>' . esc_html( tca_money( $row->amount_total ) ) . '</td>';
+        echo esc_html( tca_money( $row->amount_tax ) ) . '</td><td>' . esc_html( tca_money( $row->amount_total ) ) . '</td>';
         echo '<td>' . esc_html( $row->status . ' / ' . $row->treatment );
         if ( tca_sale_invoice_mismatch( $row ) ) {
             echo '<p class="description" style="color:#b32d2e">' . esc_html__( 'Issued invoice and accounting totals disagree. Check the original invoice and the order; validation is blocked until reconciled.', 'taxocommerce-accounting' ) . '</p>';
