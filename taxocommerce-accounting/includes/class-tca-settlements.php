@@ -222,13 +222,11 @@ final class TCA_Settlements {
             return array();
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live reconciliation must read approved entries and linked settlements.
-        $rows = (array) $wpdb->get_results( $wpdb->prepare(
-            'SELECT id, kind, fiscal_date, document_no, party, amount_total, status FROM %i WHERE fiscal_date >= %s AND fiscal_date <= %s AND status = %s AND kind IN (%s,%s,%s,%s) ORDER BY fiscal_date ASC,id ASC LIMIT %d',
-            tca_table(), $year . '-01-01', $year . '-12-31', 'validated', 'purchase', 'expense', 'asset', 'intra', $limit
+        return (array) $wpdb->get_results( $wpdb->prepare(
+            'SELECT e.id,e.kind,e.fiscal_date,e.document_no,e.party,e.amount_total,e.status FROM %i AS e LEFT JOIN %i AS s ON s.entry_id = e.id LEFT JOIN %i AS m ON m.id = s.movement_id WHERE e.fiscal_date >= %s AND e.fiscal_date <= %s AND e.status = %s AND e.kind IN (%s,%s,%s,%s) GROUP BY e.id HAVING ABS(e.amount_total) > COALESCE(SUM(m.amount),0) ORDER BY e.fiscal_date ASC,e.id ASC LIMIT %d',
+            tca_table(), self::table(), TCA_Treasury::movements_table(), $year . '-01-01',
+            $year . '-12-31', 'validated', 'purchase', 'expense', 'asset', 'intra', $limit
         ) );
-        return array_values( array_filter( $rows, static function ( $entry ) {
-            return TCA_Settlements::outstanding( $entry->amount_total, TCA_Settlements::sum( $entry->id ) ) > 0;
-        } ) );
     }
 
     /** Keep already-entered manual cash/bank payments from being duplicated. */
