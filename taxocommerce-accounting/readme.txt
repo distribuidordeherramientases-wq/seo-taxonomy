@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.15
+Stable tag: 0.1.16
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,6 +16,9 @@ Independent WooCommerce fiscal register with purchase invoices, monthly VAT esti
 TaxoCommerce Accounting records fiscal data without changing WooCommerce orders, customers, supplier catalogues or invoice generation.
 
 = Key Features =
+
+* **Loan financing:** Treasury can record a fixed annual nominal interest rate (TIN), duration (months), down payment, optional extra final balloon principal, and due dates. The forecast separates capital and interest; the last payment clears rounding differences. A loan disbursement only enters bank on explicit confirmation. Confirm actual instalments individually to create a linked Treasury bank/cash outflow and reduce outstanding debt. Previous manually managed loans remain editable. No external bank connection, automatic collection, contractual APR/TAE calculation, or automatic VAT return impact; consult the finance contract for fees and tax treatment.
+
 
 * **Supplier purchases:** import/export CSV in **Received invoices** (goods purchased for resale). Download a CSV template, import bounded batches as unvalidated purchase drafts, then attach the original PDF or image to each record.
 * **Service/operating expenses:** import/export CSV in **Expenses**, also accessible under **Treasury** for existing workflows. Domains, hosting, digital certificates, AI/software and similar bills are kept as unvalidated expense drafts, separate from supplier merchandise.

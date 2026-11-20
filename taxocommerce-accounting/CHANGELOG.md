@@ -1,3 +1,10 @@
+## 0.1.16 — 2026-11-20 — Fixed-rate loan financing and reconciled repayments (#2857)
+
+- Add a calculated loan mode with financed principal, upfront down payment, nominal annual interest (TIN), duration in months (1–360), optional final balloon principal, start date and first payment date. The monthly amortisation table separates principal and interest and rounds the last instalment to clear the balance.
+- Preserve existing manual loans and their editable outstanding balance and instalment amount. New calculated loans only reduce their outstanding principal when an authorised administrator explicitly confirms a real instalment; every payment writes an atomic linked bank/cash movement, with per-instalment uniqueness and idempotency.
+- Loan funding may optionally post one confirmed bank receipt at creation. No double booking of the financed purchase, upfront down payment, or future instalments. Money loans and their interest are generally VAT-exempt under article 20(1)(18) of Spain's VAT law; loan interest never alters Model 303 automatically. Contractual fees and APR/TAE require independent verification.
+- Add migration to schema v6, deterministic financing regression tests (10% TIN, 12 months, final cent, zero-rate and balloon cases), and maintain WordPress/WooCommerce independence.
+
 ## 0.1.15 — 2026-11-20 — Conciliación de cobros y aportaciones iniciales (#2845)
 
 - Tesorería permite **conciliar manualmente cobros reales de ventas**, devoluciones y pagos de proveedores desde la misma lista de importes pendientes, con fecha/cuenta elegidas y confirmación expresa.
