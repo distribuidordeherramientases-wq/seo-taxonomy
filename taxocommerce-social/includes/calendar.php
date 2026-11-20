@@ -450,6 +450,30 @@ function tcsocial_calendar_render_event_actions($event, $view = 'calendar')
 }
 
 /**
+ * Display a schedule status; a due schedule without an API confirmation is
+ * an overdue/unconfirmed item, not proof of remote failure.
+ *
+ * @param array $event Calendar schedule.
+ * @return string Escaped HTML.
+ */
+function tcsocial_calendar_delivery_badge($event)
+{
+    $status = sanitize_key((string) ($event['status'] ?? ''));
+    $timestamp = absint($event['timestamp'] ?? 0);
+    if ('pausada' === $status) {
+        $type = 'paused';
+        $label = __('Pausada', 'taxocommerce-social');
+    } elseif ($timestamp && $timestamp < time()) {
+        $type = 'failed';
+        $label = __('Vencida sin confirmar', 'taxocommerce-social');
+    } else {
+        $type = 'scheduled';
+        $label = __('Pendiente de publicar', 'taxocommerce-social');
+    }
+    return '<span class="seo-social-state is-' . esc_attr($type) . '">' . esc_html($label) . '</span>';
+}
+
+/**
  * Render de la subpestaña Calendario.
  */
 function tcsocial_calendar_render_admin()
@@ -621,6 +645,7 @@ function tcsocial_calendar_render_admin()
                     echo '<span class="seo-social-calendar-event-title">' . esc_html($title) . '</span>';
                 }
                 echo '<small>' . esc_html((string) $event['type_label']) . '</small>';
+                echo tcsocial_calendar_delivery_badge($event); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped HTML badge.
                 tcsocial_calendar_render_event_actions($event);
                 echo '</div>';
             }
@@ -661,7 +686,8 @@ function tcsocial_calendar_render_admin()
             } else {
                 echo '<span>' . esc_html((string) $event['title']) . '</span>';
             }
-            echo '<small>' . esc_html((string) $event['type_label']) . ' · ' . esc_html(('pausada' === $event['status']) ? __('Pausada', 'taxocommerce-social') : __('Programada', 'taxocommerce-social')) . '</small>';
+            echo '<small>' . esc_html((string) $event['type_label']) . '</small> ';
+            echo tcsocial_calendar_delivery_badge($event); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped HTML badge.
             tcsocial_calendar_render_event_actions($event, 'compact');
             echo '</div>';
         }
