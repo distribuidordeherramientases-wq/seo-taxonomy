@@ -20,6 +20,10 @@ function verify_rectification( $condition, $message ) {
         exit( 1 );
     }
 }
+verify_rectification( SEO_Facturas_Rectifications::same_vat_quarter( '2026-11-16 12:00:00', '2026-11-20 18:00:00' ),
+    'Correction of November invoice stays in fourth VAT quarter' );
+verify_rectification( ! SEO_Facturas_Rectifications::same_vat_quarter( '2026-12-16 12:00:00', '2027-01-02 10:00:00' ),
+    'Cross-quarter VAT correction cannot silently alter a closed accounting period' );
 $amounts = SEO_Facturas_Rectifications::replacement_amounts( 621.60, 21 );
 verify_rectification( ! is_wp_error( $amounts ), '21% produces a valid correction' );
 verify_rectification( 513.72 === $amounts['base_total'] && 107.88 === $amounts['total_tax'] &&
