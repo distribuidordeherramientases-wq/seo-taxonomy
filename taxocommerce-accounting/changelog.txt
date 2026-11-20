@@ -1,3 +1,6 @@
+= 0.1.21 (2026-11-20) =
+* Translate expense classification and depreciation interface fields in five languages; rebuild compiled gettext catalogs. Issue #2884.
+
 = 0.1.20 (2026-11-20) =
 * Classify Expenses as current or depreciable fixed assets, with validated in-service date, useful life and automatic read-only annual depreciation. Existing entries default to current; VAT, purchases, invoices, and treasury unchanged. Issue #2881.
 

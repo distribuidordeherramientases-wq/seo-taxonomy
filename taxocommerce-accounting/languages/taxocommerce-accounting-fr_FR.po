@@ -723,3 +723,24 @@ msgstr "Enregistrer le prêt"
 
 msgid "Treasury"
 msgstr "Trésorerie"
+
+msgid "Expense type"
+msgstr "Type de dépense"
+
+msgid "Current expense"
+msgstr "Dépense courante"
+
+msgid "Fixed asset (depreciable)"
+msgstr "Immobilisation (amortissable)"
+
+msgid "Fixed asset"
+msgstr "Immobilisation"
+
+msgid "Date put into service"
+msgstr "Date de mise en service"
+
+msgid "Useful life (years)"
+msgstr "Durée d’utilisation (années)"
+
+msgid "Annual straight-line allocation starts when the asset is ready for use. The first and last years are prorated by days. Confirm the applicable accounting and tax rules separately."
+msgstr "L’amortissement linéaire annuel commence lorsque le bien est prêt à être utilisé. La première et la dernière année sont calculées au prorata des jours. Vérifiez séparément les règles comptables et fiscales applicables."

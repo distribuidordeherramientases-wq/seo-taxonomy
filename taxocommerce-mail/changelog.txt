@@ -1,0 +1,3 @@
+= 0.1.0 =
+* Initial independent hosting mail client with multiple accounts, private IMAP reading and authenticated SMTP.
+* Admin-only account management, encrypted credentials, Autocheck and manuals.
