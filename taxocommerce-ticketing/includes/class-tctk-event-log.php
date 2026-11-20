@@ -36,6 +36,8 @@ final class TCTK_Event_Log {
             'staff_ticket_failed',
             'staff_action_saved',
             'staff_message_failed',
+            'staff_update_failed',
+            'ticket_update_failed',
             'mail_customer_failed',
             'mail_staff_failed',
             'attachment_rejected',
