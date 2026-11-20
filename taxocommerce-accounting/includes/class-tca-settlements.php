@@ -223,9 +223,10 @@ final class TCA_Settlements {
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live reconciliation must read approved entries and linked settlements.
         return (array) $wpdb->get_results( $wpdb->prepare(
-            'SELECT e.id,e.kind,e.fiscal_date,e.document_no,e.party,e.amount_total,e.status FROM %i AS e LEFT JOIN %i AS s ON s.entry_id = e.id LEFT JOIN %i AS m ON m.id = s.movement_id WHERE e.fiscal_date >= %s AND e.fiscal_date <= %s AND e.status = %s AND e.kind IN (%s,%s,%s,%s) GROUP BY e.id HAVING ABS(e.amount_total) > COALESCE(SUM(m.amount),0) ORDER BY e.fiscal_date ASC,e.id ASC LIMIT %d',
-            tca_table(), self::table(), TCA_Treasury::movements_table(), $year . '-01-01',
-            $year . '-12-31', 'validated', 'purchase', 'expense', 'asset', 'intra', $limit
+            'SELECT e.id,e.kind,e.fiscal_date,e.document_no,e.party,e.amount_total,e.status FROM %i AS e WHERE e.fiscal_date >= %s AND e.fiscal_date <= %s AND e.status = %s AND e.kind IN (%s,%s,%s,%s) AND ABS(e.amount_total) > COALESCE((SELECT SUM(m.amount) FROM %i AS s INNER JOIN %i AS m ON m.id = s.movement_id WHERE s.entry_id = e.id),0) ORDER BY e.fiscal_date ASC,e.id ASC LIMIT %d',
+            tca_table(), $year . '-01-01',
+            $year . '-12-31', 'validated', 'purchase', 'expense', 'asset', 'intra',
+            self::table(), TCA_Treasury::movements_table(), $limit
         ) );
     }
 
@@ -235,11 +236,11 @@ final class TCA_Settlements {
         if ( '' === (string) $entry->document_no ) {
             return false;
         }
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Detect existing unlinked bank payment by identical account, invoice reference and amount.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Detect existing unlinked bank payment by identical account and invoice reference, including partial manual payments.
         $movement_id = $wpdb->get_var( $wpdb->prepare(
-            'SELECT m.id FROM %i AS m LEFT JOIN %i AS s ON m.id = s.movement_id WHERE m.account_id = %d AND m.direction = %s AND m.reference = %s AND m.amount = %f AND s.movement_id IS NULL LIMIT 1',
+            'SELECT m.id FROM %i AS m LEFT JOIN %i AS s ON m.id = s.movement_id WHERE m.account_id = %d AND m.direction = %s AND m.reference = %s AND s.movement_id IS NULL LIMIT 1',
             TCA_Treasury::movements_table(), self::table(), absint( $account_id ), 'out',
-            (string) $entry->document_no, abs( (float) $entry->amount_total )
+            (string) $entry->document_no
         ) );
         return ! empty( $movement_id );
     }
