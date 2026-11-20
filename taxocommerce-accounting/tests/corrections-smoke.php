@@ -7,6 +7,7 @@ define( 'ABSPATH', __DIR__ . '/' );
 function absint( $value ) { return abs( (int) $value ); }
 function __( $message, $domain = '' ) { return $message; }
 function add_action( $hook, $callback ) {}
+function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_\\-]/', '', strtolower( (string) $value ) ); }
 function tca_valid_date( $value ) {
     if ( ! is_string( $value ) || ! preg_match( '/^(\\d{4})-(\\d{2})-(\\d{2})$/', $value, $parts ) ) return false;
     return checkdate( (int) $parts[2], (int) $parts[3], (int) $parts[1] );
