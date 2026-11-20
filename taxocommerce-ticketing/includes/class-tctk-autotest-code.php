@@ -683,7 +683,7 @@ final class TCTK_Autotest_Code {
         if ( is_array( $state ) ) {
             set_transient( self::key(), $state, self::TTL );
         }
-        $redirect = wp_safe_redirect( admin_url( 'admin.php?page=taxocommerce-ticketing&tab=autocheck&tctk_check=code' ) );
+        wp_safe_redirect( admin_url( 'admin.php?page=taxocommerce-ticketing&tab=autocheck&tctk_check=code' ) );
         exit;
     }
 
