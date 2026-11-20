@@ -721,3 +721,24 @@ msgstr ""
 
 msgid "Treasury"
 msgstr ""
+
+msgid "Expense type"
+msgstr ""
+
+msgid "Current expense"
+msgstr ""
+
+msgid "Fixed asset (depreciable)"
+msgstr ""
+
+msgid "Fixed asset"
+msgstr ""
+
+msgid "Date put into service"
+msgstr ""
+
+msgid "Useful life (years)"
+msgstr ""
+
+msgid "Annual straight-line allocation starts when the asset is ready for use. The first and last years are prorated by days. Confirm the applicable accounting and tax rules separately."
+msgstr ""
