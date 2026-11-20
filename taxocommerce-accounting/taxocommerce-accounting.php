@@ -720,7 +720,7 @@ function tca_table_rows( $rows, $kind = '' ) {
     $focused = isset( $_GET['focus_entry'] ) ? absint( $_GET['focus_entry'] ) : 0;
     if ( $focused ) {
         echo '<p>' . esc_html__( 'Showing the selected accounting record.', 'taxocommerce-accounting' ) . ' <a href="' .
-            esc_url( tca_admin_url( TCA_Corrections::tab_for( (string) ( $kind ?: 'sale' ) ), array( 'year' => absint( substr( (string) ( $rows[0]->fiscal_date ?? current_time( 'Y-m-d' ) ), 0, 4 ) ) ) ) ) . '">' .
+            esc_url( tca_admin_url( TCA_Corrections::tab_for( (string) ( $kind ?: 'sale' ) ), array( 'year' => absint( isset( $_GET['year'] ) ? $_GET['year'] : current_time( 'Y' ) ) ) ) ) . '">' .
             esc_html__( 'Show all records', 'taxocommerce-accounting' ) . '</a></p>';
     }
     echo '<div style="overflow-x:auto"><table class="widefat striped"><thead><tr>';
