@@ -66,16 +66,8 @@ final class TCTK_Autocheck {
             }
             $result[] = self::row( 'ticket_insert_read', 'ok', 'A new synthetic ticket can be inserted and read.' );
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Synthetic message, removed in finally.
-            $created = $wpdb->insert( $tables['messages'], array(
-                'ticket_id' => $ticket_id,
-                'author' => 'TaxoCommerce diagnostic',
-                'is_staff' => 1,
-                'is_private' => 1,
-                'body' => 'TCTK_CHECK_' . $mark,
-                'created_at' => $now,
-            ) );
-            $message_id = $created ? (int) $wpdb->insert_id : 0;
+            // Exercise the same message persistence service that public tickets use.
+            $message_id = TCTK_Ticketing::add_message( $ticket_id, 'TaxoCommerce diagnostic', 'TCTK_CHECK_' . $mark, true, true );
             if ( $message_id <= 0 ) {
                 $result[] = self::row( 'message_insert_read', 'error', 'Could not insert a synthetic message.' );
                 break;
