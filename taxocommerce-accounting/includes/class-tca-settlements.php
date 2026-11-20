@@ -186,8 +186,9 @@ final class TCA_Settlements {
             echo '<p class="description">' . esc_html__( 'Configure a bank or cash account in Treasury before linking a payment.', 'taxocommerce-accounting' ) . '</p>';
             return;
         }
+        $new_invoice = null === $entry_or_total;
         $amount = is_object( $entry_or_total ) ? self::outstanding( $entry_or_total->amount_total, self::sum( (int) $entry_or_total->id ) ) : abs( (float) $entry_or_total );
-        if ( $amount <= 0 ) {
+        if ( $amount <= 0 && ! $new_invoice ) {
             return;
         }
         echo '<div class="tca-payment-confirm"><p><label><input type="checkbox" name="tca_payment_confirmed" value="1"> <strong>' .
@@ -204,8 +205,9 @@ final class TCA_Settlements {
         echo '<label>' . esc_html__( 'Actual payment date', 'taxocommerce-accounting' ) .
             ' <input type="date" name="tca_payment_date" value="' . esc_attr( $date <= current_time( 'Y-m-d' ) ? $date : current_time( 'Y-m-d' ) ) . '"></label> ';
         echo '<label>' . esc_html__( 'Paid amount', 'taxocommerce-accounting' ) .
-            ' <input type="number" name="tca_payment_amount" min="0.01" step="0.01" max="' . esc_attr( number_format( $amount, 2, '.', '' ) ) .
-            '" value="' . esc_attr( number_format( $amount, 2, '.', '' ) ) . '"></label></div>';
+            ' <input type="number" name="tca_payment_amount" min="0.01" step="0.01"' .
+            ( $new_invoice ? '' : ' max="' . esc_attr( number_format( $amount, 2, '.', '' ) ) . '"' ) .
+            ' value="' . esc_attr( $new_invoice ? '' : number_format( $amount, 2, '.', '' ) ) . '" placeholder="' . esc_attr__( 'Invoice total including VAT', 'taxocommerce-accounting' ) . '"></label></div>';
     }
 
     /**
