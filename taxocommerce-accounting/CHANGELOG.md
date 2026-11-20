@@ -1,3 +1,8 @@
+## 0.1.19 — 2026-11-20 — Treasury tab locale key (#2878)
+
+- Add the previously omitted `Treasury` main administration tab label to POT and five gettext locales; compile matching MO catalogs.
+- Leave all bookkeeping, accounting logic, configuration and data untouched; no production deployment.
+
 ## 0.1.18 — 2026-11-20 — Treasury administration translations (#2876)
 
 - Extract 91 previously missing Treasury gettext strings into the POT and translate all corresponding PO entries for es_ES, en_US, fr_FR, de_DE and nl_NL.
