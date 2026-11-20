@@ -1,3 +1,8 @@
+## 0.1.17 — 2026-11-20 — Optional immutable rectification reconciliation (#2860)
+
+- Accept an optional WordPress filter for the latest legally issued, same-total rectifying invoice linked to a WooCommerce sale. Prefer the rectification for VAT validation, while preserving the original document and paid amount. Confirm currency, positive finite values and base + VAT = original gross before applying.
+- No mandatory dependency on Billing and no new payments, duplicate sales, auto-approval or order changes. Issued documents require explicit fiscal validation; existing protected drafts and historical corrections remain unchanged.
+
 ## 0.1.16 — 2026-11-20 — Fixed-rate loan financing and reconciled repayments (#2857)
 
 - Add a calculated loan mode with financed principal, upfront down payment, nominal annual interest (TIN), duration in months (1–360), optional final balloon principal, start date and first payment date. The monthly amortisation table separates principal and interest and rounds the last instalment to clear the balance.
