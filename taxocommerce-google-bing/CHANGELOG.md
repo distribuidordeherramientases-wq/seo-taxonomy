@@ -2,6 +2,12 @@
 
 - Translate eight operational UI labels and messages for Autotest, Connections and Merchant in ES/EN/FR/DE/NL.
 - Rebuild the five MO catalogs from the updated PO entries without changing execution, external connectors or report data.
+- Keep remaining documentation and non-interface strings for subsequent scoped reviews. No production deployment.
+
+## [1.1.69] — 2026-11-20 — Administrative gettext follow-up (#2783)
+
+- Translate eight operational UI labels and messages for Autotest, Connections and Merchant in ES/EN/FR/DE/NL.
+- Rebuild the five MO catalogs from the updated PO entries without changing execution, external connectors or report data.
 - Keep the remaining untranslated documentation and non-interface strings for subsequent scoped reviews. No production deployment.
 
 ## [1.1.68] — 2026-11-18 — Administration translations (Issue #2783)
