@@ -10,6 +10,7 @@ final class SEO_Facturas_Documents {
     const TYPE_INVOICE = 'invoice';
     const TYPE_PROFORMA = 'proforma';
     const TYPE_QUOTE = 'quote';
+    const TYPE_RECTIFICATION = 'rectification';
 
     public static function table_name() {
         return SEO_Facturas_Install::table_name();
@@ -292,12 +293,12 @@ final class SEO_Facturas_Documents {
 
     public static function reserve_number($type) {
         $type = sanitize_key((string) $type);
-        if (!in_array($type, array(self::TYPE_INVOICE, self::TYPE_PROFORMA, self::TYPE_QUOTE), true)) {
+        if (!in_array($type, array(self::TYPE_INVOICE, self::TYPE_PROFORMA, self::TYPE_QUOTE, self::TYPE_RECTIFICATION), true)) {
             return new WP_Error('seo_facturas_number_type', 'Tipo de documento no valido para numeracion.');
         }
 
         $series = SEO_Facturas_Settings::series_for_type($type);
-        foreach (array(self::TYPE_INVOICE, self::TYPE_PROFORMA, self::TYPE_QUOTE) as $other_type) {
+        foreach (array(self::TYPE_INVOICE, self::TYPE_PROFORMA, self::TYPE_QUOTE, self::TYPE_RECTIFICATION) as $other_type) {
             if ($other_type === $type) {
                 continue;
             }

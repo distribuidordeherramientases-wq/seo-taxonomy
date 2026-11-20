@@ -37,7 +37,17 @@ final class TCA_Issued_Invoice {
         }
 
         $number = trim( (string) $invoice->document_number );
-        return '' !== $number && strlen( $number ) <= 100 ? $number : '';
+        if ( '' === $number || strlen( $number ) > 100 ) {
+            return '';
+        }
+        // Optional filter: another independent invoicing plugin may return an
+        // issued rectification linked to this original, without altering it.
+        $effective = function_exists( 'apply_filters' )
+            ? apply_filters( 'taxocommerce_accounting_effective_issued_invoice',
+                array( 'document_no' => $number ), $order_id )
+            : array( 'document_no' => $number );
+        $candidate = is_array( $effective ) ? trim( (string) ( $effective['document_no'] ?? '' ) ) : '';
+        return '' !== $candidate && strlen( $candidate ) <= 100 ? $candidate : $number;
     }
     /**
      * Read immutable fiscal amounts from an already issued invoice.
@@ -97,11 +107,38 @@ final class TCA_Issued_Invoice {
         if ( ! preg_match( '/^[A-Z]{3}$/', $currency ) ) {
             return null;
         }
-        return array(
+        $original = array(
             'document_no' => $number,
             'amount_base' => $base,
             'amount_tax' => $tax,
             'amount_total' => $total,
+            'currency' => $currency,
+        );
+        $effective = function_exists( 'apply_filters' )
+            ? apply_filters( 'taxocommerce_accounting_effective_issued_invoice', $original, $order_id )
+            : $original;
+        if ( ! is_array( $effective ) ) {
+            return $original;
+        }
+        foreach ( array( 'amount_base', 'amount_tax', 'amount_total' ) as $field ) {
+            if ( ! isset( $effective[ $field ] ) || ! is_numeric( $effective[ $field ] ) ||
+                ! is_finite( (float) $effective[ $field ] ) || (float) $effective[ $field ] < 0 ) {
+                return $original;
+            }
+        }
+        $corrected_number = trim( (string) ( $effective['document_no'] ?? '' ) );
+        if ( '' === $corrected_number || strlen( $corrected_number ) > 100 ||
+            (string) ( $effective['currency'] ?? '' ) !== $currency ||
+            abs( (float) $effective['amount_total'] - $total ) > 0.02 ||
+            abs( (float) $effective['amount_base'] + (float) $effective['amount_tax'] -
+                (float) $effective['amount_total'] ) > 0.02 ) {
+            return $original;
+        }
+        return array(
+            'document_no' => $corrected_number,
+            'amount_base' => round( (float) $effective['amount_base'], 2 ),
+            'amount_tax' => round( (float) $effective['amount_tax'], 2 ),
+            'amount_total' => round( (float) $effective['amount_total'], 2 ),
             'currency' => $currency,
         );
     }

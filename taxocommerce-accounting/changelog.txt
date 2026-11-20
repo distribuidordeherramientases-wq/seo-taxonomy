@@ -1,3 +1,15 @@
+= 0.1.17 (2026-11-20) =
+* Reconcile VAT against an independently verified, issued rectification via optional WordPress filter while preserving original invoice, WooCommerce order and payments. No hard plugin dependency. Issue #2860.
+
+= 0.1.16 (2026-11-20) =
+* Add nominal fixed-rate loan forecasts with term, down payment, final extra principal, accurate principal/interest breakdown and final-cent adjustment. Optional confirmed funding bank receipt and manual, transaction-safe instalment payments; preserve historical manual loans. Loans and interest do not modify VAT calculations. Issue #2857.
+
+= 0.1.15 (2026-11-20) =
+* Add optional paid WooCommerce bank receipts with account/date cut-off; reconcile historic sales and refunds alongside supplier payments; convert verified opening balances into dated receipts without double-counting. No invoice is presumed paid from fiscal validation alone. Issue #2845.
+
+= 0.1.14 (2026-11-20) =
+* Optional confirmed paid flag, bank/cash account and real date when entering or validating an invoice. Treasury can reconcile historical already-paid invoices in one reviewed batch without duplicating linked or manually matched payments. Explicit user confirmation is required, and CSV imports still create drafts without assumed payments. Issue #2843.
+
 = 0.1.13 (2026-11-18) =
 * Link confirmed invoice payments and receipts (including partial payments) to real cash/bank movements; dedicated ledger links, idempotency keys, exact balance reconciliation, no automatic movements from fiscal validation alone. Issue #2817.
 

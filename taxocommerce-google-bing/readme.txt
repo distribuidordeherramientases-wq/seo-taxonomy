@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.68
+Stable tag: 1.1.72
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,22 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.72 =
+* Translate ten Google Trends interface strings into five languages, retaining existing behavior.
+
+
+= 1.1.71 =
+* Localize Merchant and Google Trends administrative messages in five languages.
+
+
+= 1.1.70 =
+* Translate Google Trends controls and feedback in five locales; no behavior changes.
+
+
+= 1.1.69 =
+* Localize eight administration labels in ES/EN/FR/DE/NL; rebuild gettext catalogs. No behavior changes.
+
 
 = 1.1.63 =
 * Uniform functional AutoCheck report JSON fields and layout, retaining existing Code Check and historic report compatibility.

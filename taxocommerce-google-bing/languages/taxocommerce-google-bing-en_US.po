@@ -1280,15 +1280,15 @@ msgstr "Last run"
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:720
 msgid "Aún no se ha realizado ningún autochequeo."
-msgstr ""
+msgstr "No self-check has been run yet."
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:724
 msgid "Resultados del último chequeo"
-msgstr ""
+msgstr "Latest check results"
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:732
 msgid "Comparación de regresiones — ANTES / DESPUÉS"
-msgstr ""
+msgstr "Regression comparison — BEFORE / AFTER"
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:737
 msgid ""
@@ -1313,7 +1313,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-connections.php:191
 msgid "Modo conexión:"
-msgstr ""
+msgstr "Connection mode:"
 
 #: includes/class-taxocommerce-google-bing-connections.php:191
 msgid ""
@@ -1414,7 +1414,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-merchant.php:311
 msgid "Google Merchant Center · informes de mercado"
-msgstr ""
+msgstr "Google Merchant Center · market reports"
 
 #: includes/class-taxocommerce-google-bing-merchant.php:312
 msgid ""
@@ -1425,7 +1425,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-merchant.php:317
 msgid "Fuente de mercado"
-msgstr ""
+msgstr "Market data source"
 
 #: includes/class-taxocommerce-google-bing-merchant.php:321
 msgid ""
@@ -1445,7 +1445,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-merchant.php:331
 msgid "Reiniciar lectura desde primera página"
-msgstr ""
+msgstr "Restart reading from the first page"
 
 #: includes/class-taxocommerce-google-bing-merchant.php:334
 msgid "Comparar con Ojeador PRO"
@@ -1470,7 +1470,7 @@ msgstr "Product"
 
 #: includes/class-taxocommerce-google-bing-merchant.php:343
 msgid "Mediana ofertas observadas"
-msgstr ""
+msgstr "Median of observed offers"
 
 #: includes/class-taxocommerce-google-bing-merchant.php:343
 msgid "Benchmark Merchant"
@@ -1478,15 +1478,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-merchant.php:343
 msgid "Diferencia"
-msgstr ""
+msgstr "Difference"
 
 #: includes/class-taxocommerce-google-bing-merchant.php:343
 msgid "Ofertas históricas"
-msgstr ""
+msgstr "Historical offers"
 
 #: includes/class-taxocommerce-google-bing-merchant.php:350
 msgid "Productos populares ajenos al inventario"
-msgstr ""
+msgstr "Popular products outside the inventory"
 
 #: includes/class-taxocommerce-google-bing-merchant.php:351
 msgid ""
@@ -1496,19 +1496,19 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-merchant.php:355
 msgid "Producto / marca"
-msgstr ""
+msgstr "Product / brand"
 
 #: includes/class-taxocommerce-google-bing-merchant.php:355
 msgid "Categoría Google"
-msgstr ""
+msgstr "Google category"
 
 #: includes/class-taxocommerce-google-bing-merchant.php:355
 msgid "Popularidad"
-msgstr ""
+msgstr "Popularity"
 
 #: includes/class-taxocommerce-google-bing-merchant.php:355
 msgid "Fecha del informe"
-msgstr ""
+msgstr "Report date"
 
 #: includes/class-taxocommerce-google-bing-oauth.php:151
 msgid "Google Search Console · OAuth"
@@ -1733,7 +1733,7 @@ msgstr "Bing"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:201
 msgid "Tendencias de clústeres y hubs primarios"
-msgstr ""
+msgstr "Trends for clusters and primary hubs"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:202
 msgid ""
@@ -1749,7 +1749,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:204
 msgid "Google Trends expresa interés relativo (0–100), no volumen absoluto."
-msgstr ""
+msgstr "Google Trends shows relative interest (0–100), not absolute search volume."
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:205
 msgid ""
@@ -1759,7 +1759,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:206
 msgid "Revisa las consultas en Google Trends antes de cambiar nombres de SEO."
-msgstr ""
+msgstr "Review Google Trends queries before changing SEO names."
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:214
 msgid ""
@@ -1768,11 +1768,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:217
 msgid "Pendiente de consultar"
-msgstr ""
+msgstr "Pending query"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:218
 msgid "Abrir esta comparación en Google Trends"
-msgstr ""
+msgstr "Open this comparison in Google Trends"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:224
 msgid ""
@@ -1787,11 +1787,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:231
 msgid "Sin consultar"
-msgstr ""
+msgstr "Not queried"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:274
 msgid "Radar de tendencias · jerarquía SEO (España)"
-msgstr ""
+msgstr "Trend radar · SEO hierarchy (Spain)"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:275
 msgid ""
@@ -1806,7 +1806,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:277
 msgid "Límite de la fuente:"
-msgstr ""
+msgstr "Source limitation:"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:277
 msgid "Google facilita gráficos visuales, pero esta integración"
@@ -1836,11 +1836,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:300
 msgid "Región: España"
-msgstr ""
+msgstr "Region: Spain"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:307
 msgid "Gestor de carga · velocidad"
-msgstr ""
+msgstr "Workload manager · speed"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:309
 msgid ""
@@ -1854,7 +1854,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:312
 msgid "Actualizar gráficos"
-msgstr ""
+msgstr "Refresh charts"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:313
 msgid "Pausar"
@@ -1866,35 +1866,35 @@ msgstr "Resume"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:315
 msgid "Detener"
-msgstr ""
+msgstr "Stop"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:318
 msgid "Preparando comparaciones automáticas…"
-msgstr ""
+msgstr "Preparing automatic comparisons…"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:319
 msgid "Registro del proceso"
-msgstr ""
+msgstr "Process log"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:324
 msgid "Exploración detallada opcional · hubs secundarios y categorías"
-msgstr ""
+msgstr "Optional detailed exploration · secondary hubs and categories"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:342
 msgid "Selecciona una categoría"
-msgstr ""
+msgstr "Select a category"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:348
 msgid "Consultar categoría"
-msgstr ""
+msgstr "Query category"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:351
 msgid "Sin categorías españolas asignadas."
-msgstr ""
+msgstr "No Spanish categories assigned."
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:362
 msgid "Selecciona una tendencia"
-msgstr ""
+msgstr "Select a trend"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:363
 msgid ""
@@ -1904,11 +1904,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:364
 msgid "Abrir en Google Trends"
-msgstr ""
+msgstr "Open in Google Trends"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:366
 msgid "Si Google impide insertar el gráfico, utiliza el enlace oficial."
-msgstr ""
+msgstr "If Google blocks chart embedding, use the official link."
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:367
 msgid ""
@@ -1929,11 +1929,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends.php:192
 msgid "Búsqueda manual de términos"
-msgstr ""
+msgstr "Manual term search"
 
 #: includes/class-taxocommerce-google-bing-trends.php:199
 msgid "Words or phrases to explore"
-msgstr ""
+msgstr "Words or phrases to explore"
 
 #: includes/class-taxocommerce-google-bing-trends.php:201
 msgid ""
@@ -1951,19 +1951,19 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends.php:207
 msgid "Period:"
-msgstr ""
+msgstr "Period:"
 
 #: includes/class-taxocommerce-google-bing-trends.php:222
 msgid "Search trends"
-msgstr ""
+msgstr "Search trends"
 
 #: includes/class-taxocommerce-google-bing-trends.php:223
 msgid "Open in Google Trends ↗"
-msgstr ""
+msgstr "Open in Google Trends ↗"
 
 #: includes/class-taxocommerce-google-bing-trends.php:231
 msgid "No results for this query yet."
-msgstr ""
+msgstr "No results for this query yet."
 
 #: includes/class-taxocommerce-google-bing-trends.php:232
 msgid ""
@@ -1974,7 +1974,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends.php:236
 msgid "Source:"
-msgstr ""
+msgstr "Source:"
 
 #: includes/class-taxocommerce-google-bing-trends.php:236
 msgid ""
@@ -1992,15 +1992,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends.php:355
 msgid "You do not have permission to download reports."
-msgstr ""
+msgstr "You do not have permission to download reports."
 
 #: includes/class-taxocommerce-google-bing-trends.php:388
 msgid "You do not have permission to export reports."
-msgstr ""
+msgstr "You do not have permission to export reports."
 
 #: includes/class-taxocommerce-google-bing-trends.php:396
 msgid "There are no saved data to export."
-msgstr ""
+msgstr "There are no saved data to export."
 
 #: includes/class-taxocommerce-google-bing-user-guide.php:89
 msgid "No tienes permisos para consultar esta documentación."

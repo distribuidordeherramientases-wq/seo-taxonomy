@@ -1,3 +1,6 @@
+= 0.1.21 (2026-11-20) =
+* Add an immutable rectifying-invoice workflow for same-gross VAT corrections. Separate RECT numbering, original invoice reference, mandatory reason, own PDF, explicit customer email, optional Accounting hook; preserve original sales and receipts. Issue #2860.
+
 = 0.1.19 (2026-11-17) =
 * Presupuestos y proformas calculan transporte segun el destino del formulario, no segun un indicador obsoleto de sesion. Muestran el neto y el precio con IVA, sin modificar reglas de Logistica ni inventario.
 

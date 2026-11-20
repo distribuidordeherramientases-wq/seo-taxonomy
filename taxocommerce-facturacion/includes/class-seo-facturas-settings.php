@@ -491,6 +491,9 @@ final class SEO_Facturas_Settings {
 
     public static function padding_for_type($type) {
         $type = sanitize_key((string) $type);
+        if ('rectification' === $type) {
+            return 6;
+        }
         if ('invoice' === $type) {
             return self::sanitize_padding(self::get('invoice_padding', 6));
         }
@@ -502,6 +505,9 @@ final class SEO_Facturas_Settings {
 
     public static function series_for_type($type) {
         $type = sanitize_key((string) $type);
+        if ('rectification' === $type) {
+            return 'RECT';
+        }
         if ('invoice' === $type) {
             return self::sanitize_series(self::get('invoice_series', 'FAC'), 'FAC');
         }

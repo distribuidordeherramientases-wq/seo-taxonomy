@@ -25,6 +25,7 @@ $ui = array(
     'suppliers' => 'includes/class-tcsup-admin.php',
     'system-check' => 'taxocommerce-system-check.php',
     'tasks' => 'taxocommerce-tasks.php',
+    'ticketing' => 'includes/class-tctk-autocheck.php',
     'templates' => 'taxocommerce-templates.php',
     'vocabulary' => 'includes/class-tcv-admin.php',
 );
@@ -49,6 +50,7 @@ $reporter = array(
     'suppliers' => 'includes/class-tcsup-autotest.php',
     'system-check' => 'includes/class-taxocommerce-system-check-auto-test.php',
     'tasks' => 'taxocommerce-tasks.php',
+    'ticketing' => 'includes/class-tctk-autocheck.php',
     'templates' => 'includes/class-tct-autocheck.php',
     'vocabulary' => 'includes/class-tcv-auto-test.php',
 );

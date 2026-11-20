@@ -1,3 +1,33 @@
+## 0.1.17 — 2026-11-20 — Optional immutable rectification reconciliation (#2860)
+
+- Accept an optional WordPress filter for the latest legally issued, same-total rectifying invoice linked to a WooCommerce sale. Prefer the rectification for VAT validation, while preserving the original document and paid amount. Confirm currency, positive finite values and base + VAT = original gross before applying.
+- No mandatory dependency on Billing and no new payments, duplicate sales, auto-approval or order changes. Issued documents require explicit fiscal validation; existing protected drafts and historical corrections remain unchanged.
+
+## 0.1.16 — 2026-11-20 — Fixed-rate loan financing and reconciled repayments (#2857)
+
+- Add a calculated loan mode with financed principal, upfront down payment, nominal annual interest (TIN), duration in months (1–360), optional final balloon principal, start date and first payment date. The monthly amortisation table separates principal and interest and rounds the last instalment to clear the balance.
+- Preserve existing manual loans and their editable outstanding balance and instalment amount. New calculated loans only reduce their outstanding principal when an authorised administrator explicitly confirms a real instalment; every payment writes an atomic linked bank/cash movement, with per-instalment uniqueness and idempotency.
+- Loan funding may optionally post one confirmed bank receipt at creation. No double booking of the financed purchase, upfront down payment, or future instalments. Money loans and their interest are generally VAT-exempt under article 20(1)(18) of Spain's VAT law; loan interest never alters Model 303 automatically. Contractual fees and APR/TAE require independent verification.
+- Add migration to schema v6, deterministic financing regression tests (10% TIN, 12 months, final cent, zero-rate and balloon cases), and maintain WordPress/WooCommerce independence.
+
+## 0.1.15 — 2026-11-20 — Conciliación de cobros y aportaciones iniciales (#2845)
+
+- Tesorería permite **conciliar manualmente cobros reales de ventas**, devoluciones y pagos de proveedores desde la misma lista de importes pendientes, con fecha/cuenta elegidas y confirmación expresa.
+- Configuración: **cuenta bancaria para cobros WooCommerce** y fecha mínima; desactivado por defecto. Al sincronizar pedidos realmente pagados, solo crea el recibo bancario si consta fecha de pago, número de factura, totales coincidentes y cuenta bancaria real. Respeta el filtro de fecha y los enlaces existentes.
+- Se detectan movimientos manuales previos con la referencia de la factura en el sentido correcto (cobro/pago) y se mantienen las protecciones de importes pendientes, idempotencia y bloqueo transaccional.
+- **Conversión opcional del saldo inicial en ingreso fechado**, sin duplicar el saldo total. No se cambian las cuentas salvo confirmación y sin tocar los préstamos.
+- Las facturas fiscales **no se presumen pagadas** por validación; las compras sin comprobante de pago siguen requiriendo confirmación explícita. No se alteran base, IVA, documentos o registros ajenos.
+- Regresiones de STAGING: saldos iniciales Cash/Bank de 500 EUR cada uno; Bank in 1.043,06 EUR y Bank out 939,46 EUR solo tras cobro/pago confirmado. Revisión de cero duplicados, no modificación de WooCommerce y compatibilidad con Plugin Check.
+
+## 0.1.14 — 2026-11-20 — Conciliación bancaria de gastos realmente pagados (#2843)
+
+- **Registrar o validar una factura** ahora permite marcar opcionalmente «Factura pagada» y seleccionar banco/caja, importe y fecha real: tras confirmar, el pago crea su salida en Tesorería sin repetir los datos de la factura.
+- Nueva sección **Tesorería → Conciliar facturas ya pagadas**: lista limitada de asientos validados con saldos pendientes, selección individual y fecha de pago editable. Solo genera movimientos tras marcar una confirmación expresa; nunca asume que todas las facturas están pagadas.
+- Cada pago utiliza el enlace transaccional existente y comprueba el importe pendiente para evitar duplicados en reenvíos. La conciliación también omite los pagos manuales ya registrados con la misma cuenta y referencia, incluidos pagos parciales. El resultado muestra cuántos pagos se han contabilizado, omitido o fallado.
+- **No se modifican** bases, IVA, documentos ni préstamos. El saldo inicial de banco no se recalcula: las aportaciones reales de socios deben documentarse por separado.
+- El CSV sigue importando **borradores no pagados** por defecto. No se infiere que un cliente haya pagado solo porque WooCommerce haya creado un pedido; los cobros también requieren confirmación y cuenta real.
+- Pruebas de seguridad, pagos parciales, no duplicación, 362,57 € iniciales y escenario con Satkit de 12,55 €. Ninguna modificación directa de los datos de producción.
+
 ## 0.1.13 — 2026-11-18 — Pagos y cobros de facturas asociados a Tesorería (#2817)
 
 - Cada asiento de venta, devolución, compra, gasto o activo ofrece **Registrar pago / Registrar cobro** con selección explícita de cuenta bancaria o caja, fecha real e importe, incluyendo pagos parciales.

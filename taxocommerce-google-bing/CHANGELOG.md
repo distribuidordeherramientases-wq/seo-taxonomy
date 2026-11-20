@@ -1,3 +1,30 @@
+## [1.1.72] — 2026-11-20 — Google Trends interface translations (#2852)
+
+- Localize ten Google Trends administration labels, navigation links and evidence notices in es_ES, en_US, fr_FR, de_DE and nl_NL.
+- Recompile five gettext MO catalogs without changing reporting logic, queries, data or external integrations. No production deployment.
+
+## [1.1.71] — 2026-11-20 — Merchant and Trends administration translations (#2849)
+
+- Translate 12 Merchant and Google Trends interface labels, permissions notices and export states to es_ES, en_US, fr_FR, de_DE and nl_NL.
+- Rebuild all five MO gettext catalogs from PO. Keep reporting, APIs, product data and behavior unchanged. Do not deploy to production.
+
+## [1.1.70] — 2026-11-20 — Google Trends administration translations (#2783)
+
+- Translate 16 remaining Google Trends interface labels, controls and status messages across es_ES, en_US, fr_FR, de_DE and nl_NL.
+- Regenerate compiled gettext catalogs from updated PO files. No behavioral, network or business data changes. No production deployment.
+
+## [1.1.69] — 2026-11-20 — Administrative gettext follow-up (#2783)
+
+- Translate eight operational UI labels and messages for Autotest, Connections and Merchant in ES/EN/FR/DE/NL.
+- Rebuild the five MO catalogs from the updated PO entries without changing execution, external connectors or report data.
+- Keep remaining documentation and non-interface strings for subsequent scoped reviews. No production deployment.
+
+## [1.1.69] — 2026-11-20 — Administrative gettext follow-up (#2783)
+
+- Translate eight operational UI labels and messages for Autotest, Connections and Merchant in ES/EN/FR/DE/NL.
+- Rebuild the five MO catalogs from the updated PO entries without changing execution, external connectors or report data.
+- Keep the remaining untranslated documentation and non-interface strings for subsequent scoped reviews. No production deployment.
+
 ## [1.1.68] — 2026-11-18 — Administration translations (Issue #2783)
 
 - Localize 73 previously untranslated interface strings in es_ES, en_US, fr_FR, de_DE and nl_NL: 25 connection outcomes/errors, 20 Google OAuth field labels and instructions, and 28 GSC/GA4/Bing reporting labels and warnings.

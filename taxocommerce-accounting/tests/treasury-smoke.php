@@ -42,8 +42,41 @@ tca_treasury_assert( 120.0 === $report['months']['2026-11']['bank_in'], 'Bank re
 tca_treasury_assert( 40.0 === $report['months']['2026-11']['bank_out'], 'Bank payments' );
 tca_treasury_assert( 580.0 === $report['months']['2026-11']['bank_balance'], 'Month closing bank balance' );
 
+// The STAGING 2026 case: two 500 EUR January opening balances do not
+// represent monthly receipts; confirmed November settlements do.
+$opening_accounts = array(
+    (object) array( 'id' => 11, 'kind' => 'cash', 'name' => 'Cash', 'opened_on' => '2026-01-01', 'opening_amount' => 500.0 ),
+    (object) array( 'id' => 12, 'kind' => 'bank', 'name' => 'Bank', 'opened_on' => '2026-01-01', 'opening_amount' => 500.0 ),
+);
+$before = TCA_Treasury::calculate( $opening_accounts, array(), 2026, '2026-11-20' );
+tca_treasury_assert( 0.0 === $before['months']['2026-01']['cash_in'] && 0.0 === $before['months']['2026-01']['bank_in'], 'Opening balances are not double-counted as receipts' );
+tca_treasury_assert( 500.0 === $before['current']['cash'] && 500.0 === $before['current']['bank'], 'Opening balances remain available until an actual movement' );
+$confirmed_movements = array(
+    (object) array( 'account_id' => 12, 'month' => '2026-11', 'direction' => 'in', 'total' => 1043.06 ),
+    (object) array( 'account_id' => 12, 'month' => '2026-11', 'direction' => 'out', 'total' => 939.46 ),
+);
+$settled = TCA_Treasury::calculate( $opening_accounts, $confirmed_movements, 2026, '2026-11-20' );
+tca_treasury_assert( 603.60 === round( $settled['current']['bank'], 2 ), 'Confirmed sales less paid supplier invoices update bank balance' );
+tca_treasury_assert( 500.0 === $settled['current']['cash'], 'Bank-linked invoices do not change cash register' );
+tca_treasury_assert( 1043.06 === $settled['months']['2026-11']['bank_in'], 'Confirmed WooCommerce receipts appear in Bank in' );
+tca_treasury_assert( 939.46 === $settled['months']['2026-11']['bank_out'], 'Confirmed invoice payments appear in Bank out' );
+$receipt_accounts = array(
+    (object) array( 'id' => 11, 'kind' => 'cash', 'name' => 'Cash', 'opened_on' => '2026-01-01', 'opening_amount' => 0.0 ),
+    (object) array( 'id' => 12, 'kind' => 'bank', 'name' => 'Bank', 'opened_on' => '2026-01-01', 'opening_amount' => 0.0 ),
+);
+$receipt_movements = array(
+    (object) array( 'account_id' => 11, 'month' => '2026-01', 'direction' => 'in', 'total' => 500.0 ),
+    (object) array( 'account_id' => 12, 'month' => '2026-01', 'direction' => 'in', 'total' => 500.0 ),
+);
+$converted = TCA_Treasury::calculate( $receipt_accounts, $receipt_movements, 2026, '2026-11-20' );
+tca_treasury_assert( 500.0 === $converted['current']['cash'] && 500.0 === $converted['current']['bank'], 'Converting both openings to receipts preserves available cash' );
+tca_treasury_assert( 500.0 === $converted['months']['2026-01']['cash_in'] && 500.0 === $converted['months']['2026-01']['bank_in'], 'January loan proceeds appear as receipts after explicit conversion' );
+
 $source = file_get_contents( dirname( __DIR__ ) . '/includes/class-tca-treasury.php' );
 tca_treasury_assert( false !== $source, 'Treasury source readable' );
+tca_treasury_assert( false !== strpos( $source, "'opening_receipt' === \$operation" ), 'Opening receipt conversion is an explicit action' );
+tca_treasury_assert( false !== strpos( $source, "name=\"opening_verified\"" ), 'Conversion requires confirmation' );
+tca_treasury_assert( false !== strpos( $source, "'opening_amount' => 0" ), 'Conversion zeroes old opening amount to prevent duplication' );
 tca_treasury_assert( false !== strpos( $source, "check_admin_referer( 'tca_treasury_action' )" ), 'All treasury writes verify nonce' );
 tca_treasury_assert( false !== strpos( $source, "current_user_can( 'manage_woocommerce' )" ), 'Treasury writes require WooCommerce role' );
 tca_treasury_assert( false !== strpos( $source, "START TRANSACTION" ) && false !== strpos( $source, "ROLLBACK" ), 'Transfers are atomic' );
@@ -51,4 +84,36 @@ tca_treasury_assert( false !== strpos( $source, "'remaining' => \$principal" ), 
 tca_treasury_assert( false !== strpos( $source, "next_due_date" ), 'Loan due date is tracked' );
 tca_treasury_assert( false === strpos( $source, "get_total_tax(" ), 'Treasury cash is not derived from VAT' );
 tca_treasury_assert( false === strpos( $source, "wc_get_orders(" ), 'Treasury cash is not invented from invoices' );
+// Fixed-rate financing regression: 1,120.34 EUR, 10% nominal annual TIN, 12 months.
+$loan = TCA_Loan_Schedule::calculate( 1120.34, 10, 12, '2026-12-20' );
+tca_treasury_assert( 12 === count( $loan ), 'A 12-month loan has twelve instalments' );
+tca_treasury_assert( 98.50 === $loan[0]['payment'] && 9.34 === $loan[0]['interest'] && 89.16 === $loan[0]['principal'], 'First instalment splits interest and capital' );
+tca_treasury_assert( 98.44 === $loan[11]['payment'] && 0.00 === $loan[11]['remaining'], 'Last instalment is adjusted to clear the debt exactly' );
+tca_treasury_assert( 61.60 === round( array_sum( array_column( $loan, 'interest' ) ), 2 ), 'Interest is calculated each month, not treated as VAT' );
+tca_treasury_assert( 1181.94 === round( array_sum( array_column( $loan, 'payment' ) ), 2 ), 'Total payments reconcile with capital plus interest' );
+tca_treasury_assert( '2027-11-20' === $loan[11]['due_date'], 'Maturity is calculated from first due date and term' );
+
+$no_interest = TCA_Loan_Schedule::calculate( 120, 0, 12, '2026-12-20' );
+tca_treasury_assert( 10.0 === $no_interest[0]['payment'] && 0.0 === $no_interest[11]['remaining'], 'Zero-interest loan works' );
+$balloon = TCA_Loan_Schedule::calculate( 120, 0, 12, '2026-12-20', 100 );
+tca_treasury_assert( $balloon[11]['payment'] > $balloon[0]['payment'] && 0.0 === $balloon[11]['remaining'], 'Extra final principal is financed without inventing VAT' );
+$month_end = TCA_Loan_Schedule::calculate( 90, 0, 3, '2027-01-31' );
+tca_treasury_assert( '2027-02-28' === $month_end[1]['due_date'] && '2027-03-31' === $month_end[2]['due_date'], 'Month-end due dates do not roll into March' );
+foreach ( array(
+    array( 0, 10, 12, '2026-12-20', 0 ),
+    array( 120, 101, 12, '2026-12-20', 0 ),
+    array( 120, 10, 0, '2026-12-20', 0 ),
+    array( 120, 10, 12, '2026-02-30', 0 ),
+    array( 120, 10, 12, '2026-12-20', 121 ),
+) as $invalid ) {
+    tca_treasury_assert( array() === TCA_Loan_Schedule::calculate( ...$invalid ), 'Invalid financing terms must be refused' );
+}
+tca_treasury_assert( false !== strpos( $source, "'loan_payment' === \$operation" ), 'Loan repayments require an explicit action' );
+tca_treasury_assert( false !== strpos( $source, "'funding_received' " ), 'Loan funds enter bank only after explicit confirmation' );
+tca_treasury_assert( false !== strpos( $source, "loan_payments" ), 'Loan instalments have a linked audit ledger' );
+tca_treasury_assert( false !== strpos( $source, "first_due_date" ), 'Original first due date stays immutable across payments' );
+tca_treasury_assert( false !== strpos( $source, "'interest_amount'" ), 'Actual interest component is stored separately from principal' );
+tca_treasury_assert( false !== strpos( $source, "'term_months' => \$months" ), 'New financing mode stores its duration' );
+tca_treasury_assert( false !== strpos( $source, "return self::table( 'movements' )" ), 'Payments use the standard Treasury movements ledger' );
+
 echo "TaxoCommerce Accounting Treasury isolated smoke: PASS\n";
