@@ -720,3 +720,6 @@ msgstr "Confirma la recepción de fondos solo si se ha producido una transferenc
 
 msgid "Save loan"
 msgstr "Guardar préstamo"
+
+msgid "Treasury"
+msgstr "Tesorería"
