@@ -7,3 +7,4 @@
 - Private customer reply link and staff notifications.
 - Optional integration hook for future Tasks adapter, no Core dependency.
 - References #2862.
+- #2870: first test-site delivery of the complete, independent plugin to STAGING and Focazul, with no automatic activation and no production rollout.
