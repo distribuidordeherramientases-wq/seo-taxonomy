@@ -65,12 +65,14 @@ final class TCA_Treasury {
             upfront_payment decimal(18,2) NOT NULL DEFAULT 0.00,
             balloon_payment decimal(18,2) NOT NULL DEFAULT 0.00,
             funding_movement_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            request_key varchar(64) NULL DEFAULT NULL,
             start_date date NOT NULL,
             next_due_date date NOT NULL,
             first_due_date date NOT NULL DEFAULT '1970-01-01',
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY  (id),
+            UNIQUE KEY request_key (request_key),
             KEY next_due_date (next_due_date)
         ) {$collation};" );
         $payments = esc_sql( self::table( 'loan_payments' ) );
@@ -251,10 +253,12 @@ final class TCA_Treasury {
             $upfront = self::money( self::posted( 'upfront_payment' ) );
             $balloon = self::money( self::posted( 'balloon_payment' ) );
             $monthly = self::money( self::posted( 'monthly_payment' ) );
+            $request_key = self::posted( 'loan_request_key' );
             $funding_received = '1' === self::posted( 'funding_received' );
             $funding_account = $funding_received ? self::get_account( self::posted( 'funding_account_id' ) ) : false;
             if ( '' === $name || ! self::date( $start ) || ! self::date( $due, true ) ||
                 $due < $start || null === $principal || $principal <= 0 ||
+                ! preg_match( '/^[a-f0-9-]{36}$/', $request_key ) ||
                 null === $rate || $rate < 0 || $rate > 100 ||
                 null === $upfront || null === $balloon || $balloon > $principal ||
                 $months > 360 ||
@@ -273,16 +277,23 @@ final class TCA_Treasury {
                 // Pre-existing manual-amount mode remains available without a term.
                 self::redirect( 'invalid' );
             }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Replayed request must never generate a second loan or bank receipt.
+            $existing_loan = $wpdb->get_var( $wpdb->prepare(
+                'SELECT id FROM %i WHERE request_key = %s LIMIT 1', self::table( 'loans' ), $request_key
+            ) );
+            if ( $existing_loan ) {
+                self::redirect( 'saved' );
+            }
             $wpdb->query( 'START TRANSACTION' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Own loan/funding transaction.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own loan register.
             $saved = $wpdb->insert( self::table( 'loans' ), array(
                 'name' => $name, 'lender' => $lender, 'principal' => $principal,
                 'remaining' => $principal, 'monthly_payment' => $monthly,
-                'annual_rate' => $rate, 'term_months' => $months,
+                'annual_rate' => $rate, 'term_months' => $months, 'request_key' => $request_key,
                 'upfront_payment' => $upfront, 'balloon_payment' => $balloon,
                 'start_date' => $start, 'next_due_date' => $due, 'first_due_date' => $due,
                 'created_at' => current_time( 'mysql' ), 'updated_at' => current_time( 'mysql' ),
-            ), array( '%s', '%s', '%f', '%f', '%f', '%f', '%d', '%f', '%f', '%s', '%s', '%s', '%s', '%s' ) );
+            ), array( '%s', '%s', '%f', '%f', '%f', '%f', '%d', '%s', '%f', '%f', '%s', '%s', '%s', '%s', '%s' ) );
             $loan_id = $saved ? (int) $wpdb->insert_id : 0;
             if ( $saved && $funding_received ) {
                 // The purchase invoice/payment must be recorded separately.
@@ -299,6 +310,9 @@ final class TCA_Treasury {
             self::redirect( $saved ? 'saved' : 'error' );
         }
         if ( 'loan_payment' === $operation ) {
+            if ( '1' !== self::posted( 'loan_payment_confirmed' ) ) {
+                self::redirect( 'invalid' );
+            }
             $id = absint( self::posted( 'loan_id' ) );
             $date = self::posted( 'posted_on' );
             $key = self::posted( 'request_key' );
@@ -683,6 +697,8 @@ final class TCA_Treasury {
                     echo '</label> ';
                     echo '<label>' . esc_html__( 'Actual payment date', 'taxocommerce-accounting' ) .
                         ' <input type="date" name="posted_on" value="' . esc_attr( $today ) . '" required></label> ';
+                    echo '<p><label><input type="checkbox" name="loan_payment_confirmed" value="1" required> ' .
+                        esc_html__( 'I confirm this instalment was actually paid from this account.', 'taxocommerce-accounting' ) . '</label></p>';
                     submit_button( __( 'Confirm instalment paid', 'taxocommerce-accounting' ), 'secondary small', 'submit', false );
                     echo '</form>';
                 }
@@ -725,6 +741,7 @@ final class TCA_Treasury {
 
         echo '<h4>' . esc_html__( 'Add a loan', 'taxocommerce-accounting' ) . '</h4>';
         self::start_form( 'loan' );
+        echo '<input type="hidden" name="loan_request_key" value="' . esc_attr( wp_generate_uuid4() ) . '">';
         echo '<p class="description">' . esc_html__(
             'Enter the amount actually borrowed, excluding any down payment. Set TIN and term to calculate instalments; leave term zero and enter a manual monthly amount for an old-style loan. The optional final balloon is extra principal due with the last instalment.',
             'taxocommerce-accounting'
