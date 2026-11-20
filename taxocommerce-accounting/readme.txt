@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.21
+Stable tag: 0.1.22
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,6 +16,9 @@ Independent WooCommerce fiscal register with purchase invoices, monthly VAT esti
 TaxoCommerce Accounting records fiscal data without changing WooCommerce orders, customers, supplier catalogues or invoice generation.
 
 = Key Features =
+
+* **Actionable fiscal review:** the monthly Summary links outstanding approval counts to their exact records, or to a filtered month list when several need attention. A separate incident count distinguishes verified invoice mismatches from zero-VAT and missing-document warnings; existing correction, validation and audited history controls are reused. Autocheck and ledger rows include contextual review links. No changes to approved invoices, WooCommerce orders, stock, VAT calculations or Treasury.
+
 
 * **Expense classification:** expenses are current by default. Optionally mark an office computer or other durable business equipment as a fixed asset, enter its date put into service and useful life (1–50 years), and see yearly straight-line depreciation with prorated partial years under Expenses. Nonrecoverable input VAT is included in asset cost. Previously saved expenses remain current; changes use the audited correction form. This calculation does not book bank payments, alter invoice VAT or assert the applicable tax deduction; accounting and fiscal depreciation rules should be verified independently.
 
