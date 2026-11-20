@@ -58,6 +58,61 @@ final class SEO_Facturas_Rectifications {
         return array( 'base_total' => $base, 'total_tax' => $tax, 'total' => $gross, 'rate' => $rate );
     }
 
+    /**
+     * Reprice existing immutable items at a single chosen VAT rate.
+     * Differences caused by rounding are absorbed by the last item only.
+     *
+     * @return array|WP_Error Correct line amounts without changing the order.
+     */
+    public static function replacement_lines( $items, $rate, $corrected_base, $gross_total ) {
+        if ( ! is_array( $items ) || ! $items ) {
+            return new WP_Error( 'sf_rectification_no_items', __( 'Original invoice does not have itemised products.', 'taxocommerce-facturacion' ) );
+        }
+        $lines = array();
+        $all_gross = 0.0;
+        $base_sum = 0.0;
+        $classes = array();
+        foreach ( $items as $item ) {
+            if ( ! is_array( $item ) || ! isset( $item['total'], $item['total_tax'], $item['quantity'] ) ||
+                ! is_numeric( $item['total'] ) || ! is_numeric( $item['total_tax'] ) ||
+                ! is_numeric( $item['quantity'] ) || (float) $item['quantity'] <= 0 ) {
+                return new WP_Error( 'sf_rectification_bad_items', __( 'Original invoice items cannot be safely repriced.', 'taxocommerce-facturacion' ) );
+            }
+            $classes[] = (string) ( $item['tax_class'] ?? '' );
+            $gross = round( (float) $item['total'] + (float) $item['total_tax'], 2 );
+            if ( ! is_finite( $gross ) || $gross <= 0 ) {
+                return new WP_Error( 'sf_rectification_bad_item_total', __( 'Negative or empty item amount is not supported.', 'taxocommerce-facturacion' ) );
+            }
+            $line_base = round( $gross / ( 1.0 + (float) $rate / 100.0 ), 2 );
+            $lines[] = array(
+                'name' => (string) ( $item['name'] ?? '' ),
+                'sku' => (string) ( $item['sku'] ?? '' ),
+                'quantity' => (float) $item['quantity'],
+                'base' => $line_base,
+                'tax' => round( $gross - $line_base, 2 ),
+                'gross' => $gross,
+            );
+            $base_sum += $line_base;
+            $all_gross += $gross;
+        }
+        if ( count( array_unique( $classes ) ) > 1 ||
+            abs( $all_gross - (float) $gross_total ) > 0.02 ) {
+            return new WP_Error( 'sf_rectification_mixed', __( 'Mixed tax classes or incomplete item totals need an itemised correction.', 'taxocommerce-facturacion' ) );
+        }
+        $last = count( $lines ) - 1;
+        $adjustment = round( (float) $corrected_base - $base_sum, 2 );
+        if ( abs( $adjustment ) > 0.02 ) {
+            return new WP_Error( 'sf_rectification_rounding', __( 'Invoice cannot be reconciled to a single tax rate.', 'taxocommerce-facturacion' ) );
+        }
+        $lines[ $last ]['base'] = round( $lines[ $last ]['base'] + $adjustment, 2 );
+        $lines[ $last ]['tax'] = round( $lines[ $last ]['gross'] - $lines[ $last ]['base'], 2 );
+        foreach ( $lines as &$line ) {
+            $line['unit_net'] = round( $line['base'] / $line['quantity'], 4 );
+        }
+        unset( $line );
+        return $lines;
+    }
+
     public static function get( $id ) {
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Immutable original/rectification records, no stale cache.
@@ -131,6 +186,14 @@ final class SEO_Facturas_Rectifications {
         if ( is_wp_error( $replacement ) ) {
             return $replacement;
         }
+        if ( count( (array) ( $original_snapshot['tax_lines'] ?? array() ) ) > 1 ) {
+            return new WP_Error( 'sf_rectification_multiple_rates', __( 'Multiple historical tax rates need an itemised correction.', 'taxocommerce-facturacion' ) );
+        }
+        $corrected_lines = self::replacement_lines( $original_snapshot['items'] ?? array(),
+            $rate, $replacement['base_total'], $total );
+        if ( is_wp_error( $corrected_lines ) ) {
+            return $corrected_lines;
+        }
         if ( abs( $replacement['total_tax'] - (float) $old['total_tax'] ) <= 0.005 &&
             abs( $replacement['base_total'] - (float) $old['base_total'] ) <= 0.005 ) {
             return new WP_Error( 'sf_rectification_unchanged', __( 'The corrected tax split is identical to the original.', 'taxocommerce-facturacion' ) );
@@ -155,6 +218,7 @@ final class SEO_Facturas_Rectifications {
             'old_total' => round( $total, 2 ),
             'rate' => $replacement['rate'],
         );
+        $snapshot['rectification_items'] = $corrected_lines;
         $snapshot['totals']['base_total'] = $replacement['base_total'];
         $snapshot['totals']['total_tax'] = $replacement['total_tax'];
         $snapshot['totals']['total'] = $replacement['total'];
