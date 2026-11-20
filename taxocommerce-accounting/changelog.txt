@@ -1,3 +1,6 @@
+= 0.1.18 (2026-11-20) =
+* Localize 91 Treasury interface strings in ES/EN/FR/DE/NL and regenerate compiled gettext catalogs; preserve all bookkeeping operations. Issue #2876.
+
 = 0.1.17 (2026-11-20) =
 * Reconcile VAT against an independently verified, issued rectification via optional WordPress filter while preserving original invoice, WooCommerce order and payments. No hard plugin dependency. Issue #2860.
 

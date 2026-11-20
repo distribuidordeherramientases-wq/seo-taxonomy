@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.17
+Stable tag: 0.1.18
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,10 @@ No. It is a working summary of validated domestic records, not an official AEAT 
 No. Input VAT defaults to 0% deductible and records start in draft. A qualified professional should verify the tax treatment.
 
 == Changelog ==
+
+= 0.1.18 =
+* Translate Treasury controls and help text in five languages and compile their MO catalogs.
+
 
 = 0.1.12 =
 * Distinct bulk CSV import/export of supplier merchandise purchases and operating/service expenses, linked to encrypted PDF/JPG/PNG/WEBP originals in uploads. Issue #2795.
