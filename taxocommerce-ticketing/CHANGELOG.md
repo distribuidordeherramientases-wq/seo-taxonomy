@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased — 2026-11-20
+- Prepared dual-site first installation, Core extension management and public plugin information page on Focazul (Issue #2871).
+
 ## Unreleased — WordPress.org preflight corrections
 - Replace computed gettext domains with literal plugin text domains.
 - Clarify ordered placeholders and translator comments for WordPress Plugin Check.
