@@ -243,5 +243,186 @@ final class SEO_Facturas_Rectifications {
             'amount_total' => round( $gross, 2 ),
         ) );
     }
+
+    /**
+     * Inline administration control for an existing invoice row.
+     *
+     * @return string Form HTML.
+     */
+    public static function render_action( $original ) {
+        if ( ! $original || 'issued' !== (string) $original->status ||
+            SEO_Facturas_Documents::TYPE_INVOICE !== (string) $original->document_type ) {
+            return '';
+        }
+        $existing = self::for_original( $original->id );
+        if ( $existing ) {
+            return '<span>' . esc_html__( 'Rectification', 'taxocommerce-facturacion' ) . ': <strong>' .
+                esc_html( $existing->document_number ) . '</strong></span>';
+        }
+        $html = '<details class="sf-rectification-form"><summary>' .
+            esc_html__( 'Rectify issued invoice', 'taxocommerce-facturacion' ) . '</summary>';
+        $html .= '<p class="description">' .
+            esc_html__( 'VAT-only correction by substitution. The total already collected is unchanged. Check the legal VAT rate before issuing.', 'taxocommerce-facturacion' ) .
+            '</p><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        $html .= '<input type="hidden" name="action" value="seo_facturas_rectify">';
+        $html .= '<input type="hidden" name="original_id" value="' . esc_attr( (string) $original->id ) . '">';
+        $html .= wp_nonce_field( 'sf_rectify_' . $original->id, '_wpnonce', true, false );
+        $html .= '<p><label>' . esc_html__( 'Correct VAT rate', 'taxocommerce-facturacion' ) .
+            ' <select name="rate" required>';
+        foreach ( array( '21' => '21 %', '10' => '10 %', '4' => '4 %', '0' => '0 %' ) as $value => $label ) {
+            $html .= '<option value="' . esc_attr( $value ) . '">' . esc_html( $label ) . '</option>';
+        }
+        $html .= '</select></label></p><p><label>' .
+            esc_html__( 'Mandatory reason for rectification', 'taxocommerce-facturacion' ) .
+            ' <textarea name="reason" rows="3" minlength="15" maxlength="1000" required></textarea></label></p>';
+        $html .= '<p><label><input type="checkbox" name="confirmed" value="1" required> ' .
+            esc_html__( 'I have verified the tax treatment and authorise issuing a separate rectifying invoice.', 'taxocommerce-facturacion' ) .
+            '</label></p>';
+        $html .= '<button type="submit" class="button button-secondary">' .
+            esc_html__( 'Issue rectifying invoice', 'taxocommerce-facturacion' ) . '</button></form></details>';
+        return $html;
+    }
+
+    public static function render_register() {
+        $rows = self::all_recent();
+        echo '<h2>' . esc_html__( 'Issued rectifying invoices', 'taxocommerce-facturacion' ) . '</h2>';
+        echo '<p class="description">' . esc_html__(
+            'Rectifying invoices preserve the original invoice and WooCommerce order. A corrected tax split never creates a second payment.',
+            'taxocommerce-facturacion'
+        ) . '</p>';
+        echo '<table class="widefat striped"><thead><tr><th>' .
+            esc_html__( 'Rectifying invoice', 'taxocommerce-facturacion' ) . '</th><th>' .
+            esc_html__( 'Original invoice', 'taxocommerce-facturacion' ) . '</th><th>' .
+            esc_html__( 'Order', 'taxocommerce-facturacion' ) . '</th><th>' .
+            esc_html__( 'Issue date', 'taxocommerce-facturacion' ) . '</th><th>' .
+            esc_html__( 'Reason', 'taxocommerce-facturacion' ) . '</th><th>' .
+            esc_html__( 'Actions', 'taxocommerce-facturacion' ) . '</th></tr></thead><tbody>';
+        foreach ( $rows as $row ) {
+            $original = SEO_Facturas_Documents::get( $row->original_id );
+            echo '<tr><td>' . esc_html( $row->document_number ) . '</td><td>' .
+                esc_html( $original ? $original->document_number : '' ) . '</td><td>#' .
+                esc_html( $row->order_id ) . '</td><td>' . esc_html( $row->issued_at ) .
+                '</td><td>' . esc_html( $row->reason ) . '</td><td>';
+            if ( 'issued' === $row->status ) {
+                $download = wp_nonce_url( admin_url( 'admin-post.php?action=seo_facturas_rectification_download&rectification_id=' . absint( $row->id ) ),
+                    'sf_rectification_download_' . $row->id );
+                echo '<a class="button button-small" href="' . esc_url( $download ) . '">' .
+                    esc_html__( 'PDF', 'taxocommerce-facturacion' ) . '</a> ';
+                $email = wp_nonce_url( admin_url( 'admin-post.php?action=seo_facturas_rectification_email&rectification_id=' . absint( $row->id ) ),
+                    'sf_rectification_email_' . $row->id );
+                echo '<a class="button button-small" href="' . esc_url( $email ) . '">' .
+                    esc_html__( 'Email customer', 'taxocommerce-facturacion' ) . '</a>';
+            } else {
+                $retry = wp_nonce_url( admin_url( 'admin-post.php?action=seo_facturas_rectification_retry&rectification_id=' . absint( $row->id ) ),
+                    'sf_rectification_retry_' . $row->id );
+                echo '<a class="button button-small" href="' . esc_url( $retry ) . '">' .
+                    esc_html__( 'Retry PDF generation', 'taxocommerce-facturacion' ) . '</a>';
+            }
+            echo '</td></tr>';
+        }
+        if ( ! $rows ) {
+            echo '<tr><td colspan="6">' . esc_html__( 'No rectifying invoices have been issued.', 'taxocommerce-facturacion' ) . '</td></tr>';
+        }
+        echo '</tbody></table>';
+    }
+
+    private static function capable() {
+        return current_user_can( 'manage_woocommerce' ) || current_user_can( 'manage_options' );
+    }
+
+    private static function redirect( $args ) {
+        wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php?page=taxocommerce-facturacion&tab=documents' ) ) );
+        exit;
+    }
+
+    public static function handle_issue() {
+        if ( ! self::capable() ) {
+            wp_die( esc_html__( 'Access denied.', 'taxocommerce-facturacion' ) );
+        }
+        $original_id = isset( $_POST['original_id'] ) ? absint( wp_unslash( $_POST['original_id'] ) ) : 0;
+        check_admin_referer( 'sf_rectify_' . $original_id );
+        $rate = isset( $_POST['rate'] ) ? sanitize_text_field( wp_unslash( $_POST['rate'] ) ) : '';
+        $reason = isset( $_POST['reason'] ) ? sanitize_textarea_field( wp_unslash( $_POST['reason'] ) ) : '';
+        $confirmed = isset( $_POST['confirmed'] ) && '1' === sanitize_key( wp_unslash( $_POST['confirmed'] ) );
+        if ( ! $confirmed || ! in_array( $rate, array( '0', '4', '10', '21' ), true ) ) {
+            self::redirect( array( 'sf_error' => __( 'Confirm the correction and select a supported VAT rate.', 'taxocommerce-facturacion' ) ) );
+        }
+        $issued = self::issue( $original_id, (float) $rate, $reason );
+        if ( is_wp_error( $issued ) ) {
+            self::redirect( array( 'sf_error' => $issued->get_error_message() ) );
+        }
+        self::redirect( array( 'sf_notice' => 'rectification_issued' ) );
+    }
+
+    public static function handle_pdf() {
+        if ( ! self::capable() ) {
+            wp_die( esc_html__( 'Access denied.', 'taxocommerce-facturacion' ) );
+        }
+        $id = isset( $_GET['rectification_id'] ) ? absint( wp_unslash( $_GET['rectification_id'] ) ) : 0;
+        check_admin_referer( 'sf_rectification_download_' . $id );
+        $document = self::get( $id );
+        $uploads = wp_upload_dir( null, false );
+        $base = ! empty( $uploads['basedir'] ) && empty( $uploads['error'] )
+            ? realpath( trailingslashit( $uploads['basedir'] ) . 'seo-facturas' ) : false;
+        $path = $document && 'issued' === $document->status ? realpath( (string) $document->pdf_path ) : false;
+        if ( ! $base || ! $path || 0 !== strpos( $path, $base . DIRECTORY_SEPARATOR ) ||
+            ! is_readable( $path ) || ! hash_equals( (string) $document->file_hash, (string) hash_file( 'sha256', $path ) ) ) {
+            wp_die( esc_html__( 'The rectifying invoice PDF is unavailable or invalid.', 'taxocommerce-facturacion' ) );
+        }
+        nocache_headers();
+        header( 'Content-Type: application/pdf' );
+        header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $document->document_number . '.pdf' ) . '"' );
+        header( 'Content-Length: ' . filesize( $path ) );
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Authenticated, path-restricted streaming of verified private fiscal PDF.
+        readfile( $path );
+        exit;
+    }
+
+    public static function handle_retry() {
+        if ( ! self::capable() ) {
+            wp_die( esc_html__( 'Access denied.', 'taxocommerce-facturacion' ) );
+        }
+        $id = isset( $_GET['rectification_id'] ) ? absint( wp_unslash( $_GET['rectification_id'] ) ) : 0;
+        check_admin_referer( 'sf_rectification_retry_' . $id );
+        $issued = self::retry_pdf( self::get( $id ) );
+        self::redirect( is_wp_error( $issued )
+            ? array( 'sf_error' => $issued->get_error_message() )
+            : array( 'sf_notice' => 'rectification_issued' ) );
+    }
+
+    public static function handle_email() {
+        global $wpdb;
+        if ( ! self::capable() ) {
+            wp_die( esc_html__( 'Access denied.', 'taxocommerce-facturacion' ) );
+        }
+        $id = isset( $_GET['rectification_id'] ) ? absint( wp_unslash( $_GET['rectification_id'] ) ) : 0;
+        check_admin_referer( 'sf_rectification_email_' . $id );
+        $document = self::get( $id );
+        $uploads = wp_upload_dir( null, false );
+        $base = ! empty( $uploads['basedir'] ) && empty( $uploads['error'] )
+            ? realpath( trailingslashit( $uploads['basedir'] ) . 'seo-facturas' ) : false;
+        $path = $document && 'issued' === $document->status ? realpath( (string) $document->pdf_path ) : false;
+        $order = $document && function_exists( 'wc_get_order' ) ? wc_get_order( absint( $document->order_id ) ) : false;
+        if ( ! $base || ! $path || 0 !== strpos( $path, $base . DIRECTORY_SEPARATOR ) ||
+            ! is_readable( $path ) || ! hash_equals( (string) $document->file_hash, (string) hash_file( 'sha256', $path ) ) ||
+            ! $order || ! is_email( $order->get_billing_email() ) ) {
+            self::redirect( array( 'sf_error' => __( 'Cannot deliver rectifying invoice without its verified PDF and customer email.', 'taxocommerce-facturacion' ) ) );
+        }
+        $original = SEO_Facturas_Documents::get( $document->original_id );
+        $sent = wp_mail( sanitize_email( $order->get_billing_email() ),
+            sprintf( __( 'Rectifying invoice %s', 'taxocommerce-facturacion' ), $document->document_number ),
+            sprintf( __( 'Attached is rectifying invoice %1$s relating to original invoice %2$s. The amount previously paid has not changed.', 'taxocommerce-facturacion' ),
+                $document->document_number, $original ? $original->document_number : '' ),
+            array( 'Content-Type: text/plain; charset=UTF-8' ), array( $path ) );
+        if ( ! $sent ) {
+            self::redirect( array( 'sf_error' => __( 'WordPress could not send the rectifying invoice.', 'taxocommerce-facturacion' ) ) );
+        }
+        self::redirect( array( 'sf_notice' => 'rectification_emailed' ) );
+    }
+
 }
 add_filter( 'taxocommerce_accounting_effective_issued_invoice', array( 'SEO_Facturas_Rectifications', 'effective_invoice' ), 10, 2 );
+add_action( 'admin_post_seo_facturas_rectify', array( 'SEO_Facturas_Rectifications', 'handle_issue' ) );
+add_action( 'admin_post_seo_facturas_rectification_download', array( 'SEO_Facturas_Rectifications', 'handle_pdf' ) );
+add_action( 'admin_post_seo_facturas_rectification_retry', array( 'SEO_Facturas_Rectifications', 'handle_retry' ) );
+add_action( 'admin_post_seo_facturas_rectification_email', array( 'SEO_Facturas_Rectifications', 'handle_email' ) );
