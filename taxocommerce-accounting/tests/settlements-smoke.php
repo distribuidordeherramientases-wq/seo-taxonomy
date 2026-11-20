@@ -46,7 +46,7 @@ tca_settlement_assert( false !== strpos( $source, "'sale', 'refund'," ), 'Bulk r
 tca_settlement_assert( false !== strpos( $source, 'self::direction( $entry->kind )' ), 'Manual duplicate detection uses the correct cash direction' );
 tca_settlement_assert( false !== strpos( $source, 'function maybe_auto_receipt(' ), 'WooCommerce receipt automation exists but remains opt-in' );
 tca_settlement_assert( false !== strpos( $source, "get_date_paid" ), 'Automatic receipts require an actual WooCommerce payment date' );
-tca_settlement_assert( false !== strpos( $source, "tca_sale_invoice_mismatch( \u0024entry )" ), 'Automatic receipt is blocked on invoice / order mismatch' );
+tca_settlement_assert( false !== strpos( $source, 'tca_sale_invoice_mismatch( $entry )' ), 'Automatic receipt is blocked on invoice / order mismatch' );
 tca_settlement_assert( false !== strpos( $source, "name=\"tca_payment_confirmed\""), 'New invoices have optional paid checkbox' );
 $main = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-accounting.php' );
 tca_settlement_assert( false !== strpos( $main, 'TCA_Settlements::confirmed_from_form( $saved_id )' ), 'Manual invoices post confirmed payments on save' );
