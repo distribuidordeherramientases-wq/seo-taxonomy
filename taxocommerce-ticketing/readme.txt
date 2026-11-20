@@ -4,7 +4,7 @@ Tags: tickets, support, helpdesk, customer-service, contact
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,10 @@ Yes. Its title, text labels, request types, logo attachment ID and blue/green/br
 The email includes a private reply link. This first version does not ingest inbound email replies.
 
 == Changelog ==
+
+= 0.1.1 =
+* Make the official Focazul plugin page discoverable and prepare installation on authorized test sites and Core local ZIP management. Issue #2871.
+
 
 = 0.1.0 =
 * Initial independent Ticketing plugin with configurable forms, private conversation, staff inbox, notifications and attachments.
