@@ -1,3 +1,9 @@
+## [0.2.45] — 2026-11-20 — Checkout-safe Core registration (#2848)
+
+- Defer optional Core module description translation until WordPress `init` (priority 11) instead of performing gettext at `plugins_loaded`. This prevents System Check from emitting an early-loading notice that pollutes WooCommerce AJAX JSON during checkout.
+- Retain diagnostics, manual Autocheck buttons, menus, module registry and all existing services. No checkout hooks, changes to other plugins or production deployment.
+- Add a regression contract for the initialization order and preservation of Core metadata; confirm the final WooCommerce checkout flow in STAGING before closing the issue.
+
 ## Documentation — 2026-11-18 — Distribution and standalone description (#2787)
 
 - Reordered the public readme.txt around installed functionality, optional integrations and safe administration actions. TaxoCommerce Core is optional, and the previous legacy engine is not a user-facing requirement.
