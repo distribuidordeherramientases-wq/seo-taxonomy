@@ -89,6 +89,12 @@ jobs:
             if [ "$slug" = "taxocommerce-ticketing" ]; then
               php "$slug/tests/smoke.php"
             fi
+            if [ "$slug" = "taxocommerce-accounting" ]; then
+              php -l "$slug/tests/depreciation-smoke.php"
+              php "$slug/tests/depreciation-smoke.php"
+              php "$slug/tests/corrections-smoke.php"
+              node --check "$slug/assets/purchase-preview.js"
+            fi
           done
           python3 -m py_compile .github/scripts/deploy_staging_delta.py
           python3 -m py_compile .github/scripts/publish_ticketing_package.py .github/scripts/publish_focazul_ticketing_page.py
