@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.14
+ * Version: 0.1.15
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.14' );
+define( 'TCA_VERSION', '0.1.15' );
 define( 'TCA_DB_VERSION', '5' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
@@ -49,6 +49,8 @@ function tca_settings() {
     $defaults = array(
         'start_date' => substr( $today, 0, 7 ) . '-01',
         'auto_sync_sales' => 0,
+        'auto_receipts_account_id' => 0,
+        'auto_receipts_since' => $today,
         'country'    => function_exists( 'wc_get_base_location' ) ? (string) ( wc_get_base_location()['country'] ?? 'ES' ) : 'ES',
         'currency'   => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'EUR',
     );
@@ -332,6 +334,12 @@ function tca_sync_sales( $page = 1 ) {
         } elseif ( tca_insert( tca_sale_entry_from_order( $order, $settings ) ) ) {
             ++$created;
         }
+        // An actual WooCommerce payment date, an issued invoice and an explicit
+        // bank choice are required before money is posted. Retry is idempotent.
+        $entry = tca_find_source( 'woocommerce', $order->get_id() );
+        if ( $entry ) {
+            TCA_Settlements::maybe_auto_receipt( $order, $entry, $settings );
+        }
         // A refund may be issued after the original sale was imported.
         // Never skip refund discovery simply because the order already exists.
         foreach ( $order->get_refunds() as $refund ) {
@@ -465,6 +473,17 @@ function tca_handle() {
         $old = tca_settings();
         $old['start_date'] = $date;
         $old['auto_sync_sales'] = '1' === tca_input( 'auto_sync_sales' ) ? 1 : 0;
+        $account_id = absint( tca_input( 'auto_receipts_account_id' ) );
+        $allowed = 0;
+        foreach ( TCA_Settlements::accounts() as $account ) {
+            if ( (int) $account->id === $account_id && 'bank' === $account->kind ) {
+                $allowed = $account_id;
+                break;
+            }
+        }
+        $old['auto_receipts_account_id'] = $allowed;
+        $paid_since = tca_input( 'auto_receipts_since' );
+        $old['auto_receipts_since'] = tca_valid_date( $paid_since ) ? $paid_since : current_time( 'Y-m-d' );
         update_option( TCA_OPTION, $old, false );
         tca_redirect( 'settings', 'saved' );
     }
@@ -948,6 +967,21 @@ function tca_admin() {
         echo '<p>' . esc_html__( 'Changing this date does not erase previously imported records.', 'taxocommerce-accounting' ) . '</p>';
         echo '<p><label><input type="checkbox" name="auto_sync_sales" value="1" ' . checked( 1, (int) $settings['auto_sync_sales'], false ) . '> ' . esc_html__( 'Import new paid WooCommerce orders automatically in small background batches', 'taxocommerce-accounting' ) . '</label></p>';
         echo '<p class="description">' . esc_html__( 'Uses WordPress WP-Cron while the website receives visits. Imported sales and refunds remain drafts until invoice numbers, dates and tax treatment are verified. Does not import supplier bills or mark taxes as ready.', 'taxocommerce-accounting' ) . '</p>';
+        echo '<h3>' . esc_html__( 'Bank receipts from paid WooCommerce orders', 'taxocommerce-accounting' ) . '</h3>';
+        echo '<p class="description">' . esc_html__( 'Optional. Only WooCommerce orders with an actual payment date, an issued invoice number and matching totals are recorded. No tax validation or payment is inferred from an unpaid order. Existing unrelated bank movements must be reconciled first.', 'taxocommerce-accounting' ) . '</p>';
+        echo '<p><label>' . esc_html__( 'Bank for confirmed WooCommerce payments', 'taxocommerce-accounting' ) . ' <select name="auto_receipts_account_id">';
+        echo '<option value="0">' . esc_html__( 'Do not record payments automatically', 'taxocommerce-accounting' ) . '</option>';
+        foreach ( TCA_Settlements::accounts() as $account ) {
+            if ( 'bank' === $account->kind ) {
+                echo '<option value="' . esc_attr( (string) $account->id ) . '" ' .
+                    selected( (int) $settings['auto_receipts_account_id'], (int) $account->id, false ) . '>' .
+                    esc_html( $account->name ) . '</option>';
+            }
+        }
+        echo '</select></label></p>';
+        echo '<p><label>' . esc_html__( 'Only payments received since', 'taxocommerce-accounting' ) .
+            ' <input type="date" name="auto_receipts_since" value="' . esc_attr( $settings['auto_receipts_since'] ) . '" required></label></p>';
+        echo '<p class="description">' . esc_html__( 'When an eligible WooCommerce order is synchronised, post its confirmed receipt once to this bank. Earlier payments remain available for manual reconciliation in Treasury. Fees and bank net deposits may need separate entries.', 'taxocommerce-accounting' ) . '</p>';
         submit_button( __( 'Save settings', 'taxocommerce-accounting' ) );
         echo '</form>';
     } elseif ( 'autocheck' === $tab ) {

@@ -142,6 +142,45 @@ final class TCA_Treasury {
             ), array( '%s', '%s', '%s', '%f', '%s' ) );
             self::redirect( $ok ? 'saved' : 'error' );
         }
+        if ( 'opening_receipt' === $operation ) {
+            $account_id = absint( self::posted( 'account_id' ) );
+            $date = self::posted( 'posted_on' );
+            $reference = self::posted( 'reference' );
+            if ( '1' !== self::posted( 'opening_verified' ) || ! $account_id ||
+                ! self::date( $date ) || '' === $reference ) {
+                self::redirect( 'invalid' );
+            }
+            // Move money from the opening-balance column to a dated receipt.
+            // Exactly one cash/bank receipt is created; available funds do not change.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own account and ledger need one transaction.
+            $wpdb->query( 'START TRANSACTION' );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lock account so repeated requests cannot duplicate the opening contribution.
+            $account = $wpdb->get_row( $wpdb->prepare(
+                'SELECT * FROM %i WHERE id = %d FOR UPDATE', self::table( 'accounts' ), $account_id
+            ) );
+            if ( ! $account || ! in_array( $account->kind, array( 'cash', 'bank' ), true ) ||
+                $date < $account->opened_on || (float) $account->opening_amount <= 0 ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reject duplicate conversion.
+                $wpdb->query( 'ROLLBACK' );
+                self::redirect( 'invalid' );
+            }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own opening balance conversion under lock.
+            $changed = $wpdb->update( self::table( 'accounts' ),
+                array( 'opening_amount' => 0 ),
+                array( 'id' => $account_id, 'opening_amount' => $account->opening_amount ),
+                array( '%f' ), array( '%d', '%f' )
+            );
+            $movement = 1 === $changed && self::insert_movement( $account_id, $date, 'in',
+                (float) $account->opening_amount, $reference );
+            if ( ! $movement ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Never remove money without a corresponding receipt.
+                $wpdb->query( 'ROLLBACK' );
+                self::redirect( 'error' );
+            }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Commit opening balance conversion once.
+            $wpdb->query( 'COMMIT' );
+            self::redirect( 'saved' );
+        }
         if ( 'movement' === $operation || 'transfer' === $operation ) {
             $date = self::posted( 'posted_on' );
             $amount = self::money( self::posted( 'amount' ) );
@@ -342,7 +381,7 @@ final class TCA_Treasury {
                 )
             ) . '</p></div>';
         }
-        echo '<p class="description">' . esc_html__( 'Balances use opening funds and confirmed payments/receipts (including invoice-linked settlements). Unpaid invoices and future loan instalments never move money.', 'taxocommerce-accounting' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Balances use opening funds and confirmed payments/receipts (including invoice-linked settlements). An opening balance is not a monthly Cash in / Bank in. If it actually represents a contribution received this year, you can convert it to a dated receipt below without changing the balance. Unpaid invoices and future loan instalments never move money.', 'taxocommerce-accounting' ) . '</p>';
         echo '<div class="tca-treasury-kpis">';
         $indicators = array(
             __( 'Cash on hand', 'taxocommerce-accounting' ) => $cash,
@@ -357,7 +396,7 @@ final class TCA_Treasury {
         echo '</div>';
 
         echo '<h3>' . esc_html__( 'Cash and bank accounts', 'taxocommerce-accounting' ) . '</h3>';
-        echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Account', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Type', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Opening balance', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Current balance', 'taxocommerce-accounting' ) . '</th></tr></thead><tbody>';
+        echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Account', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Type', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Opening balance', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Current balance', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Funding entry', 'taxocommerce-accounting' ) . '</th></tr></thead><tbody>';
         $by_id = array();
         foreach ( $accounts as $account ) {
             $by_id[ (int) $account->id ] = $account;
@@ -368,10 +407,22 @@ final class TCA_Treasury {
                         ? (float) $movement->total : -(float) $movement->total;
                 }
             }
-            echo '<tr><td>' . esc_html( $account->name ) . '</td><td>' . esc_html( 'cash' === $account->kind ? __( 'Cash', 'taxocommerce-accounting' ) : __( 'Bank', 'taxocommerce-accounting' ) ) . '</td><td>' . esc_html( tca_money( $account->opening_amount ) ) . '</td><td>' . esc_html( tca_money( $balance ) ) . '</td></tr>';
+            echo '<tr><td>' . esc_html( $account->name ) . '</td><td>' . esc_html( 'cash' === $account->kind ? __( 'Cash', 'taxocommerce-accounting' ) : __( 'Bank', 'taxocommerce-accounting' ) ) . '</td><td>' . esc_html( tca_money( $account->opening_amount ) ) . '</td><td>' . esc_html( tca_money( $balance ) ) . '</td><td>';
+            if ( (float) $account->opening_amount > 0 ) {
+                self::start_form( 'opening_receipt' );
+                echo '<input type="hidden" name="account_id" value="' . esc_attr( (string) $account->id ) . '">';
+                echo '<label>' . esc_html__( 'Actual contribution date', 'taxocommerce-accounting' ) . ' <input name="posted_on" type="date" min="' . esc_attr( $account->opened_on ) . '" max="' . esc_attr( $today ) . '" value="' . esc_attr( $account->opened_on ) . '" required></label> ';
+                echo '<label>' . esc_html__( 'Funding reference', 'taxocommerce-accounting' ) . ' <input name="reference" maxlength="191" required placeholder="' . esc_attr__( 'Initial loan / contribution', 'taxocommerce-accounting' ) . '"></label> ';
+                echo '<label><input type="checkbox" name="opening_verified" value="1" required> ' . esc_html__( 'Convert the opening balance, without adding funds twice', 'taxocommerce-accounting' ) . '</label> ';
+                submit_button( __( 'Convert to receipt', 'taxocommerce-accounting' ), 'secondary small', 'submit', false );
+                echo '</form>';
+            } else {
+                echo '&mdash;';
+            }
+            echo '</td></tr>';
         }
         if ( ! $accounts ) {
-            echo '<tr><td colspan="4">' . esc_html__( 'Add your cash register or first bank account to start tracking funds.', 'taxocommerce-accounting' ) . '</td></tr>';
+            echo '<tr><td colspan="5">' . esc_html__( 'Add your cash register or first bank account to start tracking funds.', 'taxocommerce-accounting' ) . '</td></tr>';
         }
         echo '</tbody></table>';
         TCA_Settlements::render_bulk( $year );
