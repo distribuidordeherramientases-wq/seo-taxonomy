@@ -1,3 +1,9 @@
+## 0.1.23 — 2026-11-20 — Reopen validated expense as draft with audited notes (#2894)
+
+- Fix «No data changed» when an already validated entry is intentionally returned to draft with unchanged monetary/document fields; fiscal status change is now detected and saved transactionally with a mandatory audited reason.
+- Add editable Notes to the existing correction form, preserving the original notes unless changed; retain the immutable WooCommerce invoice, supplier attachment, payments, and all other rows.
+- Preserve no-op protection for unchanged existing drafts, add regression coverage for status-only reversal, notes and audit log, and keep production untouched.
+
 ## 0.1.22 — 2026-11-20 — Actionable pending reviews and incidents (#2888)
 
 - Make monthly pending-review numbers clickable; open a single record directly or a safely filtered monthly action list when more than one needs review.
