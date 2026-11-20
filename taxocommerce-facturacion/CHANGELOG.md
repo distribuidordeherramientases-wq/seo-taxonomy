@@ -1,3 +1,9 @@
+### Entrega de emergencia — 2026-11-20 — #2864
+
+- STAGING y Asociación Focazul tenían una instalación incompleta de Billing: faltaba `includes/class-seo-facturas-special-rates.php` y fallaba el arranque de WordPress.
+- Una entrega de Billing reconcilia todos sus archivos instalables contra Git por SHA-256, subiendo solo los ausentes o diferentes; no instala plugins faltantes, no toca otros módulos ni despliega a producción.
+- Sin modificaciones funcionales en la facturación ni en los documentos emitidos.
+
 ## [0.1.21] — 2026-11-20 — Immutable VAT rectifying invoices by substitution (#2860)
 
 - Issue independent numbered RECT fiscal documents with a mandatory justification, original invoice number/date, old and corrected base/VAT/total, and a permanently linked, downloadable PDF; unchanged gross means no extra charge to the customer.
