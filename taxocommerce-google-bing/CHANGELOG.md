@@ -1,3 +1,8 @@
+## [1.1.72] — 2026-11-20 — Google Trends interface translations (#2852)
+
+- Localize ten Google Trends administration labels, navigation links and evidence notices in es_ES, en_US, fr_FR, de_DE and nl_NL.
+- Recompile five gettext MO catalogs without changing reporting logic, queries, data or external integrations. No production deployment.
+
 ## [1.1.71] — 2026-11-20 — Merchant and Trends administration translations (#2849)
 
 - Translate 12 Merchant and Google Trends interface labels, permissions notices and export states to es_ES, en_US, fr_FR, de_DE and nl_NL.
