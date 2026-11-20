@@ -723,3 +723,24 @@ msgstr "Guardar préstamo"
 
 msgid "Treasury"
 msgstr "Tesorería"
+
+msgid "Expense type"
+msgstr "Tipo de gasto"
+
+msgid "Current expense"
+msgstr "Gasto corriente"
+
+msgid "Fixed asset (depreciable)"
+msgstr "Inmovilizado (amortizable)"
+
+msgid "Fixed asset"
+msgstr "Inmovilizado"
+
+msgid "Date put into service"
+msgstr "Fecha de puesta en servicio"
+
+msgid "Useful life (years)"
+msgstr "Vida útil (años)"
+
+msgid "Annual straight-line allocation starts when the asset is ready for use. The first and last years are prorated by days. Confirm the applicable accounting and tax rules separately."
+msgstr "La amortización lineal anual comienza cuando el bien está listo para usarse. El primer y último año se prorratean por días. Comprueba por separado las normas contables y fiscales aplicables."
