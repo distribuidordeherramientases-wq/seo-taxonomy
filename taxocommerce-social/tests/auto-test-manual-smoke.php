@@ -28,6 +28,7 @@ function current_time( $format ) { return '2026-10-31 23:52:00'; }
 function wp_die( $message ) { throw new RuntimeException( $message ); }
 function esc_html__( $value, $domain ) { return $value; }
 function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
+function number_format_i18n( $number, $decimals = 0 ) { return number_format( (float) $number, $decimals, '.', ',' ); }
 function esc_attr( $value ) { return esc_html( $value ); }
 function esc_url( $value ) { return esc_html( $value ); }
 function admin_url( $path = '' ) { return '/wp-admin/' . $path; }
