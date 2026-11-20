@@ -119,6 +119,7 @@ KEY message_id (message_id)
         add_action( 'admin_menu', array( __CLASS__, 'menu' ), 60 );
         add_action( 'admin_post_tctk_save_settings', array( __CLASS__, 'save_settings' ) );
         add_action( 'admin_post_tctk_staff', array( __CLASS__, 'staff_action' ) );
+        add_action( 'admin_post_tctk_staff_create', array( __CLASS__, 'staff_create' ) );
         add_action( 'admin_post_tctk_submit', array( __CLASS__, 'submit' ) );
         add_action( 'admin_post_nopriv_tctk_submit', array( __CLASS__, 'submit' ) );
         add_action( 'admin_post_tctk_customer_reply', array( __CLASS__, 'customer_reply' ) );
@@ -557,12 +558,79 @@ KEY message_id (message_id)
             } elseif ( 'categories' === $key ) {
                 $s[$key] = implode( "\n", self::categories( isset( $input[$key] ) ? sanitize_textarea_field( $input[$key] ) : '' ) );
             } else {
-                $s[$key] = mb_substr( isset( $input[$key] ) ? sanitize_text_field( $input[$key] ) : '', 0, 300 );
+                $s[$key] = substr( isset( $input[$key] ) ? sanitize_text_field( $input[$key] ) : '', 0, 300 );
             }
         }
         update_option( self::OPTION, $s, false );
         wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-ticketing', 'tab' => 'settings', 'notice' => 'saved' ), admin_url( 'admin.php' ) ) );
         exit;
+    }
+
+
+    public static function staff_create() {
+        if ( ! current_user_can( self::CAP ) ) {
+            wp_die( esc_html__( 'Access denied.', self::DOMAIN ), '', array( 'response' => 403 ) );
+        }
+        check_admin_referer( 'tctk_staff_create' );
+        $name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+        $email = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '';
+        $subject = isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : '';
+        $body = isset( $_POST['body'] ) ? sanitize_textarea_field( wp_unslash( $_POST['body'] ) ) : '';
+        $visibility = isset( $_POST['visibility'] ) ? sanitize_key( wp_unslash( $_POST['visibility'] ) ) : 'internal';
+        if ( ! $name || ! $subject || ! $body || strlen( $body ) > 40000 || strlen( $name ) > 190 || strlen( $subject ) > 255 || ! in_array( $visibility, array( 'internal', 'external' ), true ) || ( 'external' === $visibility && ! is_email( $email ) ) ) {
+            wp_die( esc_html__( 'Invalid ticket data.', self::DOMAIN ), '', array( 'response' => 400 ) );
+        }
+        global $wpdb;
+        $tables = self::tables();
+        $token = bin2hex( random_bytes( 32 ) );
+        $now = current_time( 'mysql' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Ticket-owned table.
+        $created = $wpdb->insert( $tables['tickets'], array(
+            'secret_hash' => self::signed_hash( $token ), 'customer_name' => $name,
+            'customer_email' => 'external' === $visibility ? $email : '',
+            'subject' => $subject, 'category' => '', 'status' => 'open',
+            'priority' => 'normal', 'visibility' => $visibility,
+            'assigned_to' => get_current_user_id(), 'created_at' => $now, 'updated_at' => $now,
+        ) );
+        if ( ! $created ) {
+            wp_die( esc_html__( 'Unable to save the ticket.', self::DOMAIN ), '', array( 'response' => 500 ) );
+        }
+        $id = (int) $wpdb->insert_id;
+        $mid = self::add_message( $id, $name, $body, false, false );
+        if ( ! $mid ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Revert ticket without message.
+            $wpdb->delete( $tables['tickets'], array( 'id' => $id ), array( '%d' ) );
+            wp_die( esc_html__( 'Unable to save the message.', self::DOMAIN ), '', array( 'response' => 500 ) );
+        }
+        if ( self::valid_upload() ) {
+            self::save_upload( $id, $mid );
+        }
+        if ( 'external' === $visibility ) {
+            // Form URL is configured by the shop owner; never assume this admin page is the customer-facing page.
+            $page = get_option( 'tctk_form_page_url', '' );
+            if ( $page && wp_validate_redirect( $page, false ) ) {
+                $link = add_query_arg( array( 'tctk_ticket' => $id, 'tctk_key' => $token ), $page );
+                wp_mail( $email, sprintf( __( 'Ticket #%d received: %s', self::DOMAIN ), $id, $subject ), sprintf( __( "We received your request.\n\nTrack and reply securely here:\n%s\n\nDo not share this private link.", self::DOMAIN ), $link ) );
+            }
+        }
+        wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-ticketing', 'ticket' => $id, 'notice' => 'saved' ), admin_url( 'admin.php' ) ) );
+        exit;
+    }
+
+    private static function create_admin_form() {
+        echo '<h2>' . esc_html__( 'Create ticket', self::DOMAIN ) . '</h2>';
+        echo '<p>' . esc_html__( 'Create an internal ticket, or create a customer ticket on behalf of someone. Internal tickets stay visible only to staff.', self::DOMAIN ) . '</p>';
+        echo '<form method="post" enctype="multipart/form-data" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<input type="hidden" name="action" value="tctk_staff_create"/>';
+        wp_nonce_field( 'tctk_staff_create' );
+        echo '<table class="form-table"><tr><th scope="row"><label for="tctk_visibility">' . esc_html__( 'Visibility', self::DOMAIN ) . '</label></th><td><select id="tctk_visibility" name="visibility"><option value="internal">' . esc_html__( 'Internal', self::DOMAIN ) . '</option><option value="external">' . esc_html__( 'Customer-facing', self::DOMAIN ) . '</option></select></td></tr>';
+        echo '<tr><th scope="row"><label for="tctk_name">' . esc_html__( 'Requester name', self::DOMAIN ) . '</label></th><td><input id="tctk_name" name="name" class="regular-text" required maxlength="190"/></td></tr>';
+        echo '<tr><th scope="row"><label for="tctk_email">' . esc_html__( 'Customer email (required for external tickets)', self::DOMAIN ) . '</label></th><td><input id="tctk_email" name="email" type="email" class="regular-text"/></td></tr>';
+        echo '<tr><th scope="row"><label for="tctk_subject">' . esc_html__( 'Subject', self::DOMAIN ) . '</label></th><td><input id="tctk_subject" name="subject" class="regular-text" required maxlength="255"/></td></tr>';
+        echo '<tr><th scope="row"><label for="tctk_body">' . esc_html__( 'Message', self::DOMAIN ) . '</label></th><td><textarea id="tctk_body" name="body" rows="8" cols="70" required maxlength="10000"></textarea></td></tr></table>';
+        self::file_field();
+        submit_button( __( 'Create ticket', self::DOMAIN ) );
+        echo '</form>';
     }
 
     public static function staff_action() {
@@ -726,12 +794,14 @@ KEY message_id (message_id)
         $id = isset( $_GET['ticket'] ) ? absint( $_GET['ticket'] ) : 0;
         $notice = isset( $_GET['notice'] ) ? sanitize_key( wp_unslash( $_GET['notice'] ) ) : '';
         echo '<div class="wrap"><h1>' . esc_html__( 'TaxoCommerce Ticketing', self::DOMAIN ) . '</h1>';
-        echo '<p><a class="button" href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-ticketing' ) ) . '">' . esc_html__( 'Ticket inbox', self::DOMAIN ) . '</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-ticketing&tab=settings' ) ) . '">' . esc_html__( 'Form settings', self::DOMAIN ) . '</a></p>';
+        echo '<p><a class="button" href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-ticketing' ) ) . '">' . esc_html__( 'Ticket inbox', self::DOMAIN ) . '</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-ticketing&tab=create' ) ) . '">' . esc_html__( 'New ticket', self::DOMAIN ) . '</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-ticketing&tab=settings' ) ) . '">' . esc_html__( 'Form settings', self::DOMAIN ) . '</a></p>';
         if ( self::notice( $notice ) ) {
             echo '<div class="notice notice-success"><p>' . esc_html( self::notice( $notice ) ) . '</p></div>';
         }
         if ( 'settings' === $tab ) {
             self::settings_admin();
+        } elseif ( 'create' === $tab ) {
+            self::create_admin_form();
         } elseif ( $id ) {
             global $wpdb;
             $t = self::tables();
