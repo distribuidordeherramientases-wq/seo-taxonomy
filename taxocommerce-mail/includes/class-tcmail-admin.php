@@ -63,6 +63,7 @@ final class TCMAIL_Admin {
         $password = isset( $_POST['password'] ) && is_string( $_POST['password'] ) ? wp_unslash( $_POST['password'] ) : '';
         $id = isset( $_POST['id'] ) && is_string( $_POST['id'] ) ? sanitize_text_field( wp_unslash( $_POST['id'] ) ) : '';
         // phpcs:enable WordPress.Security.NonceVerification.Missing
+        $input = TCMAIL_Accounts::basic_defaults( $input );
         self::location( 'accounts', TCMAIL_Accounts::save( $input, $password, $id ) ? 'saved' : 'invalid' );
     }
 
@@ -170,24 +171,29 @@ final class TCMAIL_Admin {
         }
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tcmail_save"><input type="hidden" name="id" value="' . esc_attr( $selected ? $selected['id'] : '' ) . '">';
         wp_nonce_field( 'tcmail_save' );
-        $fields = array(
-            'name' => __( 'Display name', 'taxocommerce-mail' ),
-            'email' => __( 'Email address', 'taxocommerce-mail' ),
-            'username' => __( 'Mailbox username', 'taxocommerce-mail' ),
-            'imap_host' => __( 'IMAP host (TLS port 993)', 'taxocommerce-mail' ),
-            'smtp_host' => __( 'SMTP host', 'taxocommerce-mail' ),
-        );
+        echo '<p>' . esc_html__( 'Quick setup: enter your full mailbox email address, password and the secure IMAP server from your hosting provider.', 'taxocommerce-mail' ) . '</p>';
         echo '<table class="form-table"><tbody>';
-        foreach ( $fields as $key => $label ) {
-            echo '<tr><th scope="row"><label for="tcmail_' . esc_attr( $key ) . '">' . esc_html( $label ) . '</label></th><td><input id="tcmail_' . esc_attr( $key ) . '" class="regular-text" type="' . ( 'email' === $key ? 'email' : 'text' ) . '" name="account[' . esc_attr( $key ) . ']" maxlength="253" value="' . esc_attr( $selected && isset( $selected[ $key ] ) ? $selected[ $key ] : '' ) . '" required></td></tr>';
+        echo '<tr><th scope="row"><label for="tcmail_username">' . esc_html__( 'Email / username', 'taxocommerce-mail' ) . '</label></th><td><input id="tcmail_username" class="regular-text" type="email" name="account[username]" maxlength="190" autocomplete="username" value="' . esc_attr( $selected ? $selected['username'] : '' ) . '" required></td></tr>';
+        echo '<tr><th scope="row"><label for="tcmail_pass">' . esc_html__( 'Mailbox password', 'taxocommerce-mail' ) . '</label></th><td><input id="tcmail_pass" type="password" name="password" autocomplete="new-password" class="regular-text" ' . ( $selected ? '' : 'required' ) . '>';
+        echo '<p class="description">' . esc_html__( 'The password remains hidden. Leave blank when editing to keep the saved encrypted password.', 'taxocommerce-mail' ) . '</p></td></tr>';
+        echo '<tr><th scope="row"><label for="tcmail_imap_host">' . esc_html__( 'Incoming mail server (IMAP SSL 993)', 'taxocommerce-mail' ) . '</label></th><td><input id="tcmail_imap_host" class="regular-text" type="text" name="account[imap_host]" maxlength="253" value="' . esc_attr( $selected ? $selected['imap_host'] : '' ) . '" required>';
+        echo '<p class="description">' . esc_html__( 'Copy the SSL/TLS host name exactly as shown by your mail hosting provider. Do not include https:// or a port.', 'taxocommerce-mail' ) . '</p></td></tr>';
+        echo '</tbody></table>';
+        echo '<details><summary>' . esc_html__( 'Advanced details (optional)', 'taxocommerce-mail' ) . '</summary>';
+        echo '<p>' . esc_html__( 'These values are optional for receiving messages. SMTP defaults to the same server, port 465. Change them only if your provider gives different settings.', 'taxocommerce-mail' ) . '</p>';
+        echo '<table class="form-table"><tbody>';
+        foreach ( array(
+            'name' => __( 'Display name', 'taxocommerce-mail' ),
+            'email' => __( 'Sender email (defaults to username)', 'taxocommerce-mail' ),
+            'smtp_host' => __( 'Outgoing mail server (SMTP)', 'taxocommerce-mail' ),
+        ) as $key => $label ) {
+            echo '<tr><th scope="row"><label for="tcmail_' . esc_attr( $key ) . '">' . esc_html( $label ) . '</label></th><td><input id="tcmail_' . esc_attr( $key ) . '" class="regular-text" type="' . ( 'email' === $key ? 'email' : 'text' ) . '" name="account[' . esc_attr( $key ) . ']" maxlength="253" value="' . esc_attr( $selected && isset( $selected[ $key ] ) ? $selected[ $key ] : '' ) . '"></td></tr>';
         }
         echo '<tr><th scope="row"><label for="tcmail_port">' . esc_html__( 'SMTP encrypted port', 'taxocommerce-mail' ) . '</label></th><td><select name="account[smtp_port]" id="tcmail_port">';
         foreach ( array( 465 => '465 — SSL/TLS', 587 => '587 — STARTTLS' ) as $port => $label ) {
             echo '<option value="' . esc_attr( (string) $port ) . '" ' . selected( $selected ? (int) $selected['smtp_port'] : 465, $port, false ) . '>' . esc_html( $label ) . '</option>';
         }
-        echo '</select></td></tr>';
-        echo '<tr><th scope="row"><label for="tcmail_pass">' . esc_html__( 'Mailbox password', 'taxocommerce-mail' ) . '</label></th><td><input id="tcmail_pass" type="password" name="password" autocomplete="new-password" class="regular-text" ' . ( $selected ? '' : 'required' ) . '>';
-        echo '<p class="description">' . esc_html__( 'For an existing account, leave blank to keep its encrypted password. Passwords are never shown again.', 'taxocommerce-mail' ) . '</p></td></tr></tbody></table>';
+        echo '</select></td></tr></tbody></table></details>';
         submit_button( $selected ? __( 'Update mailbox', 'taxocommerce-mail' ) : __( 'Add mailbox', 'taxocommerce-mail' ) );
         echo '</form>';
     }

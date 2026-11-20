@@ -3,7 +3,7 @@
  * Plugin Name: TaxoCommerce Mail
  * Plugin URI: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/staging/taxocommerce-mail
  * Description: Private multi-account hosting mail client: securely connect, read and reply using IMAPS and authenticated SMTP.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Release Date: 2026-11-20
  * Requires at least: 6.7
  * Requires PHP: 7.4
@@ -14,7 +14,7 @@
  * Domain Path: /languages
  */
 defined( 'ABSPATH' ) || exit;
-define( 'TCMAIL_VERSION', '0.1.0' );
+define( 'TCMAIL_VERSION', '0.1.1' );
 define( 'TCMAIL_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TCMAIL_URL', plugin_dir_url( __FILE__ ) );
 require_once TCMAIL_PATH . 'includes/class-tcmail-accounts.php';

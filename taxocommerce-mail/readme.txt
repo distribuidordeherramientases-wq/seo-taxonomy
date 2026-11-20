@@ -4,7 +4,7 @@ Tags: email, imap, smtp, webmail, multiple-accounts
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,8 +26,11 @@ Manage several hosting email accounts from the WordPress administration interfac
 
 1. Activate TaxoCommerce Mail.
 2. Open WordPress > Mail > Accounts and add a mailbox. Use your provider's exact SSL settings.
-3. Enter mailbox email, IMAP and SMTP hostnames, SMTP TLS port (465 or 587), username and password.
-4. Test the connection, then use Inbox and Compose.
+3. Enter the mailbox's complete email address (username), password and secure IMAP hostname (TLS port 993). The password field is masked and never prefilled.
+4. Optionally expand Advanced details to configure a separate SMTP host/port or display name; these are not required for reading mail.
+5. Test IMAP and open Inbox. SMTP sends remain available but should be tested separately.
+
+To install an inactive or missing plugin from the TaxoCommerce family, Core can discover a local verified Mail ZIP in the site's uploads/taxocommerce-core/plugins package directory. No other TaxoCommerce plugin is required for Mail to run.
 
 At Webempresa, obtain the correct hostnames under WePanel > Email > Email Clients or configuration details. The plugin cannot create server mailboxes.
 
@@ -46,6 +49,11 @@ No. SMTP configured for a mailbox in this plugin is used only by this plugin, no
 No. In this initial version, only administrators can access mail and manage accounts.
 
 == Changelog ==
+
+= 0.1.1 =
+* Simple three-field hosting mailbox setup; previous advanced SMTP options preserved.
+* Publish the independent Mail installable ZIP through the existing Core package catalogue on the two authorized test sites.
+
 
 = 0.1.0 =
 * Initial version with multi-account hosting mail, private inbox, SMTP, settings and checks.

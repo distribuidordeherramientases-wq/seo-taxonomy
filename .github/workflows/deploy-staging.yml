@@ -109,6 +109,8 @@ jobs:
           done
           python3 -m py_compile .github/scripts/deploy_staging_delta.py
           python3 -m py_compile .github/scripts/publish_ticketing_package.py .github/scripts/publish_focazul_ticketing_page.py
+          python3 -m py_compile .github/scripts/publish_mail_package.py
+          python3 -m unittest discover -s .github/tests -p test_mail_package.py -v
           python3 -m unittest discover -s .github/tests -p test_ticketing_delivery.py -v
           python3 -m unittest discover -s .github/tests -p test_deploy_staging_delta.py -v
           python3 -m unittest discover -s .github/tests -p test_staging_check_subida_a_pro.py -v
@@ -645,3 +647,31 @@ jobs:
           else
             echo "Focazul Ticketing page unchanged; no WordPress modification."
           fi
+
+  mail-package:
+    name: Publish verified Mail ZIP to STAGING and Focazul package repositories
+    # Serialize FTP operations with the existing Ticketing release jobs.
+    needs: [verify, ticketing-page]
+    if: github.event_name == 'push' && needs.verify.result == 'success' && needs.ticketing-page.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Select only Mail changes
+        id: mail
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --name-only HEAD^ HEAD | grep -Eq '^(taxocommerce-mail/|\.github/scripts/publish_mail_package\.py)'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Verify and publish Mail ZIP only (never PRO)
+        if: steps.mail.outputs.changed == 'true'
+        env:
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: python3 -u .github/scripts/publish_mail_package.py
