@@ -41,7 +41,7 @@ tca_settlement_assert( false !== strpos( $source, "name=\"payments_verified\""),
 tca_settlement_assert( false !== strpos( $source, "name=\"entry_ids[]\""), 'Historical payments can be selected individually' );
 tca_settlement_assert( false !== strpos( $source, "payment_dates[" ), 'Real payment dates can be corrected before posting' );
 tca_settlement_assert( false !== strpos( $source, "has_unlinked_manual_payment" ), 'Bulk reconciliation avoids matching old unlinked manual payment' );
-tca_settlement_assert( false !== strpos( $source, "self::outstanding( $entry->amount_total" ), 'Bulk reconciliation only posts outstanding balances' );
+tca_settlement_assert( false !== strpos( $source, 'self::outstanding( $entry->amount_total' ), 'Bulk reconciliation only posts outstanding balances' );
 tca_settlement_assert( false !== strpos( $source, "name=\"tca_payment_confirmed\""), 'New invoices have optional paid checkbox' );
 $main = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-accounting.php' );
 tca_settlement_assert( false !== strpos( $main, 'TCA_Settlements::confirmed_from_form( $saved_id )' ), 'Manual invoices post confirmed payments on save' );
