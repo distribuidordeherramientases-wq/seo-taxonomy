@@ -23,6 +23,17 @@ $amounts = SEO_Facturas_Rectifications::replacement_amounts( 621.60, 21 );
 verify_rectification( ! is_wp_error( $amounts ), '21% produces a valid correction' );
 verify_rectification( 513.72 === $amounts['base_total'] && 107.88 === $amounts['total_tax'] &&
     621.60 === $amounts['total'], 'VAT-inclusive 621.60 remains 621.60; base 513.72 and tax 107.88' );
+$lines = SEO_Facturas_Rectifications::replacement_lines( array(
+    array( 'name' => 'Power Set BOSCH', 'quantity' => 2, 'total' => 621.60, 'total_tax' => 0.00, 'tax_class' => '' ),
+), 21, 513.72, 621.60 );
+verify_rectification( ! is_wp_error( $lines ) && 1 === count( $lines ) &&
+    256.86 === $lines[0]['unit_net'] && 513.72 === $lines[0]['base'] &&
+    107.88 === $lines[0]['tax'] && 621.60 === $lines[0]['gross'], 'Correct VAT unit/line breakdown on immutable original items' );
+$mixed = SEO_Facturas_Rectifications::replacement_lines( array(
+    array( 'name' => 'Standard', 'quantity' => 1, 'total' => 100.00, 'total_tax' => 0, 'tax_class' => '' ),
+    array( 'name' => 'Reduced', 'quantity' => 1, 'total' => 100.00, 'total_tax' => 0, 'tax_class' => 'reduced-rate' ),
+), 21, 165.29, 200.00 );
+verify_rectification( is_wp_error( $mixed ), 'Mixed VAT classes cannot be misrepresented as one rate' );
 foreach ( array( 0, 4, 10, 21 ) as $rate ) {
     $result = SEO_Facturas_Rectifications::replacement_amounts( 121.0, $rate );
     verify_rectification( ! is_wp_error( $result ) && abs( $result['base_total'] + $result['total_tax'] - 121 ) < 0.001,
