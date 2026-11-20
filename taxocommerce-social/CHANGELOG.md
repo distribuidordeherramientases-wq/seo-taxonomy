@@ -1,3 +1,9 @@
+## [0.1.25] — 2026-11-20 — Estado visible de publicaciones y porcentaje de fallos (#2840)
+
+- El calendario muestra publicaciones ya confirmadas (verde), fallos explícitos (rojo), futuras (azul) y respuestas sin confirmar (advertencia) usando únicamente agenda e historial propios, sin reenviar ni modificar publicaciones.
+- Informes y Autocheck reflejan el número de publicaciones publicadas, fallidas y sin confirmar por red, con porcentaje de error basado exclusivamente en respuestas concluyentes (publicadas + fallidas).
+- Mantiene el historial existente, los errores completos y la prevención de duplicados; pendiente de verificar publicaciones reales con las API y WP-Cron de cada instalación.
+
 ## [0.1.24] — 2026-11-19 — Per-network publishing and WP-Cron delivery diagnostics (#2829)
 
 - Exposes a read-only Facebook/LinkedIn/Pinterest and other provider delivery audit: last attempt, latest confirmed publication, overdue schedules, overdue WP-Cron events, missing Cron events and stale pending requests. Connected status is no longer presented as proof of successful publishing.

@@ -4,13 +4,16 @@ Tags: social-media, scheduling, pinterest, publishing, calendar
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.24
+Stable tag: 0.1.25
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Manage authorized social connections, publication templates and a content calendar.
 
 == Description ==
+
+Version 0.1.25 adds visible green published, red failed and blue scheduled status badges beside social publication entries. Unconfirmed responses remain separate. Reports and read-only Autocheck show counts and failure percentages by network; the percentage excludes unconfirmed and future schedules. Calendar reads existing history without sending new posts or retrying overdue jobs.
+
 
 From version 0.1.24, Social > Reports shows a read-only delivery status for each configured provider: last attempt, last confirmed publication, overdue schedules and overdue WP-Cron events. The CSV history includes attempted-at timestamps, and provider errors remain inspectable. No overdue publications are automatically resent.
 

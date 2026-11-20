@@ -446,6 +446,27 @@ final class TCSocial_Auto_Test {
         ) );
         if ( ! is_array( $rows ) ) return self::fail( 'No se puede consultar el historial de envíos.' );
         if ( ! $rows ) return self::skip( 'Sin intentos de publicación registrados.' );
+        $totals = array();
+        foreach ( $rows as $row ) {
+            $provider = sanitize_key( (string) $row->provider );
+            $status = sanitize_key( (string) $row->status );
+            if ( '' === $provider || !in_array( $status, array( 'published', 'failed', 'pending' ), true ) ) {
+                continue;
+            }
+            if ( !isset( $totals[ $provider ] ) ) {
+                $totals[ $provider ] = array( 'published' => 0, 'failed' => 0, 'pending' => 0 );
+            }
+            ++$totals[ $provider ][ $status ];
+        }
+        $summary = array();
+        foreach ( $totals as $provider => $counts ) {
+            $conclusive = $counts['published'] + $counts['failed'];
+            $rate = $conclusive ? number_format_i18n( 100 * $counts['failed'] / $conclusive, 1 ) . '%' : __( 'sin datos', 'taxocommerce-social' );
+            $summary[] = ucfirst( $provider ) . ': ' .
+                $counts['published'] . ' publicadas, ' . $counts['failed'] . ' no publicadas, ' .
+                $counts['pending'] . ' sin confirmar, errores ' . $rate;
+        }
+        $sample = implode( '; ', $summary );
         $latest = array();
         foreach ( $rows as $row ) {
             $provider = sanitize_key( $row->provider );
@@ -460,8 +481,8 @@ final class TCSocial_Auto_Test {
                 $errors[] = $provider . ': ' . substr( $reason, 0, 180 );
             }
         }
-        if ( $errors ) return self::fail( 'Último intento sin éxito: ' . implode( '; ', $errors ) . '. Comprobar permisos antes de reintentar.' );
-        return self::pass( 'Último resultado por red con actividad sin errores en la muestra de 150; publicación externa no verificada.' );
+        if ( $errors ) return self::fail( 'Último intento sin éxito: ' . implode( '; ', $errors ) . '. ' . $sample . '. Comprobar permisos antes de reintentar.' );
+        return self::pass( 'Últimos 150 intentos: ' . $sample . '. No se han ejecutado publicaciones de prueba.' );
     }
 
     private static function test_csv() {
