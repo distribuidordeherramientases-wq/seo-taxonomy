@@ -118,6 +118,7 @@ KEY message_id (message_id)
     public static function boot() {
         add_action( 'init', array( __CLASS__, 'init' ) );
         add_action( 'admin_menu', array( __CLASS__, 'menu' ), 60 );
+        add_action( 'admin_enqueue_scripts', array( __CLASS__, 'admin_assets' ) );
         add_action( 'admin_post_tctk_save_settings', array( __CLASS__, 'save_settings' ) );
         add_action( 'admin_post_tctk_staff', array( __CLASS__, 'staff_action' ) );
         add_action( 'admin_post_tctk_staff_create', array( __CLASS__, 'staff_create' ) );
@@ -136,6 +137,18 @@ KEY message_id (message_id)
         if ( self::SCHEMA !== (string) get_option( 'tctk_schema_version', '' ) ) {
             self::activate();
         }
+    }
+
+    public static function admin_assets() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only screen and tab selection.
+        $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only screen and tab selection.
+        $tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+        if ( 'taxocommerce-ticketing' !== $page || 'settings' !== $tab || ! current_user_can( self::CAP ) ) {
+            return;
+        }
+        wp_enqueue_media();
+        wp_enqueue_script( 'tctk-form-admin', TCTK_URL . 'assets/form-admin.js', array(), TCTK_VERSION, true );
     }
 
     public static function links( $links ) {
@@ -707,7 +720,10 @@ KEY message_id (message_id)
             echo '<option value="' . esc_attr( $key ) . '" ' . selected( $key, $s['palette'], false ) . '>' . esc_html( $label ) . '</option>';
         }
         echo '</select></td></tr>';
-        echo '<tr><th scope="row"><label for="tctk_logo">' . esc_html__( 'WordPress Media Library logo attachment ID', self::DOMAIN ) . '</label></th><td><input id="tctk_logo" type="number" min="0" name="settings[logo_id]" value="' . esc_attr( $s['logo_id'] ) . '"/><p class="description">' . esc_html__( 'Upload a logo to Media Library and enter its attachment ID (no external services).', self::DOMAIN ) . '</p></td></tr>';
+        echo '<tr><th scope="row"><label for="tctk_logo">' . esc_html__( 'Form logo or icon', self::DOMAIN ) . '</label></th><td><input id="tctk_logo" type="hidden" name="settings[logo_id]" value="' . esc_attr( $s['logo_id'] ) . '"/>'; 
+        echo '<img id="tctk-logo-preview" src="' . esc_url( $s['logo_id'] ? wp_get_attachment_image_url( absint( $s['logo_id'] ), 'medium' ) : '' ) . '" alt="" style="display:block;max-width:220px;max-height:90px;margin-bottom:12px" ' . ( $s['logo_id'] ? '' : 'hidden' ) . '/>';
+        echo '<button type="button" class="button" id="tctk-select-logo" data-title="' . esc_attr__( 'Choose a form logo', self::DOMAIN ) . '" data-choose="' . esc_attr__( 'Use this image', self::DOMAIN ) . '">' . esc_html__( 'Choose image', self::DOMAIN ) . '</button> ';
+        echo '<button type="button" class="button" id="tctk-remove-logo">' . esc_html__( 'Remove image', self::DOMAIN ) . '</button></td></tr>';
         foreach ( array( 'show_order' => __( 'Show order reference', self::DOMAIN ), 'show_product' => __( 'Show product reference', self::DOMAIN ), 'allow_attachments' => __( 'Allow attachments', self::DOMAIN ) ) as $key => $label ) {
             echo '<tr><th scope="row">' . esc_html( $label ) . '</th><td><label><input type="checkbox" name="settings[' . esc_attr( $key ) . ']" value="1" ' . checked( $s[$key], 1, false ) . ' />' . esc_html__( 'Enabled', self::DOMAIN ) . '</label></td></tr>';
         }
