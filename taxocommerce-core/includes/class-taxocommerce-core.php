@@ -555,16 +555,6 @@ final class TaxoCommerce_Core {
 				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-tasks' ),
 				'description'   => __( 'Private task agenda, calendar, categories and indicators.', 'taxocommerce-core' ),
 			),
-			'ticketing' => array(
-				'id'            => 'ticketing',
-				'name'          => 'TaxoCommerce Ticketing',
-				'plugin_file'   => 'taxocommerce-ticketing/taxocommerce-ticketing.php',
-				'org_slug'      => 'taxocommerce-ticketing',
-				'search_term'   => 'TaxoCommerce Ticketing',
-				'wordpress_org' => false,
-				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-ticketing' ),
-				'description'   => __( 'Customer and internal support tickets, configurable public forms, private replies and attachments.', 'taxocommerce-core' ),
-			),
 			'auditor' => array(
 				'id'            => 'auditor',
 				'name'          => 'TaxoCommerce Auditor',
