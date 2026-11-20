@@ -6,6 +6,7 @@
 define( 'ABSPATH', __DIR__ );
 function __( $text ) { return $text; }
 function add_filter( $name, $fn, $priority = 10, $args = 1 ) { return true; }
+function add_action( $name, $fn, $priority = 10, $args = 1 ) { return true; }
 class WP_Error {
     private $code;
     public function __construct( $code, $message ) { $this->code = $code; }
