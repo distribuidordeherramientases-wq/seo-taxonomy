@@ -25,6 +25,7 @@ require_once TCMAIL_PATH . 'includes/class-tcmail-autocheck.php';
 require_once TCMAIL_PATH . 'includes/admin-branding.php';
 register_activation_hook( __FILE__, array( 'TCMAIL_Admin', 'activate' ) );
 add_action( 'plugins_loaded', array( 'TCMAIL_Admin', 'boot' ) );
+add_action( 'plugins_loaded', array( 'TCMAIL_Autocheck', 'boot' ) );
 add_filter( 'taxocommerce_core_family_extensions', static function ( $extensions ) {
     $extensions = is_array( $extensions ) ? $extensions : array();
     $extensions['mail'] = array(
