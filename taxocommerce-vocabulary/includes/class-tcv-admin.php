@@ -225,10 +225,31 @@ final class TCV_Admin {
         }
 
         $rows = TCV_Classifier::recent_proposals( 100 );
-        echo '<div class="tcv-panel">' . '<h2>' . esc_html__( 'Propuestas recientes', 'taxocommerce-vocabulary' ) . '</h2>' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Producto', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Grupo', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Propuesta', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Confianza', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Actualizado', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Revisión', 'taxocommerce-vocabulary' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
+        // Load titles in a single bounded WordPress query instead of one query
+        // per proposal. No product data or classifier jobs are modified.
+        $titles = array();
+        $product_ids = array_values( array_unique( array_filter( array_map( 'absint', array_column( $rows, 'product_id' ) ) ) ) );
+        if ( $product_ids ) {
+            $products = get_posts( array(
+                'post_type' => 'product',
+                'post_status' => 'any',
+                'post__in' => $product_ids,
+                'posts_per_page' => count( $product_ids ),
+                'orderby' => 'post__in',
+                'no_found_rows' => true,
+                'update_post_meta_cache' => false,
+                'update_post_term_cache' => false,
+            ) );
+            foreach ( $products as $product ) {
+                $titles[ (int) $product->ID ] = (string) $product->post_title;
+            }
+        }
+        echo '<div class="tcv-panel">' . '<h2>' . esc_html__( 'Propuestas recientes', 'taxocommerce-vocabulary' ) . '</h2>' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Producto', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Título', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Grupo', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Propuesta', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Confianza', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Actualizado', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Revisión', 'taxocommerce-vocabulary' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ( $rows as $r ) {
-            $edit = get_edit_post_link( absint( $r['product_id'] ) );
-            echo '<tr><td><a href="' . esc_url( $edit ) . '">#' . esc_html( $r['product_id'] ) . '</a></td><td>' . esc_html( $r['semantic_group'] ) . '</td><td>' . esc_html( $r['label'] ) . '</td><td>' . esc_html( $r['state'] ) . '</td><td>' . esc_html( number_format_i18n( (float) $r['confidence'] * 100, 1 ) ) . '%</td><td>' . esc_html( $r['updated_at'] ) . '</td>';
+            $product_id = absint( $r['product_id'] );
+            $edit = get_edit_post_link( $product_id );
+            $title = ! empty( $titles[ $product_id ] ) ? $titles[ $product_id ] : __( '(Producto sin título o no disponible)', 'taxocommerce-vocabulary' );
+            echo '<tr><td><a href="' . esc_url( $edit ) . '">#' . esc_html( $r['product_id'] ) . '</a></td><td style="min-width:260px;max-width:480px;white-space:normal;">' . esc_html( $title ) . '</td><td>' . esc_html( $r['semantic_group'] ) . '</td><td>' . esc_html( $r['label'] ) . '</td><td>' . esc_html( $r['state'] ) . '</td><td>' . esc_html( number_format_i18n( (float) $r['confidence'] * 100, 1 ) ) . '%</td><td>' . esc_html( $r['updated_at'] ) . '</td>';
             $payload = json_decode( (string) ( $r['payload_json'] ?? '' ), true );
             $conflict = is_array( $payload ) && 'conflicts_with_existing_value' === ( $payload['evidence']['reason'] ?? '' );
             $can_approve = ! $conflict && in_array( $r['state'], array( 'safe', 'review', 'derived' ), true )
