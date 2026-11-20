@@ -1,3 +1,10 @@
+## 0.1.22 — 2026-11-20 — Actionable pending reviews and incidents (#2888)
+
+- Make monthly pending-review numbers clickable; open a single record directly or a safely filtered monthly action list when more than one needs review.
+- Add a separate monthly incident counter for issued-invoice mismatches (error) and verifiable document/zero-VAT warnings, each linked to existing correction or validation controls; add contextual links on ledger rows and Autocheck.
+- A validated non-domestic tax treatment is not incorrectly considered pending; missing invoice warnings are suppressed when an immutable issued invoice is already linked. Keep existing amounts, invoices, forms, tax totals and payments unchanged.
+- Add isolated XSS/filter/navigation regression to the mandatory STAGING preflight. No PRO deploy.
+
 ## 0.1.21 — 2026-11-20 — Expense classification interface translations (#2884)
 
 - Localize expense classification, current expenses, depreciable fixed assets, service date, useful life and straight-line depreciation guidance in five language catalogs (ES/EN/FR/DE/NL).
