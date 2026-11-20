@@ -1,3 +1,6 @@
+= 0.1.20 (2026-11-20) =
+* Classify Expenses as current or depreciable fixed assets, with validated in-service date, useful life and automatic read-only annual depreciation. Existing entries default to current; VAT, purchases, invoices, and treasury unchanged. Issue #2881.
+
 = 0.1.19 (2026-11-20) =
 * Translate the Treasury menu tab in ES/EN/FR/DE/NL and rebuild gettext catalogs. No behavioral changes. Issue #2878.
 
