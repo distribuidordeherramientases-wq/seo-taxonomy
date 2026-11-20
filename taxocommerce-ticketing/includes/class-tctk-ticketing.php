@@ -378,6 +378,8 @@ KEY message_id (message_id)
     }
 
     // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Files are checked for upload error, size, MIME, extension, and uploaded-file provenance.
+    // phpcs:enable WordPress.Security.NonceVerification.Missing
+
     private static function valid_upload() {
         if ( ! isset( $_FILES['tctk_upload']['error'] ) || UPLOAD_ERR_NO_FILE === (int) $_FILES['tctk_upload']['error'] ) {
             return true;
@@ -523,6 +525,8 @@ KEY message_id (message_id)
         self::redirect( $return, 'replied', $id, $token );
     }
 
+    // phpcs:enable WordPress.Security.NonceVerification.Missing
+
     public static function download() {
         $id = isset( $_GET['file'] ) ? absint( $_GET['file'] ) : 0;
         global $wpdb;
@@ -589,6 +593,8 @@ KEY message_id (message_id)
     }
 
 
+    // phpcs:enable WordPress.Security.NonceVerification.Missing
+
     public static function staff_create() {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Handler verifies nonce before processing user input.
         if ( ! current_user_can( self::CAP ) ) {
@@ -642,6 +648,8 @@ KEY message_id (message_id)
         wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-ticketing', 'ticket' => $id, 'notice' => 'saved' ), admin_url( 'admin.php' ) ) );
         exit;
     }
+
+    // phpcs:enable WordPress.Security.NonceVerification.Missing
 
     private static function create_admin_form() {
         echo '<h2>' . esc_html__( 'Create ticket', 'taxocommerce-ticketing' ) . '</h2>';
@@ -702,6 +710,8 @@ KEY message_id (message_id)
         wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-ticketing', 'ticket' => $id, 'notice' => 'saved' ), admin_url( 'admin.php' ) ) );
         exit;
     }
+
+    // phpcs:enable WordPress.Security.NonceVerification.Missing
 
     private static function settings_admin() {
         $s = self::settings();
