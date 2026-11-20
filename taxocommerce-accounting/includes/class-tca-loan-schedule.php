@@ -51,7 +51,7 @@ final class TCA_Loan_Schedule {
             $year = (int) floor( $due_index / 12 );
             $month = $due_index % 12 + 1;
             $first_of_month = sprintf( '%04d-%02d-01', $year, $month );
-            $last_day = (int) date( 't', strtotime( $first_of_month . ' 12:00:00 UTC' ) );
+            $last_day = (int) gmdate( 't', strtotime( $first_of_month . ' 12:00:00 UTC' ) );
             $due = sprintf( '%04d-%02d-%02d', $year, $month, min( $origin_day, $last_day ) );
             $remaining -= $principal_part;
             $rows[] = array(
