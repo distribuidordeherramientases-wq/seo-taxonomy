@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.14
+Stable tag: 0.1.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,9 @@ TaxoCommerce Accounting records fiscal data without changing WooCommerce orders,
 * In the Treasury tab, import/export CSV of ordinary expenses (domains, hosting, certificates, postal costs, software, and fees), downloading a blank template or exporting the current financial year. Imported rows enter the existing Expenses ledger as drafts requiring fiscal validation. CSV does not imply payment: actual cash/bank movements can be linked to the invoice later using the Record payment/receipt control. Prior-activity expenses retain their original dates. Repeated documents are skipped, each upload is limited to 500 rows / 2 MB, and the CSV exporter guards spreadsheet-formula injection. Manually attach original expense PDFs through the existing secure expense document controls.
 * Optional **Invoice already paid** confirmation when saving or validating an invoice: select the actual bank/cash account, payment date and amount so Treasury posts the movement immediately. In Treasury, **Reconcile previously paid invoices** posts selected historical payments after explicit confirmation, with editable payment dates and duplicate protection. Never select unpaid invoices. CSV imports remain drafts and never assume payments.
 * Confirm full or partial settlement of each invoice using its payment/receipt control, choosing the actual bank or cash account, date and amount. Every confirmed settlement creates one linked Treasury entry; draft imports and fiscal validation alone never move funds. Review older manual Treasury movements first to avoid duplicate historical payments.
+* Optional confirmed WooCommerce bank receipts: choose a real bank account and minimum payment date in Accounting settings. An issued invoice, matching order totals and a WooCommerce payment date are required. Disabled until configured; manually posted receipts must be reconciled before enabling.
+* Reconcile paid supplier invoices **and already received customer sales** from Treasury. Select only confirmed payments/receipts and their actual bank/cash dates. Fiscal validation alone does not move money.
+* Convert a verified opening balance into an actual dated cash/bank receipt, retaining the same account balance and preventing duplicate funding. A starting loan must still be recorded independently in the loan register.
 * Track separate cash and multiple bank accounts in the Treasury tab: opening balances, manual receipts/payments, atomic internal transfers, current balances, and a monthly cash-flow table. These figures do not imply that a booked invoice is collected or paid.
 * Track loans with original amount, lender, monthly instalment, next payment date and manually confirmed outstanding balance; no inferred interest or automatic debiting.
 * Configure a per-store first commercial date. All earlier test orders are excluded from new sales imports.
