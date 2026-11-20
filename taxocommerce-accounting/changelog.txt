@@ -1,3 +1,6 @@
+= 0.1.16 (2026-11-20) =
+* Add nominal fixed-rate loan forecasts with term, down payment, final extra principal, accurate principal/interest breakdown and final-cent adjustment. Optional confirmed funding bank receipt and manual, transaction-safe instalment payments; preserve historical manual loans. Loans and interest do not modify VAT calculations. Issue #2857.
+
 = 0.1.15 (2026-11-20) =
 * Add optional paid WooCommerce bank receipts with account/date cut-off; reconcile historic sales and refunds alongside supplier payments; convert verified opening balances into dated receipts without double-counting. No invoice is presumed paid from fiscal validation alone. Issue #2845.
 
