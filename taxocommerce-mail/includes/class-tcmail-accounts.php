@@ -19,7 +19,7 @@ final class TCMAIL_Accounts {
     }
 
     public static function encrypt( $password ) {
-        if ( ! self::ready() || ! is_string( $password ) || '' === $password ) {
+        if ( ! self::ready() || ! is_string( $password ) || '' === $password || strlen( $password ) > 1024 || preg_match( '/[\x00\r\n]/', $password ) ) {
             return false;
         }
         $nonce = random_bytes( 12 );
