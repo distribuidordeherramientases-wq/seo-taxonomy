@@ -1,3 +1,12 @@
+## 0.1.15 — 2026-11-20 — Conciliación de cobros y aportaciones iniciales (#2845)
+
+- Tesorería permite **conciliar manualmente cobros reales de ventas**, devoluciones y pagos de proveedores desde la misma lista de importes pendientes, con fecha/cuenta elegidas y confirmación expresa.
+- Configuración: **cuenta bancaria para cobros WooCommerce** y fecha mínima; desactivado por defecto. Al sincronizar pedidos realmente pagados, solo crea el recibo bancario si consta fecha de pago, número de factura, totales coincidentes y cuenta bancaria real. Respeta el filtro de fecha y los enlaces existentes.
+- Se detectan movimientos manuales previos con la referencia de la factura en el sentido correcto (cobro/pago) y se mantienen las protecciones de importes pendientes, idempotencia y bloqueo transaccional.
+- **Conversión opcional del saldo inicial en ingreso fechado**, sin duplicar el saldo total. No se cambian las cuentas salvo confirmación y sin tocar los préstamos.
+- Las facturas fiscales **no se presumen pagadas** por validación; las compras sin comprobante de pago siguen requiriendo confirmación explícita. No se alteran base, IVA, documentos o registros ajenos.
+- Regresiones de STAGING: saldos iniciales Cash/Bank de 500 EUR cada uno; Bank in 1.043,06 EUR y Bank out 939,46 EUR solo tras cobro/pago confirmado. Revisión de cero duplicados, no modificación de WooCommerce y compatibilidad con Plugin Check.
+
 ## 0.1.14 — 2026-11-20 — Conciliación bancaria de gastos realmente pagados (#2843)
 
 - **Registrar o validar una factura** ahora permite marcar opcionalmente «Factura pagada» y seleccionar banco/caja, importe y fecha real: tras confirmar, el pago crea su salida en Tesorería sin repetir los datos de la factura.
