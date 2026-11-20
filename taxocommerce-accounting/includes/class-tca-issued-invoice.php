@@ -42,8 +42,10 @@ final class TCA_Issued_Invoice {
         }
         // Optional filter: another independent invoicing plugin may return an
         // issued rectification linked to this original, without altering it.
-        $effective = apply_filters( 'taxocommerce_accounting_effective_issued_invoice',
-            array( 'document_no' => $number ), $order_id );
+        $effective = function_exists( 'apply_filters' )
+            ? apply_filters( 'taxocommerce_accounting_effective_issued_invoice',
+                array( 'document_no' => $number ), $order_id )
+            : array( 'document_no' => $number );
         $candidate = is_array( $effective ) ? trim( (string) ( $effective['document_no'] ?? '' ) ) : '';
         return '' !== $candidate && strlen( $candidate ) <= 100 ? $candidate : $number;
     }
@@ -112,7 +114,9 @@ final class TCA_Issued_Invoice {
             'amount_total' => $total,
             'currency' => $currency,
         );
-        $effective = apply_filters( 'taxocommerce_accounting_effective_issued_invoice', $original, $order_id );
+        $effective = function_exists( 'apply_filters' )
+            ? apply_filters( 'taxocommerce_accounting_effective_issued_invoice', $original, $order_id )
+            : $original;
         if ( ! is_array( $effective ) ) {
             return $original;
         }
