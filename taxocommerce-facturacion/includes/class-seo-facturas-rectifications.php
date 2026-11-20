@@ -474,7 +474,9 @@ final class SEO_Facturas_Rectifications {
         }
         $original = SEO_Facturas_Documents::get( $document->original_id );
         $sent = wp_mail( sanitize_email( $order->get_billing_email() ),
+            /* translators: %s: rectifying invoice number. */
             sprintf( __( 'Rectifying invoice %s', 'taxocommerce-facturacion' ), $document->document_number ),
+            /* translators: 1: rectifying invoice number, 2: original invoice number. */
             sprintf( __( 'Attached is rectifying invoice %1$s relating to original invoice %2$s. The amount previously paid has not changed.', 'taxocommerce-facturacion' ),
                 $document->document_number, $original ? $original->document_number : '' ),
             array( 'Content-Type: text/plain; charset=UTF-8' ), array( $path ) );
