@@ -152,16 +152,15 @@ function taxocommerce_system_check_register_with_core( $core ) {
     }
 
     $core->register_module(
-            'system_check',
-            array(
-                'name'        => 'TaxoCommerce System Check',
-                'version'     => TAXOCOMMERCE_SYSTEM_CHECK_VERSION,
-                'status'      => 'active',
-                'description' => __( 'System diagnostics, plugin checks and reports.', 'taxocommerce-system-check' ),
-                'admin_url'   => admin_url( 'admin.php?page=taxocommerce-system-check' ),
-            )
-        );
-    }
+        'system_check',
+        array(
+            'name'        => 'TaxoCommerce System Check',
+            'version'     => TAXOCOMMERCE_SYSTEM_CHECK_VERSION,
+            'status'      => 'active',
+            'description' => __( 'System diagnostics, plugin checks and reports.', 'taxocommerce-system-check' ),
+            'admin_url'   => admin_url( 'admin.php?page=taxocommerce-system-check' ),
+        )
+    );
 }
 
 function taxocommerce_system_check_register_menu() {
