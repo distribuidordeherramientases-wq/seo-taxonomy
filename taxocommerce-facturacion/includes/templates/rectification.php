@@ -8,23 +8,23 @@
  * @var array $snapshot Verified immutable replacement snapshot.
  */
 defined( 'ABSPATH' ) || exit;
-$doc = (array) ( $snapshot['document'] ?? array() );
-$order = (array) ( $snapshot['order'] ?? array() );
-$seller = (array) ( $snapshot['seller'] ?? array() );
-$buyer = (array) ( $snapshot['billing'] ?? array() );
-$rect = (array) ( $snapshot['rectification'] ?? array() );
-$totals = (array) ( $snapshot['totals'] ?? array() );
-$items = (array) ( $snapshot['rectification_items'] ?? array() );
-$currency = (string) ( $order['currency'] ?? 'EUR' );
-$money = static function ( $value ) use ( $currency ) {
+$taxocommerce_billing_rect_doc = (array) ( $snapshot['document'] ?? array() );
+$taxocommerce_billing_rect_order = (array) ( $snapshot['order'] ?? array() );
+$taxocommerce_billing_rect_seller = (array) ( $snapshot['seller'] ?? array() );
+$taxocommerce_billing_rect_buyer = (array) ( $snapshot['billing'] ?? array() );
+$taxocommerce_billing_rect_rect = (array) ( $snapshot['rectification'] ?? array() );
+$taxocommerce_billing_rect_totals = (array) ( $snapshot['totals'] ?? array() );
+$taxocommerce_billing_rect_items = (array) ( $snapshot['rectification_items'] ?? array() );
+$taxocommerce_billing_rect_currency = (string) ( $taxocommerce_billing_rect_order['currency'] ?? 'EUR' );
+$taxocommerce_billing_rect_money = static function ( $value ) use ( $taxocommerce_billing_rect_currency ) {
     if ( function_exists( 'wc_price' ) ) {
-        return html_entity_decode( wp_strip_all_tags( wc_price( (float) $value, array( 'currency' => $currency ) ) ), ENT_QUOTES, 'UTF-8' );
+        return html_entity_decode( wp_strip_all_tags( wc_price( (float) $value, array( 'currency' => $taxocommerce_billing_rect_currency ) ) ), ENT_QUOTES, 'UTF-8' );
     }
-    return number_format( (float) $value, 2, ',', '.' ) . ' ' . $currency;
+    return number_format( (float) $value, 2, ',', '.' ) . ' ' . $taxocommerce_billing_rect_currency;
 };
-$buyer_name = trim( (string) ( $buyer['company'] ?? '' ) );
-if ( '' === $buyer_name ) {
-    $buyer_name = trim( (string) ( $buyer['first_name'] ?? '' ) . ' ' . (string) ( $buyer['last_name'] ?? '' ) );
+$taxocommerce_billing_rect_buyer_name = trim( (string) ( $taxocommerce_billing_rect_buyer['company'] ?? '' ) );
+if ( '' === $taxocommerce_billing_rect_buyer_name ) {
+    $taxocommerce_billing_rect_buyer_name = trim( (string) ( $taxocommerce_billing_rect_buyer['first_name'] ?? '' ) . ' ' . (string) ( $taxocommerce_billing_rect_buyer['last_name'] ?? '' ) );
 }
 ?>
 <!doctype html>
@@ -50,25 +50,25 @@ if ( '' === $buyer_name ) {
 </head>
 <body>
 <h1><?php echo esc_html__( 'RECTIFYING INVOICE — BY SUBSTITUTION', 'taxocommerce-facturacion' ); ?></h1>
-<p><strong><?php echo esc_html__( 'Rectifying invoice number', 'taxocommerce-facturacion' ); ?>:</strong> <?php echo esc_html( $doc['number'] ?? '' ); ?><br>
-<strong><?php echo esc_html__( 'Issue date', 'taxocommerce-facturacion' ); ?>:</strong> <?php echo esc_html( $doc['issued_at'] ?? '' ); ?><br>
-<strong><?php echo esc_html__( 'Corrected original invoice', 'taxocommerce-facturacion' ); ?>:</strong> <?php echo esc_html( $rect['original_number'] ?? '' ); ?><br>
-<strong><?php echo esc_html__( 'Original invoice issue date', 'taxocommerce-facturacion' ); ?>:</strong> <?php echo esc_html( $rect['original_issued_at'] ?? '' ); ?><br>
-<strong><?php echo esc_html__( 'WooCommerce order reference', 'taxocommerce-facturacion' ); ?>:</strong> #<?php echo esc_html( $order['number'] ?? $order['id'] ?? '' ); ?></p>
+<p><strong><?php echo esc_html__( 'Rectifying invoice number', 'taxocommerce-facturacion' ); ?>:</strong> <?php echo esc_html( $taxocommerce_billing_rect_doc['number'] ?? '' ); ?><br>
+<strong><?php echo esc_html__( 'Issue date', 'taxocommerce-facturacion' ); ?>:</strong> <?php echo esc_html( $taxocommerce_billing_rect_doc['issued_at'] ?? '' ); ?><br>
+<strong><?php echo esc_html__( 'Corrected original invoice', 'taxocommerce-facturacion' ); ?>:</strong> <?php echo esc_html( $taxocommerce_billing_rect_rect['original_number'] ?? '' ); ?><br>
+<strong><?php echo esc_html__( 'Original invoice issue date', 'taxocommerce-facturacion' ); ?>:</strong> <?php echo esc_html( $taxocommerce_billing_rect_rect['original_issued_at'] ?? '' ); ?><br>
+<strong><?php echo esc_html__( 'WooCommerce order reference', 'taxocommerce-facturacion' ); ?>:</strong> #<?php echo esc_html( $taxocommerce_billing_rect_order['number'] ?? $taxocommerce_billing_rect_order['id'] ?? '' ); ?></p>
 
 <table class="parties"><tr>
 <td><strong><?php echo esc_html__( 'Seller', 'taxocommerce-facturacion' ); ?></strong><br>
-<?php echo esc_html( $seller['name'] ?? '' ); ?><br>
-<?php echo esc_html( $seller['tax_id'] ?? '' ); ?><br>
-<?php echo esc_html( $seller['address'] ?? '' ); ?><br>
-<?php echo esc_html( trim( (string) ( $seller['postcode'] ?? '' ) . ' ' . (string) ( $seller['city'] ?? '' ) ) ); ?><br>
-<?php echo esc_html( $seller['country_name'] ?? $seller['country'] ?? '' ); ?></td>
+<?php echo esc_html( $taxocommerce_billing_rect_seller['name'] ?? '' ); ?><br>
+<?php echo esc_html( $taxocommerce_billing_rect_seller['tax_id'] ?? '' ); ?><br>
+<?php echo esc_html( $taxocommerce_billing_rect_seller['address'] ?? '' ); ?><br>
+<?php echo esc_html( trim( (string) ( $taxocommerce_billing_rect_seller['postcode'] ?? '' ) . ' ' . (string) ( $taxocommerce_billing_rect_seller['city'] ?? '' ) ) ); ?><br>
+<?php echo esc_html( $taxocommerce_billing_rect_seller['country_name'] ?? $taxocommerce_billing_rect_seller['country'] ?? '' ); ?></td>
 <td><strong><?php echo esc_html__( 'Customer', 'taxocommerce-facturacion' ); ?></strong><br>
-<?php echo esc_html( $buyer_name ); ?><br>
-<?php echo esc_html( $buyer['tax_id'] ?? '' ); ?><br>
-<?php echo esc_html( $buyer['address_1'] ?? '' ); ?><br>
-<?php echo esc_html( trim( (string) ( $buyer['postcode'] ?? '' ) . ' ' . (string) ( $buyer['city'] ?? '' ) ) ); ?><br>
-<?php echo esc_html( $buyer['country_name'] ?? $buyer['country'] ?? '' ); ?></td>
+<?php echo esc_html( $taxocommerce_billing_rect_buyer_name ); ?><br>
+<?php echo esc_html( $taxocommerce_billing_rect_buyer['tax_id'] ?? '' ); ?><br>
+<?php echo esc_html( $taxocommerce_billing_rect_buyer['address_1'] ?? '' ); ?><br>
+<?php echo esc_html( trim( (string) ( $taxocommerce_billing_rect_buyer['postcode'] ?? '' ) . ' ' . (string) ( $taxocommerce_billing_rect_buyer['city'] ?? '' ) ) ); ?><br>
+<?php echo esc_html( $taxocommerce_billing_rect_buyer['country_name'] ?? $taxocommerce_billing_rect_buyer['country'] ?? '' ); ?></td>
 </tr></table>
 
 <h2><?php echo esc_html__( 'Corrected transaction', 'taxocommerce-facturacion' ); ?></h2>
@@ -82,19 +82,19 @@ if ( '' === $buyer_name ) {
 <th><?php echo esc_html__( 'VAT', 'taxocommerce-facturacion' ); ?></th>
 <th><?php echo esc_html__( 'Gross amount', 'taxocommerce-facturacion' ); ?></th>
 </tr></thead><tbody>
-<?php foreach ( $items as $item ) : ?>
+<?php foreach ( $taxocommerce_billing_rect_items as $taxocommerce_billing_rect_item ) : ?>
 <tr>
-<td><?php echo esc_html( $item['name'] ?? '' ); ?></td>
-<td class="num"><?php echo esc_html( $item['quantity'] ?? 0 ); ?></td>
-<td class="num"><?php echo esc_html( number_format( (float) ( $item['unit_net'] ?? 0 ), 4, ',', '.' ) . ' ' . $currency ); ?></td>
-<td class="num"><?php echo esc_html( $money( $item['base'] ?? 0 ) ); ?></td>
-<td class="num"><?php echo esc_html( $money( $item['tax'] ?? 0 ) ); ?></td>
-<td class="num"><?php echo esc_html( $money( $item['gross'] ?? 0 ) ); ?></td>
+<td><?php echo esc_html( $taxocommerce_billing_rect_item['name'] ?? '' ); ?></td>
+<td class="num"><?php echo esc_html( $taxocommerce_billing_rect_item['quantity'] ?? 0 ); ?></td>
+<td class="num"><?php echo esc_html( number_format( (float) ( $taxocommerce_billing_rect_item['unit_net'] ?? 0 ), 4, ',', '.' ) . ' ' . $taxocommerce_billing_rect_currency ); ?></td>
+<td class="num"><?php echo esc_html( $taxocommerce_billing_rect_money( $taxocommerce_billing_rect_item['base'] ?? 0 ) ); ?></td>
+<td class="num"><?php echo esc_html( $taxocommerce_billing_rect_money( $taxocommerce_billing_rect_item['tax'] ?? 0 ) ); ?></td>
+<td class="num"><?php echo esc_html( $taxocommerce_billing_rect_money( $taxocommerce_billing_rect_item['gross'] ?? 0 ) ); ?></td>
 </tr>
 <?php endforeach; ?>
 </tbody></table>
 <div class="note"><strong><?php echo esc_html__( 'Reason for correction', 'taxocommerce-facturacion' ); ?>:</strong>
-<?php echo nl2br( esc_html( $rect['reason'] ?? '' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- nl2br on escaped text. ?>
+<?php echo nl2br( esc_html( $taxocommerce_billing_rect_rect['reason'] ?? '' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- nl2br on escaped text. ?>
 </div>
 <table class="amounts">
 <thead><tr>
@@ -108,15 +108,15 @@ if ( '' === $buyer_name ) {
     'base_total' => array( __( 'Taxable base', 'taxocommerce-facturacion' ), 'old_base' ),
     'total_tax' => array( __( 'VAT', 'taxocommerce-facturacion' ), 'old_tax' ),
     'total' => array( __( 'Total', 'taxocommerce-facturacion' ), 'old_total' ),
-) as $key => $entry ) : ?>
-    <?php $old = (float) ( $rect[ $entry[1] ] ?? 0 ); $new = (float) ( $totals[ $key ] ?? 0 ); ?>
-    <tr><td><?php echo esc_html( $entry[0] ); ?></td>
-    <td class="num"><?php echo esc_html( $money( $old ) ); ?></td>
-    <td class="num"><?php echo esc_html( $money( $new ) ); ?></td>
-    <td class="num"><?php echo esc_html( $money( $new - $old ) ); ?></td></tr>
+) as $taxocommerce_billing_rect_key => $taxocommerce_billing_rect_entry ) : ?>
+    <?php $taxocommerce_billing_rect_old = (float) ( $taxocommerce_billing_rect_rect[ $taxocommerce_billing_rect_entry[1] ] ?? 0 ); $taxocommerce_billing_rect_new = (float) ( $taxocommerce_billing_rect_totals[ $taxocommerce_billing_rect_key ] ?? 0 ); ?>
+    <tr><td><?php echo esc_html( $taxocommerce_billing_rect_entry[0] ); ?></td>
+    <td class="num"><?php echo esc_html( $taxocommerce_billing_rect_money( $taxocommerce_billing_rect_old ) ); ?></td>
+    <td class="num"><?php echo esc_html( $taxocommerce_billing_rect_money( $taxocommerce_billing_rect_new ) ); ?></td>
+    <td class="num"><?php echo esc_html( $taxocommerce_billing_rect_money( $taxocommerce_billing_rect_new - $taxocommerce_billing_rect_old ) ); ?></td></tr>
 <?php endforeach; ?>
 </tbody></table>
-<p><strong><?php echo esc_html__( 'Corrected VAT rate', 'taxocommerce-facturacion' ); ?>:</strong> <?php echo esc_html( number_format_i18n( (float) ( $rect['rate'] ?? 0 ), 2 ) ); ?> %</p>
-<p><strong><?php echo esc_html__( 'Additional payment due from the customer', 'taxocommerce-facturacion' ); ?>:</strong> <?php echo esc_html( $money( 0 ) ); ?></p>
+<p><strong><?php echo esc_html__( 'Corrected VAT rate', 'taxocommerce-facturacion' ); ?>:</strong> <?php echo esc_html( number_format_i18n( (float) ( $taxocommerce_billing_rect_rect['rate'] ?? 0 ), 2 ) ); ?> %</p>
+<p><strong><?php echo esc_html__( 'Additional payment due from the customer', 'taxocommerce-facturacion' ); ?>:</strong> <?php echo esc_html( $taxocommerce_billing_rect_money( 0 ) ); ?></p>
 <p class="footer"><?php echo esc_html__( 'This rectifying invoice must be kept together with the original invoice. It does not modify the WooCommerce order or the original receipt.', 'taxocommerce-facturacion' ); ?></p>
 </body></html>
