@@ -14,6 +14,7 @@ final class TCV_Classifier_Batch {
     const HOOK   = 'tcv_classifier_catalogue_step';
 
     public static function boot() {
+        add_action( 'init', array( __CLASS__, 'watchdog' ), 20 );
         add_action( self::HOOK, array( __CLASS__, 'step' ) );
         add_action( 'admin_post_tcv_classifier_job', array( __CLASS__, 'handle' ) );
         add_action( 'admin_post_tcv_classifier_approve', array( __CLASS__, 'approve' ) );
@@ -54,6 +55,25 @@ final class TCV_Classifier_Batch {
         $job['status']  = 'error';
         $job['message'] = is_wp_error( $error ) ? $error->get_error_message() : __( 'WordPress no pudo crear el siguiente evento WP-Cron.', 'taxocommerce-vocabulary' );
         update_option( self::OPTION, $job, false );
+    }
+
+    /**
+     * Recover an interrupted or missing WP-Cron event on the next site request.
+     * The lock prevents requeueing while an existing batch is executing.
+     */
+    public static function watchdog() {
+        $job = self::status();
+        if ( 'running' !== ( $job['status'] ?? '' ) || wp_next_scheduled( self::HOOK ) ) {
+            return;
+        }
+        $lock = get_option( self::LOCK, array() );
+        if ( is_array( $lock ) && isset( $lock['at'] ) && time() - absint( $lock['at'] ) < 300 ) {
+            return;
+        }
+        $scheduled = self::schedule( 5 );
+        if ( is_wp_error( $scheduled ) || ! $scheduled ) {
+            self::record_schedule_error( $job, $scheduled );
+        }
     }
 
     /**
