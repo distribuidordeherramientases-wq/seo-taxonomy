@@ -723,3 +723,24 @@ msgstr "Lening opslaan"
 
 msgid "Treasury"
 msgstr "Kasbeheer"
+
+msgid "Expense type"
+msgstr "Soort uitgave"
+
+msgid "Current expense"
+msgstr "Lopende uitgave"
+
+msgid "Fixed asset (depreciable)"
+msgstr "Vast actief (afschrijfbaar)"
+
+msgid "Fixed asset"
+msgstr "Vast actief"
+
+msgid "Date put into service"
+msgstr "Datum ingebruikname"
+
+msgid "Useful life (years)"
+msgstr "Gebruiksduur (jaren)"
+
+msgid "Annual straight-line allocation starts when the asset is ready for use. The first and last years are prorated by days. Confirm the applicable accounting and tax rules separately."
+msgstr "De jaarlijkse lineaire afschrijving begint zodra het bedrijfsmiddel gebruiksklaar is. Het eerste en laatste jaar worden naar rato van het aantal dagen berekend. Controleer afzonderlijk de toepasselijke boekhoudkundige en fiscale regels."

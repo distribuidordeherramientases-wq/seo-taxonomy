@@ -722,3 +722,24 @@ msgstr "Save loan"
 
 msgid "Treasury"
 msgstr "Treasury"
+
+msgid "Expense type"
+msgstr "Expense type"
+
+msgid "Current expense"
+msgstr "Current expense"
+
+msgid "Fixed asset (depreciable)"
+msgstr "Fixed asset (depreciable)"
+
+msgid "Fixed asset"
+msgstr "Fixed asset"
+
+msgid "Date put into service"
+msgstr "Date put into service"
+
+msgid "Useful life (years)"
+msgstr "Useful life (years)"
+
+msgid "Annual straight-line allocation starts when the asset is ready for use. The first and last years are prorated by days. Confirm the applicable accounting and tax rules separately."
+msgstr "Annual straight-line allocation starts when the asset is ready for use. The first and last years are prorated by days. Confirm the applicable accounting and tax rules separately."

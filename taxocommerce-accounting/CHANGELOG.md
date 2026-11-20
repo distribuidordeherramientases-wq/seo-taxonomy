@@ -1,3 +1,8 @@
+## 0.1.21 — 2026-11-20 — Expense classification interface translations (#2884)
+
+- Localize expense classification, current expenses, depreciable fixed assets, service date, useful life and straight-line depreciation guidance in five language catalogs (ES/EN/FR/DE/NL).
+- Preserve the existing `current` and `fixed_asset` values, underlying accounting calculations, records and business behavior. No production deployment.
+
 ## 0.1.20 — 2026-11-20 — Expense classification and annual fixed-asset depreciation (#2881)
 
 - In Expenses, classify each new entry as current expense (default) or depreciable fixed asset; assets require in-service date and useful life of 1–50 years.
