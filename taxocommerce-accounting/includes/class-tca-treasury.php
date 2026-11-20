@@ -371,7 +371,7 @@ final class TCA_Treasury {
             $loan = $wpdb->get_row( $wpdb->prepare(
                 'SELECT * FROM %i WHERE id = %d LIMIT 1', self::table( 'loans' ), $id
             ) );
-            if ( ! $loan || null === $remaining || $remaining > (float) $loan->principal ||
+            if ( ! $loan || (int) $loan->term_months > 0 || null === $remaining || $remaining > (float) $loan->principal ||
                 null === $monthly || $monthly <= 0 || ! self::date( $due, true ) ) {
                 self::redirect( 'invalid' );
             }
@@ -475,6 +475,15 @@ final class TCA_Treasury {
         $loans = (array) $wpdb->get_results( $wpdb->prepare(
             'SELECT * FROM %i ORDER BY next_due_date ASC, id ASC', self::table( 'loans' )
         ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregated owned loan payments are read-only.
+        $loan_payments = (array) $wpdb->get_results( $wpdb->prepare(
+            'SELECT loan_id, COUNT(*) AS paid_count, COALESCE(SUM(interest_amount),0) AS interest_paid FROM %i GROUP BY loan_id',
+            self::table( 'loan_payments' )
+        ) );
+        $payments_by_loan = array();
+        foreach ( $loan_payments as $paid ) {
+            $payments_by_loan[ (int) $paid->loan_id ] = $paid;
+        }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Recent recorded transfers and cash movements.
         $recent = (array) $wpdb->get_results( $wpdb->prepare(
             'SELECT * FROM %i ORDER BY posted_on DESC, id DESC LIMIT 50', self::table( 'movements' )
@@ -625,26 +634,89 @@ final class TCA_Treasury {
         echo '</tbody></table>';
 
         echo '<h3>' . esc_html__( 'Loans', 'taxocommerce-accounting' ) . '</h3>';
-        echo '<p class="description">' . esc_html__( 'Outstanding debt and next due date must be updated from the lender statement. Instalments are forecasts, not confirmed payments; record actual bank payments separately. No interest is calculated.', 'taxocommerce-accounting' ) . '</p>';
+        echo '<p class="description">' . esc_html__(
+            'New fixed-rate loans show monthly capital/interest forecasts. Interest on ordinary money loans is generally VAT-exempt; the schedule never changes model 303. Neither a future instalment nor an unconfirmed loan disbursement changes bank balances. Older manual loans retain their original update controls.',
+            'taxocommerce-accounting'
+        ) . '</p>';
         echo '<div class="tca-treasury-scroll"><table class="widefat striped"><thead><tr>';
         foreach ( array(
             __( 'Loan', 'taxocommerce-accounting' ), __( 'Lender', 'taxocommerce-accounting' ),
             __( 'Original loan', 'taxocommerce-accounting' ), __( 'Monthly payment', 'taxocommerce-accounting' ),
             __( 'Outstanding', 'taxocommerce-accounting' ), __( 'Next payment date', 'taxocommerce-accounting' ),
-            __( 'Update outstanding amount', 'taxocommerce-accounting' ),
+            __( 'Payment / updates', 'taxocommerce-accounting' ),
         ) as $heading ) {
             echo '<th>' . esc_html( $heading ) . '</th>';
         }
         echo '</tr></thead><tbody>';
         foreach ( $loans as $loan ) {
-            echo '<tr><td>' . esc_html( $loan->name ) . '</td><td>' . esc_html( $loan->lender ) . '</td><td>' . esc_html( tca_money( $loan->principal ) ) . '</td><td>' . esc_html( tca_money( $loan->monthly_payment ) ) . '</td><td>' . esc_html( tca_money( $loan->remaining ) ) . '</td><td>' . esc_html( $loan->next_due_date ) . '</td><td>';
-            self::start_form( 'loan_update' );
-            echo '<input type="hidden" name="loan_id" value="' . esc_attr( (string) $loan->id ) . '">';
-            echo '<label>' . esc_html__( 'Outstanding', 'taxocommerce-accounting' ) . ' <input type="number" min="0" step="0.01" name="remaining" value="' . esc_attr( (string) $loan->remaining ) . '" required></label> ';
-            echo '<label>' . esc_html__( 'Monthly payment', 'taxocommerce-accounting' ) . ' <input type="number" min="0.01" step="0.01" name="monthly_payment" value="' . esc_attr( (string) $loan->monthly_payment ) . '" required></label> ';
-            echo '<label>' . esc_html__( 'Next payment date', 'taxocommerce-accounting' ) . ' <input type="date" name="next_due_date" value="' . esc_attr( $loan->next_due_date ) . '" required></label> ';
-            submit_button( __( 'Update loan', 'taxocommerce-accounting' ), 'secondary', 'submit', false );
-            echo '</form></td></tr>';
+            $managed = (int) $loan->term_months > 0;
+            $paid_count = isset( $payments_by_loan[ (int) $loan->id ] ) ? (int) $payments_by_loan[ (int) $loan->id ]->paid_count : 0;
+            $schedule = $managed
+                ? TCA_Loan_Schedule::calculate( $loan->principal, $loan->annual_rate, $loan->term_months, $loan->first_due_date, $loan->balloon_payment )
+                : array();
+            $next = $schedule[ $paid_count ] ?? null;
+            echo '<tr><td>' . esc_html( $loan->name ) . '</td><td>' . esc_html( $loan->lender ) .
+                '</td><td>' . esc_html( tca_money( $loan->principal ) ) .
+                '</td><td>' . esc_html( tca_money( $next ? $next['payment'] : $loan->monthly_payment ) ) .
+                '</td><td>' . esc_html( tca_money( $loan->remaining ) ) .
+                '</td><td>' . esc_html( (float) $loan->remaining <= 0 ? '—' : $loan->next_due_date ) . '</td><td>';
+            if ( $managed ) {
+                echo '<p>' . esc_html( (string) $loan->term_months ) . ' ' .
+                    esc_html__( 'months; annual nominal rate', 'taxocommerce-accounting' ) . ': ' .
+                    esc_html( number_format_i18n( (float) $loan->annual_rate, 2 ) ) .
+                    '%; ' . esc_html__( 'Down payment', 'taxocommerce-accounting' ) . ': ' .
+                    esc_html( tca_money( $loan->upfront_payment ) ) . '</p>';
+                if ( isset( $payments_by_loan[ (int) $loan->id ] ) ) {
+                    echo '<p>' . esc_html__( 'Interest already paid', 'taxocommerce-accounting' ) . ': ' .
+                        esc_html( tca_money( $payments_by_loan[ (int) $loan->id ]->interest_paid ) ) . '</p>';
+                }
+                if ( $next && $accounts ) {
+                    echo '<p><strong>' . esc_html__( 'Next instalment', 'taxocommerce-accounting' ) . ': ' .
+                        esc_html( tca_money( $next['payment'] ) ) . '</strong> (' .
+                        esc_html__( 'Capital', 'taxocommerce-accounting' ) . ' ' . esc_html( tca_money( $next['principal'] ) ) .
+                        ' + ' . esc_html__( 'Interest', 'taxocommerce-accounting' ) . ' ' . esc_html( tca_money( $next['interest'] ) ) . ')</p>';
+                    self::start_form( 'loan_payment' );
+                    echo '<input type="hidden" name="loan_id" value="' . esc_attr( (string) $loan->id ) . '">';
+                    echo '<input type="hidden" name="request_key" value="' . esc_attr( wp_generate_uuid4() ) . '">';
+                    echo '<label>' . esc_html__( 'Pay from', 'taxocommerce-accounting' ) . ' ';
+                    self::account_select( $accounts, 'account_id' );
+                    echo '</label> ';
+                    echo '<label>' . esc_html__( 'Actual payment date', 'taxocommerce-accounting' ) .
+                        ' <input type="date" name="posted_on" value="' . esc_attr( $today ) . '" required></label> ';
+                    submit_button( __( 'Confirm instalment paid', 'taxocommerce-accounting' ), 'secondary small', 'submit', false );
+                    echo '</form>';
+                }
+                if ( $schedule ) {
+                    echo '<details><summary>' . esc_html__( 'Amortisation schedule', 'taxocommerce-accounting' ) . '</summary>';
+                    echo '<table class="widefat striped"><thead><tr><th>#</th><th>' .
+                        esc_html__( 'Due date', 'taxocommerce-accounting' ) . '</th><th>' .
+                        esc_html__( 'Capital', 'taxocommerce-accounting' ) . '</th><th>' .
+                        esc_html__( 'Interest', 'taxocommerce-accounting' ) . '</th><th>' .
+                        esc_html__( 'Instalment', 'taxocommerce-accounting' ) . '</th><th>' .
+                        esc_html__( 'Outstanding', 'taxocommerce-accounting' ) . '</th><th>' .
+                        esc_html__( 'Status', 'taxocommerce-accounting' ) . '</th></tr></thead><tbody>';
+                    foreach ( $schedule as $row ) {
+                        echo '<tr><td>' . esc_html( (string) $row['number'] ) . '</td><td>' .
+                            esc_html( $row['due_date'] ) . '</td><td>' . esc_html( tca_money( $row['principal'] ) ) .
+                            '</td><td>' . esc_html( tca_money( $row['interest'] ) ) .
+                            '</td><td>' . esc_html( tca_money( $row['payment'] ) ) .
+                            '</td><td>' . esc_html( tca_money( $row['remaining'] ) ) .
+                            '</td><td>' . esc_html( $row['number'] <= $paid_count
+                                ? __( 'Paid', 'taxocommerce-accounting' ) : __( 'Forecast', 'taxocommerce-accounting' ) ) . '</td></tr>';
+                    }
+                    echo '</tbody></table></details>';
+                }
+            } else {
+                // The original manual loans have no original TIN/term contract.
+                self::start_form( 'loan_update' );
+                echo '<input type="hidden" name="loan_id" value="' . esc_attr( (string) $loan->id ) . '">';
+                echo '<label>' . esc_html__( 'Outstanding', 'taxocommerce-accounting' ) . ' <input type="number" min="0" step="0.01" name="remaining" value="' . esc_attr( (string) $loan->remaining ) . '" required></label> ';
+                echo '<label>' . esc_html__( 'Monthly payment', 'taxocommerce-accounting' ) . ' <input type="number" min="0.01" step="0.01" name="monthly_payment" value="' . esc_attr( (string) $loan->monthly_payment ) . '" required></label> ';
+                echo '<label>' . esc_html__( 'Next payment date', 'taxocommerce-accounting' ) . ' <input type="date" name="next_due_date" value="' . esc_attr( $loan->next_due_date ) . '" required></label> ';
+                submit_button( __( 'Update loan', 'taxocommerce-accounting' ), 'secondary', 'submit', false );
+                echo '</form>';
+            }
+            echo '</td></tr>';
         }
         if ( ! $loans ) {
             echo '<tr><td colspan="7">' . esc_html__( 'No loans entered.', 'taxocommerce-accounting' ) . '</td></tr>';
@@ -653,12 +725,37 @@ final class TCA_Treasury {
 
         echo '<h4>' . esc_html__( 'Add a loan', 'taxocommerce-accounting' ) . '</h4>';
         self::start_form( 'loan' );
+        echo '<p class="description">' . esc_html__(
+            'Enter the amount actually borrowed, excluding any down payment. Set TIN and term to calculate instalments; leave term zero and enter a manual monthly amount for an old-style loan. The optional final balloon is extra principal due with the last instalment.',
+            'taxocommerce-accounting'
+        ) . '</p>';
         echo '<div class="tca-treasury-forms"><div><p><label>' . esc_html__( 'Loan name', 'taxocommerce-accounting' ) . ' <input type="text" maxlength="191" name="name" required></label></p>';
-        echo '<p><label>' . esc_html__( 'Lender', 'taxocommerce-accounting' ) . ' <input type="text" maxlength="191" name="lender"></label></p></div>';
-        echo '<div><p><label>' . esc_html__( 'Original loan (€)', 'taxocommerce-accounting' ) . ' <input type="number" min="0.01" step="0.01" name="principal" required></label></p>';
-        echo '<p><label>' . esc_html__( 'Monthly payment (€)', 'taxocommerce-accounting' ) . ' <input type="number" min="0.01" step="0.01" name="monthly_payment" required></label></p></div>';
+        echo '<p><label>' . esc_html__( 'Lender', 'taxocommerce-accounting' ) . ' <input type="text" maxlength="191" name="lender"></label></p>';
+        echo '<p><label>' . esc_html__( 'Annual nominal interest (TIN %)', 'taxocommerce-accounting' ) . ' <input type="number" min="0" max="100" step="0.0001" name="annual_rate" value="0" required></label></p></div>';
+        echo '<div><p><label>' . esc_html__( 'Financed principal (€)', 'taxocommerce-accounting' ) . ' <input type="number" min="0.01" step="0.01" name="principal" required></label></p>';
+        echo '<p><label>' . esc_html__( 'Term in months (0 = manual)', 'taxocommerce-accounting' ) . ' <input type="number" min="0" max="360" step="1" name="term_months" value="12" required></label></p>';
+        echo '<p><label>' . esc_html__( 'Down payment from own funds (€)', 'taxocommerce-accounting' ) . ' <input type="number" min="0" step="0.01" name="upfront_payment" value="0" required></label></p>';
+        echo '<p><label>' . esc_html__( 'Extra principal on final instalment (€)', 'taxocommerce-accounting' ) . ' <input type="number" min="0" step="0.01" name="balloon_payment" value="0" required></label></p>';
+        echo '<p><label>' . esc_html__( 'Manual monthly payment (€; only term 0)', 'taxocommerce-accounting' ) . ' <input type="number" min="0.01" step="0.01" name="monthly_payment"></label></p></div>';
         echo '<div><p><label>' . esc_html__( 'Loan date', 'taxocommerce-accounting' ) . ' <input type="date" name="start_date" value="' . esc_attr( $today ) . '" required></label></p>';
-        echo '<p><label>' . esc_html__( 'Next payment date', 'taxocommerce-accounting' ) . ' <input type="date" name="next_due_date" required></label></p></div></div>';
+        echo '<p><label>' . esc_html__( 'First instalment date', 'taxocommerce-accounting' ) . ' <input type="date" name="next_due_date" required></label></p>';
+        if ( $accounts ) {
+            echo '<p><label><input type="checkbox" name="funding_received" value="1"> ' .
+                esc_html__( 'Loan funds actually received in bank (confirmed)', 'taxocommerce-accounting' ) . '</label></p>';
+            echo '<p><label>' . esc_html__( 'Bank receiving loan', 'taxocommerce-accounting' ) . ' <select name="funding_account_id">';
+            echo '<option value="0">' . esc_html__( 'Select bank', 'taxocommerce-accounting' ) . '</option>';
+            foreach ( $accounts as $account ) {
+                if ( 'bank' === $account->kind ) {
+                    echo '<option value="' . esc_attr( (string) $account->id ) . '">' . esc_html( $account->name ) . '</option>';
+                }
+            }
+            echo '</select></label></p>';
+        }
+        echo '</div></div>';
+        echo '<p class="description">' . esc_html__(
+            'Confirm funds received only if a real transfer into this bank account occurred. Saving the loan does not repeat the supplier payment; the down payment is informational and never moves cash automatically. Loan instalments are forecast until manually confirmed.',
+            'taxocommerce-accounting'
+        ) . '</p>';
         submit_button( __( 'Save loan', 'taxocommerce-accounting' ), 'secondary', 'submit', false );
         echo '</form>';
         TCA_Expense_CSV::render( $year );
