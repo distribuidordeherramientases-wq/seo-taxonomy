@@ -92,6 +92,12 @@ jobs:
             if [ "$slug" = "taxocommerce-mail" ]; then
               php "$slug/tests/smoke.php"
             fi
+            if [ "$slug" = "taxocommerce-vocabulary" ]; then
+              php -l "$slug/tests/classifier-extraction-smoke.php"
+              php "$slug/tests/classifier-extraction-smoke.php"
+              php -l "$slug/tests/classifier-cpu-smoke.php"
+              php "$slug/tests/classifier-cpu-smoke.php"
+            fi
             if [ "$slug" = "taxocommerce-accounting" ]; then
               php -l "$slug/tests/depreciation-smoke.php"
               php "$slug/tests/depreciation-smoke.php"
@@ -351,6 +357,9 @@ jobs:
           php -l taxocommerce-vocabulary/includes/class-tcv-extractor.php
           php -l taxocommerce-vocabulary/tests/classifier-extraction-smoke.php
           php taxocommerce-vocabulary/tests/classifier-extraction-smoke.php
+          php -l taxocommerce-vocabulary/includes/class-tcv-classifier-batch.php
+          php -l taxocommerce-vocabulary/tests/classifier-cpu-smoke.php
+          php taxocommerce-vocabulary/tests/classifier-cpu-smoke.php
       - name: Import-Export native category CSV contracts and PHP syntax
         if: ${{ inputs.full_sync == true }}
         run: |
