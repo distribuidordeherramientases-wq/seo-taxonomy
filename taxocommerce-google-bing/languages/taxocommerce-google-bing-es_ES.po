@@ -1768,11 +1768,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:217
 msgid "Pendiente de consultar"
-msgstr ""
+msgstr "Pendiente de consultar"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:218
 msgid "Abrir esta comparación en Google Trends"
-msgstr ""
+msgstr "Abrir esta comparación en Google Trends"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:224
 msgid ""
@@ -1787,7 +1787,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:231
 msgid "Sin consultar"
-msgstr ""
+msgstr "Sin consultar"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:274
 msgid "Radar de tendencias · jerarquía SEO (España)"
@@ -1854,7 +1854,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:312
 msgid "Actualizar gráficos"
-msgstr ""
+msgstr "Actualizar gráficos"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:313
 msgid "Pausar"
@@ -1866,15 +1866,15 @@ msgstr "Reanudar"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:315
 msgid "Detener"
-msgstr ""
+msgstr "Detener"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:318
 msgid "Preparando comparaciones automáticas…"
-msgstr ""
+msgstr "Preparando comparaciones automáticas…"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:319
 msgid "Registro del proceso"
-msgstr ""
+msgstr "Registro del proceso"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:324
 msgid "Exploración detallada opcional · hubs secundarios y categorías"
@@ -1882,19 +1882,19 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:342
 msgid "Selecciona una categoría"
-msgstr ""
+msgstr "Selecciona una categoría"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:348
 msgid "Consultar categoría"
-msgstr ""
+msgstr "Consultar categoría"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:351
 msgid "Sin categorías españolas asignadas."
-msgstr ""
+msgstr "Sin categorías españolas asignadas."
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:362
 msgid "Selecciona una tendencia"
-msgstr ""
+msgstr "Selecciona una tendencia"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:363
 msgid ""
@@ -1904,11 +1904,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:364
 msgid "Abrir en Google Trends"
-msgstr ""
+msgstr "Abrir en Google Trends"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:366
 msgid "Si Google impide insertar el gráfico, utiliza el enlace oficial."
-msgstr ""
+msgstr "Si Google impide insertar el gráfico, utiliza el enlace oficial."
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:367
 msgid ""
@@ -1933,7 +1933,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends.php:199
 msgid "Words or phrases to explore"
-msgstr ""
+msgstr "Palabras o frases que explorar"
 
 #: includes/class-taxocommerce-google-bing-trends.php:201
 msgid ""
@@ -1955,7 +1955,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends.php:222
 msgid "Search trends"
-msgstr ""
+msgstr "Buscar tendencias"
 
 #: includes/class-taxocommerce-google-bing-trends.php:223
 msgid "Open in Google Trends ↗"
@@ -1963,7 +1963,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends.php:231
 msgid "No results for this query yet."
-msgstr ""
+msgstr "Todavía no hay resultados para esta consulta."
 
 #: includes/class-taxocommerce-google-bing-trends.php:232
 msgid ""
