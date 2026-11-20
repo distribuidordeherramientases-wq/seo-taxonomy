@@ -96,6 +96,8 @@ jobs:
               php -l "$slug/tests/depreciation-smoke.php"
               php "$slug/tests/depreciation-smoke.php"
               php "$slug/tests/corrections-smoke.php"
+              php -l "$slug/tests/review-navigation-smoke.php"
+              php "$slug/tests/review-navigation-smoke.php"
               node --check "$slug/assets/purchase-preview.js"
             fi
           done
