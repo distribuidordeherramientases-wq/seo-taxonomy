@@ -281,7 +281,7 @@ final class TCA_Corrections {
             return;
         }
 
-        echo '<h3>' . esc_html__( 'Correct accounting entry', 'taxocommerce-accounting' ) . ' #' . esc_html( $id ) . '</h3>';
+        echo '<h3 id="tca-edit-entry-' . esc_attr( (string) $id ) . '">' . esc_html__( 'Correct accounting entry', 'taxocommerce-accounting' ) . ' #' . esc_html( $id ) . '</h3>';
         echo '<p class="notice notice-warning inline">' .
             esc_html__( 'This changes only the accounting record, not the WooCommerce order, issued invoice, or supplier PDF. If an issued invoice is wrong, follow the required rectifying-invoice procedure before fiscal approval.', 'taxocommerce-accounting' ) . '</p>';
         echo '<p>' . esc_html__( 'Saving a correction moves this record back to draft and removes it from validated tax totals until it is reviewed and approved again.', 'taxocommerce-accounting' ) . '</p>';
