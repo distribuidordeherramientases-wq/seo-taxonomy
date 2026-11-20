@@ -51,7 +51,8 @@ final class TCA_Review_Navigation {
         }
         if ( in_array( (string) $entry->source, array( 'woocommerce', 'wc_refund' ), true ) &&
             in_array( (string) $entry->kind, array( 'sale', 'refund' ), true ) &&
-            '' === trim( (string) $entry->document_no ) ) {
+            '' === trim( (string) $entry->document_no ) &&
+            ( 'sale' !== (string) $entry->kind || '' === TCA_Issued_Invoice::for_order( absint( $entry->source_id ) ) ) ) {
             return array(
                 'pending' => $pending,
                 'incident' => true,
