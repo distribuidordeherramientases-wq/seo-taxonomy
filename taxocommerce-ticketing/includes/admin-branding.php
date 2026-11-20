@@ -107,7 +107,7 @@ add_action( 'admin_notices', static function () use ( $tc_brand_on_screen, $tc_b
     }
     ?>
     <header class="tc-family-hero">
-        <span class="tc-family-hero__emblem" aria-hidden="true"><span class="dashicons dashicons-groups"></span></span>
+        <span class="tc-family-hero__emblem" aria-hidden="true"><span class="dashicons dashicons-tickets-alt"></span></span>
         <div class="tc-family-hero__copy">
             <p class="tc-family-hero__eyebrow">TaxoCommerce</p>
             <h1><?php echo esc_html( $title ); ?></h1>
