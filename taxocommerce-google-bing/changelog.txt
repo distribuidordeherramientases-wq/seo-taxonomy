@@ -1,3 +1,6 @@
+= 1.1.69 (2026-11-20) =
+* Translate eight Autotest, Connections and Merchant administration labels in five languages and compile their MO catalogs. No business logic changes. Issue #2783.
+
 = 1.1.68 (2026-11-18) =
 * Translate 73 administration strings in ES/EN/FR/DE/NL: connection errors and success notices, Google OAuth fields, Search Console/GA4/Bing report labels and warnings. Rebuild five PO/MO catalogs and verify compiled values. No changes to connections or reports. Issue #2783.
 
