@@ -75,6 +75,31 @@ class DeltaTests(unittest.TestCase):
             finally:
                 os.chdir(old)
 
+    def test_billing_change_repairs_missing_required_files_without_full_family_sync(self):
+        # A changelog-only update is enough to reconcile the installed Billing
+        # file manifest. This recovers lost PHP includes on both test sites.
+        manifest = [
+            "CHANGELOG.md",
+            "includes/class-seo-facturas-special-rates.php",
+            "includes/seo-facturas-bootstrap.php",
+            "taxocommerce-facturacion.php",
+        ]
+        with mock.patch.dict("os.environ", {"TAXOCOMMERCE_TARGET_PLUGIN": ""}):
+            with mock.patch.object(module, "changed_files", return_value={
+                "taxocommerce-facturacion": ["CHANGELOG.md"],
+                "taxocommerce-redirects": ["readme.txt"],
+            }):
+                with mock.patch.object(module, "plugin_source_files", return_value=manifest) as files:
+                    self.assertEqual(
+                        module.selected_deploy_files("a" * 40, "b" * 40, "taxocommerce-facturacion"),
+                        manifest,
+                    )
+                    self.assertEqual(
+                        module.selected_deploy_files("a" * 40, "b" * 40, "taxocommerce-redirects"),
+                        ["readme.txt"],
+                    )
+        files.assert_called_once_with("taxocommerce-facturacion")
+
     def test_optional_focazul_plugin_absent_is_not_created(self):
         ftp = mock.Mock()
         ftp.cwd.side_effect = module.ftplib.error_perm("550 no such directory")

@@ -426,6 +426,12 @@ def selected_deploy_files(base, head, slug, full=False):
     changes = changed_files(base, head, selected_slug=slug)
     if slug not in changes:
         raise ValueError(f"No distributable changes selected for {slug}")
+    if slug == "taxocommerce-facturacion":
+        # Billing can fatally crash WordPress if a required PHP dependency is
+        # missing after a previous incremental delivery. Reconcile ONLY this
+        # installed plugin by SHA-256: upload_plugin transfers absent/different
+        # files and never installs Billing on a site where it is absent.
+        return plugin_source_files(slug)
     return changes[slug]
 
 
