@@ -408,7 +408,11 @@ KEY message_id (message_id)
     }
 
     private static function save_upload( $ticket_id, $message_id ) {
-        if ( ! isset( $_FILES['tctk_upload']['error'] ) || ! self::valid_upload() || UPLOAD_ERR_NO_FILE === (int) $_FILES['tctk_upload']['error'] ) {
+        if ( ! isset( $_FILES['tctk_upload']['error'] ) || UPLOAD_ERR_NO_FILE === (int) $_FILES['tctk_upload']['error'] ) {
+            return;
+        }
+        if ( ! self::valid_upload() ) {
+            TCTK_Event_Log::record( 'attachment_rejected', $ticket_id );
             return;
         }
         $f = $_FILES['tctk_upload'];
@@ -416,15 +420,19 @@ KEY message_id (message_id)
         $mime = wp_check_filetype_and_ext( $f['tmp_name'], $name );
         $data = file_get_contents( $f['tmp_name'] );
         if ( false === $data || strlen( $data ) > self::MAX_FILE ) {
+            TCTK_Event_Log::record( 'attachment_save_failed', $ticket_id );
             return;
         }
         global $wpdb;
         $tables = self::tables();
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Private binary storage avoids publicly served uploads.
-        $wpdb->insert( $tables['files'], array(
+        $ok = $wpdb->insert( $tables['files'], array(
             'ticket_id' => $ticket_id, 'message_id' => $message_id, 'filename' => $name,
             'mime' => $mime['type'], 'byte_count' => strlen( $data ), 'data' => $data,
         ), array( '%d', '%d', '%s', '%s', '%d', '%s' ) );
+        if ( ! $ok ) {
+            TCTK_Event_Log::record( 'attachment_save_failed', $ticket_id );
+        }
     }
 
     // phpcs:enable WordPress.Security.NonceVerification.Missing
@@ -447,7 +455,10 @@ KEY message_id (message_id)
             // Preserve the generated message ID before issuing a second SQL statement.
             $message_id = (int) $wpdb->insert_id;
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Ticket-owned timestamp.
-            $wpdb->update( $tables['tickets'], array( 'updated_at' => current_time( 'mysql' ) ), array( 'id' => $ticket_id ) );
+            $updated = $wpdb->update( $tables['tickets'], array( 'updated_at' => current_time( 'mysql' ) ), array( 'id' => $ticket_id ) );
+            if ( false === $updated ) {
+                TCTK_Event_Log::record( 'ticket_update_failed', $ticket_id );
+            }
             return $message_id;
         }
         return 0;
@@ -728,11 +739,15 @@ KEY message_id (message_id)
             wp_die( esc_html__( 'Invalid ticket data.', 'taxocommerce-ticketing' ), '', array( 'response' => 400 ) );
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Ticket-owned fields.
-        $wpdb->update( $tables['tickets'], array(
+        $updated = $wpdb->update( $tables['tickets'], array(
             'status' => $status, 'priority' => $priority, 'assigned_to' => $assignee,
             'closed_at' => 'closed' === $status ? current_time( 'mysql' ) : null,
             'updated_at' => current_time( 'mysql' ),
         ), array( 'id' => $id ) );
+        if ( false === $updated ) {
+            TCTK_Event_Log::record( 'staff_update_failed', $id );
+            wp_die( esc_html__( 'Unable to update the ticket.', 'taxocommerce-ticketing' ), '', array( 'response' => 500 ) );
+        }
         $body = isset( $_POST['body'] ) ? sanitize_textarea_field( wp_unslash( $_POST['body'] ) ) : '';
         if ( $body && strlen( $body ) <= 40000 ) {
             $private = ! empty( $_POST['private'] );
