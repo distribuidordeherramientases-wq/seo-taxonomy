@@ -206,6 +206,8 @@ KEY message_id (message_id)
     }
 
     public static function shortcode() {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only route selection or authorization by ticket token.
+
         $settings = self::settings();
         $colors = self::palette( $settings['palette'] );
         $token = isset( $_GET['tctk_key'] ) ? sanitize_text_field( wp_unslash( $_GET['tctk_key'] ) ) : '';
@@ -232,6 +234,8 @@ KEY message_id (message_id)
         echo '</section>';
         return ob_get_clean();
     }
+
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
     private static function render_form( $s ) {
         $categories = self::categories( $s['categories'] );
@@ -372,7 +376,8 @@ KEY message_id (message_id)
             self::save_upload( $id, $message );
         }
         $link = add_query_arg( array( 'tctk_ticket' => $id, 'tctk_key' => $token ), $return );
-        $customer_sent = wp_mail( $email, sprintf( /* translators: 1: ticket number, 2: ticket subject. */ __( 'Ticket #%1$d received: %2$s', 'taxocommerce-ticketing' ), $id, $subject ), sprintf( __( "We received your request.\n\nTrack and reply securely here:\n%s\n\nDo not share this private link.", 'taxocommerce-ticketing' ), $link ) );
+        $customer_sent = wp_mail( $email, sprintf( /* translators: 1: ticket number, 2: ticket subject. */
+            __( 'Ticket #%1$d received: %2$s', 'taxocommerce-ticketing' ), $id, $subject ), sprintf( __( "We received your request.\n\nTrack and reply securely here:\n%s\n\nDo not share this private link.", 'taxocommerce-ticketing' ), $link ) );
         self::notify_staff( $id, $subject, $body );
         self::redirect( $return, $customer_sent ? 'created' : 'mail', $id, $token );
     }
@@ -432,7 +437,8 @@ KEY message_id (message_id)
     private static function notify_staff( $id, $subject, $body ) {
         $email = sanitize_email( self::settings()['notification_email'] );
         if ( is_email( $email ) ) {
-            wp_mail( $email, sprintf( /* translators: 1: ticket number, 2: ticket subject. */ __( 'New activity on ticket #%1$d: %2$s', 'taxocommerce-ticketing' ), $id, $subject ), $body . "\n\n" . admin_url( 'admin.php?page=taxocommerce-ticketing&ticket=' . $id ) );
+            wp_mail( $email, sprintf( /* translators: 1: ticket number, 2: ticket subject. */
+            __( 'New activity on ticket #%1$d: %2$s', 'taxocommerce-ticketing' ), $id, $subject ), $body . "\n\n" . admin_url( 'admin.php?page=taxocommerce-ticketing&ticket=' . $id ) );
         }
     }
 
@@ -475,7 +481,8 @@ KEY message_id (message_id)
     }
 
     private static function render_customer_ticket( $ticket, $token ) {
-        echo '<h3>' . esc_html( sprintf( /* translators: 1: ticket number, 2: ticket subject. */ __( 'Ticket #%1$d — %2$s', 'taxocommerce-ticketing' ), $ticket->id, $ticket->subject ) ) . '</h3>';
+        echo '<h3>' . esc_html( sprintf( /* translators: 1: ticket number, 2: ticket subject. */
+            __( 'Ticket #%1$d — %2$s', 'taxocommerce-ticketing' ), $ticket->id, $ticket->subject ) ) . '</h3>';
         $statuses = self::statuses();
         echo '<p><strong>' . esc_html__( 'Status', 'taxocommerce-ticketing' ) . ':</strong> ' . esc_html( isset( $statuses[$ticket->status] ) ? $statuses[$ticket->status] : $ticket->status ) . '</p>';
         self::render_messages( $ticket, false, $token );
@@ -528,6 +535,8 @@ KEY message_id (message_id)
     // phpcs:enable WordPress.Security.NonceVerification.Missing
 
     public static function download() {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only route selection or authorization by ticket token.
+
         $id = isset( $_GET['file'] ) ? absint( $_GET['file'] ) : 0;
         global $wpdb;
         $tables = self::tables();
@@ -559,6 +568,8 @@ KEY message_id (message_id)
         echo $file->data;
         exit;
     }
+
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
     public static function save_settings() {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Handler verifies nonce before processing user input.
@@ -642,7 +653,8 @@ KEY message_id (message_id)
             $page = self::settings()['form_page_url'];
             if ( $page && wp_validate_redirect( $page, false ) ) {
                 $link = add_query_arg( array( 'tctk_ticket' => $id, 'tctk_key' => $token ), $page );
-                wp_mail( $email, sprintf( /* translators: 1: ticket number, 2: ticket subject. */ __( 'Ticket #%1$d received: %2$s', 'taxocommerce-ticketing' ), $id, $subject ), sprintf( __( "We received your request.\n\nTrack and reply securely here:\n%s\n\nDo not share this private link.", 'taxocommerce-ticketing' ), $link ) );
+                wp_mail( $email, sprintf( /* translators: 1: ticket number, 2: ticket subject. */
+            __( 'Ticket #%1$d received: %2$s', 'taxocommerce-ticketing' ), $id, $subject ), sprintf( __( "We received your request.\n\nTrack and reply securely here:\n%s\n\nDo not share this private link.", 'taxocommerce-ticketing' ), $link ) );
             }
         }
         wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-ticketing', 'ticket' => $id, 'notice' => 'saved' ), admin_url( 'admin.php' ) ) );
@@ -703,7 +715,8 @@ KEY message_id (message_id)
                     self::save_upload( $id, $mid );
                 }
                 if ( ! $private && 'external' === $ticket->visibility ) {
-                    wp_mail( $ticket->customer_email, sprintf( /* translators: 1: ticket number, 2: ticket subject. */ __( 'Reply to ticket #%1$d: %2$s', 'taxocommerce-ticketing' ), $id, $ticket->subject ), $body . "\n\n" . __( 'Use the private ticket link from your original confirmation email to reply.', 'taxocommerce-ticketing' ) );
+                    wp_mail( $ticket->customer_email, sprintf( /* translators: 1: ticket number, 2: ticket subject. */
+            __( 'Reply to ticket #%1$d: %2$s', 'taxocommerce-ticketing' ), $id, $ticket->subject ), $body . "\n\n" . __( 'Use the private ticket link from your original confirmation email to reply.', 'taxocommerce-ticketing' ) );
                 }
             }
         }
@@ -750,7 +763,8 @@ KEY message_id (message_id)
     }
 
     private static function one_ticket( $ticket ) {
-        echo '<h2>' . esc_html( sprintf( /* translators: 1: ticket number, 2: ticket subject. */ __( 'Ticket #%1$d: %2$s', 'taxocommerce-ticketing' ), $ticket->id, $ticket->subject ) ) . '</h2>';
+        echo '<h2>' . esc_html( sprintf( /* translators: 1: ticket number, 2: ticket subject. */
+            __( 'Ticket #%1$d: %2$s', 'taxocommerce-ticketing' ), $ticket->id, $ticket->subject ) ) . '</h2>';
         echo '<p>' . esc_html( $ticket->customer_name ) . ' &lt;' . esc_html( $ticket->customer_email ) . '&gt; · ' . esc_html( $ticket->created_at ) . ' · ' . esc_html( $ticket->category ) . ' · ' . esc_html( $ticket->visibility ) . '</p>';
         if ( $ticket->order_reference || $ticket->product_reference ) {
             echo '<p>' . esc_html__( 'Order:', 'taxocommerce-ticketing' ) . ' ' . esc_html( $ticket->order_reference ) . ' · ' . esc_html__( 'Product:', 'taxocommerce-ticketing' ) . ' ' . esc_html( $ticket->product_reference ) . '</p>';
@@ -790,6 +804,8 @@ KEY message_id (message_id)
     }
 
     private static function list_tickets() {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only route selection or authorization by ticket token.
+
         global $wpdb;
         $t = self::tables();
         $status = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : '';
@@ -827,7 +843,11 @@ KEY message_id (message_id)
         echo '</p>';
     }
 
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
+
     public static function admin() {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only route selection or authorization by ticket token.
+
         if ( ! current_user_can( self::CAP ) ) {
             return;
         }
@@ -860,4 +880,6 @@ KEY message_id (message_id)
         }
         echo '</div>';
     }
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
+
 }
