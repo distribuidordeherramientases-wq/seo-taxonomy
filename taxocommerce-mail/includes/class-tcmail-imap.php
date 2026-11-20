@@ -45,13 +45,8 @@ final class TCMAIL_IMAP {
         ) );
         $errno = 0;
         $error = '';
-        // Convert TLS socket warnings into a generic error; never reveal server credentials.
-        set_error_handler( static function () { return true; } );
-        try {
-            $stream = stream_socket_client( 'ssl://' . $host . ':993', $errno, $error, 10, STREAM_CLIENT_CONNECT, $context );
-        } finally {
-            restore_error_handler();
-        }
+        // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Network TLS errors are intentionally converted to a generic admin notice.
+        $stream = @stream_socket_client( 'ssl://' . $host . ':993', $errno, $error, 10, STREAM_CLIENT_CONNECT, $context );
         if ( false === $stream ) {
             throw new RuntimeException( 'tls_connection_failed' );
         }
@@ -76,6 +71,7 @@ final class TCMAIL_IMAP {
             throw new RuntimeException( 'imap_disconnected' );
         }
         $tag = 'T' . str_pad( (string) ++$this->counter, 5, '0', STR_PAD_LEFT );
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- IMAP TLS socket, not a WordPress filesystem path.
         $sent = fwrite( $this->stream, $tag . ' ' . $command . "\r\n" );
         if ( false === $sent ) {
             throw new RuntimeException( 'imap_write_failed' );
@@ -100,6 +96,7 @@ final class TCMAIL_IMAP {
                 }
                 $literal = '';
                 while ( strlen( $literal ) < $length ) {
+                    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread -- IMAP TLS socket stream, not a filesystem file.
                     $chunk = fread( $this->stream, min( 16384, $length - strlen( $literal ) ) );
                     if ( false === $chunk || '' === $chunk ) {
                         throw new RuntimeException( 'imap_literal_read_failed' );
@@ -170,6 +167,7 @@ final class TCMAIL_IMAP {
     public function disconnect() {
         if ( is_resource( $this->stream ) ) {
             // Closing the socket is safe even if LOGOUT could not complete.
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close authenticated IMAPS network socket.
             fclose( $this->stream );
         }
         $this->stream = null;
@@ -265,7 +263,7 @@ final class TCMAIL_IMAP {
             }
         }
         if ( 0 === stripos( $type, 'text/html' ) ) {
-            $data = html_entity_decode( strip_tags( $data ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+            $data = html_entity_decode( wp_strip_all_tags( $data ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
         }
         return trim( substr( str_replace( "\0", '', $data ), 0, 18000 ) );
     }
