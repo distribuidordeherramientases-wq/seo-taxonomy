@@ -82,7 +82,7 @@ final class TCA_Review_Navigation {
         $tab = TCA_Corrections::tab_for( (string) $entry->kind );
         $id = absint( $entry->id );
         $args = array( 'year' => absint( substr( (string) $entry->fiscal_date, 0, 4 ) ) );
-        if ( $state['error'] || ( $state['incident'] && 'validated' === $entry->status ) ) {
+        if ( $state['error'] || 'validated' === (string) $entry->status ) {
             $args['edit_entry'] = $id;
             return tca_admin_url( $tab, $args ) . '#tca-edit-entry-' . $id;
         }
