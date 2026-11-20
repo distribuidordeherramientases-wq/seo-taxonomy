@@ -55,6 +55,10 @@ class TCA_Mock_DB {
 $GLOBALS['wpdb'] = new TCA_Mock_DB();
 require_once dirname( __DIR__ ) . '/includes/class-tca-corrections.php';
 
+class TCA_Depreciation {
+    public static function valid( $type, $date, $years, $fiscal_date ) { return 'current' === $type; }
+}
+
 function tca_test( $ok, $message ) {
     if ( ! $ok ) {
         fwrite( STDERR, "FAIL: " . $message . "\n" );
@@ -126,4 +130,59 @@ $input['amount_base'] = '428.10';
 $input['deductible_pct'] = '100';
 $purchase = TCA_Corrections::prepare( $entry, $input );
 tca_test( ! is_wp_error( $purchase ) && 'T-111' === $purchase['document_no'] && 518.00 === $purchase['amount_total'], 'Supplier invoices can be corrected independently' );
-echo "Accounting audited fiscal correction regression: PASS\n";
+
+// Regression: an already validated future provisional expense can be reopened
+// without changing totals; the mandatory reason remains in the audit history.
+$expense = (object) array(
+    'id' => 9, 'source' => 'manual', 'source_id' => 116809749924714,
+    'kind' => 'expense', 'fiscal_date' => '2026-12-01',
+    'document_no' => 'PREV-CHATGPT-2026-12', 'party' => 'OpenAI',
+    'tax_id' => '', 'concept' => 'ChatGPT December provisional',
+    'amount_base' => '17.36', 'amount_tax' => '3.64',
+    'amount_total' => '21.00', 'deductible_pct' => '100.00',
+    'expense_type' => 'current', 'service_date' => null, 'useful_life_years' => 0,
+    'currency' => 'EUR', 'treatment' => 'domestic',
+    'status' => 'validated', 'notes' => 'Forecast: no issued invoice and no payment',
+    'updated_at' => '2026-11-20 22:00:00',
+);
+$expense_input = array(
+    'fiscal_date' => $expense->fiscal_date,
+    'document_no' => $expense->document_no,
+    'party' => $expense->party,
+    'tax_id' => $expense->tax_id,
+    'concept' => $expense->concept,
+    'amount_base' => $expense->amount_base,
+    'amount_tax' => $expense->amount_tax,
+    'deductible_pct' => $expense->deductible_pct,
+    'expense_type' => 'current',
+    'notes' => $expense->notes,
+    'reason' => 'Validated accidentally before invoice was issued',
+);
+$reopened = TCA_Corrections::prepare( $expense, $expense_input );
+tca_test( ! is_wp_error( $reopened ), 'Existing validated expense can be prepared for reopening' );
+tca_test( 'draft' === $reopened['status'], 'Reopening changes status' );
+tca_test( 21.00 === $reopened['amount_total'] && '17.36' === $expense->amount_base, 'Reopening retains original values' );
+tca_test( $expense->notes === $reopened['notes'], 'Notes are retained unless explicitly modified' );
+$compare = new ReflectionMethod( 'TCA_Corrections', 'same_values' );
+$compare->setAccessible( true );
+$original_snapshot = TCA_Corrections::snapshot( $expense );
+$reopened_snapshot = TCA_Corrections::snapshot( (object) array_merge( (array) $expense, $reopened ) );
+tca_test( false === $compare->invoke( null, $original_snapshot, $reopened_snapshot ), 'Validated-to-draft is a real change even with identical fields' );
+$GLOBALS['wpdb'] = new TCA_Mock_DB();
+tca_test( TCA_Corrections::save( $expense, $reopened, $expense_input['reason'] ), 'Reopening saves atomically with audit' );
+tca_test( 'draft' === $GLOBALS['wpdb']->update_data['status'], 'Ledger status becomes draft' );
+tca_test( $expense_input['reason'] === $GLOBALS['wpdb']->insert_data['reason'], 'Reopening reason is logged' );
+tca_test( 'validated' === json_decode( $GLOBALS['wpdb']->insert_data['before_data'], true )['status'], 'Old validation status retained in audit' );
+tca_test( 'draft' === json_decode( $GLOBALS['wpdb']->insert_data['after_data'], true )['status'], 'New draft status retained in audit' );
+$expense_input['notes'] = "December forecast only\\nWaiting for actual invoice and charge";
+$updated_notes = TCA_Corrections::prepare( $expense, $expense_input );
+tca_test( $expense_input['notes'] === $updated_notes['notes'], 'Editable notes with line breaks are persisted' );
+tca_test( false === $compare->invoke( null, $original_snapshot, TCA_Corrections::snapshot( (object) array_merge( (array) $expense, $updated_notes ) ) ), 'Updated notes are an auditable correction' );
+$draft = clone $expense;
+$draft->status = 'draft';
+$unchanged_draft = TCA_Corrections::prepare( $draft, array_merge( $expense_input, array( 'notes' => $draft->notes ) ) );
+tca_test( true === $compare->invoke( null, TCA_Corrections::snapshot( $draft ), TCA_Corrections::snapshot( (object) array_merge( (array) $draft, $unchanged_draft ) ) ), 'Already-draft record with no data edits is still unchanged' );
+$expense_input['notes'] = str_repeat( 'N', 5001 );
+tca_test( is_wp_error( TCA_Corrections::prepare( $expense, $expense_input ) ), 'Rejects oversized notes' );
+echo "Accounting audited fiscal correction regression: PASS\\n";
+
