@@ -89,6 +89,12 @@ jobs:
             if [ "$slug" = "taxocommerce-ticketing" ]; then
               php "$slug/tests/smoke.php"
             fi
+            if [ "$slug" = "taxocommerce-vocabulary" ]; then
+              php -l "$slug/tests/classifier-extraction-smoke.php"
+              php "$slug/tests/classifier-extraction-smoke.php"
+              php -l "$slug/tests/classifier-cpu-smoke.php"
+              php "$slug/tests/classifier-cpu-smoke.php"
+            fi
             if [ "$slug" = "taxocommerce-accounting" ]; then
               php -l "$slug/tests/depreciation-smoke.php"
               php "$slug/tests/depreciation-smoke.php"
