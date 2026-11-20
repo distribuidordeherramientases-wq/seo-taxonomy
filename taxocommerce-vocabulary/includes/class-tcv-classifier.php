@@ -838,6 +838,36 @@ final class TCV_Classifier {
 
     // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    /**
+     * Group recent missing concepts for human vocabulary normalization.
+     * Bounded to 500 proposal records; no master writes.
+     */
+    public static function unmapped_terms( $limit = 25 ) {
+        global $wpdb;
+        $tables = TCV_Schema::tables();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own bounded proposal queue, grouped without scanning the entire catalogue.
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT product_id,semantic_group,label FROM %i WHERE active=1 AND state='review'
+             AND vocabulary_id=0 AND label<>'' ORDER BY updated_at DESC LIMIT %d",
+            $tables['proposals'], 500
+        ), ARRAY_A );
+        $grouped = array();
+        foreach ( (array) $rows as $row ) {
+            $group = sanitize_key( $row['semantic_group'] );
+            $label = sanitize_text_field( $row['label'] );
+            if ( ! in_array( $group, array( 'tipo', 'aplicacion', 'plataforma', 'subtipo' ), true ) || '' === $label ) {
+                continue;
+            }
+            $key = $group . ':' . sanitize_title( $label );
+            if ( ! isset( $grouped[ $key ] ) ) {
+                $grouped[ $key ] = array( 'group' => $group, 'label' => $label, 'count' => 0 );
+            }
+            ++$grouped[ $key ]['count'];
+        }
+        uasort( $grouped, static function ( $a, $b ) { return $b['count'] <=> $a['count']; } );
+        return array_slice( array_values( $grouped ), 0, min( 50, max( 1, absint( $limit ) ) ) );
+    }
+
     public static function recent_category_proposals( $limit = 100 ) {
         global $wpdb;
         $t = TCV_Schema::tables();
