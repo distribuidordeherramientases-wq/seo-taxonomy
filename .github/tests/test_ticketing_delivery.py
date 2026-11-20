@@ -68,7 +68,7 @@ class TicketingDeliveryTests(unittest.TestCase):
 
     def test_page_source_is_public_marketing_only(self):
         data = page.SOURCE.read_text(encoding="utf-8")
-        self.assertIn("[taxocommerce_ticket_form]", data)
+        self.assertIn("&#91;taxocommerce_ticket_form&#93;", data)
         self.assertIn("taxocommerce-ticketing.zip", data)
         self.assertNotIn("<script", data)
         self.assertEqual(page.SLUG, "taxocommerce-ticketing")
