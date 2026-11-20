@@ -1,3 +1,6 @@
+= 1.1.72 (2026-11-20) =
+* Localize ten Google Trends administration labels, links and information notices in five locales. Recompile PO/MO catalogs. Issue #2852.
+
 = 1.1.71 (2026-11-20) =
 * Translate 12 Merchant and Google Trends administration labels and feedback in five locales. Rebuild PO/MO catalogs. Issue #2849.
 
