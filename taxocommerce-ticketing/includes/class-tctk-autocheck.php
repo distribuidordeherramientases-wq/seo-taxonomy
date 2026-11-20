@@ -130,7 +130,7 @@ final class TCTK_Autocheck {
             }
         }
         $result[] = self::row( 'probe_cleanup', $cleanup_ok ? 'ok' : 'error', $cleanup_ok ? 'Temporary diagnostic data was deleted.' : 'Diagnostic cleanup failed; check plugin tables for a TCTK_CHECK_ record.' );
-        break;
+        return $result;
     }
 
     /**
