@@ -63,21 +63,7 @@ final class TCMAIL_Admin {
         $password = isset( $_POST['password'] ) && is_string( $_POST['password'] ) ? wp_unslash( $_POST['password'] ) : '';
         $id = isset( $_POST['id'] ) && is_string( $_POST['id'] ) ? sanitize_text_field( wp_unslash( $_POST['id'] ) ) : '';
         // phpcs:enable WordPress.Security.NonceVerification.Missing
-        // Fast setup needs only the complete email address, password and IMAP host.
-        // Existing advanced SMTP fields remain available and unchanged on edit.
-        $username = isset( $input['username'] ) ? $input['username'] : '';
-        if ( empty( $input['email'] ) ) {
-            $input['email'] = sanitize_email( $username );
-        }
-        if ( empty( $input['name'] ) && is_email( $input['email'] ) ) {
-            $input['name'] = strstr( $input['email'], '@', true );
-        }
-        if ( empty( $input['smtp_host'] ) && isset( $input['imap_host'] ) ) {
-            $input['smtp_host'] = $input['imap_host'];
-        }
-        if ( empty( $input['smtp_port'] ) ) {
-            $input['smtp_port'] = 465;
-        }
+        $input = TCMAIL_Accounts::basic_defaults( $input );
         self::location( 'accounts', TCMAIL_Accounts::save( $input, $password, $id ) ? 'saved' : 'invalid' );
     }
 
