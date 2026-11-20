@@ -67,6 +67,7 @@ final class TCA_Treasury {
             funding_movement_id bigint(20) unsigned NOT NULL DEFAULT 0,
             start_date date NOT NULL,
             next_due_date date NOT NULL,
+            first_due_date date NOT NULL DEFAULT '1970-01-01',
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY  (id),
@@ -245,20 +246,121 @@ final class TCA_Treasury {
             $start = self::posted( 'start_date' );
             $due = self::posted( 'next_due_date' );
             $principal = self::money( self::posted( 'principal' ) );
+            $months = absint( self::posted( 'term_months' ) );
+            $rate = self::money( self::posted( 'annual_rate' ) );
+            $upfront = self::money( self::posted( 'upfront_payment' ) );
+            $balloon = self::money( self::posted( 'balloon_payment' ) );
             $monthly = self::money( self::posted( 'monthly_payment' ) );
+            $funding_received = '1' === self::posted( 'funding_received' );
+            $funding_account = $funding_received ? self::get_account( self::posted( 'funding_account_id' ) ) : false;
             if ( '' === $name || ! self::date( $start ) || ! self::date( $due, true ) ||
                 $due < $start || null === $principal || $principal <= 0 ||
-                null === $monthly || $monthly <= 0 ) {
+                null === $rate || $rate < 0 || $rate > 100 ||
+                null === $upfront || null === $balloon || $balloon > $principal ||
+                $months > 360 ||
+                ( $funding_received && ( ! $funding_account ||
+                    'bank' !== $funding_account->kind || $start < $funding_account->opened_on ) ) ) {
                 self::redirect( 'invalid' );
             }
+            if ( $months > 0 ) {
+                $schedule = TCA_Loan_Schedule::calculate( $principal, $rate, $months, $due, $balloon );
+                if ( ! $schedule ) {
+                    self::redirect( 'invalid' );
+                }
+                // Calculated loans derive the instalment from TIN and term.
+                $monthly = (float) $schedule[0]['payment'];
+            } elseif ( null === $monthly || $monthly <= 0 || $rate > 0 || $balloon > 0 ) {
+                // Pre-existing manual-amount mode remains available without a term.
+                self::redirect( 'invalid' );
+            }
+            $wpdb->query( 'START TRANSACTION' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Own loan/funding transaction.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own loan register.
-            $ok = $wpdb->insert( self::table( 'loans' ), array(
+            $saved = $wpdb->insert( self::table( 'loans' ), array(
                 'name' => $name, 'lender' => $lender, 'principal' => $principal,
                 'remaining' => $principal, 'monthly_payment' => $monthly,
-                'start_date' => $start, 'next_due_date' => $due,
+                'annual_rate' => $rate, 'term_months' => $months,
+                'upfront_payment' => $upfront, 'balloon_payment' => $balloon,
+                'start_date' => $start, 'next_due_date' => $due, 'first_due_date' => $due,
                 'created_at' => current_time( 'mysql' ), 'updated_at' => current_time( 'mysql' ),
-            ), array( '%s', '%s', '%f', '%f', '%f', '%s', '%s', '%s', '%s' ) );
-            self::redirect( $ok ? 'saved' : 'error' );
+            ), array( '%s', '%s', '%f', '%f', '%f', '%f', '%d', '%f', '%f', '%s', '%s', '%s', '%s', '%s' ) );
+            $loan_id = $saved ? (int) $wpdb->insert_id : 0;
+            if ( $saved && $funding_received ) {
+                // The purchase invoice/payment must be recorded separately.
+                $saved = self::insert_movement( $funding_account->id, $start, 'in', $principal, 'Loan #' . $loan_id . ': ' . $name );
+                $movement_id = $saved ? (int) $wpdb->insert_id : 0;
+                if ( $saved ) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own loan funding link.
+                    $saved = 1 === $wpdb->update( self::table( 'loans' ), array(
+                        'funding_movement_id' => $movement_id,
+                    ), array( 'id' => $loan_id ), array( '%d' ), array( '%d' ) );
+                }
+            }
+            $wpdb->query( $saved ? 'COMMIT' : 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Atomic loan/funding write.
+            self::redirect( $saved ? 'saved' : 'error' );
+        }
+        if ( 'loan_payment' === $operation ) {
+            $id = absint( self::posted( 'loan_id' ) );
+            $date = self::posted( 'posted_on' );
+            $key = self::posted( 'request_key' );
+            $account = self::get_account( self::posted( 'account_id' ) );
+            if ( ! $id || ! self::date( $date ) || ! $account ||
+                ! in_array( $account->kind, array( 'bank', 'cash' ), true ) ||
+                ! preg_match( '/^[a-f0-9-]{36}$/', $key ) ) {
+                self::redirect( 'invalid' );
+            }
+            $wpdb->query( 'START TRANSACTION' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Own instalment transaction.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lock the loan while reconciling an instalment.
+            $loan = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d FOR UPDATE', self::table( 'loans' ), $id ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Idempotent request key.
+            $previous = $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE request_key = %s', self::table( 'loan_payments' ), $key ) );
+            if ( $previous ) {
+                $wpdb->query( 'COMMIT' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Idempotent replay.
+                self::redirect( 'saved' );
+            }
+            if ( ! $loan || (int) $loan->term_months < 1 || $date < $loan->start_date || $date < $account->opened_on ) {
+                $wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Reject invalid payment.
+                self::redirect( 'invalid' );
+            }
+            $schedule = TCA_Loan_Schedule::calculate( $loan->principal, $loan->annual_rate,
+                $loan->term_months, $loan->first_due_date, $loan->balloon_payment );
+            // A managed loan stores the original first due date independently from
+            // the updated next due date, so later instalments remain deterministic.
+            if ( ! $schedule ) {
+                $wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- No cash posted.
+                self::redirect( 'invalid' );
+            }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Latest settled instalment.
+            $last = (int) $wpdb->get_var( $wpdb->prepare(
+                'SELECT COALESCE(MAX(instalment_number),0) FROM %i WHERE loan_id = %d', self::table( 'loan_payments' ), $id
+            ) );
+            if ( ! isset( $schedule[ $last ] ) ||
+                abs( (float) $loan->remaining - ( $last ? $schedule[ $last - 1 ]['remaining'] : (float) $loan->principal ) ) > 0.02 ) {
+                $wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Prevent inconsistent repayment.
+                self::redirect( 'invalid' );
+            }
+            $instalment = $schedule[ $last ];
+            $saved = self::insert_movement( $account->id, $date, 'out', $instalment['payment'],
+                'Loan #' . $id . ' instalment ' . $instalment['number'] );
+            $movement_id = $saved ? (int) $wpdb->insert_id : 0;
+            if ( $saved ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own repayment audit linked to one movement.
+                $saved = $wpdb->insert( self::table( 'loan_payments' ), array(
+                    'loan_id' => $id, 'instalment_number' => $instalment['number'],
+                    'movement_id' => $movement_id, 'principal_amount' => $instalment['principal'],
+                    'interest_amount' => $instalment['interest'], 'paid_amount' => $instalment['payment'],
+                    'paid_on' => $date, 'request_key' => $key, 'created_at' => current_time( 'mysql' ),
+                ), array( '%d', '%d', '%d', '%f', '%f', '%f', '%s', '%s', '%s' ) );
+            }
+            if ( $saved ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Principal moves only when the actual instalment is paid.
+                $saved = 1 === $wpdb->update( self::table( 'loans' ), array(
+                    'remaining' => $instalment['remaining'],
+                    'next_due_date' => isset( $schedule[ $last + 1 ] ) ? $schedule[ $last + 1 ]['due_date'] : $instalment['due_date'],
+                    'updated_at' => current_time( 'mysql' ),
+                ), array( 'id' => $id ), array( '%f', '%s', '%s' ), array( '%d' ) );
+            }
+            $wpdb->query( $saved ? 'COMMIT' : 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- No half-paid instalments.
+            self::redirect( $saved ? 'saved' : 'error' );
         }
         if ( 'loan_update' === $operation ) {
             $id = absint( self::posted( 'loan_id' ) );
