@@ -584,6 +584,9 @@ KEY message_id (message_id)
         if ( ! $name || ! $subject || ! $body || strlen( $body ) > 40000 || strlen( $name ) > 190 || strlen( $subject ) > 255 || ! in_array( $visibility, array( 'internal', 'external' ), true ) || ( 'external' === $visibility && ! is_email( $email ) ) ) {
             wp_die( esc_html__( 'Invalid ticket data.', self::DOMAIN ), '', array( 'response' => 400 ) );
         }
+        if ( 'external' === $visibility && ! self::settings()['form_page_url'] ) {
+            wp_die( esc_html__( 'Set the public form page URL in Form settings before creating a customer-facing ticket.', self::DOMAIN ), '', array( 'response' => 400 ) );
+        }
         global $wpdb;
         $tables = self::tables();
         $token = bin2hex( random_bytes( 32 ) );
