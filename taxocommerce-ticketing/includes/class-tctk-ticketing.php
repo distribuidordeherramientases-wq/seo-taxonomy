@@ -334,9 +334,11 @@ KEY message_id (message_id)
         }
         $return = self::return_url( isset( $_POST['return_url'] ) ? esc_url_raw( wp_unslash( $_POST['return_url'] ) ) : '' );
         if ( ! empty( $_POST['website'] ) ) {
-            self::redirect( $return, 'created' );
+            TCTK_Event_Log::record( 'honeypot_rejected' );
+            self::redirect( $return, 'error' );
         }
         if ( ! self::public_rate_limit( 'new' ) ) {
+            TCTK_Event_Log::record( 'rate_limited' );
             self::redirect( $return, 'rate' );
         }
         $name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
@@ -347,6 +349,7 @@ KEY message_id (message_id)
         $s = self::settings();
         $allowed = self::categories( $s['categories'] );
         if ( ! $name || ! is_email( $email ) || ! $subject || ! $body || strlen( $body ) > 40000 || strlen( $name ) > 190 || strlen( $subject ) > 255 || ( $allowed && ! in_array( $category, $allowed, true ) ) || ! self::valid_upload() ) {
+            TCTK_Event_Log::record( 'validation_rejected' );
             self::redirect( $return, 'error' );
         }
         $order = $s['show_order'] && isset( $_POST['order_reference'] ) ? sanitize_text_field( wp_unslash( $_POST['order_reference'] ) ) : '';
@@ -363,6 +366,7 @@ KEY message_id (message_id)
             'visibility' => 'external', 'created_at' => $now, 'updated_at' => $now,
         ) );
         if ( ! $inserted ) {
+            TCTK_Event_Log::record( 'ticket_insert_failed' );
             self::redirect( $return, 'error' );
         }
         $id = (int) $wpdb->insert_id;
@@ -370,6 +374,7 @@ KEY message_id (message_id)
         if ( ! $message ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Roll back ticket with no message.
             $wpdb->delete( $tables['tickets'], array( 'id' => $id ), array( '%d' ) );
+            TCTK_Event_Log::record( 'message_insert_failed', $id );
             self::redirect( $return, 'error' );
         }
         if ( ! empty( $s['allow_attachments'] ) ) {
@@ -378,7 +383,11 @@ KEY message_id (message_id)
         $link = add_query_arg( array( 'tctk_ticket' => $id, 'tctk_key' => $token ), $return );
         $customer_sent = wp_mail( $email, sprintf( /* translators: 1: ticket number, 2: ticket subject. */
             __( 'Ticket #%1$d received: %2$s', 'taxocommerce-ticketing' ), $id, $subject ), sprintf( __( "We received your request.\n\nTrack and reply securely here:\n%s\n\nDo not share this private link.", 'taxocommerce-ticketing' ), $link ) );
+        if ( ! $customer_sent ) {
+            TCTK_Event_Log::record( 'mail_customer_failed', $id );
+        }
         self::notify_staff( $id, $subject, $body );
+        TCTK_Event_Log::record( 'ticket_created', $id );
         self::redirect( $return, $customer_sent ? 'created' : 'mail', $id, $token );
     }
 
@@ -429,9 +438,11 @@ KEY message_id (message_id)
             'is_private' => $private ? 1 : 0, 'body' => $body, 'created_at' => current_time( 'mysql' ),
         ) );
         if ( $done ) {
+            // Preserve the generated message ID before issuing a second SQL statement.
+            $message_id = (int) $wpdb->insert_id;
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Ticket-owned timestamp.
             $wpdb->update( $tables['tickets'], array( 'updated_at' => current_time( 'mysql' ) ), array( 'id' => $ticket_id ) );
-            return (int) $wpdb->insert_id;
+            return $message_id;
         }
         return 0;
     }
@@ -439,8 +450,10 @@ KEY message_id (message_id)
     private static function notify_staff( $id, $subject, $body ) {
         $email = sanitize_email( self::settings()['notification_email'] );
         if ( is_email( $email ) ) {
-            wp_mail( $email, sprintf( /* translators: 1: ticket number, 2: ticket subject. */
-            __( 'New activity on ticket #%1$d: %2$s', 'taxocommerce-ticketing' ), $id, $subject ), $body . "\n\n" . admin_url( 'admin.php?page=taxocommerce-ticketing&ticket=' . $id ) );
+            if ( ! wp_mail( $email, sprintf( /* translators: 1: ticket number, 2: ticket subject. */
+            __( 'New activity on ticket #%1$d: %2$s', 'taxocommerce-ticketing' ), $id, $subject ), $body . "\n\n" . admin_url( 'admin.php?page=taxocommerce-ticketing&ticket=' . $id ) ) ) {
+                TCTK_Event_Log::record( 'mail_staff_failed', $id );
+            }
         }
     }
 
@@ -517,20 +530,24 @@ KEY message_id (message_id)
         }
         $return = self::return_url( isset( $_POST['return_url'] ) ? esc_url_raw( wp_unslash( $_POST['return_url'] ) ) : '' );
         if ( ! self::public_rate_limit( 'reply_' . $id ) ) {
+            TCTK_Event_Log::record( 'rate_limited', $id );
             self::redirect( $return, 'rate', $id, $token );
         }
         $body = isset( $_POST['body'] ) ? sanitize_textarea_field( wp_unslash( $_POST['body'] ) ) : '';
         if ( ! $body || strlen( $body ) > 40000 || ! self::valid_upload() ) {
+            TCTK_Event_Log::record( 'validation_rejected', $id );
             self::redirect( $return, 'error', $id, $token );
         }
         $mid = self::add_message( $id, $ticket->customer_name, $body, false, false );
         if ( ! $mid ) {
+            TCTK_Event_Log::record( 'customer_reply_failed', $id );
             self::redirect( $return, 'error', $id, $token );
         }
         if ( self::settings()['allow_attachments'] ) {
             self::save_upload( $id, $mid );
         }
         self::notify_staff( $id, $ticket->subject, $body );
+        TCTK_Event_Log::record( 'customer_reply_saved', $id );
         self::redirect( $return, 'replied', $id, $token );
     }
 
@@ -638,6 +655,7 @@ KEY message_id (message_id)
             'assigned_to' => get_current_user_id(), 'created_at' => $now, 'updated_at' => $now,
         ) );
         if ( ! $created ) {
+            TCTK_Event_Log::record( 'staff_ticket_failed' );
             wp_die( esc_html__( 'Unable to save the ticket.', 'taxocommerce-ticketing' ), '', array( 'response' => 500 ) );
         }
         $id = (int) $wpdb->insert_id;
@@ -645,6 +663,7 @@ KEY message_id (message_id)
         if ( ! $mid ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Revert ticket without message.
             $wpdb->delete( $tables['tickets'], array( 'id' => $id ), array( '%d' ) );
+            TCTK_Event_Log::record( 'message_insert_failed', $id );
             wp_die( esc_html__( 'Unable to save the message.', 'taxocommerce-ticketing' ), '', array( 'response' => 500 ) );
         }
         if ( self::valid_upload() ) {
@@ -659,6 +678,7 @@ KEY message_id (message_id)
             __( 'Ticket #%1$d received: %2$s', 'taxocommerce-ticketing' ), $id, $subject ), sprintf( __( "We received your request.\n\nTrack and reply securely here:\n%s\n\nDo not share this private link.", 'taxocommerce-ticketing' ), $link ) );
             }
         }
+        TCTK_Event_Log::record( 'staff_ticket_created', $id );
         wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-ticketing', 'ticket' => $id, 'notice' => 'saved' ), admin_url( 'admin.php' ) ) );
         exit;
     }
@@ -717,11 +737,16 @@ KEY message_id (message_id)
                     self::save_upload( $id, $mid );
                 }
                 if ( ! $private && 'external' === $ticket->visibility ) {
-                    wp_mail( $ticket->customer_email, sprintf( /* translators: 1: ticket number, 2: ticket subject. */
-            __( 'Reply to ticket #%1$d: %2$s', 'taxocommerce-ticketing' ), $id, $ticket->subject ), $body . "\n\n" . __( 'Use the private ticket link from your original confirmation email to reply.', 'taxocommerce-ticketing' ) );
+                    if ( ! wp_mail( $ticket->customer_email, sprintf( /* translators: 1: ticket number, 2: ticket subject. */
+            __( 'Reply to ticket #%1$d: %2$s', 'taxocommerce-ticketing' ), $id, $ticket->subject ), $body . "\n\n" . __( 'Use the private ticket link from your original confirmation email to reply.', 'taxocommerce-ticketing' ) ) ) {
+                        TCTK_Event_Log::record( 'mail_customer_failed', $id );
+                    }
                 }
+            } else {
+                TCTK_Event_Log::record( 'staff_message_failed', $id );
             }
         }
+        TCTK_Event_Log::record( 'staff_action_saved', $id );
         wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-ticketing', 'ticket' => $id, 'notice' => 'saved' ), admin_url( 'admin.php' ) ) );
         exit;
     }
