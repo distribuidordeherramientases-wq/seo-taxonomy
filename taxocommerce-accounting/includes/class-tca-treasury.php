@@ -308,17 +308,11 @@ final class TCA_Treasury {
                 }
             }
             if ( $saved ) {
-
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic loan/funding write.
-
                 $wpdb->query( 'COMMIT' );
-
             } else {
-
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic loan/funding write.
-
                 $wpdb->query( 'ROLLBACK' );
-
             }
             self::redirect( $saved ? 'saved' : 'error' );
         }
@@ -392,17 +386,11 @@ final class TCA_Treasury {
                 ), array( 'id' => $id ), array( '%f', '%s', '%s' ), array( '%d' ) );
             }
             if ( $saved ) {
-
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- No half-paid instalments.
-
                 $wpdb->query( 'COMMIT' );
-
             } else {
-
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- No half-paid instalments.
-
                 $wpdb->query( 'ROLLBACK' );
-
             }
             self::redirect( $saved ? 'saved' : 'error' );
         }
