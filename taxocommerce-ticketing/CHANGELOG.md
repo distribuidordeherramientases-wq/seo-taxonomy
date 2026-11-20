@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — WordPress.org preflight corrections
+- Replace computed gettext domains with literal plugin text domains.
+- Clarify ordered placeholders and translator comments for WordPress Plugin Check.
+- Strengthen request sanitization, safely bound nonce-check annotations and add the language directory.
+- Follow-up PR #2867, Issue #2862.
+
 ## 0.1.0 — 2026-11-20
 - Initial independent Ticketing plugin and dedicated private database schema.
 - Customer form shortcode, editable labels, request categories, branding and email routing.
