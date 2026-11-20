@@ -295,8 +295,8 @@ final class TCA_Settlements {
         check_admin_referer( 'tca_bulk_paid_' . $year );
         $account_id = isset( $_POST['account_id'] ) ? absint( wp_unslash( $_POST['account_id'] ) ) : 0;
         $verified = isset( $_POST['payments_verified'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['payments_verified'] ) );
-        $selected = isset( $_POST['entry_ids'] ) && is_array( $_POST['entry_ids'] ) ? wp_unslash( $_POST['entry_ids'] ) : array();
-        $dates = isset( $_POST['payment_dates'] ) && is_array( $_POST['payment_dates'] ) ? wp_unslash( $_POST['payment_dates'] ) : array();
+        $selected = isset( $_POST['entry_ids'] ) && is_array( $_POST['entry_ids'] ) ? array_map( 'absint', wp_unslash( $_POST['entry_ids'] ) ) : array();
+        $dates = isset( $_POST['payment_dates'] ) && is_array( $_POST['payment_dates'] ) ? map_deep( wp_unslash( $_POST['payment_dates'] ), 'sanitize_text_field' ) : array();
         $account_exists = false;
         foreach ( self::accounts() as $account ) {
             if ( (int) $account->id === $account_id && in_array( $account->kind, array( 'bank', 'cash' ), true ) ) {
