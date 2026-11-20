@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — 2026-11-20
+## 0.1.1 — 2026-11-20
 - Prepared dual-site first installation, Core extension management and public plugin information page on Focazul (Issue #2871).
 
 ## Unreleased — WordPress.org preflight corrections
