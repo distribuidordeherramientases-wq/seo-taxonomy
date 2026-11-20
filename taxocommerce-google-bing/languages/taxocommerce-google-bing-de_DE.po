@@ -1280,15 +1280,15 @@ msgstr "Letzte Ausführung"
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:720
 msgid "Aún no se ha realizado ningún autochequeo."
-msgstr ""
+msgstr "Es wurde noch keine Selbstprüfung ausgeführt."
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:724
 msgid "Resultados del último chequeo"
-msgstr ""
+msgstr "Ergebnisse der letzten Prüfung"
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:732
 msgid "Comparación de regresiones — ANTES / DESPUÉS"
-msgstr ""
+msgstr "Regressionsvergleich — VORHER / NACHHER"
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:737
 msgid ""
@@ -1313,7 +1313,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-connections.php:191
 msgid "Modo conexión:"
-msgstr ""
+msgstr "Verbindungsmodus:"
 
 #: includes/class-taxocommerce-google-bing-connections.php:191
 msgid ""
@@ -1425,7 +1425,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-merchant.php:317
 msgid "Fuente de mercado"
-msgstr ""
+msgstr "Marktdatenquelle"
 
 #: includes/class-taxocommerce-google-bing-merchant.php:321
 msgid ""
@@ -1445,7 +1445,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-merchant.php:331
 msgid "Reiniciar lectura desde primera página"
-msgstr ""
+msgstr "Einlesen ab der ersten Seite neu starten"
 
 #: includes/class-taxocommerce-google-bing-merchant.php:334
 msgid "Comparar con Ojeador PRO"
@@ -1478,7 +1478,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-merchant.php:343
 msgid "Diferencia"
-msgstr ""
+msgstr "Differenz"
 
 #: includes/class-taxocommerce-google-bing-merchant.php:343
 msgid "Ofertas históricas"
@@ -1508,7 +1508,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-merchant.php:355
 msgid "Fecha del informe"
-msgstr ""
+msgstr "Berichtsdatum"
 
 #: includes/class-taxocommerce-google-bing-oauth.php:151
 msgid "Google Search Console · OAuth"
