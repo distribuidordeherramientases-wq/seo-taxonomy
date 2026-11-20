@@ -719,8 +719,10 @@ function tca_table_rows( $rows, $kind = '' ) {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only focus; existing forms have nonces.
     $focused = isset( $_GET['focus_entry'] ) ? absint( $_GET['focus_entry'] ) : 0;
     if ( $focused ) {
+        $first_row = reset( $rows );
+        $focus_year = $first_row ? absint( substr( (string) $first_row->fiscal_date, 0, 4 ) ) : absint( current_time( 'Y' ) );
         echo '<p>' . esc_html__( 'Showing the selected accounting record.', 'taxocommerce-accounting' ) . ' <a href="' .
-            esc_url( tca_admin_url( TCA_Corrections::tab_for( (string) ( $kind ?: 'sale' ) ), array( 'year' => absint( isset( $_GET['year'] ) ? $_GET['year'] : current_time( 'Y' ) ) ) ) ) . '">' .
+            esc_url( tca_admin_url( TCA_Corrections::tab_for( (string) ( $kind ?: 'sale' ) ), array( 'year' => $focus_year ) ) ) . '">' .
             esc_html__( 'Show all records', 'taxocommerce-accounting' ) . '</a></p>';
     }
     echo '<div style="overflow-x:auto"><table class="widefat striped"><thead><tr>';
