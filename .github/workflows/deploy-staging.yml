@@ -27,6 +27,9 @@ on:
       - 'taxocommerce-*/**'
       - '.github/scripts/deploy_staging_delta.py'
       - '.github/workflows/deploy-staging.yml'
+      - '.github/scripts/publish_ticketing_package.py'
+      - '.github/scripts/publish_focazul_ticketing_page.py'
+      - 'docs/focazul-taxocommerce-ticketing.html'
   pull_request:
     paths:
       - 'taxocommerce-*/**'
@@ -39,6 +42,10 @@ on:
       - '.github/tests/test_staging_check_subida_a_pro.py'
       - '.github/workflows/deploy-staging.yml'
       - '.github/workflows/staging_check_subida_a_pro.yml'
+      - '.github/scripts/publish_ticketing_package.py'
+      - '.github/scripts/publish_focazul_ticketing_page.py'
+      - '.github/tests/test_ticketing_delivery.py'
+      - 'docs/focazul-taxocommerce-ticketing.html'
 
 permissions:
   contents: read
@@ -81,6 +88,8 @@ jobs:
             fi
           done
           python3 -m py_compile .github/scripts/deploy_staging_delta.py
+          python3 -m py_compile .github/scripts/publish_ticketing_package.py .github/scripts/publish_focazul_ticketing_page.py
+          python3 -m unittest discover -s .github/tests -p test_ticketing_delivery.py -v
           python3 -m unittest discover -s .github/tests -p test_deploy_staging_delta.py -v
           python3 -m unittest discover -s .github/tests -p test_staging_check_subida_a_pro.py -v
       - name: Validate System Check native code audit independently
@@ -561,3 +570,51 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
+  ticketing-package:
+    name: Publish verified Ticketing ZIP to STAGING and Focazul package repositories
+    needs: verify
+    if: github.event_name == 'push' && needs.verify.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Select only Ticketing delivery changes
+        id: ticketing
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --name-only HEAD^ HEAD | grep -Eq '^(taxocommerce-ticketing/|docs/focazul-taxocommerce-ticketing.html|.github/scripts/publish_ticketing_)'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Verify and publish Ticketing ZIP only (never PRO)
+        if: steps.ticketing.outputs.changed == 'true'
+        env:
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: python3 -u .github/scripts/publish_ticketing_package.py
+
+  ticketing-page:
+    name: Publish editable Ticketing information page to Focazul only
+    needs: [verify, ticketing-package]
+    if: github.event_name == 'push' && needs.verify.result == 'success' && needs.ticketing-package.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Update only if the Focazul Ticketing page content changed
+        shell: bash
+        env:
+          TC_FOCAZUL_WP_USER: ${{ secrets.TC_FOCAZUL_WP_USER }}
+          TC_FOCAZUL_WP_PASSWORD: ${{ secrets.TC_FOCAZUL_WP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if git diff --name-only HEAD^ HEAD | grep -Fxq 'docs/focazul-taxocommerce-ticketing.html'; then
+            python3 -u .github/scripts/publish_focazul_ticketing_page.py
+          else
+            echo "Focazul Ticketing page unchanged; no WordPress modification."
+          fi
