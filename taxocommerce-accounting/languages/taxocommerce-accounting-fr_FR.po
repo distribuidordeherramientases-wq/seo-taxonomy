@@ -720,3 +720,6 @@ msgstr "Ne confirmez la réception des fonds que si un véritable virement vers 
 
 msgid "Save loan"
 msgstr "Enregistrer le prêt"
+
+msgid "Treasury"
+msgstr "Trésorerie"

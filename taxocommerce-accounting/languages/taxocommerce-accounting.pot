@@ -718,3 +718,6 @@ msgstr ""
 
 msgid "Save loan"
 msgstr ""
+
+msgid "Treasury"
+msgstr ""

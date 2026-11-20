@@ -720,3 +720,6 @@ msgstr "Bevestig de ontvangst alleen als er daadwerkelijk geld naar deze bankrek
 
 msgid "Save loan"
 msgstr "Lening opslaan"
+
+msgid "Treasury"
+msgstr "Kasbeheer"

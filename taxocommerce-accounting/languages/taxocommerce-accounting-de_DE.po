@@ -720,3 +720,6 @@ msgstr "Bestätigen Sie den Geldeingang nur bei einer tatsächlichen Überweisun
 
 msgid "Save loan"
 msgstr "Darlehen speichern"
+
+msgid "Treasury"
+msgstr "Liquidität"

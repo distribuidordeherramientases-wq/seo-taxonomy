@@ -719,3 +719,6 @@ msgstr "Confirm funds received only if a real transfer into this bank account oc
 
 msgid "Save loan"
 msgstr "Save loan"
+
+msgid "Treasury"
+msgstr "Treasury"
