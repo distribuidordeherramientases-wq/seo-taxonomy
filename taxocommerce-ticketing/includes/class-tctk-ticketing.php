@@ -882,7 +882,20 @@ KEY message_id (message_id)
         $id = isset( $_GET['ticket'] ) ? absint( $_GET['ticket'] ) : 0;
         $notice = isset( $_GET['notice'] ) ? sanitize_key( wp_unslash( $_GET['notice'] ) ) : '';
         echo '<div class="wrap"><h1>' . esc_html__( 'TaxoCommerce Ticketing', 'taxocommerce-ticketing' ) . '</h1>';
-        echo '<p><a class="button" href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-ticketing' ) ) . '">' . esc_html__( 'Ticket inbox', 'taxocommerce-ticketing' ) . '</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-ticketing&tab=create' ) ) . '">' . esc_html__( 'New ticket', 'taxocommerce-ticketing' ) . '</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-ticketing&tab=settings' ) ) . '">' . esc_html__( 'Form settings', 'taxocommerce-ticketing' ) . '</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-ticketing&tab=autocheck' ) ) . '">Autocheck</a></p>';
+        $tabs = array(
+            'tickets' => __( 'Ticket inbox', 'taxocommerce-ticketing' ),
+            'create' => __( 'New ticket', 'taxocommerce-ticketing' ),
+            'settings' => __( 'Form settings', 'taxocommerce-ticketing' ),
+            'autocheck' => __( 'Autocheck', 'taxocommerce-ticketing' ),
+            'logs' => __( 'Activity log', 'taxocommerce-ticketing' ),
+            'manual-user' => __( 'User Manual', 'taxocommerce-ticketing' ),
+            'manual-technical' => __( 'Technical Manual', 'taxocommerce-ticketing' ),
+        );
+        echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Ticketing administration tabs', 'taxocommerce-ticketing' ) . '">';
+        foreach ( $tabs as $key => $label ) {
+            echo '<a class="nav-tab' . ( $key === $tab ? ' nav-tab-active' : '' ) . '" href="' . esc_url( add_query_arg( array( 'page' => 'taxocommerce-ticketing', 'tab' => $key ), admin_url( 'admin.php' ) ) ) . '">' . esc_html( $label ) . '</a>';
+        }
+        echo '</nav>';
         if ( self::notice( $notice ) ) {
             echo '<div class="notice notice-success"><p>' . esc_html( self::notice( $notice ) ) . '</p></div>';
         }
@@ -891,7 +904,22 @@ KEY message_id (message_id)
         } elseif ( 'create' === $tab ) {
             self::create_admin_form();
         } elseif ( 'autocheck' === $tab ) {
-            TCTK_Autocheck::render();
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only selection of check type.
+            $check = isset( $_GET['tctk_check'] ) ? sanitize_key( wp_unslash( $_GET['tctk_check'] ) ) : 'functionality';
+            echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Autocheck types', 'taxocommerce-ticketing' ) . '">';
+            foreach ( array( 'functionality' => __( 'Functionality Check', 'taxocommerce-ticketing' ), 'code' => __( 'Code Check', 'taxocommerce-ticketing' ) ) as $key => $label ) {
+                echo '<a class="nav-tab' . ( $check === $key ? ' nav-tab-active' : '' ) . '" href="' . esc_url( add_query_arg( array( 'page' => 'taxocommerce-ticketing', 'tab' => 'autocheck', 'tctk_check' => $key ), admin_url( 'admin.php' ) ) ) . '">' . esc_html( $label ) . '</a>';
+            }
+            echo '</nav>';
+            if ( 'code' === $check ) {
+                TCTK_Autotest_Code::render();
+            } else {
+                TCTK_Autocheck::render();
+            }
+        } elseif ( 'logs' === $tab ) {
+            TCTK_Event_Log::render();
+        } elseif ( 'manual-user' === $tab || 'manual-technical' === $tab ) {
+            TCTK_Manuals::render( 'manual-technical' === $tab ? 'technical' : 'user' );
         } elseif ( $id ) {
             global $wpdb;
             $t = self::tables();
