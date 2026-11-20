@@ -24,6 +24,20 @@ require_once TCMAIL_PATH . 'includes/class-tcmail-admin.php';
 require_once TCMAIL_PATH . 'includes/class-tcmail-autocheck.php';
 require_once TCMAIL_PATH . 'includes/admin-branding.php';
 register_activation_hook( __FILE__, array( 'TCMAIL_Admin', 'activate' ) );
+// Prefer WordPress.org language packs. Bundle the Spanish admin UI for offline shops.
+add_action( 'init', static function () {
+    if ( is_textdomain_loaded( 'taxocommerce-mail' ) ) {
+        return;
+    }
+    $locale = sanitize_file_name( determine_locale() );
+    $official = WP_LANG_DIR . '/plugins/taxocommerce-mail-' . $locale;
+    if ( is_file( $official . '.mo' ) || is_file( $official . '.l10n.php' ) ) {
+        return;
+    }
+    if ( 0 === strpos( $locale, 'es_' ) ) {
+        load_textdomain( 'taxocommerce-mail', TCMAIL_PATH . 'languages/taxocommerce-mail-es_ES.mo' );
+    }
+}, 1 );
 add_action( 'plugins_loaded', array( 'TCMAIL_Admin', 'boot' ) );
 add_action( 'plugins_loaded', array( 'TCMAIL_Autocheck', 'boot' ) );
 add_filter( 'taxocommerce_core_family_extensions', static function ( $extensions ) {
