@@ -1,3 +1,8 @@
+## [0.3.24] — 2026-11-20 — Títulos de productos en las propuestas del Clasificador (#2891)
+
+- «Propuestas recientes» muestra el título completo del producto junto a su ID y enlace de edición para facilitar la revisión.
+- Lectura agrupada y limitada a los productos de las 100 propuestas visibles; sin afectar al trabajo en curso, a las asignaciones ni a las aprobaciones.
+
 ## [0.3.23] — 2026-11-20 — Resumable classifier, CPU budgets and reviewed assignments (#2886)
 
 - Added autonomous full-catalogue traversal using WordPress WP-Cron, keyset pagination and persisted progress; pause, resume, cancel, JSON progress export and five bounded work levels.
