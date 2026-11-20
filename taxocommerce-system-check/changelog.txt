@@ -1,3 +1,6 @@
+= 0.2.45 (2026-11-20) =
+* Defer translated optional Core registration to WordPress init to avoid early gettext notices corrupting WooCommerce AJAX JSON on checkout. Preserve existing checks and optional registry. Add initialization-order regression. Issue #2848.
+
 = 0.2.44 (2026-11-18) =
 * Translate System Check navigation, CPU choices, exports and visible validation progress in the active WordPress locale. Keep AJAX/JSON status identifiers unchanged; refresh five POT/PO/MO catalogs (555 keys per locale), add locale regression test. Issue #2789.
 
