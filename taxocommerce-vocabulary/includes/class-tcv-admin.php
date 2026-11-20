@@ -229,7 +229,9 @@ final class TCV_Admin {
         foreach ( $rows as $r ) {
             $edit = get_edit_post_link( absint( $r['product_id'] ) );
             echo '<tr><td><a href="' . esc_url( $edit ) . '">#' . esc_html( $r['product_id'] ) . '</a></td><td>' . esc_html( $r['semantic_group'] ) . '</td><td>' . esc_html( $r['label'] ) . '</td><td>' . esc_html( $r['state'] ) . '</td><td>' . esc_html( number_format_i18n( (float) $r['confidence'] * 100, 1 ) ) . '%</td><td>' . esc_html( $r['updated_at'] ) . '</td>';
-            $can_approve = in_array( $r['state'], array( 'safe', 'review', 'derived' ), true )
+            $payload = json_decode( (string) ( $r['payload_json'] ?? '' ), true );
+            $conflict = is_array( $payload ) && 'conflicts_with_existing_value' === ( $payload['evidence']['reason'] ?? '' );
+            $can_approve = ! $conflict && in_array( $r['state'], array( 'safe', 'review', 'derived' ), true )
                 && ( absint( $r['vocabulary_id'] ) > 0 || 0 === strpos( (string) $r['semantic_group'], 'attribute:' ) );
             echo '<td>';
             if ( $can_approve ) {
@@ -238,6 +240,8 @@ final class TCV_Admin {
                 echo '<input type="hidden" name="proposal_id" value="' . esc_attr( (string) absint( $r['id'] ) ) . '">';
                 wp_nonce_field( 'tcv_classifier_approve_' . absint( $r['id'] ) );
                 echo '<button type="submit" class="button button-small">' . esc_html__( 'Aprobar y aplicar', 'taxocommerce-vocabulary' ) . '</button></form>';
+            } elseif ( $conflict ) {
+                echo esc_html__( 'Conflicto con etiqueta actual: revisar manualmente', 'taxocommerce-vocabulary' );
             } elseif ( empty( $r['vocabulary_id'] ) && ! in_array( $r['state'], array( 'applied', 'unresolved' ), true ) ) {
                 echo esc_html__( 'Revisar el vocabulario', 'taxocommerce-vocabulary' );
             } else {
@@ -246,6 +250,21 @@ final class TCV_Admin {
             echo '</td></tr>';
         }
         echo '</tbody></table></div>';
+
+        $novel = TCV_Classifier::unmapped_terms( 25 );
+        if ( $novel ) {
+            echo '<div class="tcv-panel"><h2>' . esc_html__( 'Conceptos nuevos para normalizar', 'taxocommerce-vocabulary' ) . '</h2>';
+            echo '<p>' . esc_html__( 'Agrupación orientativa de las últimas 500 propuestas. Al aprobar se crea únicamente el término maestro; para clasificar productos se vuelve a analizar el catálogo. Nunca se da de alta automáticamente.', 'taxocommerce-vocabulary' ) . '</p>';
+            echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Grupo', 'taxocommerce-vocabulary' ) . '</th><th>' . esc_html__( 'Candidato', 'taxocommerce-vocabulary' ) . '</th><th>' . esc_html__( 'Productos', 'taxocommerce-vocabulary' ) . '</th><th>' . esc_html__( 'Decisión', 'taxocommerce-vocabulary' ) . '</th></tr></thead><tbody>';
+            foreach ( $novel as $item ) {
+                echo '<tr><td>' . esc_html( $item['group'] ) . '</td><td>' . esc_html( $item['label'] ) . '</td><td>' . esc_html( number_format_i18n( $item['count'] ) ) . '</td><td>';
+                echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tcv_create_term">';
+                echo '<input type="hidden" name="group" value="' . esc_attr( $item['group'] ) . '"><input type="hidden" name="label" value="' . esc_attr( $item['label'] ) . '">';
+                wp_nonce_field( 'tcv_create_term' );
+                echo '<button class="button button-small" type="submit">' . esc_html__( 'Incorporar al maestro', 'taxocommerce-vocabulary' ) . '</button></form></td></tr>';
+            }
+            echo '</tbody></table></div>';
+        }
 
         echo '<div class="tcv-panel"><h2>' . esc_html__( 'Análisis puntual de categoría', 'taxocommerce-vocabulary' ) . '</h2><p>' . esc_html__( 'Para revisar una categoría concreta sin recorrer el catálogo completo.', 'taxocommerce-vocabulary' ) . '</p><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tcv_analyze_category">';
         wp_nonce_field( 'tcv_analyze_category' );
