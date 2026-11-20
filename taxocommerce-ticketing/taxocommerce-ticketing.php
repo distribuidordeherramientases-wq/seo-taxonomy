@@ -20,6 +20,9 @@ define( 'TCTK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TCTK_URL', plugin_dir_url( __FILE__ ) );
 
 require_once TCTK_PATH . 'includes/class-tctk-ticketing.php';
+require_once TCTK_PATH . 'includes/class-tctk-autocheck.php';
+require_once TCTK_PATH . 'includes/admin-branding.php';
+TCTK_Autocheck::boot();
 
 register_activation_hook( __FILE__, array( 'TCTK_Ticketing', 'activate' ) );
 add_action( 'plugins_loaded', array( 'TCTK_Ticketing', 'boot' ) );
