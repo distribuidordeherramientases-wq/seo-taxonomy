@@ -108,12 +108,12 @@ foreach ( array(
 ) as $invalid ) {
     tca_treasury_assert( array() === TCA_Loan_Schedule::calculate( ...$invalid ), 'Invalid financing terms must be refused' );
 }
-tca_treasury_assert( false !== strpos( $source, "'loan_payment' === \\$operation" ), 'Loan repayments require an explicit action' );
+tca_treasury_assert( false !== strpos( $source, "'loan_payment' === \$operation" ), 'Loan repayments require an explicit action' );
 tca_treasury_assert( false !== strpos( $source, "'funding_received' " ), 'Loan funds enter bank only after explicit confirmation' );
 tca_treasury_assert( false !== strpos( $source, "loan_payments" ), 'Loan instalments have a linked audit ledger' );
 tca_treasury_assert( false !== strpos( $source, "first_due_date" ), 'Original first due date stays immutable across payments' );
 tca_treasury_assert( false !== strpos( $source, "'interest_amount'" ), 'Actual interest component is stored separately from principal' );
-tca_treasury_assert( false !== strpos( $source, "'term_months' => \\$months" ), 'New financing mode stores its duration' );
+tca_treasury_assert( false !== strpos( $source, "'term_months' => \$months" ), 'New financing mode stores its duration' );
 tca_treasury_assert( false !== strpos( $source, "return self::table( 'movements' )" ), 'Payments use the standard Treasury movements ledger' );
 
 echo "TaxoCommerce Accounting Treasury isolated smoke: PASS\n";
