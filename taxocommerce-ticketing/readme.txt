@@ -4,7 +4,7 @@ Tags: tickets, support, helpdesk, customer-service, contact
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.1
+Stable tag: 0.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,7 +22,10 @@ TaxoCommerce Ticketing supports customers, shipping incidents, product questions
 * Private admin inbox, statuses, priorities, assignments, thread history and internal notes.
 * Email notifications use native wp_mail() and depend on the site's mail delivery setup.
 * Attachments restricted to PDF, JPG, PNG and TXT, maximum 2 MB per upload; stored privately in a plugin table, never in a publicly served uploads directory.
-* Request throttling and spam honeypot on public form submissions.
+* Request throttling and spam honeypot on public form submissions; rejections do not display a success notice.
+* Administrative Activity log shows only fixed event types, UTC date, and ticket numbers (no customer personal data).
+* Separate Functionality Check with synthetic insert/read/delete validation, and Code Check with batch scanning and JSON downloads.
+* In-plugin user manual and technical manual, accessible from Tickets tabs.
 * Optional action hook tctk_ticket_admin_actions for integration with other applications; no required plugin coupling.
 
 This plugin stores personal data in dedicated database tables. Exports, erasure, retention and legal privacy obligations remain the responsibility of the site administrator. Backup before uninstalling or changing database data; deactivation retains records.
@@ -50,6 +53,13 @@ Yes. Its title, text labels, request types, logo attachment ID and blue/green/br
 The email includes a private reply link. This first version does not ingest inbound email replies.
 
 == Changelog ==
+
+= 0.1.2 =
+* Fix false success when anti-spam rejects a request and preserve new message ID before timestamp updates.
+* Add administrator event log with bounded private-event identifiers and ticket IDs.
+* Split Autocheck into a live synthetic Functionality Check and an independent PHP/WordPress/Security Code Check with JSON exports.
+* Add built-in user and technical manuals.
+
 
 = 0.1.1 =
 * Make the official Focazul plugin page discoverable and prepare installation on authorized test sites and Core local ZIP management. Issue #2871.
