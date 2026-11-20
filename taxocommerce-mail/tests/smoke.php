@@ -29,6 +29,14 @@ $input = array(
     'username' => 'support@shop.example', 'imap_host' => 'mail.shop.example',
     'smtp_host' => 'mail.shop.example', 'smtp_port' => 465,
 );
+$minimal = TCMAIL_Accounts::basic_defaults( array(
+    'username' => 'support@shop.example',
+    'imap_host' => 'mail.shop.example',
+) );
+assert_mail( 'support@shop.example' === $minimal['email'], 'Quick setup must use the complete address.' );
+assert_mail( 'support' === $minimal['name'], 'Quick setup must derive a default display name.' );
+assert_mail( 'mail.shop.example' === $minimal['smtp_host'] && 465 === $minimal['smtp_port'], 'Quick setup must retain optional SMTP functionality.' );
+assert_mail( TCMAIL_Accounts::validate( $minimal ) !== false, 'Three-field quick setup must validate.' );
 assert_mail( TCMAIL_Accounts::ready(), 'OpenSSL AES-256-GCM is required.' );
 assert_mail( TCMAIL_Accounts::save( $input, 'local-test-secret' ), 'Cannot save first mailbox.' );
 $saved = $GLOBALS['tcmail_options'][TCMAIL_Accounts::OPTION];
