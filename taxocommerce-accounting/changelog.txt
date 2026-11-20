@@ -1,3 +1,6 @@
+= 0.1.17 (2026-11-20) =
+* Reconcile VAT against an independently verified, issued rectification via optional WordPress filter while preserving original invoice, WooCommerce order and payments. No hard plugin dependency. Issue #2860.
+
 = 0.1.16 (2026-11-20) =
 * Add nominal fixed-rate loan forecasts with term, down payment, final extra principal, accurate principal/interest breakdown and final-cent adjustment. Optional confirmed funding bank receipt and manual, transaction-safe instalment payments; preserve historical manual loans. Loans and interest do not modify VAT calculations. Issue #2857.
 

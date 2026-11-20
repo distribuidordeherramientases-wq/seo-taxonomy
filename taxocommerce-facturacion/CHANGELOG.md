@@ -1,3 +1,10 @@
+## [0.1.21] — 2026-11-20 — Immutable VAT rectifying invoices by substitution (#2860)
+
+- Issue independent numbered RECT fiscal documents with a mandatory justification, original invoice number/date, old and corrected base/VAT/total, and a permanently linked, downloadable PDF; unchanged gross means no extra charge to the customer.
+- Limit the initial correction workflow to a single applicable 0/4/10/21% VAT rate and unchanged gross; reject fees, charged shipping, discounts, and repeated rectifications rather than invent line-specific values. Preserve original PDF, order, payments and seller snapshot.
+- Add a nonce- and capability-guarded control in the issued invoice register, a separate rectification register, manual PDF retry and customer email. A read-only optional WordPress filter exposes the effective issued correction to other plugins without a hard dependency.
+- Add a separate rectifications table and upgrade DB schema to 0.2.0; first issue uses independent RECT numbering. Never auto-correct historic fiscal documents.
+
 ## [0.1.20] — 2026-11-17 — Comunicación de factura emitida a contabilidad (#2778)
 
 - Tras completar el PDF y guardar el snapshot fiscal inmutable de una factura emitida, dispara la acción opcional `taxocommerce_billing_invoice_issued` con identificador de pedido y documento emitido.

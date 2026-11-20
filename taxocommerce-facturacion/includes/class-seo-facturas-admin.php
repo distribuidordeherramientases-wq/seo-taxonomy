@@ -179,6 +179,8 @@ final class SEO_Facturas_Admin {
             $messages = array(
                 'document_generated' => 'Documento generado correctamente.',
                 'document_emailed'   => 'Documento enviado por email correctamente.',
+                'rectification_issued' => __( 'Rectifying invoice issued. The original remains unchanged.', 'taxocommerce-facturacion' ),
+                'rectification_emailed' => __( 'Rectifying invoice sent to customer.', 'taxocommerce-facturacion' ),
             );
             if (isset($messages[$notice])) {
                 echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($messages[$notice]) . '</p></div>';
@@ -579,6 +581,7 @@ final class SEO_Facturas_Admin {
             <?php endif; ?>
             </tbody>
         </table>
+        <?php SEO_Facturas_Rectifications::render_register(); ?>
         <?php
     }
 
@@ -636,6 +639,7 @@ final class SEO_Facturas_Admin {
             'seo_facturas_email_' . absint($document->id)
         );
         $parts[] = '<a class="button button-small" href="' . esc_url($email) . '">Reenviar</a>';
+        $parts[] = SEO_Facturas_Rectifications::render_action($document);
 
         return implode(' ', $parts);
     }
