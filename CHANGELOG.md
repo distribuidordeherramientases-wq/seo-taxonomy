@@ -1,3 +1,10 @@
+## 2026-11-20 - STAGING/Focazul automatic only; production by explicit manual approval (#2868)
+
+- Removed the automatic `push` trigger from the three-stage STAGING / Plugin Check / PRO workflow; it remains available only upon explicit manual PRO approval.
+- Normal merges to `staging` now trigger the dedicated STAGING/Focazul delivery workflow, without any PRO deployment job.
+- Quick validation checks PHP syntax and optional standalone bootstrap tests only for changed plugins; full-family regression stays available on a requested manual full reconciliation.
+- Retained incremental FTPS uploads, checksum verification, and current per-site plugin installation restrictions. No production release is performed.
+
 ## Documentation — 2026-11-18 — Public readme descriptions (#2814)
 
 - Standardized all 22 TaxoCommerce plugin `readme.txt` descriptions: purpose first, shared `Key Features` subsection, no introductory release notes or internal admin-header details; added missing installation instructions for Logistics and Import-Export.

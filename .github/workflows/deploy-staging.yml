@@ -1,4 +1,4 @@
-name: Immediate deployment to STAGING
+name: STAGING + Focazul - actualizacion selectiva
 
 on:
   workflow_call:
@@ -20,8 +20,13 @@ on:
         required: false
         type: boolean
         default: false
-  # Pushes are handled by the single gated workflow. The prior concurrent
-  # scoped Core/Tasks push was incorrectly recorded as a complete release.
+  # A merge deploys ONLY to STAGING and Focazul. No PRO job is reachable here.
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-*/**'
+      - '.github/scripts/deploy_staging_delta.py'
+      - '.github/workflows/deploy-staging.yml'
   pull_request:
     paths:
       - 'taxocommerce-*/**'
@@ -45,11 +50,41 @@ concurrency:
 
 jobs:
   validate:
-    name: Validate incremental deployment and Core
+    name: Validate only changed plugins (full family only by manual request)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate changed plugin syntax and independent bootstrap
+        shell: bash
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="$PR_BASE"
+            head="$PR_HEAD"
+          else
+            base="$(git rev-parse HEAD^)"
+            head="$(git rev-parse HEAD)"
+          fi
+          mapfile -t plugins < <(git diff --name-only "$base" "$head" | awk -F/ '$1 ~ /^taxocommerce-[a-z0-9-]+$/ {print $1}' | sort -u)
+          echo "Checking ${#plugins[@]} changed plugin(s): ${plugins[*]}"
+          for slug in "${plugins[@]}"; do
+            test -f "$slug/$slug.php" || continue
+            find "$slug" -type f -name '*.php' -not -path "$slug/tests/*" -print0 |
+              while IFS= read -r -d '' file; do php -l "$file" >/dev/null; done
+            if [ -f "$slug/tests/standalone-bootstrap-smoke.php" ]; then
+              php "$slug/tests/standalone-bootstrap-smoke.php"
+            fi
+          done
+          python3 -m py_compile .github/scripts/deploy_staging_delta.py
+          python3 -m unittest discover -s .github/tests -p test_deploy_staging_delta.py -v
+          python3 -m unittest discover -s .github/tests -p test_staging_check_subida_a_pro.py -v
       - name: Validate System Check native code audit independently
+        if: ${{ inputs.full_sync == true }}
         run: |
           set -euo pipefail
           php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-code-rules.php
@@ -59,6 +94,7 @@ jobs:
           php taxocommerce-system-check/tests/code-check-smoke.php
 
       - name: Validate independent Autotest Code Check for the entire new family
+        if: ${{ inputs.full_sync == true }}
         run: |
           set -euo pipefail
           for plugin in auditor campaigns core customers database dependiente distribution facturacion faqs google-bing images import-export logistica redirects scrappers social suppliers tasks templates vocabulary; do
@@ -75,6 +111,7 @@ jobs:
           php taxocommerce-system-check/tests/auto-test-guide-smoke.php
 
       - name: Validate Insights consent and editable legal text lifecycle
+        if: ${{ inputs.full_sync == true }}
         run: |
           php -l taxocommerce-google-bing/includes/class-taxocommerce-insights-consent.php
           php taxocommerce-google-bing/tests/consent-smoke.php
@@ -85,6 +122,7 @@ jobs:
           php taxocommerce-google-bing/tests/consent-json-import-smoke.php
           node --check taxocommerce-google-bing/assets/consent.js
       - name: Validate delta script and regression tests
+        if: ${{ inputs.full_sync == true }}
         run: |
           python3 -m py_compile .github/scripts/deploy_staging_delta.py
           python3 -m unittest discover -s .github/tests -p test_deploy_staging_delta.py -v
@@ -95,6 +133,7 @@ jobs:
           python3 -m py_compile .github/scripts/audit_core_dual_sites.py
           python3 -m unittest discover -s .github/tests -p test_audit_core_dual_sites.py -v
       - name: Verify all 20 Autocheck JSON contracts and PHP syntax
+        if: ${{ inputs.full_sync == true }}
         run: |
           set -euo pipefail
           php -l .github/tests/legacy-scrappers-coexistence-smoke.php
@@ -289,6 +328,7 @@ jobs:
           php -l taxocommerce-vocabulary/tests/classifier-extraction-smoke.php
           php taxocommerce-vocabulary/tests/classifier-extraction-smoke.php
       - name: Import-Export native category CSV contracts and PHP syntax
+        if: ${{ inputs.full_sync == true }}
         run: |
           php -l taxocommerce-import-export/includes/class-taxocommerce-import-export-csv.php
           php -l taxocommerce-import-export/includes/class-taxocommerce-import-export-exporter.php
@@ -304,10 +344,12 @@ jobs:
           php taxocommerce-import-export/tests/batch-queue-smoke.php
           node --check taxocommerce-import-export/assets/exporter.js
       - name: Validate all TaxoCommerce binary gettext catalogs
+        if: ${{ inputs.full_sync == true }}
         run: |
           python3 -m unittest discover -s .github/tests -p test_verify_mo_catalogs.py -v
           python3 .github/scripts/verify_mo_catalogs.py --repo
       - name: Core PHP syntax and regression tests
+        if: ${{ inputs.full_sync == true }}
         run: |
           php -l taxocommerce-core/taxocommerce-core.php
           php -l taxocommerce-core/tests/action-scheduler-notice-smoke.php
@@ -365,6 +407,7 @@ jobs:
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php standalone
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-before
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-after
+
 
   plan:
     name: Select changed deployable plugin files
