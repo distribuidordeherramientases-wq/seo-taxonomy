@@ -852,7 +852,7 @@ final class TCV_Classifier {
         global $wpdb;
         $t = TCV_Schema::tables();
         $limit = max( 1, min( 500, absint( $limit ) ) );
-        return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE active=1 ORDER BY updated_at DESC LIMIT %d", $t['proposals'], $limit ), ARRAY_A );
+        return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE active=1 AND label<>'' ORDER BY updated_at DESC LIMIT %d", $t['proposals'], $limit ), ARRAY_A );
     }
 
     // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
