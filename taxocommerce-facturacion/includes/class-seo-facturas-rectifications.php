@@ -46,6 +46,23 @@ final class SEO_Facturas_Rectifications {
      *
      * @return array|WP_Error New totals in euros, or rejection.
      */
+    /**
+     * Accounting's current fiscal register can only substitute an existing
+     * invoice inside its original VAT quarter. Later corrections require a
+     * separately dated VAT adjustment, not retroactive replacement.
+     */
+    public static function same_vat_quarter( $original_date, $new_date ) {
+        $original_date = (string) $original_date;
+        $new_date = (string) $new_date;
+        if ( ! preg_match( '/^[0-9]{4}-(0[1-9]|1[0-2])-[0-9]{2}/', $original_date ) ||
+            ! preg_match( '/^[0-9]{4}-(0[1-9]|1[0-2])-[0-9]{2}/', $new_date ) ) {
+            return false;
+        }
+        return substr( $original_date, 0, 4 ) === substr( $new_date, 0, 4 ) &&
+            intdiv( (int) substr( $original_date, 5, 2 ) - 1, 3 ) ===
+                intdiv( (int) substr( $new_date, 5, 2 ) - 1, 3 );
+    }
+
     public static function replacement_amounts( $gross, $rate ) {
         $gross = (float) $gross;
         $rate = (float) $rate;
@@ -153,6 +170,12 @@ final class SEO_Facturas_Rectifications {
         if ( ! $original || SEO_Facturas_Documents::TYPE_INVOICE !== $original->document_type ||
             'issued' !== $original->status || strlen( $reason ) < 15 || strlen( $reason ) > 1000 ) {
             return new WP_Error( 'sf_rectification_invalid', __( 'An issued invoice and a detailed reason (15–1000 characters) are required.', 'taxocommerce-facturacion' ) );
+        }
+        if ( ! self::same_vat_quarter( $original->issued_at, current_time( 'mysql' ) ) ) {
+            return new WP_Error( 'sf_rectification_period', __(
+                'This workflow only supports corrections within the original VAT quarter. Cross-quarter corrections need a separate fiscal adjustment.',
+                'taxocommerce-facturacion'
+            ) );
         }
         $existing = self::for_original( $original->id );
         if ( $existing ) {
