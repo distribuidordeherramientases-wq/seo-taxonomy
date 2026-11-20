@@ -1,3 +1,9 @@
+## 0.1.18 — 2026-11-20 — Treasury administration translations (#2876)
+
+- Extract 91 previously missing Treasury gettext strings into the POT and translate all corresponding PO entries for es_ES, en_US, fr_FR, de_DE and nl_NL.
+- Rebuild five binary MO catalogs to restore the correct WordPress-language display across balances, cash/bank movements and loan forms.
+- Do not alter money calculations, invoice handling, bank movements or loan behavior; no production deployment.
+
 ## 0.1.17 — 2026-11-20 — Optional immutable rectification reconciliation (#2860)
 
 - Accept an optional WordPress filter for the latest legally issued, same-total rectifying invoice linked to a WooCommerce sale. Prefer the rectification for VAT validation, while preserving the original document and paid amount. Confirm currency, positive finite values and base + VAT = original gross before applying.
