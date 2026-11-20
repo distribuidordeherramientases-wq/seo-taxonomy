@@ -87,6 +87,30 @@ final class TCMAIL_Accounts {
     /**
      * Only TLS connections are supported; no insecure ports or server defaults.
      */
+    /**
+     * Expand the three-field IMAP quick setup without changing existing accounts.
+     * A complete email address is used as the mailbox username.
+     *
+     * @param array $input Sanitized account settings.
+     * @return array
+     */
+    public static function basic_defaults( $input ) {
+        $username = isset( $input['username'] ) ? $input['username'] : '';
+        if ( empty( $input['email'] ) ) {
+            $input['email'] = sanitize_email( $username );
+        }
+        if ( empty( $input['name'] ) && is_email( $input['email'] ) ) {
+            $input['name'] = strstr( $input['email'], '@', true );
+        }
+        if ( empty( $input['smtp_host'] ) && isset( $input['imap_host'] ) ) {
+            $input['smtp_host'] = $input['imap_host'];
+        }
+        if ( empty( $input['smtp_port'] ) ) {
+            $input['smtp_port'] = 465;
+        }
+        return $input;
+    }
+
     public static function validate( $input ) {
         $email = isset( $input['email'] ) ? sanitize_email( $input['email'] ) : '';
         $name = isset( $input['name'] ) ? sanitize_text_field( $input['name'] ) : '';
