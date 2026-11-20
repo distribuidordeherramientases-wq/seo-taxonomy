@@ -14,6 +14,7 @@ function wp_generate_uuid4() { return '90000000-0000-4000-8000-000000000001'; }
 function absint( $value ) { return abs( (int) $value ); }
 function sanitize_email( $value ) { return strtolower( filter_var( $value, FILTER_SANITIZE_EMAIL ) ); }
 function is_email( $value ) { return (bool) filter_var( $value, FILTER_VALIDATE_EMAIL ); }
+function wp_strip_all_tags( $value ) { return strip_tags( $value ); }
 function sanitize_text_field( $value ) { return preg_replace( '/[\x00-\x1f\x7f]/', '', strip_tags( (string) $value ) ); }
 require_once dirname( __DIR__ ) . '/includes/class-tcmail-accounts.php';
 require_once dirname( __DIR__ ) . '/includes/class-tcmail-imap.php';
