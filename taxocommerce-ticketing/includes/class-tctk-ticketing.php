@@ -385,6 +385,7 @@ KEY message_id (message_id)
     // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Files are checked for upload error, size, MIME, extension, and uploaded-file provenance.
     // phpcs:enable WordPress.Security.NonceVerification.Missing
 
+    // phpcs:disable WordPress.Security.NonceVerification.Missing -- Private upload helpers are only invoked after verified form handlers.
     private static function valid_upload() {
         if ( ! isset( $_FILES['tctk_upload']['error'] ) || UPLOAD_ERR_NO_FILE === (int) $_FILES['tctk_upload']['error'] ) {
             return true;
@@ -398,7 +399,7 @@ KEY message_id (message_id)
     }
 
     private static function save_upload( $ticket_id, $message_id ) {
-        if ( ! isset( $_FILES['tctk_upload'] ) || ! self::valid_upload() || UPLOAD_ERR_NO_FILE === (int) $_FILES['tctk_upload']['error'] ) {
+        if ( ! isset( $_FILES['tctk_upload']['error'] ) || ! self::valid_upload() || UPLOAD_ERR_NO_FILE === (int) $_FILES['tctk_upload']['error'] ) {
             return;
         }
         $f = $_FILES['tctk_upload'];
@@ -417,6 +418,7 @@ KEY message_id (message_id)
         ), array( '%d', '%d', '%s', '%s', '%d', '%s' ) );
     }
 
+    // phpcs:enable WordPress.Security.NonceVerification.Missing
     // phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
     private static function add_message( $ticket_id, $author, $body, $staff, $private ) {
         global $wpdb;
