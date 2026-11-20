@@ -14,7 +14,7 @@ $seller = (array) ( $snapshot['seller'] ?? array() );
 $buyer = (array) ( $snapshot['billing'] ?? array() );
 $rect = (array) ( $snapshot['rectification'] ?? array() );
 $totals = (array) ( $snapshot['totals'] ?? array() );
-$items = (array) ( $snapshot['items'] ?? array() );
+$items = (array) ( $snapshot['rectification_items'] ?? array() );
 $currency = (string) ( $order['currency'] ?? 'EUR' );
 $money = static function ( $value ) use ( $currency ) {
     if ( function_exists( 'wc_price' ) ) {
@@ -72,12 +72,27 @@ if ( '' === $buyer_name ) {
 </tr></table>
 
 <h2><?php echo esc_html__( 'Corrected transaction', 'taxocommerce-facturacion' ); ?></h2>
-<p class="small">
+<p class="small"><?php echo esc_html__( 'The original products and gross price are unchanged. Only the VAT breakdown has been corrected.', 'taxocommerce-facturacion' ); ?></p>
+<table class="amounts">
+<thead><tr>
+<th><?php echo esc_html__( 'Product', 'taxocommerce-facturacion' ); ?></th>
+<th><?php echo esc_html__( 'Quantity', 'taxocommerce-facturacion' ); ?></th>
+<th><?php echo esc_html__( 'Net unit price', 'taxocommerce-facturacion' ); ?></th>
+<th><?php echo esc_html__( 'Net amount', 'taxocommerce-facturacion' ); ?></th>
+<th><?php echo esc_html__( 'VAT', 'taxocommerce-facturacion' ); ?></th>
+<th><?php echo esc_html__( 'Gross amount', 'taxocommerce-facturacion' ); ?></th>
+</tr></thead><tbody>
 <?php foreach ( $items as $item ) : ?>
-    <?php echo esc_html( (string) ( $item['quantity'] ?? '' ) . ' × ' . (string) ( $item['name'] ?? '' ) ); ?><br>
+<tr>
+<td><?php echo esc_html( $item['name'] ?? '' ); ?></td>
+<td class="num"><?php echo esc_html( $item['quantity'] ?? 0 ); ?></td>
+<td class="num"><?php echo esc_html( number_format( (float) ( $item['unit_net'] ?? 0 ), 4, ',', '.' ) . ' ' . $currency ); ?></td>
+<td class="num"><?php echo esc_html( $money( $item['base'] ?? 0 ) ); ?></td>
+<td class="num"><?php echo esc_html( $money( $item['tax'] ?? 0 ) ); ?></td>
+<td class="num"><?php echo esc_html( $money( $item['gross'] ?? 0 ) ); ?></td>
+</tr>
 <?php endforeach; ?>
-</p>
-<p class="small"><?php echo esc_html__( 'The original sales items and gross price are unchanged. The amounts below replace only the VAT breakdown.', 'taxocommerce-facturacion' ); ?></p>
+</tbody></table>
 <div class="note"><strong><?php echo esc_html__( 'Reason for correction', 'taxocommerce-facturacion' ); ?>:</strong>
 <?php echo nl2br( esc_html( $rect['reason'] ?? '' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- nl2br on escaped text. ?>
 </div>
