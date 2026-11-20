@@ -284,7 +284,8 @@ final class TCA_Treasury {
             if ( $existing_loan ) {
                 self::redirect( 'saved' );
             }
-            $wpdb->query( 'START TRANSACTION' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Own loan/funding transaction.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own loan/funding transaction.
+            $wpdb->query( 'START TRANSACTION' );
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own loan register.
             $saved = $wpdb->insert( self::table( 'loans' ), array(
                 'name' => $name, 'lender' => $lender, 'principal' => $principal,
@@ -306,7 +307,19 @@ final class TCA_Treasury {
                     ), array( 'id' => $loan_id ), array( '%d' ), array( '%d' ) );
                 }
             }
-            $wpdb->query( $saved ? 'COMMIT' : 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Atomic loan/funding write.
+            if ( $saved ) {
+
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic loan/funding write.
+
+                $wpdb->query( 'COMMIT' );
+
+            } else {
+
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic loan/funding write.
+
+                $wpdb->query( 'ROLLBACK' );
+
+            }
             self::redirect( $saved ? 'saved' : 'error' );
         }
         if ( 'loan_payment' === $operation ) {
@@ -322,17 +335,20 @@ final class TCA_Treasury {
                 ! preg_match( '/^[a-f0-9-]{36}$/', $key ) ) {
                 self::redirect( 'invalid' );
             }
-            $wpdb->query( 'START TRANSACTION' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Own instalment transaction.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own instalment transaction.
+            $wpdb->query( 'START TRANSACTION' );
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lock the loan while reconciling an instalment.
             $loan = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d FOR UPDATE', self::table( 'loans' ), $id ) );
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Idempotent request key.
             $previous = $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE request_key = %s', self::table( 'loan_payments' ), $key ) );
             if ( $previous ) {
-                $wpdb->query( 'COMMIT' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Idempotent replay.
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Idempotent replay.
+                $wpdb->query( 'COMMIT' );
                 self::redirect( 'saved' );
             }
             if ( ! $loan || (int) $loan->term_months < 1 || $date < $loan->start_date || $date < $account->opened_on ) {
-                $wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Reject invalid payment.
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reject invalid payment.
+                $wpdb->query( 'ROLLBACK' );
                 self::redirect( 'invalid' );
             }
             $schedule = TCA_Loan_Schedule::calculate( $loan->principal, $loan->annual_rate,
@@ -340,7 +356,8 @@ final class TCA_Treasury {
             // A managed loan stores the original first due date independently from
             // the updated next due date, so later instalments remain deterministic.
             if ( ! $schedule ) {
-                $wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- No cash posted.
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- No cash posted.
+                $wpdb->query( 'ROLLBACK' );
                 self::redirect( 'invalid' );
             }
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Latest settled instalment.
@@ -349,7 +366,8 @@ final class TCA_Treasury {
             ) );
             if ( ! isset( $schedule[ $last ] ) ||
                 abs( (float) $loan->remaining - ( $last ? $schedule[ $last - 1 ]['remaining'] : (float) $loan->principal ) ) > 0.02 ) {
-                $wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Prevent inconsistent repayment.
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prevent inconsistent repayment.
+                $wpdb->query( 'ROLLBACK' );
                 self::redirect( 'invalid' );
             }
             $instalment = $schedule[ $last ];
@@ -373,7 +391,19 @@ final class TCA_Treasury {
                     'updated_at' => current_time( 'mysql' ),
                 ), array( 'id' => $id ), array( '%f', '%s', '%s' ), array( '%d' ) );
             }
-            $wpdb->query( $saved ? 'COMMIT' : 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- No half-paid instalments.
+            if ( $saved ) {
+
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- No half-paid instalments.
+
+                $wpdb->query( 'COMMIT' );
+
+            } else {
+
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- No half-paid instalments.
+
+                $wpdb->query( 'ROLLBACK' );
+
+            }
             self::redirect( $saved ? 'saved' : 'error' );
         }
         if ( 'loan_update' === $operation ) {
