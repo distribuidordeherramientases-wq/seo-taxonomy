@@ -37,6 +37,7 @@ final class TCTK_Ticketing {
             'palette' => 'blue',
             'logo_id' => 0,
             'notification_email' => get_option( 'admin_email' ),
+            'form_page_url' => '',
             'show_order' => 1,
             'show_product' => 1,
             'allow_attachments' => 1,
@@ -555,6 +556,9 @@ KEY message_id (message_id)
             } elseif ( 'palette' === $key ) {
                 $candidate = isset( $input[$key] ) ? sanitize_key( $input[$key] ) : 'blue';
                 $s[$key] = in_array( $candidate, array( 'blue', 'green', 'brown' ), true ) ? $candidate : 'blue';
+            } elseif ( 'form_page_url' === $key ) {
+                $url = isset( $input[$key] ) ? esc_url_raw( $input[$key] ) : '';
+                $s[$key] = $url && wp_validate_redirect( $url, false ) ? $url : '';
             } elseif ( 'categories' === $key ) {
                 $s[$key] = implode( "\n", self::categories( isset( $input[$key] ) ? sanitize_textarea_field( $input[$key] ) : '' ) );
             } else {
@@ -607,7 +611,7 @@ KEY message_id (message_id)
         }
         if ( 'external' === $visibility ) {
             // Form URL is configured by the shop owner; never assume this admin page is the customer-facing page.
-            $page = get_option( 'tctk_form_page_url', '' );
+            $page = self::settings()['form_page_url'];
             if ( $page && wp_validate_redirect( $page, false ) ) {
                 $link = add_query_arg( array( 'tctk_ticket' => $id, 'tctk_key' => $token ), $page );
                 wp_mail( $email, sprintf( __( 'Ticket #%d received: %s', self::DOMAIN ), $id, $subject ), sprintf( __( "We received your request.\n\nTrack and reply securely here:\n%s\n\nDo not share this private link.", self::DOMAIN ), $link ) );
@@ -688,6 +692,7 @@ KEY message_id (message_id)
             'subject_label' => __( 'Subject field label', self::DOMAIN ), 'message_label' => __( 'Message field label', self::DOMAIN ),
             'order_label' => __( 'Order field label', self::DOMAIN ), 'product_label' => __( 'Product field label', self::DOMAIN ),
             'button' => __( 'Submit button text', self::DOMAIN ), 'notification_email' => __( 'Staff notification email', self::DOMAIN ),
+            'form_page_url' => __( 'Public page URL containing the ticket shortcode', self::DOMAIN ),
         );
         echo '<table class="form-table" role="presentation">';
         foreach ( $labels as $key => $label ) {
