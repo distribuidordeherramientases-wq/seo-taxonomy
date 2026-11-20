@@ -96,6 +96,9 @@ final class TCV_Classifier_Batch {
                 "SELECT COALESCE(MAX(ID),0) AS max_id, COUNT(*) AS total FROM %i WHERE post_type=%s AND post_status=%s",
                 $wpdb->posts, 'product', 'publish'
             ), ARRAY_A );
+            if ( ! is_array( $snapshot ) || ! empty( $wpdb->last_error ) ) {
+                wp_die( esc_html__( 'No se ha podido leer el catálogo; no se ha iniciado el recorrido.', 'taxocommerce-vocabulary' ) );
+            }
             $mode = isset( $_POST['apply_safe'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['apply_safe'] ) ) ? 'safe' : 'review';
             $job = array(
                 'id' => wp_generate_uuid4(), 'status' => 'running', 'level' => $level, 'mode' => $mode,
