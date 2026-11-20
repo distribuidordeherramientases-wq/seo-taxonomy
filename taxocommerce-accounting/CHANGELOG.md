@@ -1,3 +1,10 @@
+## 0.1.20 — 2026-11-20 — Expense classification and annual fixed-asset depreciation (#2881)
+
+- In Expenses, classify each new entry as current expense (default) or depreciable fixed asset; assets require in-service date and useful life of 1–50 years.
+- Calculate read-only straight-line depreciation prorated by actual days across calendar years; rounded cumulative cents clear the final year exactly. Cost includes nonrecoverable input VAT. Show annual allowance and remaining book value under Expenses, without creating extra bank movements, tax deductions, invoice edits or VAT adjustments.
+- Keep old expenses as current by default, purchases/merchandise and existing Assets tab unchanged; allow audited expense reclassification via the existing correction workflow, and export stored asset metadata.
+- Upgrade own ledger schema to v7 non-destructively, add standalone regression and STAGING CI gate. No PRO deploy.
+
 ## 0.1.19 — 2026-11-20 — Treasury tab locale key (#2878)
 
 - Add the previously omitted `Treasury` main administration tab label to POT and five gettext locales; compile matching MO catalogs.
