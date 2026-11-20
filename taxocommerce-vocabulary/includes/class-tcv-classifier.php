@@ -113,6 +113,39 @@ final class TCV_Classifier {
             }
         }
         $supplier[] = self::supplier_source_context( $product_id );
+
+        // Native WooCommerce attributes are read as evidence, never modified.
+        // New installations without WooCommerce attribute objects still work.
+        $native_attributes = array();
+        $wc_product = function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : false;
+        if ( $wc_product && method_exists( $wc_product, 'get_attributes' ) ) {
+            foreach ( (array) $wc_product->get_attributes() as $attribute ) {
+                if ( ! is_object( $attribute ) || ! method_exists( $attribute, 'get_name' )
+                    || ! method_exists( $attribute, 'get_options' ) || ! method_exists( $attribute, 'is_taxonomy' ) ) {
+                    continue;
+                }
+                $name = (string) $attribute->get_name();
+                $values = $attribute->is_taxonomy() && taxonomy_exists( $name )
+                    ? wp_get_post_terms( $product_id, $name, array( 'fields' => 'names' ) )
+                    : $attribute->get_options();
+                if ( is_wp_error( $values ) || ! is_array( $values ) ) {
+                    continue;
+                }
+                $texts = array();
+                foreach ( array_slice( $values, 0, 12 ) as $value ) {
+                    if ( is_scalar( $value ) && '' !== trim( (string) $value ) ) {
+                        $texts[] = mb_substr( sanitize_text_field( (string) $value ), 0, 150, 'UTF-8' );
+                    }
+                }
+                if ( $texts ) {
+                    $label = function_exists( 'wc_attribute_label' ) ? wc_attribute_label( $name, $wc_product ) : $name;
+                    $native_attributes[] = sanitize_text_field( $label ) . ': ' . implode( ', ', $texts );
+                }
+                if ( count( $native_attributes ) >= 40 ) {
+                    break;
+                }
+            }
+        }
         $values = array(
             'title' => $post->post_title,
             'excerpt' => $post->post_excerpt,
@@ -122,6 +155,7 @@ final class TCV_Classifier {
             'brands' => implode( ' ', array_unique( $brands ) ),
             'sku' => (string) get_post_meta( $product_id, '_sku', true ),
             'supplier' => implode( ' ', $supplier ),
+            'attributes' => implode( '; ', $native_attributes ),
         );
         // Optional read-only integration for any supplier/catalog provider;
         // no vendor, plugin, or external service is required.
@@ -252,6 +286,81 @@ final class TCV_Classifier {
 
 
     // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+    /**
+     * Small, per-request cached category profiles from existing canonical
+     * assignments. A category only adds a bounded bonus to a textual match;
+     * it can never impose a tag without corroborating product evidence.
+     */
+    private static function category_profile( $category_id ) {
+        static $cache = array();
+        $category_id = absint( $category_id );
+        if ( isset( $cache[ $category_id ] ) ) {
+            return $cache[ $category_id ];
+        }
+        global $wpdb;
+        $tables = TCV_Schema::tables();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own canonical assignments and indexed WP category relations; result cached for the current block.
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT v.semantic_group, ov.vocabulary_id, COUNT(DISTINCT ov.object_id) AS supporters
+             FROM %i ov INNER JOIN %i v ON v.id=ov.vocabulary_id
+             INNER JOIN %i tr ON tr.object_id=ov.object_id
+             INNER JOIN %i tt ON tt.term_taxonomy_id=tr.term_taxonomy_id
+             WHERE tt.taxonomy='product_cat' AND tt.term_id=%d
+             AND ov.object_type='product' AND ov.status=1 AND ov.source<>%s
+             AND v.active=1 AND v.semantic_group IN ('tipo','aplicacion','plataforma','subtipo')
+             GROUP BY v.semantic_group, ov.vocabulary_id",
+            $tables['objects'], $tables['vocabulary'], $wpdb->term_relationships,
+            $wpdb->term_taxonomy, $category_id, 'classifier_auto'
+        ), ARRAY_A );
+        $by_group = array();
+        foreach ( (array) $rows as $row ) {
+            $group = sanitize_key( $row['semantic_group'] );
+            $by_group[ $group ][] = array( 'id' => absint( $row['vocabulary_id'] ), 'n' => absint( $row['supporters'] ) );
+        }
+        $result = array();
+        foreach ( $by_group as $group => $counts ) {
+            usort( $counts, static function ( $a, $b ) { return $b['n'] <=> $a['n']; } );
+            $total = array_sum( array_column( $counts, 'n' ) );
+            if ( $counts[0]['n'] >= 5 && $total > 0 && ( $counts[0]['n'] / $total ) >= 0.72 ) {
+                $result[ $group ] = $counts[0];
+            }
+        }
+        $cache[ $category_id ] = $result;
+        return $result;
+    }
+
+    private static function improve_with_learned_profiles( $product_id, $group, $candidates ) {
+        if ( ! $candidates ) {
+            return $candidates;
+        }
+        $categories = wp_get_post_terms( $product_id, 'product_cat', array( 'fields' => 'ids' ) );
+        if ( is_wp_error( $categories ) || ! is_array( $categories ) ) {
+            return $candidates;
+        }
+        foreach ( array_slice( $categories, 0, 3 ) as $category_id ) {
+            $profile = self::category_profile( $category_id );
+            if ( empty( $profile[ $group ] ) ) {
+                continue;
+            }
+            foreach ( $candidates as &$candidate ) {
+                if ( absint( $candidate['id'] ) !== $profile[ $group ]['id'] || (float) $candidate['score'] < 0.50 ) {
+                    continue;
+                }
+                $candidate['score'] = round( min( 1.0, (float) $candidate['score'] + 0.05 ), 4 );
+                $candidate['evidence'][] = array(
+                    'source' => 'reviewed_category_pattern',
+                    'category_id' => absint( $category_id ),
+                    'supporters' => $profile[ $group ]['n'],
+                );
+                break;
+            }
+            unset( $candidate );
+        }
+        usort( $candidates, static function ( $a, $b ) { return $b['score'] <=> $a['score']; } );
+        return $candidates;
+    }
+
     public static function analyze_product( $product_id ) {
         $product_id = absint( $product_id );
         $ctx = self::product_context( $product_id );
@@ -262,11 +371,27 @@ final class TCV_Classifier {
         $result = array( 'product_id' => $product_id, 'labels' => array(), 'attributes' => array() );
         $groups = array( 'tipo', 'aplicacion', 'plataforma', 'subtipo' );
         $type_choice = null;
+        if ( 1 === count( $current['tipo'] ) ) {
+            // A reviewed canonical type may support a missing derived role.
+            $type_choice = array( 'vocabulary_id' => $current['tipo'][0], 'confidence' => 1.0, 'label' => '' );
+        }
         foreach ( $groups as $group ) {
+            $candidates = self::improve_with_learned_profiles(
+                $product_id, $group, self::vocabulary_candidates( $group, $ctx )
+            );
             if ( ! empty( $current[ $group ] ) ) {
+                // Review conflicts without replacing any pre-existing assignment.
+                if ( $candidates && ! in_array( absint( $candidates[0]['id'] ), $current[ $group ], true )
+                    && (float) $candidates[0]['score'] >= 0.94
+                    && ( (float) $candidates[0]['score'] - (float) ( $candidates[1]['score'] ?? 0 ) ) >= 0.20 ) {
+                    self::persist_proposal( $product_id, $group, array(
+                        'group' => $group, 'vocabulary_id' => absint( $candidates[0]['id'] ),
+                        'label' => $candidates[0]['label'], 'confidence' => (float) $candidates[0]['score'],
+                        'state' => 'review', 'evidence' => array( 'reason' => 'conflicts_with_existing_value', 'matches' => $candidates ),
+                    ) );
+                }
                 continue;
             }
-            $candidates = self::vocabulary_candidates( $group, $ctx );
             if ( ! $candidates || (float) $candidates[0]['score'] < 0.52 ) {
                 // Legacy discovery is review-only. It does not insert terms
                 // into WooCommerce or the canonical vocabulary.
@@ -283,7 +408,7 @@ final class TCV_Classifier {
             $proposal = array( 'group' => $group, 'vocabulary_id' => absint( $top['id'] ), 'label' => $top['label'], 'confidence' => (float) $top['score'], 'state' => $state, 'evidence' => $candidates );
             $result['labels'][] = $proposal;
             self::persist_proposal( $product_id, $group, $proposal );
-            if ( 'tipo' === $group ) {
+            if ( 'tipo' === $group && 'safe' === $state ) {
                 $type_choice = $proposal;
             }
         }
@@ -297,6 +422,16 @@ final class TCV_Classifier {
         }
 
         $result['attributes'] = self::attribute_candidates( $ctx );
+        // The classifier must never propose the same technical attribute twice.
+        global $wpdb;
+        $tables = TCV_Schema::tables();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own canonical product attribute assignments.
+        $assigned = array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
+            'SELECT DISTINCT atributo_id FROM %i WHERE product_id=%d', $tables['product_att'], $product_id
+        ) ) );
+        $result['attributes'] = array_values( array_filter( $result['attributes'], static function ( $item ) use ( $assigned ) {
+            return ! in_array( absint( $item['attribute_id'] ), $assigned, true );
+        } ) );
         foreach ( $result['attributes'] as $proposal ) {
             self::persist_proposal( $product_id, 'attribute:' . absint( $proposal['attribute_id'] ), array(
                 'group' => 'attribute', 'vocabulary_id' => null, 'label' => $proposal['attribute'] . ': ' . $proposal['value'], 'confidence' => $proposal['confidence'], 'state' => 'review', 'evidence' => $proposal,
