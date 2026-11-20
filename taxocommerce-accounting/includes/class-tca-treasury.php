@@ -8,6 +8,7 @@
  * @package TaxoCommerceAccounting
  */
 defined( 'ABSPATH' ) || exit;
+require_once __DIR__ . '/class-tca-loan-schedule.php';
 
 final class TCA_Treasury {
     private static function table( $suffix ) {
@@ -59,12 +60,35 @@ final class TCA_Treasury {
             principal decimal(18,2) NOT NULL,
             remaining decimal(18,2) NOT NULL,
             monthly_payment decimal(18,2) NOT NULL,
+            annual_rate decimal(7,4) NOT NULL DEFAULT 0,
+            term_months smallint(5) unsigned NOT NULL DEFAULT 0,
+            upfront_payment decimal(18,2) NOT NULL DEFAULT 0.00,
+            balloon_payment decimal(18,2) NOT NULL DEFAULT 0.00,
+            funding_movement_id bigint(20) unsigned NOT NULL DEFAULT 0,
             start_date date NOT NULL,
             next_due_date date NOT NULL,
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY  (id),
             KEY next_due_date (next_due_date)
+        ) {$collation};" );
+        $payments = esc_sql( self::table( 'loan_payments' ) );
+        dbDelta( "CREATE TABLE {$payments} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            loan_id bigint(20) unsigned NOT NULL,
+            instalment_number smallint(5) unsigned NOT NULL,
+            movement_id bigint(20) unsigned NOT NULL,
+            principal_amount decimal(18,2) NOT NULL,
+            interest_amount decimal(18,2) NOT NULL,
+            paid_amount decimal(18,2) NOT NULL,
+            paid_on date NOT NULL,
+            request_key varchar(64) NOT NULL,
+            created_at datetime NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY loan_period (loan_id,instalment_number),
+            UNIQUE KEY movement_id (movement_id),
+            UNIQUE KEY request_key (request_key),
+            KEY loan_id (loan_id)
         ) {$collation};" );
     }
 
