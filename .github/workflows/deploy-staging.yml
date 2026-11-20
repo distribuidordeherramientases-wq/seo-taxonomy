@@ -147,6 +147,9 @@ jobs:
           php -l taxocommerce-accounting/includes/class-tca-settlements.php
           php -l taxocommerce-accounting/tests/settlements-smoke.php
           php taxocommerce-accounting/tests/settlements-smoke.php
+          php -l taxocommerce-accounting/includes/class-tca-treasury.php
+          php -l taxocommerce-accounting/tests/treasury-smoke.php
+          php taxocommerce-accounting/tests/treasury-smoke.php
           php -l taxocommerce-accounting/tests/live-tax-preparation-smoke.php
           php taxocommerce-accounting/tests/live-tax-preparation-smoke.php
           php taxocommerce-accounting/tests/smoke.php
