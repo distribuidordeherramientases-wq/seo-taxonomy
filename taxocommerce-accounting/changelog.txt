@@ -1,3 +1,6 @@
+= 0.1.23 (2026-11-20) =
+* Fix reverting validated entries to draft without changing amounts or documents. Audit the required reason and allow editing the record notes in the correction form. Existing drafts with no changes remain no-ops. Issue #2894. No production deployment.
+
 = 0.1.22 (2026-11-20) =
 * Link monthly pending-review and incident counts directly to existing record validation/correction forms or a filtered month queue. Add contextual links in ledger and Autocheck; distinguish routine drafts, real invoice discrepancies and warnings. Avoid false pending non-domestic treatments or already linked issued invoices. Issue #2888.
 

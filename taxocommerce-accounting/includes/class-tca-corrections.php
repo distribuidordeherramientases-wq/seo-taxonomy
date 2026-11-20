@@ -75,9 +75,10 @@ final class TCA_Corrections {
         $tax = tca_decimal( isset( $input['amount_tax'] ) ? $input['amount_tax'] : '' );
         $pct = tca_decimal( isset( $input['deductible_pct'] ) ? $input['deductible_pct'] : '' );
         $reason = isset( $input['reason'] ) ? trim( (string) $input['reason'] ) : '';
+        $notes = isset( $input['notes'] ) ? (string) $input['notes'] : (string) $entry->notes;
 
         if ( ! tca_valid_date( $date ) || null === $base || null === $tax ||
-            null === $pct || $pct < 0 || $pct > 100 || '' === $reason || strlen( $reason ) > 1000 ) {
+            null === $pct || $pct < 0 || $pct > 100 || '' === $reason || strlen( $reason ) > 1000 || strlen( $notes ) > 5000 ) {
             return new WP_Error( 'tca_correction_invalid', __( 'Check the amounts, date, VAT deduction and correction reason.', 'taxocommerce-accounting' ) );
         }
 
@@ -127,6 +128,7 @@ final class TCA_Corrections {
             'amount_tax' => $tax,
             'amount_total' => round( $base + $tax, 2 ),
             'deductible_pct' => in_array( $entry->kind, array( 'sale', 'refund' ), true ) ? 0 : $pct,
+            'notes' => $notes,
             'status' => 'draft',
             'updated_at' => current_time( 'mysql' ),
         );
@@ -152,6 +154,8 @@ final class TCA_Corrections {
             $input[ $key ] = tca_input( $key );
         }
 
+        $input['notes'] = isset( $_POST['notes'] ) && is_string( $_POST['notes'] )
+            ? sanitize_textarea_field( wp_unslash( $_POST['notes'] ) ) : '';
         $new = self::prepare( $entry, $input );
         if ( is_wp_error( $new ) ) {
             self::redirect( $tab, 'correction_invalid' );
@@ -238,7 +242,8 @@ final class TCA_Corrections {
     }
 
     private static function same_values( $before, $after ) {
-        unset( $before['status'], $after['status'] );
+        // Status is a meaningful fiscal change: validated -> draft must be audited,
+        // even if invoice amounts and other values have not changed.
         unset( $before['updated_at'], $after['updated_at'] );
         return wp_json_encode( $before ) === wp_json_encode( $after );
     }
@@ -324,6 +329,8 @@ final class TCA_Corrections {
         }
         echo '<tr><th><label for="tca-correct-pct">' . esc_html__( 'Deductible VAT percentage', 'taxocommerce-accounting' ) . '</label></th>';
         echo '<td><input id="tca-correct-pct" name="deductible_pct" type="number" min="0" max="100" step="0.01" value="' . esc_attr( $entry->deductible_pct ) . '" required></td></tr>';
+        echo '<tr><th><label for="tca-correct-notes">' . esc_html__( 'Notes', 'taxocommerce-accounting' ) . '</label></th>';
+        echo '<td><textarea id="tca-correct-notes" name="notes" maxlength="5000" rows="4" class="large-text">' . esc_textarea( $entry->notes ) . '</textarea></td></tr>';
         echo '<tr><th><label for="tca-correct-reason">' . esc_html__( 'Correction reason', 'taxocommerce-accounting' ) . '</label></th>';
         echo '<td><textarea id="tca-correct-reason" name="reason" maxlength="1000" rows="3" class="large-text" required></textarea></td></tr>';
         echo '</table>';
