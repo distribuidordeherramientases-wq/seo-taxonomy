@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.19
+ * Version: 0.1.20
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,8 +14,8 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.19' );
-define( 'TCA_DB_VERSION', '6' );
+define( 'TCA_VERSION', '0.1.20' );
+define( 'TCA_DB_VERSION', '7' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
 add_action( 'init', static function () {
@@ -38,6 +38,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-hacienda.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-treasury.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-settlements.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-expense-csv.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-depreciation.php';
 
 /** Own data; no dependency on any TaxoCommerce module. */
 function tca_table() {
@@ -65,6 +66,9 @@ function tca_install() {
         source varchar(24) NOT NULL DEFAULT 'manual',
         source_id bigint(20) unsigned NOT NULL DEFAULT 0,
         kind varchar(24) NOT NULL DEFAULT 'expense',
+        expense_type varchar(24) NOT NULL DEFAULT 'current',
+        service_date date NULL,
+        useful_life_years smallint(5) unsigned NOT NULL DEFAULT 0,
         fiscal_date date NOT NULL,
         document_no varchar(100) NOT NULL DEFAULT '',
         party varchar(191) NOT NULL DEFAULT '',
@@ -83,6 +87,7 @@ function tca_install() {
         PRIMARY KEY  (id),
         UNIQUE KEY source_identity (source,source_id),
         KEY fiscal_period (fiscal_date,kind),
+        KEY expense_schedule (kind,expense_type,service_date),
         KEY state (status)
     ) {$wpdb->get_charset_collate()};";
     dbDelta( $sql );
@@ -168,6 +173,7 @@ function tca_insert( $data ) {
     global $wpdb;
     $data = wp_parse_args( $data, array(
         'source' => 'manual', 'source_id' => 0, 'kind' => 'expense',
+        'expense_type' => 'current', 'service_date' => null, 'useful_life_years' => 0,
         'fiscal_date' => current_time( 'Y-m-d' ), 'document_no' => '',
         'party' => '', 'tax_id' => '', 'concept' => '',
         'amount_base' => 0, 'amount_tax' => 0, 'amount_total' => 0,
@@ -501,11 +507,20 @@ function tca_handle() {
         $tax = tca_decimal( tca_input( 'amount_tax' ) );
         $pct = tca_decimal( tca_input( 'deductible_pct' ) );
         if ( ! tca_valid_date( $date ) || null === $base || null === $tax || null === $pct || $base < 0 || $tax < 0 || $pct < 0 || $pct > 100 ) tca_redirect( 'received', 'invalid' );
+        $expense_type = 'expense' === $kind ? sanitize_key( tca_input( 'expense_type' ) ) : 'current';
+        $service_date = 'fixed_asset' === $expense_type ? tca_input( 'service_date' ) : '';
+        $years = 'fixed_asset' === $expense_type ? tca_input( 'useful_life_years' ) : '0';
+        if ( 'expense' === $kind && ! TCA_Depreciation::valid( $expense_type, $service_date, $years, $date ) ) {
+            tca_redirect( 'expenses', 'invalid' );
+        }
         $document = tca_input( 'document_no' );
         $party = tca_input( 'party' );
         if ( '' === $document || '' === $party ) tca_redirect( 'received', 'invalid' );
         $entry = array(
             'kind' => $kind, 'fiscal_date' => $date, 'document_no' => $document,
+            'expense_type' => 'expense' === $kind ? $expense_type : 'current',
+            'service_date' => 'fixed_asset' === $expense_type ? $service_date : null,
+            'useful_life_years' => 'fixed_asset' === $expense_type ? (int) $years : 0,
             'party' => $party, 'tax_id' => tca_input( 'tax_id' ),
             'concept' => sanitize_textarea_field( tca_input( 'concept' ) ),
             'amount_base' => $base, 'amount_tax' => $tax,
@@ -619,7 +634,7 @@ function tca_export() {
     header( 'Content-Disposition: attachment; filename="accounting-' . $year . '.csv"' );
     $out = fopen( 'php://output', 'w' );
     if ( false === $out ) exit;
-    $fields = array( 'id', 'source', 'source_id', 'kind', 'fiscal_date', 'document_no', 'party', 'tax_id', 'concept', 'amount_base', 'amount_tax', 'amount_total', 'deductible_pct', 'currency', 'treatment', 'status', 'notes' );
+    $fields = array( 'id', 'source', 'source_id', 'kind', 'expense_type', 'service_date', 'useful_life_years', 'fiscal_date', 'document_no', 'party', 'tax_id', 'concept', 'amount_base', 'amount_tax', 'amount_total', 'deductible_pct', 'currency', 'treatment', 'status', 'notes' );
     fputcsv( $out, $fields );
     foreach ( $rows as $row ) {
         $values = array();
@@ -668,6 +683,7 @@ function tca_label( $label ) {
         'Input VAT amount' => __( 'Input VAT amount', 'taxocommerce-accounting' ),
         'Deductible VAT percentage (review first)' => __( 'Deductible VAT percentage (review first)', 'taxocommerce-accounting' ),
         'Notes / document reference' => __( 'Notes / document reference', 'taxocommerce-accounting' ),
+        'Expense type' => __( 'Expense type', 'taxocommerce-accounting' ),
         'Requires review' => __( 'Requires review', 'taxocommerce-accounting' ),
         'Domestic VAT (verify)' => __( 'Domestic VAT (verify)', 'taxocommerce-accounting' ),
         'Intra-EU' => __( 'Intra-EU', 'taxocommerce-accounting' ),
@@ -709,7 +725,14 @@ function tca_table_rows( $rows, $kind = '' ) {
             ? TCA_Issued_Invoice::for_order( $row->source_id ) : '';
         $shown_document = '' !== $invoice_number ? $invoice_number : $row->document_no;
         echo '<tr><td>' . esc_html( $row->fiscal_date ) . '</td><td>' . esc_html( $shown_document ) . '</td><td>' . esc_html( $row->party ) . '</td><td>' . esc_html( $row->concept ) . '</td>';
-        echo '<td>' . esc_html( tca_money( $row->amount_base ) ) . '</td><td>' . esc_html( tca_money( $row->amount_tax ) ) . '</td><td>' . esc_html( tca_money( $row->amount_total ) ) . '</td>';
+        if ( 'expense' === $row->kind ) {
+            echo '<td>' . esc_html( tca_money( $row->amount_base ) ) . '<p class="description">' .
+                esc_html( 'fixed_asset' === (string) ( $row->expense_type ?? 'current' )
+                    ? __( 'Fixed asset', 'taxocommerce-accounting' ) : __( 'Current expense', 'taxocommerce-accounting' ) ) . '</p></td><td>';
+        } else {
+            echo '<td>' . esc_html( tca_money( $row->amount_base ) ) . '</td><td>';
+        }
+        echo . esc_html( tca_money( $row->amount_tax ) ) . '</td><td>' . esc_html( tca_money( $row->amount_total ) ) . '</td>';
         echo '<td>' . esc_html( $row->status . ' / ' . $row->treatment );
         if ( tca_sale_invoice_mismatch( $row ) ) {
             echo '<p class="description" style="color:#b32d2e">' . esc_html__( 'Issued invoice and accounting totals disagree. Check the original invoice and the order; validation is blocked until reconciled.', 'taxocommerce-accounting' ) . '</p>';
@@ -779,6 +802,16 @@ function tca_new_invoice_form( $kind ) {
             echo '<p class="description">' . esc_html__( 'Enter the percentage of VAT legally deductible, NOT the VAT rate: 0% if not deductible, 100% only if fully deductible, or another applicable percentage. You must choose a value.', 'taxocommerce-accounting' ) . '</p>';
         }
         echo '</td></tr>';
+    }
+    if ( 'expense' === $kind ) {
+        echo '<tr><th scope="row"><label for="tca-expense-type">' . esc_html__( 'Expense type', 'taxocommerce-accounting' ) . '</label></th><td>';
+        echo '<select name="expense_type" id="tca-expense-type"><option value="current">' . esc_html__( 'Current expense', 'taxocommerce-accounting' ) . '</option>';
+        echo '<option value="fixed_asset">' . esc_html__( 'Fixed asset (depreciable)', 'taxocommerce-accounting' ) . '</option></select></td></tr>';
+        echo '<tr class="tca-asset-fields"><th><label for="tca-service-date">' . esc_html__( 'Date put into service', 'taxocommerce-accounting' ) . '</label></th><td>';
+        echo '<input type="date" id="tca-service-date" name="service_date" value="' . esc_attr( current_time( 'Y-m-d' ) ) . '"></td></tr>';
+        echo '<tr class="tca-asset-fields"><th><label for="tca-useful-life">' . esc_html__( 'Useful life (years)', 'taxocommerce-accounting' ) . '</label></th><td>';
+        echo '<input type="number" min="1" max="50" step="1" id="tca-useful-life" name="useful_life_years" value="5">';
+        echo '<p class="description">' . esc_html__( 'Annual straight-line allocation starts when the asset is ready for use. The first and last years are prorated by days. Confirm the applicable accounting and tax rules separately.', 'taxocommerce-accounting' ) . '</p></td></tr>';
     }
     echo '<tr><th scope="row">' . esc_html__( 'Invoice amount checks', 'taxocommerce-accounting' ) . '</th><td>';
     echo '<p>' . esc_html__( 'Total of supplier invoice (base + VAT):', 'taxocommerce-accounting' ) . ' <strong id="tca-purchase-total" data-currency="' . esc_attr( tca_settings()['currency'] ) . '">—</strong></p>';
@@ -951,6 +984,9 @@ function tca_admin() {
         }
         tca_new_invoice_form( $kind );
         tca_table_rows( $rows, $kind );
+        if ( 'expenses' === $tab ) {
+            TCA_Depreciation::render( $year );
+        }
     } elseif ( 'exports' === $tab ) {
         echo '<h2>' . esc_html__( 'Internal exports', 'taxocommerce-accounting' ) . '</h2>';
         echo '<p>' . esc_html__( 'CSV and JSON are internal fiscal registers, not official AEAT files. Each export has a 20,000-row upper bound.', 'taxocommerce-accounting' ) . '</p>';
