@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.21
+ * Version: 0.1.22
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.21' );
+define( 'TCA_VERSION', '0.1.22' );
 define( 'TCA_DB_VERSION', '7' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
@@ -39,6 +39,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-treasury.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-settlements.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-expense-csv.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-depreciation.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-review-navigation.php';
 
 /** Own data; no dependency on any TaxoCommerce module. */
 function tca_table() {
@@ -592,8 +593,10 @@ function tca_summary( $rows ) {
     foreach ( $rows as $entry ) {
         $month = substr( $entry->fiscal_date, 0, 7 );
         if ( ! isset( $totals[ $month ] ) ) $totals[ $month ] = array( 'sales' => 0, 'purchase' => 0, 'tax_out' => 0, 'tax_in' => 0, 'pending' => 0 );
-        if ( 'validated' !== $entry->status || 'domestic' !== $entry->treatment ) {
+        if ( TCA_Review_Navigation::pending( $entry ) ) {
             ++$totals[ $month ]['pending'];
+        }
+        if ( 'validated' !== $entry->status || 'domestic' !== $entry->treatment ) {
             continue;
         }
         if ( in_array( $entry->kind, array( 'sale', 'refund' ), true ) ) {
@@ -707,11 +710,19 @@ function tca_label( $label ) {
         'Deductible input VAT' => __( 'Deductible input VAT', 'taxocommerce-accounting' ),
         'Difference' => __( 'Difference', 'taxocommerce-accounting' ),
         'Pending review' => __( 'Pending review', 'taxocommerce-accounting' ),
+        'Incidents' => __( 'Incidents', 'taxocommerce-accounting' ),
     );
     return isset( $labels[ $label ] ) ? $labels[ $label ] : (string) $label;
 }
 function tca_table_rows( $rows, $kind = '' ) {
     $documents = TCA_Provider_Invoices::documents_for_rows( $rows );
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only focus; existing forms have nonces.
+    $focused = isset( $_GET['focus_entry'] ) ? absint( $_GET['focus_entry'] ) : 0;
+    if ( $focused ) {
+        echo '<p>' . esc_html__( 'Showing the selected accounting record.', 'taxocommerce-accounting' ) . ' <a href="' .
+            esc_url( tca_admin_url( TCA_Corrections::tab_for( (string) ( $kind ?: 'sale' ) ), array( 'year' => absint( substr( (string) ( $rows[0]->fiscal_date ?? current_time( 'Y-m-d' ) ), 0, 4 ) ) ) ) ) . '">' .
+            esc_html__( 'Show all records', 'taxocommerce-accounting' ) . '</a></p>';
+    }
     echo '<div style="overflow-x:auto"><table class="widefat striped"><thead><tr>';
     foreach ( array( 'Date', 'Document', 'Party', 'Concept', 'Base', 'VAT', 'Total', 'Status', 'Action' ) as $label ) {
         echo '<th>' . esc_html( tca_label( $label ) ) . '</th>';
@@ -720,11 +731,12 @@ function tca_table_rows( $rows, $kind = '' ) {
     $count = 0;
     foreach ( $rows as $row ) {
         if ( $kind && $kind !== $row->kind ) continue;
+        if ( $focused && $focused !== (int) $row->id ) continue;
         ++$count;
         $invoice_number = 'draft' === $row->status && 'woocommerce' === $row->source && 'sale' === $row->kind
             ? TCA_Issued_Invoice::for_order( $row->source_id ) : '';
         $shown_document = '' !== $invoice_number ? $invoice_number : $row->document_no;
-        echo '<tr><td>' . esc_html( $row->fiscal_date ) . '</td><td>' . esc_html( $shown_document ) . '</td><td>' . esc_html( $row->party ) . '</td><td>' . esc_html( $row->concept ) . '</td>';
+        echo '<tr id="tca-entry-' . esc_attr( (string) absint( $row->id ) ) . '"><td>' . esc_html( $row->fiscal_date ) . '</td><td>' . esc_html( $shown_document ) . '</td><td>' . esc_html( $row->party ) . '</td><td>' . esc_html( $row->concept ) . '</td>';
         if ( 'expense' === $row->kind ) {
             echo '<td>' . esc_html( tca_money( $row->amount_base ) ) . '<p class="description">' .
                 esc_html( 'fixed_asset' === (string) ( $row->expense_type ?? 'current' )
@@ -739,6 +751,11 @@ function tca_table_rows( $rows, $kind = '' ) {
         }
         if ( 'validated' === $row->status && 'domestic' === $row->treatment && tca_needs_zero_vat_confirmation( $row ) ) {
             echo '<p class="description" style="color:#b32d2e">' . esc_html__( 'Validated sale has zero VAT. Check its original invoice and applicable tax regime.', 'taxocommerce-accounting' ) . '</p>';
+        }
+        $review_state = TCA_Review_Navigation::inspect( $row );
+        if ( $review_state['pending'] || $review_state['incident'] ) {
+            echo '<p><a href="' . esc_url( TCA_Review_Navigation::entry_url( $row, $review_state ) ) . '">' .
+                esc_html( $review_state['message'] ) . '</a></p>';
         }
         echo '</td><td>';
         if ( 'draft' === $row->status ) {
@@ -947,15 +964,36 @@ function tca_admin() {
             ) ) . ' <a href="' . esc_url( tca_admin_url( 'sales', array( 'year' => $year ) ) ) . '">' . esc_html__( 'Review sales', 'taxocommerce-accounting' ) . '</a></p></div>';
         }
         $months = range( 1, 12 );
+        $incidents = TCA_Review_Navigation::incidents_by_month( $rows );
         echo '<h2>' . esc_html__( 'Monthly fiscal summary (validated domestic entries only)', 'taxocommerce-accounting' ) . '</h2><table class="widefat striped"><thead><tr>';
-        foreach ( array( 'Month', 'Sales', 'Purchases / expenses', 'Output VAT', 'Deductible input VAT', 'Difference', 'Pending review' ) as $heading ) echo '<th>' . esc_html( tca_label( $heading ) ) . '</th>';
+        foreach ( array( 'Month', 'Sales', 'Purchases / expenses', 'Output VAT', 'Deductible input VAT', 'Difference', 'Pending review', 'Incidents' ) as $heading ) echo '<th>' . esc_html( tca_label( $heading ) ) . '</th>';
         echo '</tr></thead><tbody>';
         foreach ( $months as $m ) {
             $key = sprintf( '%04d-%02d', $year, $m );
             $v = $summary[ $key ] ?? array( 'sales'=>0,'purchase'=>0,'tax_out'=>0,'tax_in'=>0,'pending'=>0 );
-            echo '<tr><td>' . esc_html( $key ) . '</td><td>' . esc_html( tca_money( $v['sales'] ) ) . '</td><td>' . esc_html( tca_money( $v['purchase'] ) ) . '</td><td>' . esc_html( tca_money( $v['tax_out'] ) ) . '</td><td>' . esc_html( tca_money( $v['tax_in'] ) ) . '</td><td>' . esc_html( tca_money( $v['tax_out'] - $v['tax_in'] ) ) . '</td><td>' . esc_html( (string) $v['pending'] ) . '</td></tr>';
+            $pending_rows = array();
+            foreach ( $rows as $entry ) {
+                if ( $key === substr( (string) $entry->fiscal_date, 0, 7 ) && TCA_Review_Navigation::pending( $entry ) ) {
+                    $pending_rows[] = array( 'entry' => $entry, 'state' => TCA_Review_Navigation::inspect( $entry ) );
+                }
+            }
+            $incident_rows = $incidents[ $key ] ?? array();
+            echo '<tr><td>' . esc_html( $key ) . '</td><td>' . esc_html( tca_money( $v['sales'] ) ) . '</td><td>' . esc_html( tca_money( $v['purchase'] ) ) . '</td><td>' . esc_html( tca_money( $v['tax_out'] ) ) . '</td><td>' . esc_html( tca_money( $v['tax_in'] ) ) . '</td><td>' . esc_html( tca_money( $v['tax_out'] - $v['tax_in'] ) ) . '</td><td>';
+            if ( $pending_rows ) {
+                echo '<a href="' . esc_url( TCA_Review_Navigation::summary_url( $key, 'pending', $pending_rows ) ) . '">' . esc_html( (string) count( $pending_rows ) ) . '</a>';
+            } else {
+                echo '0';
+            }
+            echo '</td><td>';
+            if ( $incident_rows ) {
+                echo '<a href="' . esc_url( TCA_Review_Navigation::summary_url( $key, 'incident', $incident_rows ) ) . '">' . esc_html( (string) count( $incident_rows ) ) . '</a>';
+            } else {
+                echo '0';
+            }
+            echo '</td></tr>';
         }
         echo '</tbody></table>';
+        TCA_Review_Navigation::render_queue( $rows, $year );
         if ( count( $rows ) >= 400 ) echo '<p class="notice notice-warning">' . esc_html__( 'Year contains over 400 entries; use the exports for full reporting. This dashboard is limited.', 'taxocommerce-accounting' ) . '</p>';
     } elseif ( 'hacienda' === $tab ) {
         TCA_Hacienda::render( $year );
