@@ -802,7 +802,7 @@ KEY message_id (message_id)
         $id = isset( $_GET['ticket'] ) ? absint( $_GET['ticket'] ) : 0;
         $notice = isset( $_GET['notice'] ) ? sanitize_key( wp_unslash( $_GET['notice'] ) ) : '';
         echo '<div class="wrap"><h1>' . esc_html__( 'TaxoCommerce Ticketing', self::DOMAIN ) . '</h1>';
-        echo '<p><a class="button" href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-ticketing' ) ) . '">' . esc_html__( 'Ticket inbox', self::DOMAIN ) . '</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-ticketing&tab=create' ) ) . '">' . esc_html__( 'New ticket', self::DOMAIN ) . '</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-ticketing&tab=settings' ) ) . '">' . esc_html__( 'Form settings', self::DOMAIN ) . '</a></p>';
+        echo '<p><a class="button" href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-ticketing' ) ) . '">' . esc_html__( 'Ticket inbox', self::DOMAIN ) . '</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-ticketing&tab=create' ) ) . '">' . esc_html__( 'New ticket', self::DOMAIN ) . '</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-ticketing&tab=settings' ) ) . '">' . esc_html__( 'Form settings', self::DOMAIN ) . '</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-ticketing&tab=autocheck' ) ) . '">Autocheck</a></p>';
         if ( self::notice( $notice ) ) {
             echo '<div class="notice notice-success"><p>' . esc_html( self::notice( $notice ) ) . '</p></div>';
         }
@@ -810,6 +810,8 @@ KEY message_id (message_id)
             self::settings_admin();
         } elseif ( 'create' === $tab ) {
             self::create_admin_form();
+        } elseif ( 'autocheck' === $tab ) {
+            TCTK_Autocheck::render();
         } elseif ( $id ) {
             global $wpdb;
             $t = self::tables();
