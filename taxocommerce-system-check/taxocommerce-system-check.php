@@ -3,8 +3,8 @@
  * Plugin Name: TaxoCommerce System Check
  * Plugin URI: https://asociacionfocazul.com/taxocommerce-system-check/
  * Description: Independent WordPress, server and plugin diagnostics with local checks, reports and optional administrator notifications.
- * Version: 0.2.44
- * Release Date: 2026-11-18
+ * Version: 0.2.45
+ * Release Date: 2026-11-20
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: David Perez
@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.44' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.45' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_URL', plugin_dir_url( __FILE__ ) );
@@ -136,8 +136,22 @@ function taxocommerce_system_check_boot() {
 add_action( 'plugins_loaded', 'taxocommerce_system_check_boot', 100 );
 
 function taxocommerce_system_check_register_with_core( $core ) {
-    if ( is_object( $core ) && method_exists( $core, 'register_module' ) ) {
-        $core->register_module(
+    if ( ! is_object( $core ) || ! method_exists( $core, 'register_module' ) ) {
+        return;
+    }
+
+    // Core may request module metadata during plugins_loaded. Translating the
+    // description before init triggers WordPress's just-in-time gettext notice,
+    // which can corrupt WooCommerce AJAX JSON on front-end checkout requests.
+    // Preserve the optional Core registry while deferring only its metadata.
+    if ( ! did_action( 'init' ) ) {
+        add_action( 'init', static function () use ( $core ) {
+            taxocommerce_system_check_register_with_core( $core );
+        }, 11 );
+        return;
+    }
+
+    $core->register_module(
             'system_check',
             array(
                 'name'        => 'TaxoCommerce System Check',
