@@ -31,6 +31,7 @@ final class TCA_Treasury {
         $accounts = esc_sql( self::table( 'accounts' ) );
         $movements = esc_sql( self::table( 'movements' ) );
         $loans = esc_sql( self::table( 'loans' ) );
+        $corrections = esc_sql( self::table( 'corrections' ) );
         dbDelta( "CREATE TABLE {$accounts} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             kind varchar(8) NOT NULL,
@@ -53,10 +54,28 @@ final class TCA_Treasury {
             KEY account_date (account_id,posted_on),
             KEY posted_on (posted_on)
         ) {$collation};" );
+        dbDelta( "CREATE TABLE {$corrections} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            account_id bigint(20) unsigned NOT NULL,
+            movement_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            action varchar(32) NOT NULL,
+            amount decimal(18,2) NOT NULL,
+            reason varchar(191) NOT NULL,
+            user_id bigint(20) unsigned NOT NULL,
+            created_at datetime NOT NULL,
+            PRIMARY KEY  (id),
+            KEY account_id (account_id),
+            KEY movement_id (movement_id)
+        ) {$collation};" );
         dbDelta( "CREATE TABLE {$loans} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             name varchar(191) NOT NULL,
             lender varchar(191) NOT NULL DEFAULT '',
+            lender_tax_id varchar(48) NOT NULL DEFAULT '',
+            lender_relation varchar(24) NOT NULL DEFAULT 'other',
+            agreement_reference varchar(191) NOT NULL DEFAULT '',
+            funding_source varchar(24) NOT NULL DEFAULT 'pending',
+            opening_account_id bigint(20) unsigned NULL DEFAULT NULL,
             principal decimal(18,2) NOT NULL,
             remaining decimal(18,2) NOT NULL,
             monthly_payment decimal(18,2) NOT NULL,
@@ -73,6 +92,7 @@ final class TCA_Treasury {
             updated_at datetime NOT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY request_key (request_key),
+            UNIQUE KEY opening_account_id (opening_account_id),
             KEY next_due_date (next_due_date)
         ) {$collation};" );
         $payments = esc_sql( self::table( 'loan_payments' ) );
@@ -169,6 +189,98 @@ final class TCA_Treasury {
             ), array( '%s', '%s', '%s', '%f', '%s' ) );
             self::redirect( $ok ? 'saved' : 'error' );
         }
+        if ( 'cancel_opening' === $operation ) {
+            $id = absint( self::posted( 'account_id' ) );
+            $reason = self::posted( 'reason' );
+            if ( ! $id || '' === $reason || '1' !== self::posted( 'confirmed' ) ) self::redirect( 'invalid' );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction protects a correction to our own account and audit tables.
+            $wpdb->query( 'START TRANSACTION' );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live row lock prevents duplicate account adjustments.
+            $account = $wpdb->get_row( $wpdb->prepare(
+                'SELECT * FROM %i WHERE id = %d FOR UPDATE', self::table( 'accounts' ), $id
+            ) );
+            if ( ! $account || (float) $account->opening_amount <= 0 ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Roll back the uncommitted transaction.
+                $wpdb->query( 'ROLLBACK' );
+                self::redirect( 'invalid' );
+            }
+            // A loan linked to this opening amount must never lose its funding source.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Financial loan link must be checked before an opening correction.
+            $linked_loan = $wpdb->get_var( $wpdb->prepare(
+                'SELECT id FROM %i WHERE opening_account_id = %d LIMIT 1', self::table( 'loans' ), $id
+            ) );
+            if ( $linked_loan ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reject cancelling an assigned opening balance.
+                $wpdb->query( 'ROLLBACK' );
+                self::redirect( 'invalid' );
+            }
+            $amount = (float) $account->opening_amount;
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Our own financial account table; a direct write is necessary.
+            $ok = $wpdb->update( self::table( 'accounts' ),
+                array( 'opening_amount' => 0 ), array( 'id' => $id ),
+                array( '%f' ), array( '%d' ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Our own immutable Treasury correction ledger.
+            $logged = 1 === $ok && $wpdb->insert( self::table( 'corrections' ), array(
+                'account_id' => $id, 'movement_id' => 0, 'action' => 'cancel_opening',
+                'amount' => $amount, 'reason' => $reason,
+                'user_id' => get_current_user_id(), 'created_at' => current_time( 'mysql' ),
+            ), array( '%d', '%d', '%s', '%f', '%s', '%d', '%s' ) );
+            if ( $logged ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Commit a validated account/audit correction.
+                $wpdb->query( 'COMMIT' );
+            } else {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Never save a partial financial correction.
+                $wpdb->query( 'ROLLBACK' );
+            }
+            self::redirect( $logged ? 'saved' : 'error' );
+        }
+        if ( 'edit_account' === $operation ) {
+            $account = self::get_account( self::posted( 'account_id' ) );
+            $name = self::posted( 'name' );
+            if ( ! $account || '' === $name ) self::redirect( 'invalid' );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Rename an existing account in our own ledger.
+            $ok = $wpdb->update( self::table( 'accounts' ),
+                array( 'name' => $name ), array( 'id' => $account->id ),
+                array( '%s' ), array( '%d' ) );
+            self::redirect( false !== $ok ? 'saved' : 'error' );
+        }
+        if ( 'edit_movement' === $operation ) {
+            $id = absint( self::posted( 'movement_id' ) );
+            $account = self::get_account( self::posted( 'account_id' ) );
+            $date = self::posted( 'posted_on' );
+            $amount = self::money( self::posted( 'amount' ) );
+            $direction = sanitize_key( self::posted( 'direction' ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read current financial movement before editing it.
+            $movement = $wpdb->get_row( $wpdb->prepare(
+                'SELECT * FROM %i WHERE id = %d', self::table( 'movements' ), $id
+            ) );
+            if ( ! $movement || ! in_array( $movement->direction, array( 'in', 'out' ), true )
+                || ! in_array( $direction, array( 'in', 'out' ), true ) || ! $account
+                || ! self::date( $date ) || $date < $account->opened_on
+                || null === $amount || $amount <= 0 ) self::redirect( 'invalid' );
+            // Do not edit invoice settlements, loan payments or paired transfers.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live settlement relation required to prevent desynchronization.
+            $settled = $wpdb->get_var( $wpdb->prepare(
+                'SELECT movement_id FROM %i WHERE movement_id = %d',
+                $wpdb->prefix . 'tca_treasury_settlements', $id
+            ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live loan payment relation required to prevent desynchronization.
+            $loan = $wpdb->get_var( $wpdb->prepare(
+                'SELECT movement_id FROM %i WHERE movement_id = %d',
+                self::table( 'loan_payments' ), $id
+            ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Loan principal receipts cannot be edited independently.
+            $loan_funding = $wpdb->get_var( $wpdb->prepare(
+                'SELECT id FROM %i WHERE funding_movement_id = %d LIMIT 1', self::table( 'loans' ), $id
+            ) );
+            if ( $settled || $loan || $loan_funding ) self::redirect( 'invalid' );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Update a standalone movement in our own Treasury ledger.
+            $ok = $wpdb->update( self::table( 'movements' ),
+                array( 'account_id' => $account->id, 'posted_on' => $date,
+                    'direction' => $direction, 'amount' => $amount, 'reference' => self::posted( 'reference' ) ),
+                array( 'id' => $id ), array( '%d', '%s', '%s', '%f', '%s' ), array( '%d' ) );
+            self::redirect( false !== $ok ? 'saved' : 'error' );
+        }
         if ( 'opening_receipt' === $operation ) {
             $account_id = absint( self::posted( 'account_id' ) );
             $date = self::posted( 'posted_on' );
@@ -188,6 +300,16 @@ final class TCA_Treasury {
             if ( ! $account || ! in_array( $account->kind, array( 'cash', 'bank' ), true ) ||
                 $date < $account->opened_on || (float) $account->opening_amount <= 0 ) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reject duplicate conversion.
+                $wpdb->query( 'ROLLBACK' );
+                self::redirect( 'invalid' );
+            }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reject conversion if a lender has already been linked to this opening balance.
+            $linked_loan = $wpdb->get_var( $wpdb->prepare(
+                'SELECT id FROM %i WHERE opening_account_id = %d LIMIT 1',
+                self::table( 'loans' ), $account_id
+            ) );
+            if ( $linked_loan ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Leave linked opening funds unchanged.
                 $wpdb->query( 'ROLLBACK' );
                 self::redirect( 'invalid' );
             }
@@ -245,6 +367,9 @@ final class TCA_Treasury {
         if ( 'loan' === $operation ) {
             $name = self::posted( 'name' );
             $lender = self::posted( 'lender' );
+            $lender_tax_id = self::posted( 'lender_tax_id' );
+            $lender_relation = sanitize_key( self::posted( 'lender_relation' ) );
+            $agreement_reference = self::posted( 'agreement_reference' );
             $start = self::posted( 'start_date' );
             $due = self::posted( 'next_due_date' );
             $principal = self::money( self::posted( 'principal' ) );
@@ -254,16 +379,27 @@ final class TCA_Treasury {
             $balloon = self::money( self::posted( 'balloon_payment' ) );
             $monthly = self::money( self::posted( 'monthly_payment' ) );
             $request_key = self::posted( 'loan_request_key' );
-            $funding_received = '1' === self::posted( 'funding_received' );
-            $funding_account = $funding_received ? self::get_account( self::posted( 'funding_account_id' ) ) : false;
-            if ( '' === $name || ! self::date( $start ) || ! self::date( $due, true ) ||
+            // Existing opening balance is funding already held by the bank; no new receipt.
+            $funding_mode = sanitize_key( self::posted( 'funding_mode' ) );
+            if ( '' === $funding_mode && '1' === self::posted( 'funding_received' ) ) {
+                $funding_mode = 'new_receipt'; // Compatibility with the previous form.
+            }
+            $funding_received = 'new_receipt' === $funding_mode;
+            $funding_existing = 'opening_balance' === $funding_mode;
+            $funding_account = ( $funding_received || $funding_existing )
+                ? self::get_account( self::posted( 'funding_account_id' ) ) : false;
+            if ( '' === $name || '' === $lender ||
+                ! in_array( $lender_relation, array( 'sponsor', 'other' ), true ) ||
+                ! in_array( $funding_mode, array( 'pending', 'new_receipt', 'opening_balance' ), true ) ||
+                ! self::date( $start ) || ! self::date( $due, true ) ||
                 $due < $start || null === $principal || $principal <= 0 ||
                 ! preg_match( '/^[a-f0-9-]{36}$/', $request_key ) ||
                 null === $rate || $rate < 0 || $rate > 100 ||
                 null === $upfront || null === $balloon || $balloon > $principal ||
                 $months > 360 ||
-                ( $funding_received && ( ! $funding_account ||
-                    'bank' !== $funding_account->kind || $start < $funding_account->opened_on ) ) ) {
+                ( ( $funding_received || $funding_existing ) && ( ! $funding_account ||
+                    'bank' !== $funding_account->kind || $start < $funding_account->opened_on ) ) ||
+                ( $funding_existing && '1' !== self::posted( 'opening_verified' ) ) ) {
                 self::redirect( 'invalid' );
             }
             if ( $months > 0 ) {
@@ -286,15 +422,42 @@ final class TCA_Treasury {
             }
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own loan/funding transaction.
             $wpdb->query( 'START TRANSACTION' );
+            if ( $funding_existing ) {
+                // Lock and attribute the opening balance exactly once. No money moves.
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lock financial opening amount before assigning the lender.
+                $opening_account = $wpdb->get_row( $wpdb->prepare(
+                    'SELECT * FROM %i WHERE id = %d FOR UPDATE', self::table( 'accounts' ), $funding_account->id
+                ) );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prevent two sponsors claiming the same opening balance.
+                $already_linked = $wpdb->get_var( $wpdb->prepare(
+                    'SELECT id FROM %i WHERE opening_account_id = %d LIMIT 1',
+                    self::table( 'loans' ), $funding_account->id
+                ) );
+                if ( ! $opening_account || 'bank' !== $opening_account->kind ||
+                    (float) $opening_account->opening_amount <= 0 ||
+                    abs( round( (float) $opening_account->opening_amount, 2 ) - round( $principal, 2 ) ) > 0.001 ||
+                    $already_linked ) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Do not create an unmatched loan.
+                    $wpdb->query( 'ROLLBACK' );
+                    self::redirect( 'invalid' );
+                }
+            }
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own loan register.
             $saved = $wpdb->insert( self::table( 'loans' ), array(
-                'name' => $name, 'lender' => $lender, 'principal' => $principal,
-                'remaining' => $principal, 'monthly_payment' => $monthly,
-                'annual_rate' => $rate, 'term_months' => $months, 'request_key' => $request_key,
+                'name' => $name, 'lender' => $lender,
+                'lender_tax_id' => $lender_tax_id, 'lender_relation' => $lender_relation,
+                'agreement_reference' => $agreement_reference,
+                'funding_source' => $funding_mode,
+                'opening_account_id' => $funding_existing ? (int) $funding_account->id : null,
+                'principal' => $principal, 'remaining' => $principal,
+                'monthly_payment' => $monthly, 'annual_rate' => $rate,
+                'term_months' => $months, 'request_key' => $request_key,
                 'upfront_payment' => $upfront, 'balloon_payment' => $balloon,
                 'start_date' => $start, 'next_due_date' => $due, 'first_due_date' => $due,
                 'created_at' => current_time( 'mysql' ), 'updated_at' => current_time( 'mysql' ),
-            ), array( '%s', '%s', '%f', '%f', '%f', '%f', '%d', '%s', '%f', '%f', '%s', '%s', '%s', '%s', '%s' ) );
+            ), array( '%s', '%s', '%s', '%s', '%s', '%s', '%d',
+                '%f', '%f', '%f', '%f', '%d', '%s', '%f', '%f',
+                '%s', '%s', '%s', '%s', '%s' ) );
             $loan_id = $saved ? (int) $wpdb->insert_id : 0;
             if ( $saved && $funding_received ) {
                 // The purchase invoice/payment must be recorded separately.
@@ -482,10 +645,10 @@ final class TCA_Treasury {
         echo '<input type="hidden" name="treasury_action" value="' . esc_attr( $action ) . '">';
     }
 
-    private static function account_select( $accounts, $name ) {
+    private static function account_select( $accounts, $name, $selected = 0 ) {
         echo '<select name="' . esc_attr( $name ) . '" required>';
         foreach ( $accounts as $account ) {
-            echo '<option value="' . esc_attr( (string) $account->id ) . '">' . esc_html( $account->name ) . ' (' .
+            echo '<option value="' . esc_attr( (string) $account->id ) . '"' . selected( (int) $account->id, $selected, false ) . '>' . esc_html( $account->name ) . ' (' .
                 esc_html( 'cash' === $account->kind ? __( 'Cash', 'taxocommerce-accounting' ) : __( 'Bank', 'taxocommerce-accounting' ) ) . ')</option>';
         }
         echo '</select>';
@@ -563,8 +726,14 @@ final class TCA_Treasury {
         echo '</div>';
 
         echo '<h3>' . esc_html__( 'Cash and bank accounts', 'taxocommerce-accounting' ) . '</h3>';
-        echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Account', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Type', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Opening balance', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Current balance', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Funding entry', 'taxocommerce-accounting' ) . '</th></tr></thead><tbody>';
+        echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Account', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Type', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Opening balance', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Current balance', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Funding entry', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Edit', 'taxocommerce-accounting' ) . '</th></tr></thead><tbody>';
         $by_id = array();
+        $opening_loans_by_account = array();
+        foreach ( $loans as $loan ) {
+            if ( ! empty( $loan->opening_account_id ) ) {
+                $opening_loans_by_account[ (int) $loan->opening_account_id ] = $loan;
+            }
+        }
         foreach ( $accounts as $account ) {
             $by_id[ (int) $account->id ] = $account;
             $balance = $account->opened_on <= $today ? (float) $account->opening_amount : 0.0;
@@ -575,7 +744,15 @@ final class TCA_Treasury {
                 }
             }
             echo '<tr><td>' . esc_html( $account->name ) . '</td><td>' . esc_html( 'cash' === $account->kind ? __( 'Cash', 'taxocommerce-accounting' ) : __( 'Bank', 'taxocommerce-accounting' ) ) . '</td><td>' . esc_html( tca_money( $account->opening_amount ) ) . '</td><td>' . esc_html( tca_money( $balance ) ) . '</td><td>';
-            if ( (float) $account->opening_amount > 0 ) {
+            if ( (float) $account->opening_amount > 0 &&
+                isset( $opening_loans_by_account[ (int) $account->id ] ) ) {
+                $linked = $opening_loans_by_account[ (int) $account->id ];
+                echo '<strong>' . esc_html__( 'Linked to a repayable loan from', 'taxocommerce-accounting' ) . ' ' .
+                    esc_html( $linked->lender ) . '</strong> ';
+                echo '<span class="description">' .
+                    esc_html__( 'The opening funds are already present. Conversion or cancellation is blocked while this loan is linked.', 'taxocommerce-accounting' ) .
+                    '</span>';
+            } elseif ( (float) $account->opening_amount > 0 ) {
                 self::start_form( 'opening_receipt' );
                 echo '<input type="hidden" name="account_id" value="' . esc_attr( (string) $account->id ) . '">';
                 echo '<label>' . esc_html__( 'Actual contribution date', 'taxocommerce-accounting' ) . ' <input name="posted_on" type="date" min="' . esc_attr( $account->opened_on ) . '" max="' . esc_attr( $today ) . '" value="' . esc_attr( $account->opened_on ) . '" required></label> ';
@@ -583,19 +760,43 @@ final class TCA_Treasury {
                 echo '<label><input type="checkbox" name="opening_verified" value="1" required> ' . esc_html__( 'Convert the opening balance, without adding funds twice', 'taxocommerce-accounting' ) . '</label> ';
                 submit_button( __( 'Convert to receipt', 'taxocommerce-accounting' ), 'secondary small', 'submit', false );
                 echo '</form>';
+                self::start_form( 'cancel_opening' );
+                echo '<input type="hidden" name="account_id" value="' . esc_attr( (string) $account->id ) . '">';
+                echo '<label>' . esc_html__( 'Correction reason', 'taxocommerce-accounting' ) . ' <input name="reason" maxlength="191" required placeholder="' . esc_attr__( 'Opening amount entered in error', 'taxocommerce-accounting' ) . '"></label> ';
+                echo '<label><input type="checkbox" name="confirmed" value="1" required> ' . esc_html__( 'Confirm cancellation of this opening balance', 'taxocommerce-accounting' ) . '</label> ';
+                submit_button( __( 'Cancel incorrect opening balance', 'taxocommerce-accounting' ), 'secondary small', 'submit', false );
+                echo '</form>';
             } else {
                 echo '&mdash;';
             }
-            echo '</td></tr>';
+            echo '</td><td>';
+            self::start_form( 'edit_account' );
+            echo '<input type="hidden" name="account_id" value="' . esc_attr( (string) $account->id ) . '">';
+            echo '<input type="text" name="name" maxlength="191" value="' . esc_attr( $account->name ) . '" required>';
+            submit_button( __( 'Rename account', 'taxocommerce-accounting' ), 'secondary small', 'submit', false );
+            echo '</form></td></tr>';
         }
         if ( ! $accounts ) {
-            echo '<tr><td colspan="5">' . esc_html__( 'Add your cash register or first bank account to start tracking funds.', 'taxocommerce-accounting' ) . '</td></tr>';
+            echo '<tr><td colspan="6">' . esc_html__( 'Add your cash register or first bank account to start tracking funds.', 'taxocommerce-accounting' ) . '</td></tr>';
         }
         echo '</tbody></table>';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Always show the latest correction audit records.
+        $corrections = (array) $wpdb->get_results( $wpdb->prepare(
+            'SELECT * FROM %i ORDER BY id DESC LIMIT 30', self::table( 'corrections' )
+        ) );
+        if ( $corrections ) {
+            echo '<h4>' . esc_html__( 'Opening balance correction history', 'taxocommerce-accounting' ) . '</h4>';
+            echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Date', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Account', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Amount', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Reason', 'taxocommerce-accounting' ) . '</th></tr></thead><tbody>';
+            foreach ( $corrections as $correction ) {
+                echo '<tr><td>' . esc_html( $correction->created_at ) . '</td><td>' . esc_html( isset( $by_id[ (int) $correction->account_id ] ) ? $by_id[ (int) $correction->account_id ]->name : '' ) . '</td><td>' . esc_html( tca_money( $correction->amount ) ) . '</td><td>' . esc_html( $correction->reason ) . '</td></tr>';
+            }
+            echo '</tbody></table>';
+        }
         TCA_Settlements::render_bulk( $year );
 
         echo '<div class="tca-treasury-forms"><div>';
-        echo '<h4>' . esc_html__( 'Add cash register / bank account', 'taxocommerce-accounting' ) . '</h4>';
+        echo '<h4>' . esc_html__( 'Create a new cash or bank account (not a receipt)', 'taxocommerce-accounting' ) . '</h4>';
+        echo '<p class="description">' . esc_html__( 'Use the account name ING or CAJA. Record donations, initial contributions and customer receipts as movements into an existing account.', 'taxocommerce-accounting' ) . '</p>';
         self::start_form( 'account' );
         echo '<p><label>' . esc_html__( 'Name', 'taxocommerce-accounting' ) . ' <input type="text" name="name" maxlength="191" required></label></p>';
         echo '<p><label>' . esc_html__( 'Type', 'taxocommerce-accounting' ) . ' <select name="kind"><option value="cash">' . esc_html__( 'Cash', 'taxocommerce-accounting' ) . '</option><option value="bank">' . esc_html__( 'Bank', 'taxocommerce-accounting' ) . '</option></select></label></p>';
@@ -653,15 +854,27 @@ final class TCA_Treasury {
         echo '</tbody></table></div>';
 
         echo '<h3>' . esc_html__( 'Recent cash and bank movements', 'taxocommerce-accounting' ) . '</h3>';
-        echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Date', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Account', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Movement', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Amount', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Reference', 'taxocommerce-accounting' ) . '</th></tr></thead><tbody>';
+        echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Date', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Account', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Movement', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Amount', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Reference', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Edit', 'taxocommerce-accounting' ) . '</th></tr></thead><tbody>';
         foreach ( $recent as $movement ) {
             $positive = in_array( $movement->direction, array( 'in', 'transfer_in' ), true );
             echo '<tr><td>' . esc_html( $movement->posted_on ) . '</td><td>' . esc_html( isset( $by_id[ (int) $movement->account_id ] ) ? $by_id[ (int) $movement->account_id ]->name : '' ) . '</td><td>' .
                 esc_html( $positive ? __( 'Money in', 'taxocommerce-accounting' ) : __( 'Money out', 'taxocommerce-accounting' ) ) . '</td><td>' .
-                esc_html( ( $positive ? '+' : '−' ) . tca_money( $movement->amount ) ) . '</td><td>' . esc_html( $movement->reference ) . '</td></tr>';
+                esc_html( ( $positive ? '+' : '−' ) . tca_money( $movement->amount ) ) . '</td><td>' . esc_html( $movement->reference ) . '</td><td>';
+            if ( in_array( $movement->direction, array( 'in', 'out' ), true ) ) {
+                self::start_form( 'edit_movement' );
+                echo '<input type="hidden" name="movement_id" value="' . esc_attr( (string) $movement->id ) . '">';
+                self::account_select( $accounts, 'account_id', (int) $movement->account_id );
+                echo '<select name="direction"><option value="in"' . selected( $movement->direction, 'in', false ) . '>' . esc_html__( 'Money in', 'taxocommerce-accounting' ) . '</option><option value="out"' . selected( $movement->direction, 'out', false ) . '>' . esc_html__( 'Money out', 'taxocommerce-accounting' ) . '</option></select>';
+                echo '<input type="date" name="posted_on" value="' . esc_attr( $movement->posted_on ) . '" required>';
+                echo '<input type="number" name="amount" min="0.01" step="0.01" value="' . esc_attr( (string) $movement->amount ) . '" required>';
+                echo '<input type="text" name="reference" maxlength="191" value="' . esc_attr( $movement->reference ) . '">';
+                submit_button( __( 'Save changes', 'taxocommerce-accounting' ), 'secondary small', 'submit', false );
+                echo '</form>';
+            } else { echo '&mdash;'; }
+            echo '</td></tr>';
         }
         if ( ! $recent ) {
-            echo '<tr><td colspan="5">' . esc_html__( 'No movements recorded yet.', 'taxocommerce-accounting' ) . '</td></tr>';
+            echo '<tr><td colspan="6">' . esc_html__( 'No movements recorded yet.', 'taxocommerce-accounting' ) . '</td></tr>';
         }
         echo '</tbody></table>';
 
@@ -687,8 +900,22 @@ final class TCA_Treasury {
                 ? TCA_Loan_Schedule::calculate( $loan->principal, $loan->annual_rate, $loan->term_months, $loan->first_due_date, $loan->balloon_payment )
                 : array();
             $next = $schedule[ $paid_count ] ?? null;
-            echo '<tr><td>' . esc_html( $loan->name ) . '</td><td>' . esc_html( $loan->lender ) .
-                '</td><td>' . esc_html( tca_money( $loan->principal ) ) .
+            $lender_details = $loan->lender;
+            if ( isset( $loan->lender_relation ) && 'sponsor' === $loan->lender_relation ) {
+                $lender_details .= ' (' . __( 'Sponsor / lender', 'taxocommerce-accounting' ) . ')';
+            }
+            $source_details = '';
+            if ( ! empty( $loan->opening_account_id ) ) {
+                $source_details = __( 'Funded by existing opening balance; no duplicate receipt', 'taxocommerce-accounting' );
+                if ( isset( $by_id[ (int) $loan->opening_account_id ] ) ) {
+                    $source_details .= ': ' . $by_id[ (int) $loan->opening_account_id ]->name;
+                }
+            }
+            echo '<tr><td>' . esc_html( $loan->name ) . '</td><td>' . esc_html( $lender_details );
+            if ( '' !== $source_details ) {
+                echo '<p class="description">' . esc_html( $source_details ) . '</p>';
+            }
+            echo '</td><td>' . esc_html( tca_money( $loan->principal ) ) .
                 '</td><td>' . esc_html( tca_money( $next ? $next['payment'] : $loan->monthly_payment ) ) .
                 '</td><td>' . esc_html( tca_money( $loan->remaining ) ) .
                 '</td><td>' . esc_html( (float) $loan->remaining <= 0 ? '—' : $loan->next_due_date ) . '</td><td>';
@@ -765,7 +992,12 @@ final class TCA_Treasury {
             'taxocommerce-accounting'
         ) . '</p>';
         echo '<div class="tca-treasury-forms"><div><p><label>' . esc_html__( 'Loan name', 'taxocommerce-accounting' ) . ' <input type="text" maxlength="191" name="name" required></label></p>';
-        echo '<p><label>' . esc_html__( 'Lender', 'taxocommerce-accounting' ) . ' <input type="text" maxlength="191" name="lender"></label></p>';
+        echo '<p><label>' . esc_html__( 'Sponsor / lender name', 'taxocommerce-accounting' ) . ' <input type="text" maxlength="191" name="lender" required></label></p>';
+        echo '<p><label>' . esc_html__( 'Sponsor / lender tax ID (optional)', 'taxocommerce-accounting' ) . ' <input type="text" maxlength="48" name="lender_tax_id"></label></p>';
+        echo '<p><label>' . esc_html__( 'Lender relationship', 'taxocommerce-accounting' ) . ' <select name="lender_relation">';
+        echo '<option value="sponsor">' . esc_html__( 'Sponsor (repayable loan)', 'taxocommerce-accounting' ) . '</option>';
+        echo '<option value="other">' . esc_html__( 'Other lender', 'taxocommerce-accounting' ) . '</option></select></label></p>';
+        echo '<p><label>' . esc_html__( 'Loan agreement reference', 'taxocommerce-accounting' ) . ' <input type="text" maxlength="191" name="agreement_reference"></label></p>';
         echo '<p><label>' . esc_html__( 'Annual nominal interest (TIN %)', 'taxocommerce-accounting' ) . ' <input type="number" min="0" max="100" step="0.0001" name="annual_rate" value="0" required></label></p></div>';
         echo '<div><p><label>' . esc_html__( 'Financed principal (€)', 'taxocommerce-accounting' ) . ' <input type="number" min="0.01" step="0.01" name="principal" required></label></p>';
         echo '<p><label>' . esc_html__( 'Term in months (0 = manual)', 'taxocommerce-accounting' ) . ' <input type="number" min="0" max="360" step="1" name="term_months" value="12" required></label></p>';
@@ -774,21 +1006,31 @@ final class TCA_Treasury {
         echo '<p><label>' . esc_html__( 'Manual monthly payment (€; only term 0)', 'taxocommerce-accounting' ) . ' <input type="number" min="0.01" step="0.01" name="monthly_payment"></label></p></div>';
         echo '<div><p><label>' . esc_html__( 'Loan date', 'taxocommerce-accounting' ) . ' <input type="date" name="start_date" value="' . esc_attr( $today ) . '" required></label></p>';
         echo '<p><label>' . esc_html__( 'First instalment date', 'taxocommerce-accounting' ) . ' <input type="date" name="next_due_date" required></label></p>';
+        echo '<p><label>' . esc_html__( 'Loan funds', 'taxocommerce-accounting' ) . ' <select name="funding_mode">';
+        echo '<option value="pending">' . esc_html__( 'Not received yet (do not change bank)', 'taxocommerce-accounting' ) . '</option>';
+        echo '<option value="opening_balance">' . esc_html__( 'Already included in bank opening balance (do not duplicate)', 'taxocommerce-accounting' ) . '</option>';
+        echo '<option value="new_receipt">' . esc_html__( 'New confirmed bank receipt', 'taxocommerce-accounting' ) . '</option>';
+        echo '</select></label></p>';
         if ( $accounts ) {
-            echo '<p><label><input type="checkbox" name="funding_received" value="1"> ' .
-                esc_html__( 'Loan funds actually received in bank (confirmed)', 'taxocommerce-accounting' ) . '</label></p>';
-            echo '<p><label>' . esc_html__( 'Bank receiving loan', 'taxocommerce-accounting' ) . ' <select name="funding_account_id">';
+            echo '<p><label>' . esc_html__( 'Bank receiving or holding loan funds', 'taxocommerce-accounting' ) . ' <select name="funding_account_id">';
             echo '<option value="0">' . esc_html__( 'Select bank', 'taxocommerce-accounting' ) . '</option>';
             foreach ( $accounts as $account ) {
                 if ( 'bank' === $account->kind ) {
-                    echo '<option value="' . esc_attr( (string) $account->id ) . '">' . esc_html( $account->name ) . '</option>';
+                    echo '<option value="' . esc_attr( (string) $account->id ) . '">' .
+                        esc_html( $account->name . ' (' . tca_money( $account->opening_amount ) . ' ' . __( 'opening', 'taxocommerce-accounting' ) . ')' ) . '</option>';
                 }
             }
             echo '</select></label></p>';
+            echo '<p><label><input type="checkbox" name="opening_verified" value="1"> ' .
+                esc_html__( 'I confirm that the entire opening balance belongs to this loan and is already in this bank. Do not add money again.', 'taxocommerce-accounting' ) .
+                '</label></p>';
+            echo '<p class="description">' .
+                esc_html__( 'When linking an opening balance, the loan principal must equal that opening amount exactly. An opening balance can fund only one loan. No bank movement is created.', 'taxocommerce-accounting' ) .
+                '</p>';
         }
         echo '</div></div>';
         echo '<p class="description">' . esc_html__(
-            'Confirm funds received only if a real transfer into this bank account occurred. Saving the loan does not repeat the supplier payment; the down payment is informational and never moves cash automatically. Loan instalments are forecast until manually confirmed.',
+            'Select opening balance when the sponsor already financed ING: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed.',
             'taxocommerce-accounting'
         ) . '</p>';
         submit_button( __( 'Save loan', 'taxocommerce-accounting' ), 'secondary', 'submit', false );

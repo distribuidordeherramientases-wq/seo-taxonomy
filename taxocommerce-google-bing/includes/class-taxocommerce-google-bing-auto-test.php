@@ -73,6 +73,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
             'pinterest_helpers'=> array( 'connections', 'Pinterest Business y Merchant: contratos' ),
             'gsc_handler'       => array( 'search', 'Descarga manual Search Console' ),
             'gsc_snapshot'      => array( 'search', 'Último informe de Search Console' ),
+            'gsc_freshness'     => array( 'search', 'Vigencia y coherencia del histórico de Analista' ),
             'ga4_handler'       => array( 'analytics', 'Descarga manual GA4' ),
             'ga4_snapshot'      => array( 'analytics', 'Último informe de GA4' ),
             'bing_handler'      => array( 'bing', 'Descarga manual y configuración Bing' ),
@@ -509,6 +510,56 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
             : self::fail( 'El informe se guarda, pero no se recupera por su clave de fechas.' );
     }
     private static function check_gsc_snapshot() { return self::snapshot( 'search' ); }
+
+    /**
+     * Read-only consistency check between GSC saved reports and the Analysis
+     * SQL history. A successful report download does not refresh SQL tables.
+     */
+    private static function check_gsc_freshness() {
+        if ( ! function_exists( 'taxocommerce_insights_gsc_trend_health' )
+            || ! function_exists( 'seo_analista_resolve_property_id' ) ) {
+            return self::fail( 'No está disponible el comparador de vigencia del histórico GSC.' );
+        }
+        $property_id = (string) seo_analista_resolve_property_id();
+        if ( '' === $property_id ) {
+            return self::skip( 'No hay propiedad Search Console seleccionada para el histórico de Analista.' );
+        }
+        $health = taxocommerce_insights_gsc_trend_health( $property_id, 180 );
+        $sql_date = (string) ( $health['sql_date'] ?? '' );
+        $snapshot_date = (string) ( $health['snapshot_date'] ?? '' );
+        $finalized_date = (string) ( $health['finalized_date'] ?? '' );
+        if ( '' === $sql_date && '' === $snapshot_date ) {
+            if ( ! empty( $health['other_snapshots'] ) ) {
+                return self::fail( 'Los informes GSC guardados pertenecen a otra propiedad distinta de la utilizada por Analista. No se mezclan datos.' );
+            }
+            return self::skip( 'No hay histórico SQL ni informes GSC guardados para esta propiedad. Primero descarga datos desde Google Search.' );
+        }
+        if ( '' !== $snapshot_date && ( '' === $sql_date
+            || ( strtotime( $snapshot_date ) - strtotime( $sql_date ) ) > ( 2 * DAY_IN_SECONDS ) ) ) {
+            return self::fail(
+                'Histórico de Analista desactualizado: SQL hasta ' . ( $sql_date ?: 'sin datos' )
+                . '; informe Google Search hasta ' . $snapshot_date
+                . '. La descarga de informes guardados no sincroniza las tablas SQL. '
+                . 'Las gráficas recuperan días del informe, pero el resto de Analysis sigue necesitando sincronización desde Google Search.'
+            );
+        }
+        $latest_date = $sql_date > $snapshot_date ? $sql_date : $snapshot_date;
+        if ( '' !== $finalized_date && '' !== $latest_date
+            && ( strtotime( $finalized_date ) - strtotime( $latest_date ) ) > ( 7 * DAY_IN_SECONDS ) ) {
+            return self::fail(
+                'Search Console sin datos recientes: último día ' . $latest_date
+                . '; último día consolidado esperado ' . $finalized_date
+                . '. Comprueba la descarga y la sincronización manual de Google Search.'
+            );
+        }
+        return self::pass(
+            'Vigencia GSC comprobada sin consultar APIs: histórico SQL hasta '
+            . ( $sql_date ?: 'sin datos' ) . '; informe guardado hasta '
+            . ( $snapshot_date ?: 'sin datos' ) . '; último día consolidado esperado '
+            . ( $finalized_date ?: 'no calculado' ) . '.'
+        );
+    }
+
     private static function check_ga4_snapshot() { return self::snapshot( 'analytics' ); }
     private static function check_bing_snapshot() { return self::snapshot( 'bing' ); }
 
