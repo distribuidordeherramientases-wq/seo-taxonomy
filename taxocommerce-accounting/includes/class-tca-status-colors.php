@@ -101,11 +101,16 @@ final class TCA_Status_Colors {
         return $remaining <= 0.02 ? 'closed' : 'pending';
     }
 
-    public static function treasury_for_year( $year, $entry_states ) {
+    public static function treasury_for_year( $year, $entries, $paid_by_id, $truncated = false ) {
         global $wpdb;
-        $states = array_values( array_filter( $entry_states, static function ( $state ) {
-            return 'neutral' !== $state;
-        } ) );
+        // Treasury depends on actual linked money, not unrelated fiscal errors.
+        $states = array();
+        foreach ( $entries as $entry ) {
+            $paid = (float) ( $paid_by_id[ (int) $entry->id ] ?? 0.0 );
+            $total = abs( (float) $entry->amount_total );
+            $states[] = $paid > $total + 0.02
+                ? 'error' : ( $paid + 0.02 < $total ? 'pending' : 'closed' );
+        }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live outstanding debts determine whether treasury is settled.
         $loans = (array) $wpdb->get_results( $wpdb->prepare(
             'SELECT principal, remaining FROM %i WHERE start_date <= %s',
@@ -124,6 +129,7 @@ final class TCA_Status_Colors {
         if ( $cash && (int) $cash->total > 0 ) {
             $states[] = (int) $cash->unlinked > 0 ? 'pending' : 'closed';
         }
-        return self::aggregate( $states );
+        $status = self::aggregate( $states );
+        return $truncated && 'closed' === $status ? 'pending' : $status;
     }
 }
