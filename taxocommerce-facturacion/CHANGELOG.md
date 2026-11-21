@@ -1,3 +1,11 @@
+## [0.1.22] — 2026-11-21 — Safe gross-amount rectifying invoices (#2926)
+
+- Extend issued invoice rectification by substitution to corrected net product amounts, with server-calculated VAT and grand total, preserving the existing VAT-only mode.
+- Preserve original issued invoice/PDF and WooCommerce order; create a separately numbered RECT PDF linked to the original and display the change in gross. No automatic payment, refund, order edit or receipt duplication.
+- Validate every product line, uniform supported VAT rates, mandatory reason, original document and fiscal quarter; reject shipping/fees/discounts and ambiguous mixed VAT.
+- Notify optional Accounting consumers via the established filter and action; original payment remains linked and any additional due is tracked there.
+- Regression tests cover amount corrections, multiple lines, VAT-only and invalid amounts. STAGING and Focazul only; never PRO.
+
 ### Entrega de emergencia — 2026-11-20 — #2864
 
 - STAGING y Asociación Focazul tenían una instalación incompleta de Billing: faltaba `includes/class-seo-facturas-special-rates.php` y fallaba el arranque de WordPress.

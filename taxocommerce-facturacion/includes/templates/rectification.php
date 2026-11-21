@@ -2,8 +2,8 @@
 /**
  * Rectifying invoice by substitution, with immutable original-reference data.
  *
- * The original line-level net prices are deliberately not reproduced: a
- * historical order with zero VAT would show materially wrong unit net prices.
+ * Corrected lines come from the verified substitution snapshot and do not
+ * change the original invoice, WooCommerce order or previous receipts.
  *
  * @var array $snapshot Verified immutable replacement snapshot.
  */
@@ -72,7 +72,11 @@ if ( '' === $taxocommerce_billing_rect_buyer_name ) {
 </tr></table>
 
 <h2><?php echo esc_html__( 'Corrected transaction', 'taxocommerce-facturacion' ); ?></h2>
-<p class="small"><?php echo esc_html__( 'The original products and gross price are unchanged. Only the VAT breakdown has been corrected.', 'taxocommerce-facturacion' ); ?></p>
+<p class="small"><?php
+echo esc_html( 'amounts' === (string) ( $taxocommerce_billing_rect_rect['mode'] ?? 'vat' )
+    ? __( 'Product net amounts and VAT have been corrected; previous customer receipts are unchanged.', 'taxocommerce-facturacion' )
+    : __( 'The original products and gross price are unchanged. Only the VAT breakdown has been corrected.', 'taxocommerce-facturacion' ) );
+?></p>
 <table class="amounts">
 <thead><tr>
 <th><?php echo esc_html__( 'Product', 'taxocommerce-facturacion' ); ?></th>
@@ -117,6 +121,9 @@ if ( '' === $taxocommerce_billing_rect_buyer_name ) {
 <?php endforeach; ?>
 </tbody></table>
 <p><strong><?php echo esc_html__( 'Corrected VAT rate', 'taxocommerce-facturacion' ); ?>:</strong> <?php echo esc_html( number_format_i18n( (float) ( $taxocommerce_billing_rect_rect['rate'] ?? 0 ), 2 ) ); ?> %</p>
-<p><strong><?php echo esc_html__( 'Additional payment due from the customer', 'taxocommerce-facturacion' ); ?>:</strong> <?php echo esc_html( $taxocommerce_billing_rect_money( 0 ) ); ?></p>
+<?php $taxocommerce_billing_rect_delta = round( (float) ( $taxocommerce_billing_rect_totals['total'] ?? 0 ) - (float) ( $taxocommerce_billing_rect_rect['old_total'] ?? 0 ), 2 ); ?>
+<p><strong><?php echo esc_html__( 'Increase or decrease in the invoiced total', 'taxocommerce-facturacion' ); ?>:</strong>
+<?php echo esc_html( $taxocommerce_billing_rect_money( $taxocommerce_billing_rect_delta ) ); ?></p>
+<p class="small"><?php echo esc_html__( 'This difference is not a recorded bank payment or refund. Verify the actual outstanding amount in Treasury.', 'taxocommerce-facturacion' ); ?></p>
 <p class="footer"><?php echo esc_html__( 'This rectifying invoice must be kept together with the original invoice. It does not modify the WooCommerce order or the original receipt.', 'taxocommerce-facturacion' ); ?></p>
 </body></html>
