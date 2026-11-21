@@ -1,3 +1,39 @@
+## 0.1.23 — 2026-11-20 — Reopen validated expense as draft with audited notes (#2894)
+
+- Fix «No data changed» when an already validated entry is intentionally returned to draft with unchanged monetary/document fields; fiscal status change is now detected and saved transactionally with a mandatory audited reason.
+- Add editable Notes to the existing correction form, preserving the original notes unless changed; retain the immutable WooCommerce invoice, supplier attachment, payments, and all other rows.
+- Preserve no-op protection for unchanged existing drafts, add regression coverage for status-only reversal, notes and audit log, and keep production untouched.
+
+## 0.1.22 — 2026-11-20 — Actionable pending reviews and incidents (#2888)
+
+- Make monthly pending-review numbers clickable; open a single record directly or a safely filtered monthly action list when more than one needs review.
+- Add a separate monthly incident counter for issued-invoice mismatches (error) and verifiable document/zero-VAT warnings, each linked to existing correction or validation controls; add contextual links on ledger rows and Autocheck.
+- A validated non-domestic tax treatment is not incorrectly considered pending; missing invoice warnings are suppressed when an immutable issued invoice is already linked. Keep existing amounts, invoices, forms, tax totals and payments unchanged.
+- Add isolated XSS/filter/navigation regression to the mandatory STAGING preflight. No PRO deploy.
+
+## 0.1.21 — 2026-11-20 — Expense classification interface translations (#2884)
+
+- Localize expense classification, current expenses, depreciable fixed assets, service date, useful life and straight-line depreciation guidance in five language catalogs (ES/EN/FR/DE/NL).
+- Preserve the existing `current` and `fixed_asset` values, underlying accounting calculations, records and business behavior. No production deployment.
+
+## 0.1.20 — 2026-11-20 — Expense classification and annual fixed-asset depreciation (#2881)
+
+- In Expenses, classify each new entry as current expense (default) or depreciable fixed asset; assets require in-service date and useful life of 1–50 years.
+- Calculate read-only straight-line depreciation prorated by actual days across calendar years; rounded cumulative cents clear the final year exactly. Cost includes nonrecoverable input VAT. Show annual allowance and remaining book value under Expenses, without creating extra bank movements, tax deductions, invoice edits or VAT adjustments.
+- Keep old expenses as current by default, purchases/merchandise and existing Assets tab unchanged; allow audited expense reclassification via the existing correction workflow, and export stored asset metadata.
+- Upgrade own ledger schema to v7 non-destructively, add standalone regression and STAGING CI gate. No PRO deploy.
+
+## 0.1.19 — 2026-11-20 — Treasury tab locale key (#2878)
+
+- Add the previously omitted `Treasury` main administration tab label to POT and five gettext locales; compile matching MO catalogs.
+- Leave all bookkeeping, accounting logic, configuration and data untouched; no production deployment.
+
+## 0.1.18 — 2026-11-20 — Treasury administration translations (#2876)
+
+- Extract 91 previously missing Treasury gettext strings into the POT and translate all corresponding PO entries for es_ES, en_US, fr_FR, de_DE and nl_NL.
+- Rebuild five binary MO catalogs to restore the correct WordPress-language display across balances, cash/bank movements and loan forms.
+- Do not alter money calculations, invoice handling, bank movements or loan behavior; no production deployment.
+
 ## 0.1.17 — 2026-11-20 — Optional immutable rectification reconciliation (#2860)
 
 - Accept an optional WordPress filter for the latest legally issued, same-total rectifying invoice linked to a WooCommerce sale. Prefer the rectification for VAT validation, while preserving the original document and paid amount. Confirm currency, positive finite values and base + VAT = original gross before applying.

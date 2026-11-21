@@ -447,3 +447,300 @@ msgstr "Maximal 500 Zeilen und 2 MB je Import. Doppelte Belege werden übersprun
 
 msgid "Imported: %1$d drafts. Existing/duplicate documents skipped: %2$d."
 msgstr "Importiert: %1$d Entwürfe. Vorhandene oder doppelte Belege übersprungen: %2$d."
+
+msgid "Cash"
+msgstr "Bargeld"
+
+msgid "Bank"
+msgstr "Bank"
+
+msgid "Treasury: cash, bank and loans"
+msgstr "Liquidität: Bargeld, Bank und Darlehen"
+
+msgid "Historical reconciliation: %1$d payments posted, %2$d skipped, %3$d errors. Review the bank balance before posting anything again."
+msgstr "Historischer Abgleich: %1$d Zahlungen gebucht, %2$d übersprungen, %3$d Fehler. Prüfen Sie den Banksaldo vor einer erneuten Buchung."
+
+msgid "Balances use opening funds and confirmed payments/receipts (including invoice-linked settlements). An opening balance is not a monthly Cash in / Bank in. If it actually represents a contribution received this year, you can convert it to a dated receipt below without changing the balance. Unpaid invoices and future loan instalments never move money."
+msgstr "Salden umfassen Anfangsbestände und bestätigte Zahlungen/Eingänge (einschließlich Rechnungszahlungen). Ein Anfangssaldo ist kein monatlicher Zahlungseingang. Handelt es sich um eine in diesem Jahr erhaltene Einlage, kann sie ohne Saldoänderung als datierter Eingang erfasst werden. Unbezahlte Rechnungen und künftige Darlehensraten bewegen kein Geld."
+
+msgid "Cash on hand"
+msgstr "Bargeldbestand"
+
+msgid "Bank accounts"
+msgstr "Bankkonten"
+
+msgid "Total available funds"
+msgstr "Verfügbare Mittel insgesamt"
+
+msgid "Loans outstanding (reported)"
+msgstr "Ausstehende Darlehen (gemeldet)"
+
+msgid "Scheduled monthly loan instalments"
+msgstr "Geplante monatliche Darlehensraten"
+
+msgid "Cash and bank accounts"
+msgstr "Kassen- und Bankkonten"
+
+msgid "Account"
+msgstr "Konto"
+
+msgid "Type"
+msgstr "Typ"
+
+msgid "Opening balance"
+msgstr "Anfangssaldo"
+
+msgid "Current balance"
+msgstr "Aktueller Saldo"
+
+msgid "Funding entry"
+msgstr "Einlagenbuchung"
+
+msgid "Actual contribution date"
+msgstr "Tatsächliches Einlagedatum"
+
+msgid "Funding reference"
+msgstr "Einlagenreferenz"
+
+msgid "Initial loan / contribution"
+msgstr "Anfangsdarlehen / Einlage"
+
+msgid "Convert the opening balance, without adding funds twice"
+msgstr "Anfangssaldo umwandeln, ohne Mittel doppelt zu zählen"
+
+msgid "Convert to receipt"
+msgstr "Als Geldeingang erfassen"
+
+msgid "Add your cash register or first bank account to start tracking funds."
+msgstr "Fügen Sie eine Kasse oder Ihr erstes Bankkonto hinzu, um die Mittel zu verfolgen."
+
+msgid "Add cash register / bank account"
+msgstr "Kasse / Bankkonto hinzufügen"
+
+msgid "Name"
+msgstr "Name"
+
+msgid "Opening date"
+msgstr "Eröffnungsdatum"
+
+msgid "Opening balance (€)"
+msgstr "Anfangssaldo (€)"
+
+msgid "Add account"
+msgstr "Konto hinzufügen"
+
+msgid "Record a payment or receipt"
+msgstr "Zahlung oder Eingang erfassen"
+
+msgid "Movement"
+msgstr "Buchung"
+
+msgid "Money in"
+msgstr "Geldeingang"
+
+msgid "Money out"
+msgstr "Geldausgang"
+
+msgid "Amount (€)"
+msgstr "Betrag (€)"
+
+msgid "Reference / concept"
+msgstr "Referenz / Verwendungszweck"
+
+msgid "Save movement"
+msgstr "Buchung speichern"
+
+msgid "Transfer between accounts"
+msgstr "Zwischen Konten umbuchen"
+
+msgid "From"
+msgstr "Von"
+
+msgid "To"
+msgstr "Nach"
+
+msgid "Transfer funds"
+msgstr "Geld überweisen"
+
+msgid "Monthly cash flow"
+msgstr "Monatlicher Geldfluss"
+
+msgid "Cash in"
+msgstr "Bargeldeingänge"
+
+msgid "Cash out"
+msgstr "Bargeldausgänge"
+
+msgid "Bank in"
+msgstr "Bankeingänge"
+
+msgid "Bank out"
+msgstr "Bankausgänge"
+
+msgid "Cash balance"
+msgstr "Kassenbestand"
+
+msgid "Bank balance"
+msgstr "Banksaldo"
+
+msgid "Recent cash and bank movements"
+msgstr "Letzte Kassen- und Bankbewegungen"
+
+msgid "Amount"
+msgstr "Betrag"
+
+msgid "Reference"
+msgstr "Referenz"
+
+msgid "No movements recorded yet."
+msgstr "Noch keine Buchungen erfasst."
+
+msgid "Loans"
+msgstr "Darlehen"
+
+msgid "New fixed-rate loans show monthly capital/interest forecasts. Interest on ordinary money loans is generally VAT-exempt; the schedule never changes model 303. Neither a future instalment nor an unconfirmed loan disbursement changes bank balances. Older manual loans retain their original update controls."
+msgstr "Neue Festzinsdarlehen zeigen monatliche Tilgungs- und Zinsprognosen. Zinsen aus gewöhnlichen Gelddarlehen sind im Allgemeinen von der Mehrwertsteuer befreit; der Plan ändert das Formular 303 nicht. Zukünftige Raten und unbestätigte Auszahlungen ändern Banksalden nicht. Ältere manuelle Darlehen behalten ihre bisherigen Bedienelemente."
+
+msgid "Loan"
+msgstr "Darlehen"
+
+msgid "Lender"
+msgstr "Darlehensgeber"
+
+msgid "Original loan"
+msgstr "Ursprüngliches Darlehen"
+
+msgid "Monthly payment"
+msgstr "Monatliche Rate"
+
+msgid "Outstanding"
+msgstr "Ausstehend"
+
+msgid "Next payment date"
+msgstr "Nächster Zahlungstermin"
+
+msgid "Payment / updates"
+msgstr "Zahlungen / Änderungen"
+
+msgid "months; annual nominal rate"
+msgstr "Monate; nominaler Jahreszins"
+
+msgid "Down payment"
+msgstr "Anzahlung"
+
+msgid "Interest already paid"
+msgstr "Bereits gezahlte Zinsen"
+
+msgid "Next instalment"
+msgstr "Nächste Rate"
+
+msgid "Capital"
+msgstr "Tilgung"
+
+msgid "Interest"
+msgstr "Zinsen"
+
+msgid "Pay from"
+msgstr "Zahlen von"
+
+msgid "Actual payment date"
+msgstr "Tatsächliches Zahlungsdatum"
+
+msgid "I confirm this instalment was actually paid from this account."
+msgstr "Ich bestätige, dass diese Rate tatsächlich von diesem Konto bezahlt wurde."
+
+msgid "Confirm instalment paid"
+msgstr "Ratenzahlung bestätigen"
+
+msgid "Amortisation schedule"
+msgstr "Tilgungsplan"
+
+msgid "Due date"
+msgstr "Fälligkeitsdatum"
+
+msgid "Instalment"
+msgstr "Rate"
+
+msgid "Paid"
+msgstr "Bezahlt"
+
+msgid "Forecast"
+msgstr "Prognose"
+
+msgid "Update loan"
+msgstr "Darlehen aktualisieren"
+
+msgid "No loans entered."
+msgstr "Keine Darlehen erfasst."
+
+msgid "Add a loan"
+msgstr "Darlehen hinzufügen"
+
+msgid "Enter the amount actually borrowed, excluding any down payment. Set TIN and term to calculate instalments; leave term zero and enter a manual monthly amount for an old-style loan. The optional final balloon is extra principal due with the last instalment."
+msgstr "Geben Sie den tatsächlich geliehenen Betrag ohne Anzahlung ein. Tragen Sie nominalen Jahreszins und Laufzeit zur Ratenberechnung ein; für ältere Darlehen die Laufzeit auf null setzen und eine manuelle Monatsrate angeben. Die zusätzliche Schlusszahlung ist weiteres Kapital, das mit der letzten Rate fällig wird."
+
+msgid "Loan name"
+msgstr "Darlehensname"
+
+msgid "Annual nominal interest (TIN %)"
+msgstr "Nominaler Jahreszins (TIN %)"
+
+msgid "Financed principal (€)"
+msgstr "Finanzierter Darlehensbetrag (€)"
+
+msgid "Term in months (0 = manual)"
+msgstr "Laufzeit in Monaten (0 = manuell)"
+
+msgid "Down payment from own funds (€)"
+msgstr "Anzahlung aus Eigenmitteln (€)"
+
+msgid "Extra principal on final instalment (€)"
+msgstr "Zusätzliche Tilgung in der letzten Rate (€)"
+
+msgid "Manual monthly payment (€; only term 0)"
+msgstr "Manuelle Monatsrate (€; nur bei Laufzeit 0)"
+
+msgid "Loan date"
+msgstr "Darlehensdatum"
+
+msgid "First instalment date"
+msgstr "Datum der ersten Rate"
+
+msgid "Loan funds actually received in bank (confirmed)"
+msgstr "Darlehensbetrag tatsächlich auf Bankkonto erhalten (bestätigt)"
+
+msgid "Bank receiving loan"
+msgstr "Empfangendes Bankkonto"
+
+msgid "Select bank"
+msgstr "Bank auswählen"
+
+msgid "Confirm funds received only if a real transfer into this bank account occurred. Saving the loan does not repeat the supplier payment; the down payment is informational and never moves cash automatically. Loan instalments are forecast until manually confirmed."
+msgstr "Bestätigen Sie den Geldeingang nur bei einer tatsächlichen Überweisung auf dieses Bankkonto. Das Speichern des Darlehens wiederholt keine Lieferantenzahlung; die Anzahlung dient nur zur Information und löst keine automatische Geldbewegung aus. Raten bleiben Prognosen bis zur manuellen Bestätigung."
+
+msgid "Save loan"
+msgstr "Darlehen speichern"
+
+msgid "Treasury"
+msgstr "Liquidität"
+
+msgid "Expense type"
+msgstr "Ausgabenart"
+
+msgid "Current expense"
+msgstr "Laufender Aufwand"
+
+msgid "Fixed asset (depreciable)"
+msgstr "Anlagevermögen (abschreibungsfähig)"
+
+msgid "Fixed asset"
+msgstr "Anlagevermögen"
+
+msgid "Date put into service"
+msgstr "Datum der Inbetriebnahme"
+
+msgid "Useful life (years)"
+msgstr "Nutzungsdauer (Jahre)"
+
+msgid "Annual straight-line allocation starts when the asset is ready for use. The first and last years are prorated by days. Confirm the applicable accounting and tax rules separately."
+msgstr "Die jährliche lineare Abschreibung beginnt, sobald das Wirtschaftsgut einsatzbereit ist. Das erste und das letzte Jahr werden tagegenau anteilig berechnet. Prüfen Sie die geltenden handels- und steuerrechtlichen Regeln gesondert."

@@ -447,3 +447,300 @@ msgstr "Maximaal 500 rijen en 2 MB per import. Dubbele documenten worden overges
 
 msgid "Imported: %1$d drafts. Existing/duplicate documents skipped: %2$d."
 msgstr "Geïmporteerd: %1$d concepten. Bestaande of dubbele documenten overgeslagen: %2$d."
+
+msgid "Cash"
+msgstr "Contant geld"
+
+msgid "Bank"
+msgstr "Bank"
+
+msgid "Treasury: cash, bank and loans"
+msgstr "Kasbeheer: contant geld, bank en leningen"
+
+msgid "Historical reconciliation: %1$d payments posted, %2$d skipped, %3$d errors. Review the bank balance before posting anything again."
+msgstr "Historische afstemming: %1$d betalingen geboekt, %2$d overgeslagen en %3$d fouten. Controleer het banksaldo voordat je opnieuw boekt."
+
+msgid "Balances use opening funds and confirmed payments/receipts (including invoice-linked settlements). An opening balance is not a monthly Cash in / Bank in. If it actually represents a contribution received this year, you can convert it to a dated receipt below without changing the balance. Unpaid invoices and future loan instalments never move money."
+msgstr "Saldi omvatten beginsaldi en bevestigde betalingen/ontvangsten (ook factuurafrekeningen). Een beginsaldo is geen maandelijkse ontvangst. Als het een daadwerkelijk dit jaar ontvangen inbreng is, kun je die als gedateerde ontvangst vastleggen zonder het saldo te wijzigen. Onbetaalde facturen en toekomstige leningtermijnen verplaatsen geen geld."
+
+msgid "Cash on hand"
+msgstr "Beschikbaar contant geld"
+
+msgid "Bank accounts"
+msgstr "Bankrekeningen"
+
+msgid "Total available funds"
+msgstr "Totaal beschikbare middelen"
+
+msgid "Loans outstanding (reported)"
+msgstr "Openstaande leningen (opgegeven)"
+
+msgid "Scheduled monthly loan instalments"
+msgstr "Geplande maandelijkse leningtermijnen"
+
+msgid "Cash and bank accounts"
+msgstr "Kas- en bankrekeningen"
+
+msgid "Account"
+msgstr "Rekening"
+
+msgid "Type"
+msgstr "Type"
+
+msgid "Opening balance"
+msgstr "Beginsaldo"
+
+msgid "Current balance"
+msgstr "Huidig saldo"
+
+msgid "Funding entry"
+msgstr "Inbrengregistratie"
+
+msgid "Actual contribution date"
+msgstr "Werkelijke datum van inbreng"
+
+msgid "Funding reference"
+msgstr "Referentie van inbreng"
+
+msgid "Initial loan / contribution"
+msgstr "Aanvankelijke lening / inbreng"
+
+msgid "Convert the opening balance, without adding funds twice"
+msgstr "Beginsaldo omzetten zonder middelen dubbel te tellen"
+
+msgid "Convert to receipt"
+msgstr "Omzetten naar ontvangst"
+
+msgid "Add your cash register or first bank account to start tracking funds."
+msgstr "Voeg een kas of eerste bankrekening toe om de geldmiddelen bij te houden."
+
+msgid "Add cash register / bank account"
+msgstr "Kas / bankrekening toevoegen"
+
+msgid "Name"
+msgstr "Naam"
+
+msgid "Opening date"
+msgstr "Openingsdatum"
+
+msgid "Opening balance (€)"
+msgstr "Beginsaldo (€)"
+
+msgid "Add account"
+msgstr "Rekening toevoegen"
+
+msgid "Record a payment or receipt"
+msgstr "Betaling of ontvangst vastleggen"
+
+msgid "Movement"
+msgstr "Mutatie"
+
+msgid "Money in"
+msgstr "Geld ontvangen"
+
+msgid "Money out"
+msgstr "Geld uitgegeven"
+
+msgid "Amount (€)"
+msgstr "Bedrag (€)"
+
+msgid "Reference / concept"
+msgstr "Referentie / omschrijving"
+
+msgid "Save movement"
+msgstr "Mutatie opslaan"
+
+msgid "Transfer between accounts"
+msgstr "Overboeken tussen rekeningen"
+
+msgid "From"
+msgstr "Van"
+
+msgid "To"
+msgstr "Naar"
+
+msgid "Transfer funds"
+msgstr "Geld overboeken"
+
+msgid "Monthly cash flow"
+msgstr "Maandelijkse kasstroom"
+
+msgid "Cash in"
+msgstr "Contante ontvangsten"
+
+msgid "Cash out"
+msgstr "Contante uitgaven"
+
+msgid "Bank in"
+msgstr "Bankontvangsten"
+
+msgid "Bank out"
+msgstr "Bankuitgaven"
+
+msgid "Cash balance"
+msgstr "Kassaldo"
+
+msgid "Bank balance"
+msgstr "Banksaldo"
+
+msgid "Recent cash and bank movements"
+msgstr "Recente kas- en bankmutaties"
+
+msgid "Amount"
+msgstr "Bedrag"
+
+msgid "Reference"
+msgstr "Referentie"
+
+msgid "No movements recorded yet."
+msgstr "Nog geen mutaties geregistreerd."
+
+msgid "Loans"
+msgstr "Leningen"
+
+msgid "New fixed-rate loans show monthly capital/interest forecasts. Interest on ordinary money loans is generally VAT-exempt; the schedule never changes model 303. Neither a future instalment nor an unconfirmed loan disbursement changes bank balances. Older manual loans retain their original update controls."
+msgstr "Nieuwe leningen met vaste rente tonen maandelijkse prognoses voor aflossing en rente. Rente op gewone geldleningen is doorgaans vrijgesteld van btw; het schema wijzigt formulier 303 niet. Toekomstige termijnen of onbevestigde uitbetalingen veranderen banksaldi niet. Oudere handmatige leningen behouden hun bestaande bediening."
+
+msgid "Loan"
+msgstr "Lening"
+
+msgid "Lender"
+msgstr "Geldverstrekker"
+
+msgid "Original loan"
+msgstr "Oorspronkelijke lening"
+
+msgid "Monthly payment"
+msgstr "Maandtermijn"
+
+msgid "Outstanding"
+msgstr "Openstaand"
+
+msgid "Next payment date"
+msgstr "Datum volgende betaling"
+
+msgid "Payment / updates"
+msgstr "Betalingen / wijzigingen"
+
+msgid "months; annual nominal rate"
+msgstr "maanden; nominale jaarrente"
+
+msgid "Down payment"
+msgstr "Aanbetaling"
+
+msgid "Interest already paid"
+msgstr "Reeds betaalde rente"
+
+msgid "Next instalment"
+msgstr "Volgende termijn"
+
+msgid "Capital"
+msgstr "Kapitaal"
+
+msgid "Interest"
+msgstr "Rente"
+
+msgid "Pay from"
+msgstr "Betalen vanaf"
+
+msgid "Actual payment date"
+msgstr "Werkelijke betaaldatum"
+
+msgid "I confirm this instalment was actually paid from this account."
+msgstr "Ik bevestig dat deze termijn daadwerkelijk vanaf deze rekening is betaald."
+
+msgid "Confirm instalment paid"
+msgstr "Betaling termijn bevestigen"
+
+msgid "Amortisation schedule"
+msgstr "Aflossingsschema"
+
+msgid "Due date"
+msgstr "Vervaldatum"
+
+msgid "Instalment"
+msgstr "Termijn"
+
+msgid "Paid"
+msgstr "Betaald"
+
+msgid "Forecast"
+msgstr "Prognose"
+
+msgid "Update loan"
+msgstr "Lening bijwerken"
+
+msgid "No loans entered."
+msgstr "Geen leningen geregistreerd."
+
+msgid "Add a loan"
+msgstr "Lening toevoegen"
+
+msgid "Enter the amount actually borrowed, excluding any down payment. Set TIN and term to calculate instalments; leave term zero and enter a manual monthly amount for an old-style loan. The optional final balloon is extra principal due with the last instalment."
+msgstr "Vul het werkelijk geleende bedrag in, exclusief aanbetaling. Stel nominale rente en looptijd in om termijnen te berekenen; zet de looptijd op nul en voer een handmatige maandtermijn in voor oudere leningen. De extra slotbetaling is aanvullend kapitaal bij de laatste termijn."
+
+msgid "Loan name"
+msgstr "Naam lening"
+
+msgid "Annual nominal interest (TIN %)"
+msgstr "Nominale jaarrente (TIN %)"
+
+msgid "Financed principal (€)"
+msgstr "Gefinancierde hoofdsom (€)"
+
+msgid "Term in months (0 = manual)"
+msgstr "Looptijd in maanden (0 = handmatig)"
+
+msgid "Down payment from own funds (€)"
+msgstr "Aanbetaling uit eigen middelen (€)"
+
+msgid "Extra principal on final instalment (€)"
+msgstr "Extra hoofdsom bij laatste termijn (€)"
+
+msgid "Manual monthly payment (€; only term 0)"
+msgstr "Handmatige maandtermijn (€; alleen looptijd 0)"
+
+msgid "Loan date"
+msgstr "Leningdatum"
+
+msgid "First instalment date"
+msgstr "Datum eerste termijn"
+
+msgid "Loan funds actually received in bank (confirmed)"
+msgstr "Leningbedrag daadwerkelijk op bankrekening ontvangen (bevestigd)"
+
+msgid "Bank receiving loan"
+msgstr "Bankrekening die lening ontvangt"
+
+msgid "Select bank"
+msgstr "Selecteer bank"
+
+msgid "Confirm funds received only if a real transfer into this bank account occurred. Saving the loan does not repeat the supplier payment; the down payment is informational and never moves cash automatically. Loan instalments are forecast until manually confirmed."
+msgstr "Bevestig de ontvangst alleen als er daadwerkelijk geld naar deze bankrekening is overgemaakt. Het opslaan van de lening herhaalt geen leveranciersbetaling; de aanbetaling is alleen informatief en verplaatst nooit automatisch geld. Termijnen blijven prognoses tot handmatige bevestiging."
+
+msgid "Save loan"
+msgstr "Lening opslaan"
+
+msgid "Treasury"
+msgstr "Kasbeheer"
+
+msgid "Expense type"
+msgstr "Soort uitgave"
+
+msgid "Current expense"
+msgstr "Lopende uitgave"
+
+msgid "Fixed asset (depreciable)"
+msgstr "Vast actief (afschrijfbaar)"
+
+msgid "Fixed asset"
+msgstr "Vast actief"
+
+msgid "Date put into service"
+msgstr "Datum ingebruikname"
+
+msgid "Useful life (years)"
+msgstr "Gebruiksduur (jaren)"
+
+msgid "Annual straight-line allocation starts when the asset is ready for use. The first and last years are prorated by days. Confirm the applicable accounting and tax rules separately."
+msgstr "De jaarlijkse lineaire afschrijving begint zodra het bedrijfsmiddel gebruiksklaar is. Het eerste en laatste jaar worden naar rato van het aantal dagen berekend. Controleer afzonderlijk de toepasselijke boekhoudkundige en fiscale regels."

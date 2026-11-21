@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.17
+Stable tag: 0.1.23
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,6 +16,15 @@ Independent WooCommerce fiscal register with purchase invoices, monthly VAT esti
 TaxoCommerce Accounting records fiscal data without changing WooCommerce orders, customers, supplier catalogues or invoice generation.
 
 = Key Features =
+
+* **Correction to draft:** an already validated accounting entry can be returned to draft, with no change to its amounts or invoice reference, when an administrator supplies a correction reason. The status transition and editable Notes are recorded in the existing audit history; untouched drafts are not logged again. The operation does not modify WooCommerce, issued invoices, supplier files or actual Treasury movements.
+
+
+* **Actionable fiscal review:** the monthly Summary links outstanding approval counts to their exact records, or to a filtered month list when several need attention. A separate incident count distinguishes verified invoice mismatches from zero-VAT and missing-document warnings; existing correction, validation and audited history controls are reused. Autocheck and ledger rows include contextual review links. No changes to approved invoices, WooCommerce orders, stock, VAT calculations or Treasury.
+
+
+* **Expense classification:** expenses are current by default. Optionally mark an office computer or other durable business equipment as a fixed asset, enter its date put into service and useful life (1–50 years), and see yearly straight-line depreciation with prorated partial years under Expenses. Nonrecoverable input VAT is included in asset cost. Previously saved expenses remain current; changes use the audited correction form. This calculation does not book bank payments, alter invoice VAT or assert the applicable tax deduction; accounting and fiscal depreciation rules should be verified independently.
+
 
 * **Rectifying invoices:** when an independent invoicing plugin supplies a verified, issued same-total rectification via the documented WordPress filter, reconcile the sale against its corrected VAT split without altering the WooCommerce order, original invoice or existing receipt. Accounting does not require the invoicing plugin and never creates a second sale or payment.
 * **Loan financing:** Treasury can record a fixed annual nominal interest rate (TIN), duration (months), down payment, optional extra final balloon principal, and due dates. The forecast separates capital and interest; the last payment clears rounding differences. A loan disbursement only enters bank on explicit confirmation. Confirm actual instalments individually to create a linked Treasury bank/cash outflow and reduce outstanding debt. Previous manually managed loans remain editable. No external bank connection, automatic collection, contractual APR/TAE calculation, or automatic VAT return impact; consult the finance contract for fees and tax treatment.
@@ -94,6 +103,18 @@ No. It is a working summary of validated domestic records, not an official AEAT 
 No. Input VAT defaults to 0% deductible and records start in draft. A qualified professional should verify the tax treatment.
 
 == Changelog ==
+
+= 0.1.21 =
+* Localize expense type and fixed-asset expense form in five languages.
+
+
+= 0.1.19 =
+* Localize the Treasury administration tab in five languages.
+
+
+= 0.1.18 =
+* Translate Treasury controls and help text in five languages and compile their MO catalogs.
+
 
 = 0.1.12 =
 * Distinct bulk CSV import/export of supplier merchandise purchases and operating/service expenses, linked to encrypted PDF/JPG/PNG/WEBP originals in uploads. Issue #2795.

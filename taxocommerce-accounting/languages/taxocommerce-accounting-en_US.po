@@ -446,3 +446,300 @@ msgstr "Maximum 500 rows / 2 MB per import. Repeated documents are skipped. Atta
 
 msgid "Imported: %1$d drafts. Existing/duplicate documents skipped: %2$d."
 msgstr "Imported: %1$d drafts. Existing/duplicate documents skipped: %2$d."
+
+msgid "Cash"
+msgstr "Cash"
+
+msgid "Bank"
+msgstr "Bank"
+
+msgid "Treasury: cash, bank and loans"
+msgstr "Treasury: cash, bank and loans"
+
+msgid "Historical reconciliation: %1$d payments posted, %2$d skipped, %3$d errors. Review the bank balance before posting anything again."
+msgstr "Historical reconciliation: %1$d payments posted, %2$d skipped, %3$d errors. Review the bank balance before posting anything again."
+
+msgid "Balances use opening funds and confirmed payments/receipts (including invoice-linked settlements). An opening balance is not a monthly Cash in / Bank in. If it actually represents a contribution received this year, you can convert it to a dated receipt below without changing the balance. Unpaid invoices and future loan instalments never move money."
+msgstr "Balances use opening funds and confirmed payments/receipts (including invoice-linked settlements). An opening balance is not a monthly Cash in / Bank in. If it actually represents a contribution received this year, you can convert it to a dated receipt below without changing the balance. Unpaid invoices and future loan instalments never move money."
+
+msgid "Cash on hand"
+msgstr "Cash on hand"
+
+msgid "Bank accounts"
+msgstr "Bank accounts"
+
+msgid "Total available funds"
+msgstr "Total available funds"
+
+msgid "Loans outstanding (reported)"
+msgstr "Loans outstanding (reported)"
+
+msgid "Scheduled monthly loan instalments"
+msgstr "Scheduled monthly loan instalments"
+
+msgid "Cash and bank accounts"
+msgstr "Cash and bank accounts"
+
+msgid "Account"
+msgstr "Account"
+
+msgid "Type"
+msgstr "Type"
+
+msgid "Opening balance"
+msgstr "Opening balance"
+
+msgid "Current balance"
+msgstr "Current balance"
+
+msgid "Funding entry"
+msgstr "Funding entry"
+
+msgid "Actual contribution date"
+msgstr "Actual contribution date"
+
+msgid "Funding reference"
+msgstr "Funding reference"
+
+msgid "Initial loan / contribution"
+msgstr "Initial loan / contribution"
+
+msgid "Convert the opening balance, without adding funds twice"
+msgstr "Convert the opening balance, without adding funds twice"
+
+msgid "Convert to receipt"
+msgstr "Convert to receipt"
+
+msgid "Add your cash register or first bank account to start tracking funds."
+msgstr "Add your cash register or first bank account to start tracking funds."
+
+msgid "Add cash register / bank account"
+msgstr "Add cash register / bank account"
+
+msgid "Name"
+msgstr "Name"
+
+msgid "Opening date"
+msgstr "Opening date"
+
+msgid "Opening balance (€)"
+msgstr "Opening balance (€)"
+
+msgid "Add account"
+msgstr "Add account"
+
+msgid "Record a payment or receipt"
+msgstr "Record a payment or receipt"
+
+msgid "Movement"
+msgstr "Movement"
+
+msgid "Money in"
+msgstr "Money in"
+
+msgid "Money out"
+msgstr "Money out"
+
+msgid "Amount (€)"
+msgstr "Amount (€)"
+
+msgid "Reference / concept"
+msgstr "Reference / concept"
+
+msgid "Save movement"
+msgstr "Save movement"
+
+msgid "Transfer between accounts"
+msgstr "Transfer between accounts"
+
+msgid "From"
+msgstr "From"
+
+msgid "To"
+msgstr "To"
+
+msgid "Transfer funds"
+msgstr "Transfer funds"
+
+msgid "Monthly cash flow"
+msgstr "Monthly cash flow"
+
+msgid "Cash in"
+msgstr "Cash in"
+
+msgid "Cash out"
+msgstr "Cash out"
+
+msgid "Bank in"
+msgstr "Bank in"
+
+msgid "Bank out"
+msgstr "Bank out"
+
+msgid "Cash balance"
+msgstr "Cash balance"
+
+msgid "Bank balance"
+msgstr "Bank balance"
+
+msgid "Recent cash and bank movements"
+msgstr "Recent cash and bank movements"
+
+msgid "Amount"
+msgstr "Amount"
+
+msgid "Reference"
+msgstr "Reference"
+
+msgid "No movements recorded yet."
+msgstr "No movements recorded yet."
+
+msgid "Loans"
+msgstr "Loans"
+
+msgid "New fixed-rate loans show monthly capital/interest forecasts. Interest on ordinary money loans is generally VAT-exempt; the schedule never changes model 303. Neither a future instalment nor an unconfirmed loan disbursement changes bank balances. Older manual loans retain their original update controls."
+msgstr "New fixed-rate loans show monthly capital/interest forecasts. Interest on ordinary money loans is generally VAT-exempt; the schedule never changes model 303. Neither a future instalment nor an unconfirmed loan disbursement changes bank balances. Older manual loans retain their original update controls."
+
+msgid "Loan"
+msgstr "Loan"
+
+msgid "Lender"
+msgstr "Lender"
+
+msgid "Original loan"
+msgstr "Original loan"
+
+msgid "Monthly payment"
+msgstr "Monthly payment"
+
+msgid "Outstanding"
+msgstr "Outstanding"
+
+msgid "Next payment date"
+msgstr "Next payment date"
+
+msgid "Payment / updates"
+msgstr "Payment / updates"
+
+msgid "months; annual nominal rate"
+msgstr "months; annual nominal rate"
+
+msgid "Down payment"
+msgstr "Down payment"
+
+msgid "Interest already paid"
+msgstr "Interest already paid"
+
+msgid "Next instalment"
+msgstr "Next instalment"
+
+msgid "Capital"
+msgstr "Capital"
+
+msgid "Interest"
+msgstr "Interest"
+
+msgid "Pay from"
+msgstr "Pay from"
+
+msgid "Actual payment date"
+msgstr "Actual payment date"
+
+msgid "I confirm this instalment was actually paid from this account."
+msgstr "I confirm this instalment was actually paid from this account."
+
+msgid "Confirm instalment paid"
+msgstr "Confirm instalment paid"
+
+msgid "Amortisation schedule"
+msgstr "Amortisation schedule"
+
+msgid "Due date"
+msgstr "Due date"
+
+msgid "Instalment"
+msgstr "Instalment"
+
+msgid "Paid"
+msgstr "Paid"
+
+msgid "Forecast"
+msgstr "Forecast"
+
+msgid "Update loan"
+msgstr "Update loan"
+
+msgid "No loans entered."
+msgstr "No loans entered."
+
+msgid "Add a loan"
+msgstr "Add a loan"
+
+msgid "Enter the amount actually borrowed, excluding any down payment. Set TIN and term to calculate instalments; leave term zero and enter a manual monthly amount for an old-style loan. The optional final balloon is extra principal due with the last instalment."
+msgstr "Enter the amount actually borrowed, excluding any down payment. Set TIN and term to calculate instalments; leave term zero and enter a manual monthly amount for an old-style loan. The optional final balloon is extra principal due with the last instalment."
+
+msgid "Loan name"
+msgstr "Loan name"
+
+msgid "Annual nominal interest (TIN %)"
+msgstr "Annual nominal interest (TIN %)"
+
+msgid "Financed principal (€)"
+msgstr "Financed principal (€)"
+
+msgid "Term in months (0 = manual)"
+msgstr "Term in months (0 = manual)"
+
+msgid "Down payment from own funds (€)"
+msgstr "Down payment from own funds (€)"
+
+msgid "Extra principal on final instalment (€)"
+msgstr "Extra principal on final instalment (€)"
+
+msgid "Manual monthly payment (€; only term 0)"
+msgstr "Manual monthly payment (€; only term 0)"
+
+msgid "Loan date"
+msgstr "Loan date"
+
+msgid "First instalment date"
+msgstr "First instalment date"
+
+msgid "Loan funds actually received in bank (confirmed)"
+msgstr "Loan funds actually received in bank (confirmed)"
+
+msgid "Bank receiving loan"
+msgstr "Bank receiving loan"
+
+msgid "Select bank"
+msgstr "Select bank"
+
+msgid "Confirm funds received only if a real transfer into this bank account occurred. Saving the loan does not repeat the supplier payment; the down payment is informational and never moves cash automatically. Loan instalments are forecast until manually confirmed."
+msgstr "Confirm funds received only if a real transfer into this bank account occurred. Saving the loan does not repeat the supplier payment; the down payment is informational and never moves cash automatically. Loan instalments are forecast until manually confirmed."
+
+msgid "Save loan"
+msgstr "Save loan"
+
+msgid "Treasury"
+msgstr "Treasury"
+
+msgid "Expense type"
+msgstr "Expense type"
+
+msgid "Current expense"
+msgstr "Current expense"
+
+msgid "Fixed asset (depreciable)"
+msgstr "Fixed asset (depreciable)"
+
+msgid "Fixed asset"
+msgstr "Fixed asset"
+
+msgid "Date put into service"
+msgstr "Date put into service"
+
+msgid "Useful life (years)"
+msgstr "Useful life (years)"
+
+msgid "Annual straight-line allocation starts when the asset is ready for use. The first and last years are prorated by days. Confirm the applicable accounting and tax rules separately."
+msgstr "Annual straight-line allocation starts when the asset is ready for use. The first and last years are prorated by days. Confirm the applicable accounting and tax rules separately."

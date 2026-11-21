@@ -447,3 +447,300 @@ msgstr "Maximum 500 lignes et 2 Mo par import. Les documents en double sont igno
 
 msgid "Imported: %1$d drafts. Existing/duplicate documents skipped: %2$d."
 msgstr "Importés : %1$d brouillons. Documents existants ou en double ignorés : %2$d."
+
+msgid "Cash"
+msgstr "Espèces"
+
+msgid "Bank"
+msgstr "Banque"
+
+msgid "Treasury: cash, bank and loans"
+msgstr "Trésorerie : espèces, banques et prêts"
+
+msgid "Historical reconciliation: %1$d payments posted, %2$d skipped, %3$d errors. Review the bank balance before posting anything again."
+msgstr "Rapprochement historique : %1$d paiements enregistrés, %2$d ignorés et %3$d erreurs. Vérifiez le solde bancaire avant toute nouvelle écriture."
+
+msgid "Balances use opening funds and confirmed payments/receipts (including invoice-linked settlements). An opening balance is not a monthly Cash in / Bank in. If it actually represents a contribution received this year, you can convert it to a dated receipt below without changing the balance. Unpaid invoices and future loan instalments never move money."
+msgstr "Les soldes comprennent les fonds initiaux et les paiements/encaissements confirmés (y compris les règlements de factures). Un solde initial ne constitue pas une entrée mensuelle. S’il s’agit d’un apport réellement reçu cette année, vous pouvez le convertir en encaissement daté sans modifier le solde. Les factures impayées et les échéances futures de prêts ne déplacent aucun fonds."
+
+msgid "Cash on hand"
+msgstr "Espèces disponibles"
+
+msgid "Bank accounts"
+msgstr "Comptes bancaires"
+
+msgid "Total available funds"
+msgstr "Total des fonds disponibles"
+
+msgid "Loans outstanding (reported)"
+msgstr "Prêts en cours (déclarés)"
+
+msgid "Scheduled monthly loan instalments"
+msgstr "Mensualités de prêts prévues"
+
+msgid "Cash and bank accounts"
+msgstr "Comptes de caisse et bancaires"
+
+msgid "Account"
+msgstr "Compte"
+
+msgid "Type"
+msgstr "Type"
+
+msgid "Opening balance"
+msgstr "Solde initial"
+
+msgid "Current balance"
+msgstr "Solde actuel"
+
+msgid "Funding entry"
+msgstr "Enregistrement de l’apport"
+
+msgid "Actual contribution date"
+msgstr "Date réelle de l’apport"
+
+msgid "Funding reference"
+msgstr "Référence de l’apport"
+
+msgid "Initial loan / contribution"
+msgstr "Prêt / apport initial"
+
+msgid "Convert the opening balance, without adding funds twice"
+msgstr "Convertir le solde initial sans compter deux fois les fonds"
+
+msgid "Convert to receipt"
+msgstr "Convertir en encaissement"
+
+msgid "Add your cash register or first bank account to start tracking funds."
+msgstr "Ajoutez une caisse ou un premier compte bancaire pour commencer le suivi."
+
+msgid "Add cash register / bank account"
+msgstr "Ajouter une caisse / un compte bancaire"
+
+msgid "Name"
+msgstr "Nom"
+
+msgid "Opening date"
+msgstr "Date d’ouverture"
+
+msgid "Opening balance (€)"
+msgstr "Solde initial (€)"
+
+msgid "Add account"
+msgstr "Ajouter un compte"
+
+msgid "Record a payment or receipt"
+msgstr "Enregistrer un paiement ou un encaissement"
+
+msgid "Movement"
+msgstr "Mouvement"
+
+msgid "Money in"
+msgstr "Entrée d’argent"
+
+msgid "Money out"
+msgstr "Sortie d’argent"
+
+msgid "Amount (€)"
+msgstr "Montant (€)"
+
+msgid "Reference / concept"
+msgstr "Référence / libellé"
+
+msgid "Save movement"
+msgstr "Enregistrer le mouvement"
+
+msgid "Transfer between accounts"
+msgstr "Transférer entre comptes"
+
+msgid "From"
+msgstr "De"
+
+msgid "To"
+msgstr "Vers"
+
+msgid "Transfer funds"
+msgstr "Transférer les fonds"
+
+msgid "Monthly cash flow"
+msgstr "Flux de trésorerie mensuel"
+
+msgid "Cash in"
+msgstr "Entrées d’espèces"
+
+msgid "Cash out"
+msgstr "Sorties d’espèces"
+
+msgid "Bank in"
+msgstr "Entrées bancaires"
+
+msgid "Bank out"
+msgstr "Sorties bancaires"
+
+msgid "Cash balance"
+msgstr "Solde de caisse"
+
+msgid "Bank balance"
+msgstr "Solde bancaire"
+
+msgid "Recent cash and bank movements"
+msgstr "Derniers mouvements de caisse et banque"
+
+msgid "Amount"
+msgstr "Montant"
+
+msgid "Reference"
+msgstr "Référence"
+
+msgid "No movements recorded yet."
+msgstr "Aucun mouvement enregistré."
+
+msgid "Loans"
+msgstr "Prêts"
+
+msgid "New fixed-rate loans show monthly capital/interest forecasts. Interest on ordinary money loans is generally VAT-exempt; the schedule never changes model 303. Neither a future instalment nor an unconfirmed loan disbursement changes bank balances. Older manual loans retain their original update controls."
+msgstr "Les nouveaux prêts à taux fixe affichent des prévisions mensuelles de capital et d’intérêts. Les intérêts des prêts ordinaires sont généralement exonérés de TVA ; l’échéancier ne modifie jamais le modèle 303. Les échéances futures et versements non confirmés ne modifient pas les soldes bancaires. Les anciens prêts manuels conservent leurs commandes."
+
+msgid "Loan"
+msgstr "Prêt"
+
+msgid "Lender"
+msgstr "Prêteur"
+
+msgid "Original loan"
+msgstr "Montant initial du prêt"
+
+msgid "Monthly payment"
+msgstr "Mensualité"
+
+msgid "Outstanding"
+msgstr "Restant dû"
+
+msgid "Next payment date"
+msgstr "Date du prochain paiement"
+
+msgid "Payment / updates"
+msgstr "Paiements / mises à jour"
+
+msgid "months; annual nominal rate"
+msgstr "mois ; taux nominal annuel"
+
+msgid "Down payment"
+msgstr "Apport initial"
+
+msgid "Interest already paid"
+msgstr "Intérêts déjà payés"
+
+msgid "Next instalment"
+msgstr "Prochaine échéance"
+
+msgid "Capital"
+msgstr "Capital"
+
+msgid "Interest"
+msgstr "Intérêts"
+
+msgid "Pay from"
+msgstr "Payer depuis"
+
+msgid "Actual payment date"
+msgstr "Date réelle du paiement"
+
+msgid "I confirm this instalment was actually paid from this account."
+msgstr "Je confirme que cette échéance a effectivement été payée depuis ce compte."
+
+msgid "Confirm instalment paid"
+msgstr "Confirmer le paiement de l’échéance"
+
+msgid "Amortisation schedule"
+msgstr "Tableau d’amortissement"
+
+msgid "Due date"
+msgstr "Date d’échéance"
+
+msgid "Instalment"
+msgstr "Échéance"
+
+msgid "Paid"
+msgstr "Payé"
+
+msgid "Forecast"
+msgstr "Prévision"
+
+msgid "Update loan"
+msgstr "Mettre à jour le prêt"
+
+msgid "No loans entered."
+msgstr "Aucun prêt enregistré."
+
+msgid "Add a loan"
+msgstr "Ajouter un prêt"
+
+msgid "Enter the amount actually borrowed, excluding any down payment. Set TIN and term to calculate instalments; leave term zero and enter a manual monthly amount for an old-style loan. The optional final balloon is extra principal due with the last instalment."
+msgstr "Indiquez le montant réellement emprunté, hors apport initial. Saisissez le taux nominal et la durée pour calculer les mensualités ; laissez la durée à zéro et saisissez une mensualité manuelle pour un ancien prêt. Le paiement final exceptionnel représente du capital supplémentaire exigible avec la dernière mensualité."
+
+msgid "Loan name"
+msgstr "Nom du prêt"
+
+msgid "Annual nominal interest (TIN %)"
+msgstr "Taux nominal annuel (TIN %)"
+
+msgid "Financed principal (€)"
+msgstr "Capital financé (€)"
+
+msgid "Term in months (0 = manual)"
+msgstr "Durée en mois (0 = manuel)"
+
+msgid "Down payment from own funds (€)"
+msgstr "Apport initial sur fonds propres (€)"
+
+msgid "Extra principal on final instalment (€)"
+msgstr "Capital supplémentaire de la dernière échéance (€)"
+
+msgid "Manual monthly payment (€; only term 0)"
+msgstr "Mensualité manuelle (€ ; durée 0 uniquement)"
+
+msgid "Loan date"
+msgstr "Date du prêt"
+
+msgid "First instalment date"
+msgstr "Date de la première échéance"
+
+msgid "Loan funds actually received in bank (confirmed)"
+msgstr "Fonds du prêt réellement reçus en banque (confirmé)"
+
+msgid "Bank receiving loan"
+msgstr "Banque destinataire du prêt"
+
+msgid "Select bank"
+msgstr "Sélectionner une banque"
+
+msgid "Confirm funds received only if a real transfer into this bank account occurred. Saving the loan does not repeat the supplier payment; the down payment is informational and never moves cash automatically. Loan instalments are forecast until manually confirmed."
+msgstr "Ne confirmez la réception des fonds que si un véritable virement vers ce compte bancaire a eu lieu. Enregistrer le prêt ne répète pas le paiement du fournisseur ; l’apport initial est informatif et ne déplace jamais automatiquement d’espèces. Les échéances restent des prévisions jusqu’à confirmation manuelle."
+
+msgid "Save loan"
+msgstr "Enregistrer le prêt"
+
+msgid "Treasury"
+msgstr "Trésorerie"
+
+msgid "Expense type"
+msgstr "Type de dépense"
+
+msgid "Current expense"
+msgstr "Dépense courante"
+
+msgid "Fixed asset (depreciable)"
+msgstr "Immobilisation (amortissable)"
+
+msgid "Fixed asset"
+msgstr "Immobilisation"
+
+msgid "Date put into service"
+msgstr "Date de mise en service"
+
+msgid "Useful life (years)"
+msgstr "Durée d’utilisation (années)"
+
+msgid "Annual straight-line allocation starts when the asset is ready for use. The first and last years are prorated by days. Confirm the applicable accounting and tax rules separately."
+msgstr "L’amortissement linéaire annuel commence lorsque le bien est prêt à être utilisé. La première et la dernière année sont calculées au prorata des jours. Vérifiez séparément les règles comptables et fiscales applicables."

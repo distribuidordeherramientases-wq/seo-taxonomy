@@ -20,21 +20,22 @@ class GatedPipelineContract(unittest.TestCase):
         cls.check = CHECK.read_text(encoding="utf-8")
         cls.pro = PRO.read_text(encoding="utf-8")
 
-    def test_automatic_release_on_staging_merge_and_manual_fallback(self):
+    def test_staging_automatic_and_three_phase_only_with_manual_pro_approval(self):
         self.assertIn("workflow_dispatch:", self.pipeline)
-        self.assertIn("  push:", self.pipeline)
+        self.assertNotIn("  push:", self.pipeline)
+        self.assertIn("inputs.deploy_pro == true", self.pipeline)
         self.assertIn("refs/heads/staging", self.pipeline)
         # A long-running Plugin Check must NOT block newer staging uploads.
         pipeline_header = self.pipeline.split("\njobs:\n", 1)[0]
         self.assertNotIn("\nconcurrency:\n", pipeline_header)
         self.assertIn("concurrency:", self.staging)
-        self.assertIn("taxocommerce-staging-focazul-", self.staging)
+        self.assertIn("taxocommerce-site-delivery", self.staging)
         self.assertIn("cancel-in-progress: false", self.staging)
         self.assertIn("git ls-remote origin refs/heads/staging", self.pipeline)
         self.assertIn("needs.preflight.outputs.current == 'true'", self.pipeline)
-        # A single push-driven pipeline must own *all* staging deliveries.
-        # Partial Core/Tasks jobs cannot mark the entire revision deployed.
-        self.assertNotIn("  push:", self.staging)
+        # The staging-only workflow owns all automatic merges.
+        self.assertIn("  push:", self.staging)
+        self.assertIn("branches: [staging]", self.staging)
         self.assertIn("workflow_call:", self.staging)
         self.assertNotIn("TAXOCOMMERCE_REMOTE_VERIFY: '1'", self.staging)
         self.assertIn("STAGING_FTP_PASSWORD:", self.staging)
@@ -49,14 +50,24 @@ class GatedPipelineContract(unittest.TestCase):
 
 
     def test_plugin_check_does_not_monopolize_the_ftp_delivery_lock(self):
-        # Only the reusable delivery workflow serializes the shared FTPS
-        # account; the downstream 20-plugin WordPress.org check may continue.
+        # Only the STAGING/Focazul-only workflow serializes the shared FTPS
+        # account; the manual WordPress.org check remains separate.
         self.assertNotIn("taxocommerce-staging-check-pro\n", self.pipeline)
         self.assertIn("uses: ./.github/workflows/deploy-staging.yml", self.pipeline)
         self.assertIn("needs: staging", self.pipeline)
         self.assertIn("needs: [staging, plugin-check]", self.pipeline)
-        self.assertIn("taxocommerce-staging-focazul-", self.staging)
+        self.assertIn("taxocommerce-site-delivery", self.staging)
         self.assertIn("cancel-in-progress: false", self.staging)
+
+    def test_staging_and_both_manual_pro_workflows_share_a_release_mutex(self):
+        alternate = (ROOT / ".github/workflows/staging-a-pro-manual.yml").read_text(encoding="utf-8")
+        self.assertIn("taxocommerce-site-delivery", self.staging)
+        self.assertIn("taxocommerce-site-delivery", self.pro)
+        self.assertIn("taxocommerce-site-delivery", alternate)
+        self.assertIn("cancel-in-progress: false", self.staging)
+        self.assertIn("cancel-in-progress: false", self.pro)
+        self.assertIn("cancel-in-progress: false", alternate)
+        self.assertIn("if: needs.plan.outputs.core == 'true'", self.staging)
 
     def test_ftps_is_serial_across_sites_but_focazul_runs_after_staging_failure(self):
         # One shared FTP account; failures are still reported independently.
@@ -113,7 +124,7 @@ class GatedPipelineContract(unittest.TestCase):
         self.assertIn("repair required", self.pipeline)
         self.assertIn("COPILOT_AGENT_TOKEN", self.pipeline)
         self.assertIn("copilot-swe-agent[bot]", self.pipeline)
-        self.assertIn("reruns automatically on push", self.pipeline)
+        self.assertIn("PRO needs fresh explicit manual approval", self.pipeline)
         self.assertNotIn("for attempt in 1 2 3", self.staging)
         self.assertIn("python3 -u .github/scripts/deploy_staging_delta.py", self.staging)
         retry_source = (ROOT / ".github/scripts/deploy_staging_delta.py").read_text(encoding="utf-8")

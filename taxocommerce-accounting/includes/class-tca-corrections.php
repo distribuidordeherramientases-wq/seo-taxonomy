@@ -46,7 +46,7 @@ final class TCA_Corrections {
     public static function snapshot( $entry ) {
         $result = array();
         foreach ( array( 'source', 'source_id', 'kind', 'fiscal_date', 'document_no',
-            'party', 'tax_id', 'concept', 'amount_base', 'amount_tax',
+            'party', 'tax_id', 'concept', 'expense_type', 'service_date', 'useful_life_years', 'amount_base', 'amount_tax',
             'amount_total', 'deductible_pct', 'currency', 'treatment',
             'status', 'notes' ) as $key ) {
             $value = isset( $entry->$key ) ? $entry->$key : '';
@@ -75,9 +75,10 @@ final class TCA_Corrections {
         $tax = tca_decimal( isset( $input['amount_tax'] ) ? $input['amount_tax'] : '' );
         $pct = tca_decimal( isset( $input['deductible_pct'] ) ? $input['deductible_pct'] : '' );
         $reason = isset( $input['reason'] ) ? trim( (string) $input['reason'] ) : '';
+        $notes = isset( $input['notes'] ) ? (string) $input['notes'] : (string) $entry->notes;
 
         if ( ! tca_valid_date( $date ) || null === $base || null === $tax ||
-            null === $pct || $pct < 0 || $pct > 100 || '' === $reason || strlen( $reason ) > 1000 ) {
+            null === $pct || $pct < 0 || $pct > 100 || '' === $reason || strlen( $reason ) > 1000 || strlen( $notes ) > 5000 ) {
             return new WP_Error( 'tca_correction_invalid', __( 'Check the amounts, date, VAT deduction and correction reason.', 'taxocommerce-accounting' ) );
         }
 
@@ -106,17 +107,28 @@ final class TCA_Corrections {
             return new WP_Error( 'tca_correction_party', __( 'Check the supplier or customer and tax identification.', 'taxocommerce-accounting' ) );
         }
 
-        // Keep the prior treatment until a separate fiscal validation.
+        // Preserve classification for all non-expense record kinds.
+        $expense_type = 'expense' === $entry->kind ? sanitize_key( (string) ( $input['expense_type'] ?? 'current' ) ) : 'current';
+        $service_date = 'fixed_asset' === $expense_type ? (string) ( $input['service_date'] ?? '' ) : '';
+        $years = 'fixed_asset' === $expense_type ? (string) ( $input['useful_life_years'] ?? '' ) : '0';
+        if ( 'expense' === $entry->kind && ! TCA_Depreciation::valid( $expense_type, $service_date, $years, $date ) ) {
+            return new WP_Error( 'tca_correction_asset', __( 'Check the asset category, in-service date and useful life.', 'taxocommerce-accounting' ) );
+        }
+        // Keep the prior tax treatment until a separate fiscal validation.
         return array(
             'fiscal_date' => $date,
             'document_no' => $document,
             'party' => $party,
             'tax_id' => $tax_id,
             'concept' => $concept,
+            'expense_type' => 'expense' === $entry->kind ? $expense_type : 'current',
+            'service_date' => 'fixed_asset' === $expense_type ? $service_date : null,
+            'useful_life_years' => 'fixed_asset' === $expense_type ? (int) $years : 0,
             'amount_base' => $base,
             'amount_tax' => $tax,
             'amount_total' => round( $base + $tax, 2 ),
             'deductible_pct' => in_array( $entry->kind, array( 'sale', 'refund' ), true ) ? 0 : $pct,
+            'notes' => $notes,
             'status' => 'draft',
             'updated_at' => current_time( 'mysql' ),
         );
@@ -138,10 +150,12 @@ final class TCA_Corrections {
         $tab = self::tab_for( $entry->kind );
         $input = array();
         foreach ( array( 'fiscal_date', 'document_no', 'party', 'tax_id', 'concept',
-            'amount_base', 'amount_tax', 'deductible_pct', 'reason' ) as $key ) {
+            'amount_base', 'amount_tax', 'deductible_pct', 'expense_type', 'service_date', 'useful_life_years', 'reason' ) as $key ) {
             $input[ $key ] = tca_input( $key );
         }
 
+        $input['notes'] = isset( $_POST['notes'] ) && is_string( $_POST['notes'] )
+            ? sanitize_textarea_field( wp_unslash( $_POST['notes'] ) ) : '';
         $new = self::prepare( $entry, $input );
         if ( is_wp_error( $new ) ) {
             self::redirect( $tab, 'correction_invalid' );
@@ -228,7 +242,8 @@ final class TCA_Corrections {
     }
 
     private static function same_values( $before, $after ) {
-        unset( $before['status'], $after['status'] );
+        // Status is a meaningful fiscal change: validated -> draft must be audited,
+        // even if invoice amounts and other values have not changed.
         unset( $before['updated_at'], $after['updated_at'] );
         return wp_json_encode( $before ) === wp_json_encode( $after );
     }
@@ -271,7 +286,7 @@ final class TCA_Corrections {
             return;
         }
 
-        echo '<h3>' . esc_html__( 'Correct accounting entry', 'taxocommerce-accounting' ) . ' #' . esc_html( $id ) . '</h3>';
+        echo '<h3 id="tca-edit-entry-' . esc_attr( (string) $id ) . '">' . esc_html__( 'Correct accounting entry', 'taxocommerce-accounting' ) . ' #' . esc_html( $id ) . '</h3>';
         echo '<p class="notice notice-warning inline">' .
             esc_html__( 'This changes only the accounting record, not the WooCommerce order, issued invoice, or supplier PDF. If an issued invoice is wrong, follow the required rectifying-invoice procedure before fiscal approval.', 'taxocommerce-accounting' ) . '</p>';
         echo '<p>' . esc_html__( 'Saving a correction moves this record back to draft and removes it from validated tax totals until it is reviewed and approved again.', 'taxocommerce-accounting' ) . '</p>';
@@ -301,8 +316,21 @@ final class TCA_Corrections {
             }
             echo '></td></tr>';
         }
+        if ( 'expense' === $entry->kind ) {
+            $type = (string) ( $entry->expense_type ?? 'current' );
+            echo '<tr><th><label for="tca-expense-type">' . esc_html__( 'Expense type', 'taxocommerce-accounting' ) . '</label></th><td>';
+            echo '<select name="expense_type" id="tca-expense-type">';
+            echo '<option value="current" ' . selected( $type, 'current', false ) . '>' . esc_html__( 'Current expense', 'taxocommerce-accounting' ) . '</option>';
+            echo '<option value="fixed_asset" ' . selected( $type, 'fixed_asset', false ) . '>' . esc_html__( 'Fixed asset (depreciable)', 'taxocommerce-accounting' ) . '</option></select></td></tr>';
+            echo '<tr class="tca-asset-fields"><th><label for="tca-service-date">' . esc_html__( 'Date put into service', 'taxocommerce-accounting' ) . '</label></th><td>';
+            echo '<input type="date" id="tca-service-date" name="service_date" value="' . esc_attr( $entry->service_date ?: $entry->fiscal_date ) . '"></td></tr>';
+            echo '<tr class="tca-asset-fields"><th><label for="tca-useful-life">' . esc_html__( 'Useful life (years)', 'taxocommerce-accounting' ) . '</label></th><td>';
+            echo '<input type="number" min="1" max="50" step="1" id="tca-useful-life" name="useful_life_years" value="' . esc_attr( (string) ( (int) $entry->useful_life_years ?: 5 ) ) . '"></td></tr>';
+        }
         echo '<tr><th><label for="tca-correct-pct">' . esc_html__( 'Deductible VAT percentage', 'taxocommerce-accounting' ) . '</label></th>';
         echo '<td><input id="tca-correct-pct" name="deductible_pct" type="number" min="0" max="100" step="0.01" value="' . esc_attr( $entry->deductible_pct ) . '" required></td></tr>';
+        echo '<tr><th><label for="tca-correct-notes">' . esc_html__( 'Notes', 'taxocommerce-accounting' ) . '</label></th>';
+        echo '<td><textarea id="tca-correct-notes" name="notes" maxlength="5000" rows="4" class="large-text">' . esc_textarea( $entry->notes ) . '</textarea></td></tr>';
         echo '<tr><th><label for="tca-correct-reason">' . esc_html__( 'Correction reason', 'taxocommerce-accounting' ) . '</label></th>';
         echo '<td><textarea id="tca-correct-reason" name="reason" maxlength="1000" rows="3" class="large-text" required></textarea></td></tr>';
         echo '</table>';

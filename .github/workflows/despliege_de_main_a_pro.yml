@@ -17,7 +17,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: taxocommerce-production-deploy
+  group: taxocommerce-site-delivery
   cancel-in-progress: false
 
 jobs:

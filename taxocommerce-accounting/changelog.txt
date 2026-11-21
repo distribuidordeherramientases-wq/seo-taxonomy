@@ -1,3 +1,21 @@
+= 0.1.23 (2026-11-20) =
+* Fix reverting validated entries to draft without changing amounts or documents. Audit the required reason and allow editing the record notes in the correction form. Existing drafts with no changes remain no-ops. Issue #2894. No production deployment.
+
+= 0.1.22 (2026-11-20) =
+* Link monthly pending-review and incident counts directly to existing record validation/correction forms or a filtered month queue. Add contextual links in ledger and Autocheck; distinguish routine drafts, real invoice discrepancies and warnings. Avoid false pending non-domestic treatments or already linked issued invoices. Issue #2888.
+
+= 0.1.21 (2026-11-20) =
+* Translate expense classification and depreciation interface fields in five languages; rebuild compiled gettext catalogs. Issue #2884.
+
+= 0.1.20 (2026-11-20) =
+* Classify Expenses as current or depreciable fixed assets, with validated in-service date, useful life and automatic read-only annual depreciation. Existing entries default to current; VAT, purchases, invoices, and treasury unchanged. Issue #2881.
+
+= 0.1.19 (2026-11-20) =
+* Translate the Treasury menu tab in ES/EN/FR/DE/NL and rebuild gettext catalogs. No behavioral changes. Issue #2878.
+
+= 0.1.18 (2026-11-20) =
+* Localize 91 Treasury interface strings in ES/EN/FR/DE/NL and regenerate compiled gettext catalogs; preserve all bookkeeping operations. Issue #2876.
+
 = 0.1.17 (2026-11-20) =
 * Reconcile VAT against an independently verified, issued rectification via optional WordPress filter while preserving original invoice, WooCommerce order and payments. No hard plugin dependency. Issue #2860.
 
