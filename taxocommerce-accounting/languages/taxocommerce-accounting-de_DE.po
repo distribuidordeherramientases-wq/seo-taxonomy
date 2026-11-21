@@ -1313,8 +1313,8 @@ msgstr "Verlauf der Anfangssaldo-Korrekturen"
 msgid "Create a new cash or bank account (not a receipt)"
 msgstr "Neues Kassen- oder Bankkonto erstellen (kein Geldeingang)"
 
-msgid "Use the account name ING or CAJA. Record donations, initial contributions and customer receipts as movements into an existing account."
-msgstr "Verwenden Sie einen Kontonamen wie ING oder CAJA. Erfassen Sie Spenden, Anfangseinlagen und Kundenzahlungen als Eingänge auf ein bestehendes Konto."
+msgid "Use a descriptive account name, such as Main bank or Cash register. Record donations, initial contributions and customer receipts as movements into an existing account."
+msgstr "Verwenden Sie aussagekräftige Kontonamen wie Hauptbank oder Kasse. Erfassen Sie Spenden, Anfangseinlagen und Kundeneinnahmen als Eingänge auf bestehende Konten."
 
 msgid "Save changes"
 msgstr "Änderungen speichern"
@@ -1400,5 +1400,5 @@ msgstr "Ich bestätige, dass der gesamte Anfangssaldo zu diesem Darlehen gehört
 msgid "When linking an opening balance, the loan principal must equal that opening amount exactly. An opening balance can fund only one loan. No bank movement is created."
 msgstr "Bei Verknüpfung eines Anfangssaldos muss das Darlehenskapital diesem Betrag exakt entsprechen. Ein Anfangssaldo darf nur ein Darlehen finanzieren. Keine Bankbewegung wird erstellt."
 
-msgid "Select opening balance when the sponsor already financed ING: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed."
-msgstr "Anfangssaldo wählen, wenn der Sponsor ING bereits finanziert hat: kein zweiter Eingang. Neuen Eingang nur bei neu eingetroffenem Geld wählen. Dies ist ein rückzahlbares Darlehen, keine Spende oder umsatzsteuerpflichtiger Verkauf. Raten bleiben Prognosen bis zur Bestätigung."
+msgid "Select opening balance when the lender's funds are already included in the bank opening balance: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed."
+msgstr "Wählen Sie Anfangssaldo, wenn die Darlehensmittel bereits im Bankanfangssaldo enthalten sind: kein zweiter Eingang wird gebucht. Neuen Eingang nur bei neu eingetroffenen Mitteln wählen. Es handelt sich um ein rückzahlbares Darlehen, keine Spende oder umsatzsteuerpflichtige Lieferung. Raten bleiben Prognosen bis zur Bestätigung."
