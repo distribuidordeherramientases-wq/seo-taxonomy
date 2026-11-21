@@ -702,10 +702,22 @@ final class TCA_Treasury {
             $positive = in_array( $movement->direction, array( 'in', 'transfer_in' ), true );
             echo '<tr><td>' . esc_html( $movement->posted_on ) . '</td><td>' . esc_html( isset( $by_id[ (int) $movement->account_id ] ) ? $by_id[ (int) $movement->account_id ]->name : '' ) . '</td><td>' .
                 esc_html( $positive ? __( 'Money in', 'taxocommerce-accounting' ) : __( 'Money out', 'taxocommerce-accounting' ) ) . '</td><td>' .
-                esc_html( ( $positive ? '+' : '−' ) . tca_money( $movement->amount ) ) . '</td><td>' . esc_html( $movement->reference ) . '</td></tr>';
+                esc_html( ( $positive ? '+' : '−' ) . tca_money( $movement->amount ) ) . '</td><td>' . esc_html( $movement->reference ) . '</td><td>';
+            if ( in_array( $movement->direction, array( 'in', 'out' ), true ) ) {
+                self::start_form( 'edit_movement' );
+                echo '<input type="hidden" name="movement_id" value="' . esc_attr( (string) $movement->id ) . '">';
+                self::account_select( $accounts, 'account_id', (int) $movement->account_id );
+                echo '<select name="direction"><option value="in"' . selected( $movement->direction, 'in', false ) . '>' . esc_html__( 'Money in', 'taxocommerce-accounting' ) . '</option><option value="out"' . selected( $movement->direction, 'out', false ) . '>' . esc_html__( 'Money out', 'taxocommerce-accounting' ) . '</option></select>';
+                echo '<input type="date" name="posted_on" value="' . esc_attr( $movement->posted_on ) . '" required>';
+                echo '<input type="number" name="amount" min="0.01" step="0.01" value="' . esc_attr( (string) $movement->amount ) . '" required>';
+                echo '<input type="text" name="reference" maxlength="191" value="' . esc_attr( $movement->reference ) . '">';
+                submit_button( __( 'Save changes', 'taxocommerce-accounting' ), 'secondary small', 'submit', false );
+                echo '</form>';
+            } else { echo '&mdash;'; }
+            echo '</td></tr>';
         }
         if ( ! $recent ) {
-            echo '<tr><td colspan="5">' . esc_html__( 'No movements recorded yet.', 'taxocommerce-accounting' ) . '</td></tr>';
+            echo '<tr><td colspan="6">' . esc_html__( 'No movements recorded yet.', 'taxocommerce-accounting' ) . '</td></tr>';
         }
         echo '</tbody></table>';
 
