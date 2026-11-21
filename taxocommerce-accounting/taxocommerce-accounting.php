@@ -234,9 +234,12 @@ function tca_sale_entry_from_order( $order, $settings ) {
     // If the merchant issued an immutable invoice, its stored fiscal totals
     // are authoritative for a new draft. Never silently change old records.
     $invoice = TCA_Issued_Invoice::amounts_for_order( $order->get_id() );
+    // A properly identified rectification may change the final invoice total
+    // without changing the historical WooCommerce order and its old payment.
+    $rectified = is_array( $invoice ) && isset( $invoice['rectification_original_total'] );
     $invoice_mismatch = is_array( $invoice ) && (
-        abs( (float) $invoice['amount_total'] - $total ) > 0.02 ||
-        abs( (float) $invoice['amount_tax'] - $tax ) > 0.02 ||
+        abs( (float) ( $rectified ? $invoice['rectification_original_total'] : $invoice['amount_total'] ) - $total ) > 0.02 ||
+        ( ! $rectified && abs( (float) $invoice['amount_tax'] - $tax ) > 0.02 ) ||
         $invoice['currency'] !== $currency
     );
     $sale_base = $invoice ? $invoice['amount_base'] : round( $total - $tax, 2 );
@@ -314,6 +317,77 @@ function tca_on_billing_invoice_issued( $order_id, $document ) {
     ) );
 }
 add_action( 'taxocommerce_billing_invoice_issued', 'tca_on_billing_invoice_issued', 10, 2 );
+
+/**
+ * Optionally reconcile an immutable rectifying invoice issued by any billing
+ * module implementing the documented WordPress filter. No compulsory link to
+ * Billing, no WooCommerce edits and no new bank/cash movement.
+ *
+ * An unchanged original accounting entry is moved back to draft with the
+ * rectified figures. A manually modified or overpaid entry is NEVER replaced.
+ * Earlier receipt links keep their same entry ID and monetary amounts.
+ */
+function tca_on_billing_rectification_issued( $order_id, $document ) {
+    global $wpdb;
+    if ( ! is_object( $document ) || 'issued' !== (string) ( $document->status ?? '' ) ||
+        absint( $order_id ) !== absint( $document->order_id ?? 0 ) ||
+        empty( $document->document_number ) || empty( $document->snapshot ) ) {
+        return;
+    }
+    $snapshot = json_decode( (string) $document->snapshot, true );
+    $rect = is_array( $snapshot ) ? (array) ( $snapshot['rectification'] ?? array() ) : array();
+    if ( 'substitution' !== (string) ( $rect['method'] ?? '' ) ||
+        ! isset( $rect['old_base'], $rect['old_tax'], $rect['old_total'], $rect['original_number'] ) ||
+        ! is_numeric( $rect['old_base'] ) || ! is_numeric( $rect['old_tax'] ) ||
+        ! is_numeric( $rect['old_total'] ) ||
+        abs( (float) $rect['old_base'] + (float) $rect['old_tax'] - (float) $rect['old_total'] ) > 0.02 ) {
+        return;
+    }
+    $invoice = TCA_Issued_Invoice::amounts_for_order( $order_id );
+    if ( ! $invoice || (string) $invoice['document_no'] !== (string) $document->document_number ||
+        abs( (float) $invoice['rectification_original_total'] - (float) $rect['old_total'] ) > 0.02 ) {
+        return;
+    }
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own accounting entry must be locked together with its settlements.
+    $wpdb->query( 'START TRANSACTION' );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prevent concurrent fiscal or settlement modifications.
+    $entry = $wpdb->get_row( $wpdb->prepare(
+        'SELECT * FROM %i WHERE source = %s AND source_id = %d FOR UPDATE',
+        tca_table(), 'woocommerce', absint( $order_id )
+    ) );
+    if ( ! $entry || 'sale' !== (string) $entry->kind ||
+        ! in_array( (string) $entry->status, array( 'draft', 'validated' ), true ) ||
+        (string) $entry->document_no !== (string) $rect['original_number'] ||
+        (string) $entry->currency !== (string) $invoice['currency'] ||
+        abs( (float) $entry->amount_base - (float) $rect['old_base'] ) > 0.02 ||
+        abs( (float) $entry->amount_tax - (float) $rect['old_tax'] ) > 0.02 ||
+        abs( (float) $entry->amount_total - (float) $rect['old_total'] ) > 0.02 ||
+        TCA_Settlements::sum( (int) $entry->id ) > (float) $invoice['amount_total'] + 0.001 ) {
+        // Existing manual corrections or overpayments require human review.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- No changes committed on mismatch.
+        $wpdb->query( 'ROLLBACK' );
+        return;
+    }
+    $note = sprintf(
+        /* translators: %s: issued rectifying invoice number. */
+        __( 'Totals updated from rectifying invoice %s; review the VAT classification and approve the draft again.', 'taxocommerce-accounting' ),
+        (string) $document->document_number
+    );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Single source of fiscal figures, previous receipts unaffected.
+    $ok = $wpdb->update( tca_table(), array(
+        'document_no' => (string) $invoice['document_no'],
+        'amount_base' => (float) $invoice['amount_base'],
+        'amount_tax' => (float) $invoice['amount_tax'],
+        'amount_total' => (float) $invoice['amount_total'],
+        'status' => 'draft',
+        'notes' => substr( trim( (string) $entry->notes . "\n" . $note ), 0, 5000 ),
+        'updated_at' => current_time( 'mysql' ),
+    ), array( 'id' => (int) $entry->id, 'updated_at' => (string) $entry->updated_at ),
+        array( '%s', '%f', '%f', '%f', '%s', '%s', '%s' ), array( '%d', '%s' ) );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Protect against partial accounting reconciliation.
+    $wpdb->query( 1 === $ok ? 'COMMIT' : 'ROLLBACK' );
+}
+add_action( 'taxocommerce_billing_rectification_issued', 'tca_on_billing_rectification_issued', 10, 2 );
 
 /**
  * Synchronise a bounded page of paid orders. All new records are DRAFT.
