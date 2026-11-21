@@ -394,8 +394,13 @@ function tca_on_billing_rectification_issued( $order_id, $document ) {
         'updated_at' => current_time( 'mysql' ),
     ), array( 'id' => (int) $entry->id, 'updated_at' => (string) $entry->updated_at ),
         array( '%s', '%f', '%f', '%f', '%s', '%s', '%s' ), array( '%d', '%s' ) );
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Protect against partial accounting reconciliation.
-    $wpdb->query( 1 === $ok ? 'COMMIT' : 'ROLLBACK' );
+    if ( 1 === $ok ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic fiscal reconciliation.
+        $wpdb->query( 'COMMIT' );
+    } else {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reject partial accounting reconciliation.
+        $wpdb->query( 'ROLLBACK' );
+    }
 }
 add_action( 'taxocommerce_billing_rectification_issued', 'tca_on_billing_rectification_issued', 10, 2 );
 
