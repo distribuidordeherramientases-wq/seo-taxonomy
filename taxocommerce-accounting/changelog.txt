@@ -1,3 +1,6 @@
+= 0.1.30 (2026-11-21) =
+* Localize 49 review, correction and payment/receipt UI strings in five languages and rebuild gettext catalogs. Issue #2917.
+
 = 0.1.29 (2026-11-21) =
 * Fix false amber status and «Payment not linked» on fully paid validated invoices with imported [scope=review] notes. Preserve formal tax review, original notes, all fiscal amounts and Treasury movements. Issue #2913. No PRO deployment.
 
