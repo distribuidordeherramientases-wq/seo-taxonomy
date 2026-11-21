@@ -1,3 +1,6 @@
+= 0.1.32 (2026-11-21) =
+* Centralize depreciable fixed-asset entry, useful life and depreciation reporting in Assets; preserve legacy fixed-expense records and their corrections without migration or duplicated payments. Issue #2922. No PRO deployment.
+
 = 0.1.31 (2026-11-21) =
 * Show existing opening-balance loan funding as a dated bank receipt in monthly reporting and separate financial summary/JSON, without a second bank movement or changes to fiscal VAT and actual balances. Include regression and translations. Issue #2919. No production deployment.
 
