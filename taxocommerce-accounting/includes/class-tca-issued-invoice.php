@@ -127,9 +127,15 @@ final class TCA_Issued_Invoice {
             }
         }
         $corrected_number = trim( (string) ( $effective['document_no'] ?? '' ) );
+        // A corrected gross is accepted only when the independent issuer
+        // explicitly verifies which original invoice amount it supersedes.
+        // Legacy VAT-only integrations may omit the extra marker.
+        $gross_changed = abs( (float) $effective['amount_total'] - $total ) > 0.02;
         if ( '' === $corrected_number || strlen( $corrected_number ) > 100 ||
             (string) ( $effective['currency'] ?? '' ) !== $currency ||
-            abs( (float) $effective['amount_total'] - $total ) > 0.02 ||
+            ( $gross_changed && ( ! isset( $effective['rectification_original_total'] ) ||
+                ! is_numeric( $effective['rectification_original_total'] ) ||
+                abs( (float) $effective['rectification_original_total'] - $total ) > 0.02 ) ) ||
             abs( (float) $effective['amount_base'] + (float) $effective['amount_tax'] -
                 (float) $effective['amount_total'] ) > 0.02 ) {
             return $original;
@@ -140,6 +146,7 @@ final class TCA_Issued_Invoice {
             'amount_tax' => round( (float) $effective['amount_tax'], 2 ),
             'amount_total' => round( (float) $effective['amount_total'], 2 ),
             'currency' => $currency,
+            'rectification_original_total' => $total,
         );
     }
 
