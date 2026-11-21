@@ -123,4 +123,13 @@ tca_treasury_assert( false !== strpos( $source, "'interest_amount'" ), 'Actual i
 tca_treasury_assert( false !== strpos( $source, "'term_months' => \$months" ), 'New financing mode stores its duration' );
 tca_treasury_assert( false !== strpos( $source, "return self::table( 'movements' )" ), 'Payments use the standard Treasury movements ledger' );
 
+// Flexible 0% sponsor loan: funding is already in ING and is not added again.
+tca_treasury_assert( false !== strpos( $source, "repayment_mode varchar(16)" ), 'Repayment mode is persisted in the loan register' );
+tca_treasury_assert( false !== strpos( $source, "'repayment_mode' => $flexible" ) || false !== strpos( $source, "'repayment_mode' => " ), 'Flexible loans are tagged separately from legacy loans' );
+tca_treasury_assert( false !== strpos( $source, "'loan_flexible_payment' === $operation" ), 'Partial repayments have a separate action' );
+tca_treasury_assert( false !== strpos( $source, "'remaining' => round( (float) $loan->remaining - $amount, 2 )" ), 'Confirmed repayments reduce debt by actual capital paid' );
+tca_treasury_assert( false !== strpos( $source, "'interest_amount' => 0.0" ), 'Flexible interest-free repayments have no interest' );
+tca_treasury_assert( false !== strpos( $source, "loan_payment_confirmed" ), 'Flexible repayments require administrator confirmation' );
+tca_treasury_assert( false !== strpos( $source, "Loan funds" ), 'Funding mode keeps opening-balance loan separate from new bank receipt' );
+tca_treasury_assert( false !== strpos( $source, "Repayment when agreed, without fixed instalments." ), 'Flexible terms are shown without a false monthly instalment' );
 echo "TaxoCommerce Accounting Treasury isolated smoke: PASS\n";
