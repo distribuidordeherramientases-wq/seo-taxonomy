@@ -934,3 +934,144 @@ msgstr "Huidig banksaldo"
 
 msgid "The opening loan is shown as a bank inflow in its start month for reporting. It is already included in the opening bank balance: no second bank movement, sale or VAT is created."
 msgstr "De oorspronkelijke lening wordt alleen voor rapportagedoeleinden als bankontvangst in de startmaand getoond. Deze is al opgenomen in het beginsaldo van de bank: er wordt geen tweede banktransactie, verkoop of btw aangemaakt."
+
+msgid "Issued invoice totals differ from the WooCommerce order. Review the original invoice and order before approving this draft."
+msgstr "De totalen op de uitgereikte factuur verschillen van de WooCommerce-bestelling. Controleer beide voordat je het concept goedkeurt."
+
+msgid "Totals updated from rectifying invoice %s; review the VAT classification and approve the draft again."
+msgstr "Totalen bijgewerkt vanuit correctiefactuur %s; controleer de btw-indeling en keur het concept opnieuw goed."
+
+msgid "Issued invoice and accounting totals disagree. Check the original invoice and the order; validation is blocked until reconciled."
+msgstr "De uitgereikte factuur en de boekhouding komen niet overeen. Controleer factuur en bestelling; validatie is geblokkeerd."
+
+msgid "Validated sale has zero VAT. Check its original invoice and applicable tax regime."
+msgstr "De gevalideerde verkoop heeft 0% btw. Controleer de oorspronkelijke factuur en het toepasselijke belastingregime."
+
+msgid "(automatically linked to this WooCommerce order)"
+msgstr "(automatisch gekoppeld aan deze WooCommerce-bestelling)"
+
+msgid "WooCommerce imported this sale with zero VAT. Check its invoice and the correct fiscal treatment before approving."
+msgstr "WooCommerce heeft deze verkoop zonder btw geïmporteerd. Controleer factuur en fiscale behandeling vóór goedkeuring."
+
+msgid "I have checked the zero VAT amount and confirm its domestic tax treatment."
+msgstr "Ik heb het btw-bedrag van nul gecontroleerd en bevestig de binnenlandse fiscale behandeling."
+
+msgid "Deductible percentage of the VAT amount, NOT the invoice VAT rate. 0% means no deduction; 100% only when fully deductible."
+msgstr "Aftrekbaar percentage van de btw, NIET het btw-tarief op de factuur. 0%: niet aftrekbaar; 100%: volledig aftrekbaar."
+
+msgid "Enter the percentage of VAT legally deductible, NOT the VAT rate: 0% if not deductible, 100% only if fully deductible, or another applicable percentage. You must choose a value."
+msgstr "Voer het wettelijk aftrekbare btw-percentage in, NIET het btw-tarief: 0% bij geen aftrek, 100% bij volledige aftrek of een ander toepasselijk percentage. Een waarde is verplicht."
+
+msgid "Invoice amount checks"
+msgstr "Controle factuurbedragen"
+
+msgid "Total of supplier invoice (base + VAT):"
+msgstr "Totaal leveranciersfactuur (grondslag + btw):"
+
+msgid "Potential deductible VAT (VAT × deductible percentage):"
+msgstr "Mogelijk aftrekbare btw (btw × aftrekpercentage):"
+
+msgid "Compare these amounts with the supplier invoice. This preview is not a tax deduction decision."
+msgstr "Vergelijk deze bedragen met de leveranciersfactuur. Dit voorbeeld bepaalt geen fiscale aftrek."
+
+msgid "Original PDF or image securely archived with this accounting entry."
+msgstr "Oorspronkelijke pdf of afbeelding veilig bij deze boeking gearchiveerd."
+
+msgid "Select a valid original PDF, JPG, PNG or WEBP document smaller than 10 MB."
+msgstr "Selecteer een geldig origineel PDF-, JPG-, PNG- of WEBP-document kleiner dan 10 MB."
+
+msgid "Correction saved. This entry is now a draft and must be validated again."
+msgstr "Correctie opgeslagen. De boeking is weer een concept en moet opnieuw worden gevalideerd."
+
+msgid "Could not correct the entry. Check all fields and the mandatory reason."
+msgstr "De boeking kon niet worden gecorrigeerd. Controleer alle velden en de verplichte reden."
+
+msgid "No data changed; nothing was recorded."
+msgstr "Geen gegevens gewijzigd en niets geregistreerd."
+
+msgid "The correction failed. The previous ledger entry was retained."
+msgstr "De correctie is mislukt. De vorige boeking blijft behouden."
+
+msgid "This WooCommerce sale has zero VAT. Check its issued invoice and confirm the domestic VAT treatment before validating it."
+msgstr "Deze WooCommerce-verkoop heeft 0% btw. Controleer de uitgereikte factuur en bevestig de fiscale behandeling vóór validatie."
+
+msgid "Accounting totals do not match the immutable issued invoice. Validation was blocked; reconcile the original document and WooCommerce order."
+msgstr "De boekhoudtotalen komen niet overeen met de onveranderlijke uitgereikte factuur. Validatie geblokkeerd; stem factuur en WooCommerce-bestelling af."
+
+msgid "Actual payment/receipt recorded in Treasury."
+msgstr "Werkelijke betaling/ontvangst geregistreerd in Kasbeheer."
+
+msgid "Historical payment reconciliation processed; review the posted, skipped and error counts shown."
+msgstr "Historische betalingsafstemming verwerkt; controleer geboekte, overgeslagen en foutieve posten."
+
+msgid "Invoice draft saved, but the selected payment could not be recorded. Register it from the invoice row after checking account, date and amount."
+msgstr "Factuurconcept opgeslagen, maar de gekozen betaling kon niet worden vastgelegd. Registreer deze bij de factuur na controle van rekening, datum en bedrag."
+
+msgid "Invoice validated, but the selected payment could not be recorded. Register it from the invoice row."
+msgstr "Factuur gevalideerd, maar de gekozen betaling kon niet worden vastgelegd. Registreer deze bij de factuur."
+
+msgid "Payment amount, date or account is invalid or exceeds the outstanding balance."
+msgstr "Bedrag, datum of rekening van de betaling is ongeldig of overschrijdt het openstaande saldo."
+
+msgid "Payment could not be recorded; no money was moved."
+msgstr "Betaling kon niet worden vastgelegd; er is geen geld verplaatst."
+
+msgid "Treasury record saved."
+msgstr "Kasbeheerboeking opgeslagen."
+
+msgid "Could not save the treasury record."
+msgstr "Kasbeheerboeking kon niet worden opgeslagen."
+
+msgid "Check the treasury values and dates."
+msgstr "Controleer de bedragen en datums in Kasbeheer."
+
+msgid "Supplier purchase CSV processed. Check the drafts in Received invoices."
+msgstr "CSV met leveranciersinkopen verwerkt. Controleer de concepten bij Ontvangen facturen."
+
+msgid "Select a valid supplier purchase CSV smaller than 2 MB."
+msgstr "Selecteer een geldig CSV-bestand voor leveranciersinkopen kleiner dan 2 MB."
+
+msgid "Invalid purchase CSV headers; use the downloaded template."
+msgstr "Ongeldige CSV-kolommen voor inkopen; gebruik het gedownloade sjabloon."
+
+msgid "Purchase CSV contains more than 500 rows."
+msgstr "Het inkoop-CSV bevat meer dan 500 rijen."
+
+msgid "Invalid supplier purchase data; no rows imported."
+msgstr "Ongeldige leveranciersinkoopgegevens; geen rijen geïmporteerd."
+
+msgid "Supplier purchase CSV contains no documents."
+msgstr "Het CSV-bestand met leveranciersinkopen bevat geen documenten."
+
+msgid "Could not save the supplier purchase batch; please retry."
+msgstr "Batch met leveranciersinkopen kon niet worden opgeslagen; probeer opnieuw."
+
+msgid "%d validated domestic WooCommerce sales have positive values but zero VAT. Review the original invoice and the tax treatment; these entries still contribute zero output VAT to this summary."
+msgstr "%d gevalideerde binnenlandse WooCommerce-verkopen hebben positieve bedragen maar nul btw. Controleer de originele facturen en fiscale behandeling; ze dragen nog steeds nul verschuldigde btw bij aan het overzicht."
+
+msgid "Review sales"
+msgstr "Verkopen controleren"
+
+msgid "Import new paid WooCommerce orders automatically in small background batches"
+msgstr "Nieuwe betaalde WooCommerce-bestellingen automatisch in kleine achtergrondbatches importeren"
+
+msgid "Uses WordPress WP-Cron while the website receives visits. Imported sales and refunds remain drafts until invoice numbers, dates and tax treatment are verified. Does not import supplier bills or mark taxes as ready."
+msgstr "Gebruikt WordPress WP-Cron bij websitebezoeken. Geïmporteerde verkopen en terugbetalingen blijven concepten tot factuurnummers, datums en fiscale behandeling zijn gecontroleerd. Geen leveranciersfacturen of automatische fiscale goedkeuring."
+
+msgid "Bank receipts from paid WooCommerce orders"
+msgstr "Bankontvangsten van betaalde WooCommerce-bestellingen"
+
+msgid "Optional. Only WooCommerce orders with an actual payment date, an issued invoice number and matching totals are recorded. No tax validation or payment is inferred from an unpaid order. Existing unrelated bank movements must be reconciled first."
+msgstr "Optioneel. Alleen WooCommerce-bestellingen met werkelijke betaaldatum, uitgereikt factuurnummer en overeenkomende totalen worden geboekt. Geen automatische fiscale validatie of betaling bij onbetaalde bestellingen. Stem bestaande andere bankmutaties eerst af."
+
+msgid "Bank for confirmed WooCommerce payments"
+msgstr "Bankrekening voor bevestigde WooCommerce-ontvangsten"
+
+msgid "Do not record payments automatically"
+msgstr "Betalingen niet automatisch registreren"
+
+msgid "Only payments received since"
+msgstr "Alleen betalingen ontvangen sinds"
+
+msgid "When an eligible WooCommerce order is synchronised, post its confirmed receipt once to this bank. Earlier payments remain available for manual reconciliation in Treasury. Fees and bank net deposits may need separate entries."
+msgstr "Bij synchronisatie van een geschikte WooCommerce-bestelling wordt de bevestigde ontvangst eenmaal op deze bank geboekt. Oudere betalingen kunnen handmatig worden afgestemd in Kasbeheer. Kosten en netto bankstortingen kunnen aparte boekingen vereisen."
