@@ -1074,3 +1074,120 @@ msgstr "Only payments received since"
 
 msgid "When an eligible WooCommerce order is synchronised, post its confirmed receipt once to this bank. Earlier payments remain available for manual reconciliation in Treasury. Fees and bank net deposits may need separate entries."
 msgstr "When an eligible WooCommerce order is synchronised, post its confirmed receipt once to this bank. Earlier payments remain available for manual reconciliation in Treasury. Fees and bank net deposits may need separate entries."
+
+msgid "Fixed asset depreciation"
+msgstr "Fixed asset depreciation"
+
+msgid "Straight-line accounting allocation by actual days from the in-service date. Does not change VAT, supplier invoices, bank payments, or determine a statutory tax deduction."
+msgstr "Straight-line accounting allocation by actual days from the in-service date. Does not change VAT, supplier invoices, bank payments, or determine a statutory tax deduction."
+
+msgid "Asset"
+msgstr "Asset"
+
+msgid "In service"
+msgstr "In service"
+
+msgid "Amortizable cost"
+msgstr "Amortizable cost"
+
+msgid "Annual depreciation"
+msgstr "Annual depreciation"
+
+msgid "Remaining book value"
+msgstr "Remaining book value"
+
+msgid "No validated fixed assets for this year."
+msgstr "No validated fixed assets for this year."
+
+msgid "Total annual depreciation:"
+msgstr "Total annual depreciation:"
+
+msgid "Supplier purchases: CSV import and export"
+msgstr "Supplier purchases: CSV import and export"
+
+msgid "Import supplier invoices for merchandise bought for resale. All entries are draft purchases and require review. Upload the original PDF or image to each row after importing."
+msgstr "Import supplier invoices for merchandise bought for resale. All entries are draft purchases and require review. Upload the original PDF or image to each row after importing."
+
+msgid "Export supplier purchases CSV for %d"
+msgstr "Export supplier purchases CSV for %d"
+
+msgid "Supplier purchases CSV file"
+msgstr "Supplier purchases CSV file"
+
+msgid "Import supplier purchase drafts"
+msgstr "Import supplier purchase drafts"
+
+msgid "Maximum 500 rows / 2 MB per import. Repeated documents are skipped. Attach PDF, JPG, PNG or WEBP originals to each imported row, then verify VAT and approve. CSV imports never attach the original document or register a payment."
+msgstr "Maximum 500 rows / 2 MB per import. Repeated documents are skipped. Attach PDF, JPG, PNG or WEBP originals to each imported row, then verify VAT and approve. CSV imports never attach the original document or register a payment."
+
+msgid "This changes only the accounting record, not the WooCommerce order, issued invoice, or supplier PDF. If an issued invoice is wrong, follow the required rectifying-invoice procedure before fiscal approval."
+msgstr "This changes only the accounting record, not the WooCommerce order, issued invoice, or supplier PDF. If an issued invoice is wrong, follow the required rectifying-invoice procedure before fiscal approval."
+
+msgid "Saving a correction moves this record back to draft and removes it from validated tax totals until it is reviewed and approved again."
+msgstr "Saving a correction moves this record back to draft and removes it from validated tax totals until it is reviewed and approved again."
+
+msgid "Configure a bank or cash account in Treasury before linking a payment."
+msgstr "Configure a bank or cash account in Treasury before linking a payment."
+
+msgid "Payment received and verified"
+msgstr "Payment received and verified"
+
+msgid "Invoice already paid (confirmed)"
+msgstr "Invoice already paid (confirmed)"
+
+msgid "Select this only if the payment actually occurred. It immediately creates a linked cash/bank movement when this form is saved; leave unchecked for unpaid invoices."
+msgstr "Select this only if the payment actually occurred. It immediately creates a linked cash/bank movement when this form is saved; leave unchecked for unpaid invoices."
+
+msgid "Reconcile confirmed payments and receipts"
+msgstr "Reconcile confirmed payments and receipts"
+
+msgid "Only for invoices paid or customer sales actually collected and not yet linked to Treasury. Review each item and its actual payment date. Purchases are bank/cash out; sales are bank/cash in. No movements are generated until confirmed."
+msgstr "Only for invoices paid or customer sales actually collected and not yet linked to Treasury. Review each item and its actual payment date. Purchases are bank/cash out; sales are bank/cash in. No movements are generated until confirmed."
+
+msgid "Account used for the confirmed payments or receipts"
+msgstr "Account used for the confirmed payments or receipts"
+
+msgid "Select bank or cash account"
+msgstr "Select bank or cash account"
+
+msgid "Confirmed?"
+msgstr "Confirmed?"
+
+msgid "Invoice"
+msgstr "Invoice"
+
+msgid "Actual bank payment date"
+msgstr "Actual bank payment date"
+
+msgid "Sale"
+msgstr "Sale"
+
+msgid "Refund"
+msgstr "Refund"
+
+msgid "Purchase / expense"
+msgstr "Purchase / expense"
+
+msgid "I confirm each selected purchase was paid or sale was received using this account on the dates shown, with no matching Treasury movement already recorded."
+msgstr "I confirm each selected purchase was paid or sale was received using this account on the dates shown, with no matching Treasury movement already recorded."
+
+msgid "Post confirmed historical payments"
+msgstr "Post confirmed historical payments"
+
+msgid "At most 100 invoices are shown at once. Refresh to reconcile more. This does not change invoices, VAT deductions or financing/loan balances."
+msgstr "At most 100 invoices are shown at once. Refresh to reconcile more. This does not change invoices, VAT deductions or financing/loan balances."
+
+msgid "Select a PDF, JPG, PNG or WEBP document smaller than 10 MB."
+msgstr "Select a PDF, JPG, PNG or WEBP document smaller than 10 MB."
+
+msgid "Select a valid original PDF or image."
+msgstr "Select a valid original PDF or image."
+
+msgid "Original invoice documents"
+msgstr "Original invoice documents"
+
+msgid "Attach original PDF or image (up to 10 MB)"
+msgstr "Attach original PDF or image (up to 10 MB)"
+
+msgid "Archive document"
+msgstr "Archive document"
