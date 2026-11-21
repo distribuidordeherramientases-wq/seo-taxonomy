@@ -1336,7 +1336,7 @@ final class TCA_Treasury {
         }
         echo '</div></div>';
         echo '<p class="description">' . esc_html__(
-            'Select opening balance when the lender's funds are already included in the bank opening balance: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed.',
+            'Select opening balance when funds from the lender are already included in the bank opening balance: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed.',
             'taxocommerce-accounting'
         ) . '</p>';
         submit_button( __( 'Save loan', 'taxocommerce-accounting' ), 'secondary', 'submit', false );
