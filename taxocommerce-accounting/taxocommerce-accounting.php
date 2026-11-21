@@ -40,6 +40,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-settlements.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-expense-csv.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-depreciation.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-review-navigation.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-tca-status-colors.php';
 
 /** Own data; no dependency on any TaxoCommerce module. */
 function tca_table() {
@@ -714,7 +715,7 @@ function tca_label( $label ) {
     );
     return isset( $labels[ $label ] ) ? $labels[ $label ] : (string) $label;
 }
-function tca_table_rows( $rows, $kind = '' ) {
+function tca_table_rows( $rows, $kind = '', $paid_by_id = array() ) {
     $documents = TCA_Provider_Invoices::documents_for_rows( $rows );
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only focus; existing forms have nonces.
     $focused = isset( $_GET['focus_entry'] ) ? absint( $_GET['focus_entry'] ) : 0;
@@ -738,7 +739,11 @@ function tca_table_rows( $rows, $kind = '' ) {
         $invoice_number = 'draft' === $row->status && 'woocommerce' === $row->source && 'sale' === $row->kind
             ? TCA_Issued_Invoice::for_order( $row->source_id ) : '';
         $shown_document = '' !== $invoice_number ? $invoice_number : $row->document_no;
-        echo '<tr id="tca-entry-' . esc_attr( (string) absint( $row->id ) ) . '"><td>' . esc_html( $row->fiscal_date ) . '</td><td>' . esc_html( $shown_document ) . '</td><td>' . esc_html( $row->party ) . '</td><td>' . esc_html( $row->concept ) . '</td>';
+        $review_state = TCA_Review_Navigation::inspect( $row );
+        $paid = $paid_by_id[ (int) $row->id ] ?? 0.0;
+        $traffic_status = TCA_Status_Colors::entry( $row, $paid, $review_state );
+        echo '<tr class="tca-state-' . esc_attr( $traffic_status ) .
+            '" id="tca-entry-' . esc_attr( (string) absint( $row->id ) ) . '"><td>' . esc_html( $row->fiscal_date ) . '</td><td>' . esc_html( $shown_document ) . '</td><td>' . esc_html( $row->party ) . '</td><td>' . esc_html( $row->concept ) . '</td>';
         if ( 'expense' === $row->kind ) {
             echo '<td>' . esc_html( tca_money( $row->amount_base ) ) . '<p class="description">' .
                 esc_html( 'fixed_asset' === (string) ( $row->expense_type ?? 'current' )
@@ -748,7 +753,17 @@ function tca_table_rows( $rows, $kind = '' ) {
         }
         echo esc_html( tca_money( $row->amount_tax ) ) . '</td><td>' . esc_html( tca_money( $row->amount_total ) ) . '</td>';
         echo '<td>' . esc_html( $row->status . ' / ' . $row->treatment );
-        $review_state = TCA_Review_Navigation::inspect( $row );
+        echo '<p><span class="tca-status-label tca-state-' . esc_attr( $traffic_status ) . '">' .
+            esc_html( TCA_Status_Colors::label( $traffic_status ) ) . '</span></p>';
+        if ( 'pending' === $traffic_status && ! $review_state['pending'] && ! $review_state['incident'] ) {
+            echo '<p><a href="' . esc_url( tca_admin_url( 'treasury', array( 'year' => absint( substr( (string) $row->fiscal_date, 0, 4 ) ) ) ) . '">' .
+                esc_html__( 'Payment not linked. Check Treasury before recording another payment.', 'taxocommerce-accounting' ) . '</a></p>';
+        }
+        if ( (float) $paid > abs( (float) $row->amount_total ) + 0.02 ) {
+            echo '<p class="description">' .
+                esc_html__( 'Linked payments exceed the recorded amount. Review the settlement.', 'taxocommerce-accounting' ) .
+                '</p>';
+        }
         if ( $review_state['error'] ) {
             echo '<p class="description" style="color:#b32d2e">' . esc_html__( 'Issued invoice and accounting totals disagree. Check the original invoice and the order; validation is blocked until reconciled.', 'taxocommerce-accounting' ) . '</p>';
         }
@@ -790,7 +805,7 @@ function tca_table_rows( $rows, $kind = '' ) {
         }
         TCA_Corrections::render_row_action( $row );
         TCA_Provider_Invoices::render_row_controls( $row, $documents );
-        TCA_Settlements::render( $row );
+        TCA_Settlements::render( $row, $paid );
         echo '</td></tr>';
     }
     if ( ! $count ) echo '<tr><td colspan="9">' . esc_html__( 'No entries in this section.', 'taxocommerce-accounting' ) . '</td></tr>';
@@ -903,6 +918,9 @@ function tca_admin() {
     if ( $year < 2000 || $year > 2100 ) $year = (int) current_time( 'Y' );
     $rows = tca_rows( $year );
     $summary = tca_summary( $rows );
+    $paid_by_id = TCA_Status_Colors::paid_by_entry_for_year( $year );
+    $tab_statuses = TCA_Status_Colors::tabs( $rows, $paid_by_id, count( $rows ) >= 400 );
+    $tab_statuses['treasury'] = TCA_Status_Colors::treasury_for_year( $year, $tab_statuses );
     echo '<div class="wrap tca-accounting-admin"><h1>' . esc_html__( 'TaxoCommerce Accounting', 'taxocommerce-accounting' ) . ' <small>v' . esc_html( TCA_VERSION ) . '</small></h1>';
     echo '<p>' . esc_html__( 'Fiscal register, VAT review, supplier invoices and export. No tax return is filed automatically.', 'taxocommerce-accounting' ) . '</p>';
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice key.
@@ -948,8 +966,22 @@ function tca_admin() {
         echo '<div class="notice notice-info"><p>' . esc_html( isset( $invoice_notices[ $notice ] ) ? $invoice_notices[ $notice ] : $notice ) . '</p></div>';
     }
     echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Accounting sections', 'taxocommerce-accounting' ) . '">';
-    foreach ( $tabs as $key => $label ) echo '<a class="nav-tab ' . ( $tab === $key ? 'nav-tab-active' : '' ) . '" href="' . esc_url( tca_admin_url( $key, array( 'year' => $year ) ) ) . '">' . esc_html( tca_label( $label ) ) . '</a>';
-    echo '</nav><div style="margin-top:18px">';
+    foreach ( $tabs as $key => $label ) {
+        $state = $tab_statuses[ $key ] ?? 'neutral';
+        echo '<a class="nav-tab ' . ( $tab === $key ? 'nav-tab-active ' : '' ) .
+            'tca-state-' . esc_attr( $state ) . '" title="' .
+            esc_attr( TCA_Status_Colors::label( $state ) ) .
+            '" href="' . esc_url( tca_admin_url( $key, array( 'year' => $year ) ) ) . '">' .
+            esc_html( tca_label( $label ) ) . '</a>';
+    }
+    echo '</nav><p class="tca-status-legend">' .
+        '<span class="tca-status-label tca-state-closed">' .
+        esc_html__( 'Green: validated and payment linked', 'taxocommerce-accounting' ) . '</span> ' .
+        '<span class="tca-status-label tca-state-pending">' .
+        esc_html__( 'Amber: pending validation, payment link or repayment', 'taxocommerce-accounting' ) . '</span> ' .
+        '<span class="tca-status-label tca-state-error">' .
+        esc_html__( 'Red: detected inconsistency', 'taxocommerce-accounting' ) . '</span>' .
+        '</p><div style="margin-top:18px">';
     echo '<p><strong>' . esc_html__( 'Financial year:', 'taxocommerce-accounting' ) . '</strong> ' . esc_html( $year ) . ' &nbsp; ';
     echo '<a href="' . esc_url( tca_admin_url( $tab, array( 'year' => $year - 1 ) ) ) . '">←</a> &nbsp; <a href="' . esc_url( tca_admin_url( $tab, array( 'year' => $year + 1 ) ) ) . '">→</a></p>';
 
@@ -970,6 +1002,13 @@ function tca_admin() {
         }
         $months = range( 1, 12 );
         $incidents = TCA_Review_Navigation::incidents_by_month( $rows );
+        $monthly_states = array();
+        foreach ( $rows as $entry ) {
+            $month_key = substr( (string) $entry->fiscal_date, 0, 7 );
+            $monthly_states[ $month_key ][] = TCA_Status_Colors::entry(
+                $entry, $paid_by_id[ (int) $entry->id ] ?? 0.0
+            );
+        }
         echo '<h2>' . esc_html__( 'Monthly fiscal summary (validated domestic entries only)', 'taxocommerce-accounting' ) . '</h2><table class="widefat striped"><thead><tr>';
         foreach ( array( 'Month', 'Sales', 'Purchases / expenses', 'Output VAT', 'Deductible input VAT', 'Difference', 'Pending review', 'Incidents' ) as $heading ) echo '<th>' . esc_html( tca_label( $heading ) ) . '</th>';
         echo '</tr></thead><tbody>';
@@ -983,7 +1022,8 @@ function tca_admin() {
                 }
             }
             $incident_rows = $incidents[ $key ] ?? array();
-            echo '<tr><td>' . esc_html( $key ) . '</td><td>' . esc_html( tca_money( $v['sales'] ) ) . '</td><td>' . esc_html( tca_money( $v['purchase'] ) ) . '</td><td>' . esc_html( tca_money( $v['tax_out'] ) ) . '</td><td>' . esc_html( tca_money( $v['tax_in'] ) ) . '</td><td>' . esc_html( tca_money( $v['tax_out'] - $v['tax_in'] ) ) . '</td><td>';
+            $month_state = TCA_Status_Colors::aggregate( $monthly_states[ $key ] ?? array() );
+            echo '<tr class="tca-state-' . esc_attr( $month_state ) . '"><td>' . esc_html( $key ) . '</td><td>' . esc_html( tca_money( $v['sales'] ) ) . '</td><td>' . esc_html( tca_money( $v['purchase'] ) ) . '</td><td>' . esc_html( tca_money( $v['tax_out'] ) ) . '</td><td>' . esc_html( tca_money( $v['tax_in'] ) ) . '</td><td>' . esc_html( tca_money( $v['tax_out'] - $v['tax_in'] ) ) . '</td><td>';
             if ( $pending_rows ) {
                 echo '<a href="' . esc_url( TCA_Review_Navigation::summary_url( $key, 'pending', $pending_rows ) ) . '">' . esc_html( (string) count( $pending_rows ) ) . '</a>';
             } else {
@@ -1018,7 +1058,7 @@ function tca_admin() {
         $max = isset( $_GET['sync_pages'] ) ? absint( $_GET['sync_pages'] ) : 0;
         if ( $max > $page ) echo '<p><a href="' . esc_url( tca_admin_url( 'sales', array( 'sync_page' => $page + 1, 'sync_pages' => $max ) ) ) . '">' . esc_html__( 'Next import page', 'taxocommerce-accounting' ) . '</a></p>';
         TCA_Corrections::render_editor( 'sales' );
-        tca_table_rows( array_filter( $rows, static function ( $row ) { return in_array( $row->kind, array( 'sale', 'refund' ), true ); } ) );
+        tca_table_rows( array_filter( $rows, static function ( $row ) { return in_array( $row->kind, array( 'sale', 'refund' ), true ); } ), '', $paid_by_id );
     } elseif ( in_array( $tab, array( 'received', 'expenses', 'assets', 'intra' ), true ) ) {
         $kind = array( 'received' => 'purchase', 'expenses' => 'expense', 'assets' => 'asset', 'intra' => 'intra' )[ $tab ];
         TCA_Corrections::render_editor( $tab );
@@ -1026,7 +1066,7 @@ function tca_admin() {
             TCA_Expense_CSV::render( $year, $kind );
         }
         tca_new_invoice_form( $kind );
-        tca_table_rows( $rows, $kind );
+        tca_table_rows( $rows, $kind, $paid_by_id );
         if ( 'expenses' === $tab ) {
             TCA_Depreciation::render( $year );
         }
