@@ -187,30 +187,42 @@ final class TCA_Treasury {
             $id = absint( self::posted( 'account_id' ) );
             $reason = self::posted( 'reason' );
             if ( ! $id || '' === $reason || '1' !== self::posted( 'confirmed' ) ) self::redirect( 'invalid' );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction protects a correction to our own account and audit tables.
             $wpdb->query( 'START TRANSACTION' );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live row lock prevents duplicate account adjustments.
             $account = $wpdb->get_row( $wpdb->prepare(
                 'SELECT * FROM %i WHERE id = %d FOR UPDATE', self::table( 'accounts' ), $id
             ) );
             if ( ! $account || (float) $account->opening_amount <= 0 ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Roll back the uncommitted transaction.
                 $wpdb->query( 'ROLLBACK' );
                 self::redirect( 'invalid' );
             }
             $amount = (float) $account->opening_amount;
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Our own financial account table; a direct write is necessary.
             $ok = $wpdb->update( self::table( 'accounts' ),
                 array( 'opening_amount' => 0 ), array( 'id' => $id ),
                 array( '%f' ), array( '%d' ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Our own immutable Treasury correction ledger.
             $logged = 1 === $ok && $wpdb->insert( self::table( 'corrections' ), array(
                 'account_id' => $id, 'movement_id' => 0, 'action' => 'cancel_opening',
                 'amount' => $amount, 'reason' => $reason,
                 'user_id' => get_current_user_id(), 'created_at' => current_time( 'mysql' ),
             ), array( '%d', '%d', '%s', '%f', '%s', '%d', '%s' ) );
-            $wpdb->query( $logged ? 'COMMIT' : 'ROLLBACK' );
+            if ( $logged ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Commit a validated account/audit correction.
+                $wpdb->query( 'COMMIT' );
+            } else {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Never save a partial financial correction.
+                $wpdb->query( 'ROLLBACK' );
+            }
             self::redirect( $logged ? 'saved' : 'error' );
         }
         if ( 'edit_account' === $operation ) {
             $account = self::get_account( self::posted( 'account_id' ) );
             $name = self::posted( 'name' );
             if ( ! $account || '' === $name ) self::redirect( 'invalid' );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Rename an existing account in our own ledger.
             $ok = $wpdb->update( self::table( 'accounts' ),
                 array( 'name' => $name ), array( 'id' => $account->id ),
                 array( '%s' ), array( '%d' ) );
@@ -222,6 +234,7 @@ final class TCA_Treasury {
             $date = self::posted( 'posted_on' );
             $amount = self::money( self::posted( 'amount' ) );
             $direction = sanitize_key( self::posted( 'direction' ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read current financial movement before editing it.
             $movement = $wpdb->get_row( $wpdb->prepare(
                 'SELECT * FROM %i WHERE id = %d', self::table( 'movements' ), $id
             ) );
@@ -230,15 +243,18 @@ final class TCA_Treasury {
                 || ! self::date( $date ) || $date < $account->opened_on
                 || null === $amount || $amount <= 0 ) self::redirect( 'invalid' );
             // Do not edit invoice settlements, loan payments or paired transfers.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live settlement relation required to prevent desynchronization.
             $settled = $wpdb->get_var( $wpdb->prepare(
                 'SELECT movement_id FROM %i WHERE movement_id = %d',
                 $wpdb->prefix . 'tca_treasury_settlements', $id
             ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live loan payment relation required to prevent desynchronization.
             $loan = $wpdb->get_var( $wpdb->prepare(
                 'SELECT movement_id FROM %i WHERE movement_id = %d',
                 self::table( 'loan_payments' ), $id
             ) );
             if ( $settled || $loan ) self::redirect( 'invalid' );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Update a standalone movement in our own Treasury ledger.
             $ok = $wpdb->update( self::table( 'movements' ),
                 array( 'account_id' => $account->id, 'posted_on' => $date,
                     'direction' => $direction, 'amount' => $amount, 'reference' => self::posted( 'reference' ) ),
@@ -679,6 +695,7 @@ final class TCA_Treasury {
             echo '<tr><td colspan="6">' . esc_html__( 'Add your cash register or first bank account to start tracking funds.', 'taxocommerce-accounting' ) . '</td></tr>';
         }
         echo '</tbody></table>';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Always show the latest correction audit records.
         $corrections = (array) $wpdb->get_results( $wpdb->prepare(
             'SELECT * FROM %i ORDER BY id DESC LIMIT 30', self::table( 'corrections' )
         ) );
