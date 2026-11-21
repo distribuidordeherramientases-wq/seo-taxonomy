@@ -31,7 +31,11 @@ final class TCA_Status_Colors {
         if ( $inspection['error'] || (float) $paid > $total + 0.02 ) {
             return 'error';
         }
-        if ( $inspection['pending'] || $inspection['incident'] ||
+        // A validated record with the explicit [scope=review] note is not closed.
+        // Never interpret arbitrary free-text notes as proof of an error.
+        $explicit_review = isset( $entry->notes ) &&
+            false !== strpos( (string) $entry->notes, '[scope=review]' );
+        if ( $inspection['pending'] || $inspection['incident'] || $explicit_review ||
             (float) $paid + 0.02 < $total ) {
             return 'pending';
         }
