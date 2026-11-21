@@ -1,3 +1,11 @@
+## [1.1.73] — 2026-11-21 — GSC history freshness and snapshot-backed Analysis charts (#2900)
+
+- Show saved Search Console daily figures in the Analysis trend only when the property identifier exactly matches; preserve SQL historical rows as authoritative and fill missing daily points without calling APIs or writing to the database.
+- Display last graphed date, SQL history date and last compatible Search Console snapshot date in Analysis.
+- Add a read-only GSC freshness/coherence Autocheck: report specifically when stored daily SQL data is behind downloaded snapshots, when no matching property exists or when the most recent GSC date is old. Preserve installations with no GSC setup as skipped.
+- Cover current and previous report windows, property mismatch, historic/overlap precedence and no-data behavior in a PHP smoke test executed by the selective STAGING workflow.
+- STAGING/Focazul only; do not deploy to production.
+
 ## [1.1.72] — 2026-11-20 — Google Trends interface translations (#2852)
 
 - Localize ten Google Trends administration labels, navigation links and evidence notices in es_ES, en_US, fr_FR, de_DE and nl_NL.
