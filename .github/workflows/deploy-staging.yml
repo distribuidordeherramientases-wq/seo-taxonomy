@@ -94,6 +94,8 @@ jobs:
             fi
             if [ "$slug" = "taxocommerce-google-bing" ]; then
               php "$slug/tests/gsc-freshness-smoke.php"
+              php "$slug/tests/analysis-full-refresh-smoke.php"
+              node --check "$slug/includes/analysis/assets/analista-lazy.js"
             fi
             if [ "$slug" = "taxocommerce-vocabulary" ]; then
               php -l "$slug/tests/classifier-extraction-smoke.php"
