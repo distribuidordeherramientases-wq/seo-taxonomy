@@ -344,7 +344,8 @@ function tca_on_billing_rectification_issued( $order_id, $document ) {
         return;
     }
     $invoice = TCA_Issued_Invoice::amounts_for_order( $order_id );
-    if ( ! $invoice || (string) $invoice['document_no'] !== (string) $document->document_number ||
+    if ( ! $invoice || ! isset( $invoice['rectification_original_total'] ) ||
+        (string) $invoice['document_no'] !== (string) $document->document_number ||
         abs( (float) $invoice['rectification_original_total'] - (float) $rect['old_total'] ) > 0.02 ) {
         return;
     }
