@@ -404,13 +404,16 @@ final class SEO_Facturas_Rectifications {
                     abs( (float) $snapshot['rectification']['old_total'] - (float) $original['amount_total'] ) > 0.02 ) ) ) {
             return $original;
         }
-        return array_merge( $original, array(
+        $corrected = array(
             'document_no' => (string) $issued->document_number,
             'amount_base' => round( $base, 2 ),
             'amount_tax' => round( $tax, 2 ),
             'amount_total' => round( $gross, 2 ),
-            'rectification_original_total' => round( (float) $original['amount_total'], 2 ),
-        ) );
+        );
+        if ( isset( $original['amount_total'] ) && is_numeric( $original['amount_total'] ) ) {
+            $corrected['rectification_original_total'] = round( (float) $original['amount_total'], 2 );
+        }
+        return array_merge( $original, $corrected );
     }
 
     /**
