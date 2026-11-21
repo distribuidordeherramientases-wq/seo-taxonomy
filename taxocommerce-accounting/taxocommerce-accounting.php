@@ -756,7 +756,7 @@ function tca_table_rows( $rows, $kind = '', $paid_by_id = array() ) {
         echo '<p><span class="tca-status-label tca-state-' . esc_attr( $traffic_status ) . '">' .
             esc_html( TCA_Status_Colors::label( $traffic_status ) ) . '</span></p>';
         if ( 'pending' === $traffic_status && ! $review_state['pending'] && ! $review_state['incident'] ) {
-            echo '<p><a href="' . esc_url( tca_admin_url( 'treasury', array( 'year' => absint( substr( (string) $row->fiscal_date, 0, 4 ) ) ) ) . '">' .
+            echo '<p><a href="' . esc_url( tca_admin_url( 'treasury', array( 'year' => absint( substr( (string) $row->fiscal_date, 0, 4 ) ) ) ) ) . '">' .
                 esc_html__( 'Payment not linked. Check Treasury before recording another payment.', 'taxocommerce-accounting' ) . '</a></p>';
         }
         if ( (float) $paid > abs( (float) $row->amount_total ) + 0.02 ) {
