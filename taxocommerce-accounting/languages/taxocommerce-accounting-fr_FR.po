@@ -1285,3 +1285,120 @@ msgstr "Opérations à vérifier ou nécessitant un traitement fiscal particulie
 
 msgid "These are live accounting totals, not official AEAT boxes. The current register does not retain an invoice-by-invoice split of VAT rates, prior period offsets, all tax adjustments or filing options. Do not copy the indicative balance directly as the amount to pay."
 msgstr "Il s’agit de totaux comptables actualisés, pas de cases officielles de l’AEAT. Le registre actuel ne conserve pas la ventilation des taux de TVA par facture, reports antérieurs, tous les ajustements ou options de déclaration. Ne reportez pas directement le solde indicatif comme montant à payer."
+
+msgid "Edit"
+msgstr "Modifier"
+
+msgid "Linked to a repayable loan from"
+msgstr "Lié à un prêt remboursable de"
+
+msgid "The opening funds are already present. Conversion or cancellation is blocked while this loan is linked."
+msgstr "Les fonds initiaux sont déjà présents. Leur conversion ou annulation est bloquée tant que ce prêt est lié."
+
+msgid "Opening amount entered in error"
+msgstr "Montant initial saisi par erreur"
+
+msgid "Confirm cancellation of this opening balance"
+msgstr "Confirmer l’annulation de ce solde initial"
+
+msgid "Cancel incorrect opening balance"
+msgstr "Annuler le solde initial incorrect"
+
+msgid "Rename account"
+msgstr "Renommer le compte"
+
+msgid "Opening balance correction history"
+msgstr "Historique des corrections du solde initial"
+
+msgid "Create a new cash or bank account (not a receipt)"
+msgstr "Créer un compte de caisse ou bancaire (pas un encaissement)"
+
+msgid "Use the account name ING or CAJA. Record donations, initial contributions and customer receipts as movements into an existing account."
+msgstr "Utilisez un nom de compte tel que ING ou CAJA. Enregistrez les dons, apports initiaux et paiements clients comme des entrées sur un compte existant."
+
+msgid "Save changes"
+msgstr "Enregistrer les modifications"
+
+msgid "Sponsor / lender"
+msgstr "Parrain / prêteur"
+
+msgid "Funded by existing opening balance; no duplicate receipt"
+msgstr "Financé par le solde initial existant ; aucun encaissement en double"
+
+msgid "Repayment when agreed, without fixed instalments. Interest: 0%."
+msgstr "Remboursement selon accord, sans échéances fixes. Intérêt : 0 %."
+
+msgid "Capital already returned"
+msgstr "Capital déjà remboursé"
+
+msgid "repayments"
+msgstr "remboursements"
+
+msgid "Repay from"
+msgstr "Rembourser depuis"
+
+msgid "Actual repayment date"
+msgstr "Date réelle du remboursement"
+
+msgid "Capital to repay (€)"
+msgstr "Capital à rembourser (€)"
+
+msgid "I confirm that this amount was actually transferred to the lender."
+msgstr "Je confirme que ce montant a réellement été transféré au prêteur."
+
+msgid "Record actual repayment"
+msgstr "Enregistrer le remboursement réel"
+
+msgid "Enter the amount borrowed. For a 0% sponsor loan repayable later without fixed instalments, choose 0 months, 0% interest, and leave the first repayment date empty. Record partial or total repayments only when actually made. For scheduled financing, specify term and first instalment date."
+msgstr "Saisissez le capital emprunté. Pour un prêt du parrain à 0 % remboursable plus tard sans échéances fixes, choisissez 0 mois, 0 % d’intérêt et laissez vide la date du premier remboursement. N’enregistrez les remboursements que lorsqu’ils ont lieu. Pour un financement échelonné, précisez la durée et la première échéance."
+
+msgid "Sponsor / lender name"
+msgstr "Nom du parrain / prêteur"
+
+msgid "Sponsor / lender tax ID (optional)"
+msgstr "Identifiant fiscal du parrain / prêteur (facultatif)"
+
+msgid "Lender relationship"
+msgstr "Relation avec le prêteur"
+
+msgid "Sponsor (repayable loan)"
+msgstr "Parrain (prêt remboursable)"
+
+msgid "Other lender"
+msgstr "Autre prêteur"
+
+msgid "Loan agreement reference"
+msgstr "Référence du contrat de prêt"
+
+msgid "Term in months (0 = repay later without fixed instalments)"
+msgstr "Durée en mois (0 = remboursement ultérieur sans échéances fixes)"
+
+msgid "First instalment date (optional for flexible 0% loans)"
+msgstr "Date de la première échéance (facultative pour prêts souples à 0 %)"
+
+msgid "Loan funds"
+msgstr "Fonds du prêt"
+
+msgid "Not received yet (do not change bank)"
+msgstr "Pas encore reçus (ne pas modifier la banque)"
+
+msgid "Already included in bank opening balance (do not duplicate)"
+msgstr "Déjà compris dans le solde bancaire initial (ne pas dupliquer)"
+
+msgid "New confirmed bank receipt"
+msgstr "Nouvel encaissement bancaire confirmé"
+
+msgid "Bank receiving or holding loan funds"
+msgstr "Banque recevant ou détenant les fonds du prêt"
+
+msgid "opening"
+msgstr "initial"
+
+msgid "I confirm that the entire opening balance belongs to this loan and is already in this bank. Do not add money again."
+msgstr "Je confirme que la totalité du solde initial correspond à ce prêt et se trouve déjà sur cette banque. N’ajoutez pas de fonds à nouveau."
+
+msgid "When linking an opening balance, the loan principal must equal that opening amount exactly. An opening balance can fund only one loan. No bank movement is created."
+msgstr "Lors du lien avec un solde initial, le capital du prêt doit correspondre exactement à ce montant. Un solde initial ne peut financer qu’un prêt. Aucun mouvement bancaire n’est créé."
+
+msgid "Select opening balance when the sponsor already financed ING: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed."
+msgstr "Sélectionnez solde initial si le parrain a déjà financé ING : aucun second encaissement. Choisissez un nouvel encaissement uniquement pour des fonds nouvellement reçus. C’est un prêt remboursable, ni un don ni une vente soumise à TVA. Les échéances restent prévisionnelles jusqu’à confirmation."
