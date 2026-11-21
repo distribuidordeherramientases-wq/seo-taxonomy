@@ -85,6 +85,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
             'trends_hierarchy'  => array( 'trends', 'Jerarquía y grupos de comparación (lectura)' ),
             'analyst_catalog'   => array( 'analysis', 'Catálogo de once informes bajo demanda' ),
             'analyst_ajax'      => array( 'analysis', 'AJAX protegido de Analista' ),
+            'analyst_freshness' => array( 'analysis', 'Fecha realmente usada por el informe completo de Analista' ),
             'analyst_tests'     => array( 'analysis', 'Pruebas deterministas del motor Analista 3.8.3' ),
             'report_store'      => array( 'snapshots', 'Contrato de lectura de tres proveedores' ),
             'report_structure'  => array( 'snapshots', 'Validación de metadatos de snapshots' ),
@@ -639,6 +640,49 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
             && has_action( 'admin_post_seo_analista_export_json' )
             ? self::pass( 'Renderizado parcial, AJAX y exportador JSON disponibles.' )
             : self::fail( 'Un endpoint del motor Analysis no está registrado.' );
+    }
+
+    /**
+     * Verify the period actually selected for the SQL-backed full report.
+     * Existence of a newer saved report is not proof of a refreshed Analysis.
+     */
+    private static function check_analyst_freshness() {
+        if ( ! class_exists( 'TaxoCommerce_Insights_Chunked_Export', false )
+            || ! function_exists( 'seo_analista_period' )
+            || ! function_exists( 'seo_analista_resolve_property_id' ) ) {
+            return self::fail( 'No se puede comprobar la fecha real del informe de Analista.' );
+        }
+        $property = (string) seo_analista_resolve_property_id();
+        if ( '' === $property ) {
+            return self::skip( 'Search Console no está configurado; Analista debe identificar esta fuente como no disponible.' );
+        }
+        $health = TaxoCommerce_Insights_Chunked_Export::gsc_freshness_state();
+        $sql_date = (string) ( $health['sql_date'] ?? '' );
+        $target = (string) ( $health['target_date'] ?? '' );
+        if ( '' === $sql_date ) {
+            return self::fail( 'No existe histórico SQL GSC para el informe. Comprueba la sincronización de Google Search.' );
+        }
+        $period = (array) seo_analista_period( $property, 28 );
+        $report_date = (string) ( $period['date_to'] ?? '' );
+        if ( '' === $report_date || $report_date !== $sql_date ) {
+            return self::fail(
+                'Analista está usando un periodo incoherente: informe hasta '
+                . ( $report_date ?: 'sin fecha' ) . ', SQL hasta ' . $sql_date
+                . '. Comprueba la selección de la fuente GSC.'
+            );
+        }
+        if ( ! empty( $health['needs_sync'] ) ) {
+            return self::fail(
+                'El informe completo utiliza datos antiguos: hasta ' . $report_date
+                . ', pero Search Console dispone de datos hasta ' . $target
+                . '. Ejecutar informe completo debe sincronizar GSC primero.'
+                . ( ! empty( $health['warning'] ) ? ' ' . $health['warning'] : '' )
+            );
+        }
+        return self::pass(
+            'Fecha comprobada en el cálculo real de Analista: ' . $report_date
+            . '. Último día disponible de Search Console: ' . ( $target ?: 'no calculado' ) . '.'
+        );
     }
 
     private static function check_analyst_tests() {
