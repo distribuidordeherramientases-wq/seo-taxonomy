@@ -27,6 +27,16 @@ $entry = (object) array(
     'amount_total' => '1120.34',
     'deductible_pct' => '100.00',
 );
+// Legacy expense and new asset must use the same depreciation calculation.
+$asset = clone $entry;
+$asset->kind = 'asset';
+check_depreciation( TCA_Depreciation::annual( $asset, 2026 ) === TCA_Depreciation::annual( $entry, 2026 ), 'new and legacy assets amortize identically' );
+$current = clone $entry;
+$current->expense_type = 'current';
+check_depreciation( null === TCA_Depreciation::annual( $current, 2026 ), 'current expense is never amortized' );
+$draft = clone $asset;
+$draft->status = 'draft';
+check_depreciation( null === TCA_Depreciation::annual( $draft, 2026 ), 'draft asset not amortized' );
 check_depreciation( TCA_Depreciation::valid( 'fixed_asset', '2026-11-20', '5', '2026-11-20' ), 'valid asset' );
 check_depreciation( ! TCA_Depreciation::valid( 'fixed_asset', '2026-11-19', '5', '2026-11-20' ), 'reject in-service date before acquisition' );
 check_depreciation( ! TCA_Depreciation::valid( 'fixed_asset', '2026-11-20', '0', '2026-11-20' ), 'reject zero lifespan' );
