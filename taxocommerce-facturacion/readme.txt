@@ -4,7 +4,7 @@ Tags: woocommerce, invoices, proforma, quotes, pdf
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.21
+Stable tag: 0.1.22
 License: MIT
 
 WooCommerce invoices, proformas and quotations migrated from TaxoCommerce SEO.
@@ -19,7 +19,7 @@ TaxoCommerce Billing keeps the existing document workflow while moving it into a
 * Invoices and proforma invoices.
 * Cart quotations for classic Cart and Cart Block.
 * Order document registry and immutable snapshots.
-* VAT-only rectifying invoices by substitution, with a separate sequential RECT series, required reason, original-document reference, downloadable PDF and explicit customer email. The gross amount and WooCommerce order stay unchanged. One correction per original invoice; corrections involving mixed tax rates, fees, discounts, shipping, refunds or cross-period adjustments are not supported by this initial VAT-only workflow.
+* Rectifying invoices by substitution for VAT-only changes or corrected product-line taxable bases, with a separate numbered RECT series, mandatory reason, preserved original invoice, linked PDF and explicit customer email. Corrected VAT and gross are calculated from each line; existing WooCommerce orders and payments are NEVER modified. One rectification per original; mixed VAT classes/rates, charged shipping, fees, discounts, refunds and cross-quarter corrections require another workflow. A higher corrected total creates no automatic receipt; a lower corrected total may require a separate refund.
 * Emits an optional WordPress action after successful invoice issuance for independent accounting consumers; no mandatory Accounting dependency.
 * Document numbering and series.
 * PDF generation using the same Dompdf 3.1.6 engine as the historical module.

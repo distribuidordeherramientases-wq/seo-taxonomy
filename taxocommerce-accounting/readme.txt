@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.32
+Stable tag: 0.1.33
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,7 +33,7 @@ TaxoCommerce Accounting records fiscal data without changing WooCommerce orders,
 * **Expense classification:** expenses are current by default. Optionally mark an office computer or other durable business equipment as a fixed asset, enter its date put into service and useful life (1–50 years), and see yearly straight-line depreciation with prorated partial years under Expenses. Nonrecoverable input VAT is included in asset cost. Previously saved expenses remain current; changes use the audited correction form. This calculation does not book bank payments, alter invoice VAT or assert the applicable tax deduction; accounting and fiscal depreciation rules should be verified independently.
 
 
-* **Rectifying invoices:** when an independent invoicing plugin supplies a verified, issued same-total rectification via the documented WordPress filter, reconcile the sale against its corrected VAT split without altering the WooCommerce order, original invoice or existing receipt. Accounting does not require the invoicing plugin and never creates a second sale or payment.
+* **Rectifying invoices:** when an independent invoicing plugin supplies an issued, verified VAT or gross-amount rectification through the documented WordPress filter/action, reconcile a pristine sale entry to the new fiscal totals as a draft requiring approval. Keep the original invoice and WooCommerce order unchanged, preserve existing receipts and show any remaining amount due. Do not silently replace manually edited entries or create second sales/payments. If the corrected gross is less than already collected, human refund/reconciliation is required. Accounting works without Billing.
 * **Loan financing:** Treasury can record a fixed annual nominal interest rate (TIN), duration (months), down payment, optional extra final balloon principal, and due dates. The forecast separates capital and interest; the last payment clears rounding differences. A loan disbursement only enters bank on explicit confirmation. Confirm actual instalments individually to create a linked Treasury bank/cash outflow and reduce outstanding debt. Previous manually managed loans remain editable. No external bank connection, automatic collection, contractual APR/TAE calculation, or automatic VAT return impact; consult the finance contract for fees and tax treatment.
 
 

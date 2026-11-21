@@ -1,3 +1,9 @@
+## 0.1.33 — 2026-11-21 — Issued invoice amount rectification reconciliation (#2926)
+
+- Accept verified immutable rectification of gross and VAT via the optional WordPress filter, retaining third-party independence and the VAT-only path.
+- On Billing's issued-rectification event, move an untouched original sale to draft with corrected figures and its linked RECT reference; preserve existing bank receipts and require new fiscal validation. Existing manual edits and overpaid settlements are not overwritten.
+- A corrected invoice can differ from its unchanged historical WooCommerce order; never update orders or create a second sale or payment. STAGING and Focazul only.
+
 ## 0.1.32 — 2026-11-21 — Centralize fixed assets in Assets (#2922)
 
 - Move new depreciable asset registration, in-service date and useful life from Expenses to Assets; current expenses remain separate.
