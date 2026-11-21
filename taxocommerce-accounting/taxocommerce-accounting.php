@@ -356,13 +356,22 @@ function tca_on_billing_rectification_issued( $order_id, $document ) {
         'SELECT * FROM %i WHERE source = %s AND source_id = %d FOR UPDATE',
         tca_table(), 'woocommerce', absint( $order_id )
     ) );
+    $matches_original = $entry &&
+        abs( (float) $entry->amount_base - (float) $rect['old_base'] ) <= 0.02 &&
+        abs( (float) $entry->amount_tax - (float) $rect['old_tax'] ) <= 0.02 &&
+        abs( (float) $entry->amount_total - (float) $rect['old_total'] ) <= 0.02;
+    // A manually corrected draft can already match the newly issued RECT.
+    // In that case only its document reference and audit note need reconciling.
+    // Never trust edited figures that differ from both original and RECT.
+    $matches_corrected_draft = $entry && 'draft' === (string) $entry->status &&
+        abs( (float) $entry->amount_base - (float) $invoice['amount_base'] ) <= 0.02 &&
+        abs( (float) $entry->amount_tax - (float) $invoice['amount_tax'] ) <= 0.02 &&
+        abs( (float) $entry->amount_total - (float) $invoice['amount_total'] ) <= 0.02;
     if ( ! $entry || 'sale' !== (string) $entry->kind ||
         ! in_array( (string) $entry->status, array( 'draft', 'validated' ), true ) ||
         (string) $entry->document_no !== (string) $rect['original_number'] ||
         (string) $entry->currency !== (string) $invoice['currency'] ||
-        abs( (float) $entry->amount_base - (float) $rect['old_base'] ) > 0.02 ||
-        abs( (float) $entry->amount_tax - (float) $rect['old_tax'] ) > 0.02 ||
-        abs( (float) $entry->amount_total - (float) $rect['old_total'] ) > 0.02 ||
+        ( ! $matches_original && ! $matches_corrected_draft ) ||
         TCA_Settlements::sum( (int) $entry->id ) > (float) $invoice['amount_total'] + 0.001 ) {
         // Existing manual corrections or overpayments require human review.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- No changes committed on mismatch.
