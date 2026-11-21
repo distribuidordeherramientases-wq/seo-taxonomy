@@ -24,6 +24,11 @@ final class TCA_Status_Colors {
         return $totals;
     }
 
+    /** A missing payment is independent from fiscal/document review. */
+    public static function payment_outstanding( $entry, $paid ) {
+        return (float) $paid + 0.02 < abs( (float) $entry->amount_total );
+    }
+
     /** Only a proven inconsistency is red; a missing linked payment is pending. */
     public static function entry( $entry, $paid, $inspection = null ) {
         $inspection = null === $inspection ? TCA_Review_Navigation::inspect( $entry ) : $inspection;
@@ -31,12 +36,10 @@ final class TCA_Status_Colors {
         if ( $inspection['error'] || (float) $paid > $total + 0.02 ) {
             return 'error';
         }
-        // A validated record with the explicit [scope=review] note is not closed.
-        // Never interpret arbitrary free-text notes as proof of an error.
-        $explicit_review = isset( $entry->notes ) &&
-            false !== strpos( (string) $entry->notes, '[scope=review]' );
-        if ( $inspection['pending'] || $inspection['incident'] || $explicit_review ||
-            (float) $paid + 0.02 < $total ) {
+        // The imported [scope=review] note is historical metadata, not a
+        // fiscal workflow status. Keep the note; use formal review checks.
+        if ( $inspection['pending'] || $inspection['incident'] ||
+            self::payment_outstanding( $entry, $paid ) ) {
             return 'pending';
         }
         return 'closed';
