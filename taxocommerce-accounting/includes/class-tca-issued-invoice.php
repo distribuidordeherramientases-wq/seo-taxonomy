@@ -140,14 +140,20 @@ final class TCA_Issued_Invoice {
                 (float) $effective['amount_total'] ) > 0.02 ) {
             return $original;
         }
-        return array(
+        $verified_rectification = isset( $effective['rectification_original_total'] ) &&
+            is_numeric( $effective['rectification_original_total'] ) &&
+            abs( (float) $effective['rectification_original_total'] - $total ) <= 0.02;
+        $result = array(
             'document_no' => $corrected_number,
             'amount_base' => round( (float) $effective['amount_base'], 2 ),
             'amount_tax' => round( (float) $effective['amount_tax'], 2 ),
             'amount_total' => round( (float) $effective['amount_total'], 2 ),
             'currency' => $currency,
-            'rectification_original_total' => $total,
         );
+        if ( $verified_rectification ) {
+            $result['rectification_original_total'] = $total;
+        }
+        return $result;
     }
 
 }
