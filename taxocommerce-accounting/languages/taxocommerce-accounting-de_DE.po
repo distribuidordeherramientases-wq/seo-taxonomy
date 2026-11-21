@@ -922,3 +922,15 @@ msgstr "Gezahlter Betrag"
 
 msgid "Invoice total including VAT"
 msgstr "Rechnungsbetrag einschließlich MwSt."
+
+msgid "Financial overview (not sales or VAT)"
+msgstr "Finanzübersicht (keine Umsätze oder Umsatzsteuer)"
+
+msgid "Initial loan funding (already in opening balance)"
+msgstr "Anfangsfinanzierung durch Darlehen (bereits im Anfangssaldo enthalten)"
+
+msgid "Current bank balance"
+msgstr "Aktueller Banksaldo"
+
+msgid "The opening loan is shown as a bank inflow in its start month for reporting. It is already included in the opening bank balance: no second bank movement, sale or VAT is created."
+msgstr "Das anfängliche Darlehen wird im Startmonat nur für die Berichterstattung als Bankeingang angezeigt. Es ist bereits im Bankanfangssaldo enthalten: Es werden weder eine zweite Bankbuchung noch ein Umsatz oder Umsatzsteuer erzeugt."
