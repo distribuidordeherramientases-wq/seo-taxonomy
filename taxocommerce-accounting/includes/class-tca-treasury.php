@@ -73,6 +73,7 @@ final class TCA_Treasury {
             lender varchar(191) NOT NULL DEFAULT '',
             lender_tax_id varchar(48) NOT NULL DEFAULT '',
             lender_relation varchar(24) NOT NULL DEFAULT 'other',
+            repayment_mode varchar(16) NOT NULL DEFAULT 'legacy',
             agreement_reference varchar(191) NOT NULL DEFAULT '',
             funding_source varchar(24) NOT NULL DEFAULT 'pending',
             opening_account_id bigint(20) unsigned NULL DEFAULT NULL,
@@ -386,13 +387,20 @@ final class TCA_Treasury {
             }
             $funding_received = 'new_receipt' === $funding_mode;
             $funding_existing = 'opening_balance' === $funding_mode;
+            $flexible = 0 === $months;
+            if ( $flexible && '' === $due ) {
+                $due = '1970-01-01'; // Internal sentinel: no fixed due date agreed.
+            }
             $funding_account = ( $funding_received || $funding_existing )
                 ? self::get_account( self::posted( 'funding_account_id' ) ) : false;
             if ( '' === $name || '' === $lender ||
                 ! in_array( $lender_relation, array( 'sponsor', 'other' ), true ) ||
                 ! in_array( $funding_mode, array( 'pending', 'new_receipt', 'opening_balance' ), true ) ||
-                ! self::date( $start ) || ! self::date( $due, true ) ||
-                $due < $start || null === $principal || $principal <= 0 ||
+                ! self::date( $start ) ||
+                ( ! $flexible && ( ! self::date( $due, true ) || $due < $start ) ) ||
+                ( $flexible && '1970-01-01' !== $due &&
+                    ( ! self::date( $due, true ) || $due < $start ) ) ||
+                null === $principal || $principal <= 0 ||
                 ! preg_match( '/^[a-f0-9-]{36}$/', $request_key ) ||
                 null === $rate || $rate < 0 || $rate > 100 ||
                 null === $upfront || null === $balloon || $balloon > $principal ||
@@ -409,9 +417,11 @@ final class TCA_Treasury {
                 }
                 // Calculated loans derive the instalment from TIN and term.
                 $monthly = (float) $schedule[0]['payment'];
-            } elseif ( null === $monthly || $monthly <= 0 || $rate > 0 || $balloon > 0 ) {
-                // Pre-existing manual-amount mode remains available without a term.
+            } elseif ( 0.0 !== (float) $rate || 0.0 !== (float) $balloon ) {
+                // Flexible loans have no fixed instalments and must carry 0% interest.
                 self::redirect( 'invalid' );
+            } else {
+                $monthly = 0.0; // Repayment is recorded only when actually made.
             }
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Replayed request must never generate a second loan or bank receipt.
             $existing_loan = $wpdb->get_var( $wpdb->prepare(
@@ -446,6 +456,7 @@ final class TCA_Treasury {
             $saved = $wpdb->insert( self::table( 'loans' ), array(
                 'name' => $name, 'lender' => $lender,
                 'lender_tax_id' => $lender_tax_id, 'lender_relation' => $lender_relation,
+                'repayment_mode' => $flexible ? 'flexible' : 'scheduled',
                 'agreement_reference' => $agreement_reference,
                 'funding_source' => $funding_mode,
                 'opening_account_id' => $funding_existing ? (int) $funding_account->id : null,
@@ -455,7 +466,7 @@ final class TCA_Treasury {
                 'upfront_payment' => $upfront, 'balloon_payment' => $balloon,
                 'start_date' => $start, 'next_due_date' => $due, 'first_due_date' => $due,
                 'created_at' => current_time( 'mysql' ), 'updated_at' => current_time( 'mysql' ),
-            ), array( '%s', '%s', '%s', '%s', '%s', '%s', '%d',
+            ), array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d',
                 '%f', '%f', '%f', '%f', '%d', '%s', '%f', '%f',
                 '%s', '%s', '%s', '%s', '%s' ) );
             $loan_id = $saved ? (int) $wpdb->insert_id : 0;
@@ -475,6 +486,80 @@ final class TCA_Treasury {
                 $wpdb->query( 'COMMIT' );
             } else {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic loan/funding write.
+                $wpdb->query( 'ROLLBACK' );
+            }
+            self::redirect( $saved ? 'saved' : 'error' );
+        }
+        if ( 'loan_flexible_payment' === $operation ) {
+            if ( '1' !== self::posted( 'loan_payment_confirmed' ) ) {
+                self::redirect( 'invalid' );
+            }
+            $id = absint( self::posted( 'loan_id' ) );
+            $date = self::posted( 'posted_on' );
+            $key = self::posted( 'request_key' );
+            $amount = self::money( self::posted( 'amount' ) );
+            $account = self::get_account( self::posted( 'account_id' ) );
+            if ( ! $id || ! self::date( $date ) || ! $account ||
+                ! in_array( $account->kind, array( 'bank', 'cash' ), true ) ||
+                null === $amount || $amount <= 0 ||
+                ! preg_match( '/^[a-f0-9-]{36}$/', $key ) ||
+                $date < $account->opened_on ) {
+                self::redirect( 'invalid' );
+            }
+            // Financial movements and principal reductions must commit together.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic loan repayment and bank movement.
+            $wpdb->query( 'START TRANSACTION' );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lock outstanding principal to prevent double repayment.
+            $loan = $wpdb->get_row( $wpdb->prepare(
+                'SELECT * FROM %i WHERE id = %d FOR UPDATE', self::table( 'loans' ), $id
+            ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exactly-once payment token.
+            $previous = $wpdb->get_var( $wpdb->prepare(
+                'SELECT id FROM %i WHERE request_key = %s LIMIT 1', self::table( 'loan_payments' ), $key
+            ) );
+            if ( $previous ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Idempotent replay.
+                $wpdb->query( 'COMMIT' );
+                self::redirect( 'saved' );
+            }
+            if ( ! $loan || 'flexible' !== $loan->repayment_mode ||
+                (float) $loan->annual_rate !== 0.0 || $date < $loan->start_date ||
+                (float) $loan->remaining < $amount ||
+                (float) $loan->remaining <= 0 ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reject overpayments or non-flexible loans.
+                $wpdb->query( 'ROLLBACK' );
+                self::redirect( 'invalid' );
+            }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own instalments register.
+            $last = (int) $wpdb->get_var( $wpdb->prepare(
+                'SELECT COALESCE(MAX(instalment_number),0) FROM %i WHERE loan_id = %d',
+                self::table( 'loan_payments' ), $id
+            ) );
+            $saved = self::insert_movement( $account->id, $date, 'out', $amount,
+                'Loan #' . $id . ' capital repayment ' . ( $last + 1 ) );
+            $movement_id = $saved ? (int) $wpdb->insert_id : 0;
+            if ( $saved ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One audit record for each actual repayment.
+                $saved = $wpdb->insert( self::table( 'loan_payments' ), array(
+                    'loan_id' => $id, 'instalment_number' => $last + 1,
+                    'movement_id' => $movement_id, 'principal_amount' => $amount,
+                    'interest_amount' => 0.0, 'paid_amount' => $amount,
+                    'paid_on' => $date, 'request_key' => $key,
+                    'created_at' => current_time( 'mysql' ),
+                ), array( '%d', '%d', '%d', '%f', '%f', '%f', '%s', '%s', '%s' ) );
+            }
+            if ( $saved ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reduce debt by the capital actually repaid.
+                $saved = 1 === $wpdb->update( self::table( 'loans' ), array(
+                    'remaining' => round( (float) $loan->remaining - $amount, 2 ),
+                    'updated_at' => current_time( 'mysql' ),
+                ), array( 'id' => $id ), array( '%f', '%s' ), array( '%d' ) );
+            }
+            if ( $saved ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Commit bank outflow with debt reduction.
+                $wpdb->query( 'COMMIT' );
+            } else {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Never post only half of the repayment.
                 $wpdb->query( 'ROLLBACK' );
             }
             self::redirect( $saved ? 'saved' : 'error' );
@@ -566,7 +651,9 @@ final class TCA_Treasury {
             $loan = $wpdb->get_row( $wpdb->prepare(
                 'SELECT * FROM %i WHERE id = %d LIMIT 1', self::table( 'loans' ), $id
             ) );
-            if ( ! $loan || (int) $loan->term_months > 0 || null === $remaining || $remaining > (float) $loan->principal ||
+            if ( ! $loan || (int) $loan->term_months > 0 ||
+                ( isset( $loan->repayment_mode ) && 'flexible' === $loan->repayment_mode ) ||
+                null === $remaining || $remaining > (float) $loan->principal ||
                 null === $monthly || $monthly <= 0 || ! self::date( $due, true ) ) {
                 self::redirect( 'invalid' );
             }
@@ -672,7 +759,7 @@ final class TCA_Treasury {
         ) );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregated owned loan payments are read-only.
         $loan_payments = (array) $wpdb->get_results( $wpdb->prepare(
-            'SELECT loan_id, COUNT(*) AS paid_count, COALESCE(SUM(interest_amount),0) AS interest_paid FROM %i GROUP BY loan_id',
+            'SELECT loan_id, COUNT(*) AS paid_count, COALESCE(SUM(interest_amount),0) AS interest_paid, COALESCE(SUM(principal_amount),0) AS capital_paid FROM %i GROUP BY loan_id',
             self::table( 'loan_payments' )
         ) );
         $payments_by_loan = array();
@@ -894,6 +981,7 @@ final class TCA_Treasury {
         }
         echo '</tr></thead><tbody>';
         foreach ( $loans as $loan ) {
+            $is_flexible = isset( $loan->repayment_mode ) && 'flexible' === $loan->repayment_mode;
             $managed = (int) $loan->term_months > 0;
             $paid_count = isset( $payments_by_loan[ (int) $loan->id ] ) ? (int) $payments_by_loan[ (int) $loan->id ]->paid_count : 0;
             $schedule = $managed
@@ -918,7 +1006,8 @@ final class TCA_Treasury {
             echo '</td><td>' . esc_html( tca_money( $loan->principal ) ) .
                 '</td><td>' . esc_html( tca_money( $next ? $next['payment'] : $loan->monthly_payment ) ) .
                 '</td><td>' . esc_html( tca_money( $loan->remaining ) ) .
-                '</td><td>' . esc_html( (float) $loan->remaining <= 0 ? '—' : $loan->next_due_date ) . '</td><td>';
+                '</td><td>' . esc_html( (float) $loan->remaining <= 0 || $is_flexible && '1970-01-01' === $loan->next_due_date
+                    ? '—' : $loan->next_due_date ) . '</td><td>';
             if ( $managed ) {
                 echo '<p>' . esc_html( (string) $loan->term_months ) . ' ' .
                     esc_html__( 'months; annual nominal rate', 'taxocommerce-accounting' ) . ': ' .
@@ -967,8 +1056,36 @@ final class TCA_Treasury {
                     }
                     echo '</tbody></table></details>';
                 }
+            } elseif ( $is_flexible ) {
+                echo '<p>' . esc_html__( 'Repayment when agreed, without fixed instalments. Interest: 0%.', 'taxocommerce-accounting' ) . '</p>';
+                if ( isset( $payments_by_loan[ (int) $loan->id ] ) ) {
+                    $paid = $payments_by_loan[ (int) $loan->id ];
+                    echo '<p>' . esc_html__( 'Capital already returned', 'taxocommerce-accounting' ) . ': ' .
+                        esc_html( tca_money( $paid->capital_paid ) ) . ' (' .
+                        esc_html( (string) $paid->paid_count ) . ' ' .
+                        esc_html__( 'repayments', 'taxocommerce-accounting' ) . ')</p>';
+                }
+                if ( (float) $loan->remaining > 0 && $accounts ) {
+                    self::start_form( 'loan_flexible_payment' );
+                    echo '<input type="hidden" name="loan_id" value="' . esc_attr( (string) $loan->id ) . '">';
+                    echo '<input type="hidden" name="request_key" value="' . esc_attr( wp_generate_uuid4() ) . '">';
+                    echo '<label>' . esc_html__( 'Repay from', 'taxocommerce-accounting' ) . ' ';
+                    self::account_select( $accounts, 'account_id' );
+                    echo '</label> ';
+                    echo '<label>' . esc_html__( 'Actual repayment date', 'taxocommerce-accounting' ) .
+                        ' <input name="posted_on" type="date" value="' . esc_attr( $today ) . '" min="' . esc_attr( $loan->start_date ) . '" required></label> ';
+                    echo '<label>' . esc_html__( 'Capital to repay (€)', 'taxocommerce-accounting' ) .
+                        ' <input name="amount" type="number" min="0.01" max="' . esc_attr( (string) $loan->remaining ) .
+                        '" step="0.01" value="' . esc_attr( (string) $loan->remaining ) . '" required></label> ';
+                    echo '<p><label><input type="checkbox" name="loan_payment_confirmed" value="1" required> ' .
+                        esc_html__( 'I confirm that this amount was actually transferred to the lender.', 'taxocommerce-accounting' ) .
+                        '</label></p>';
+                    submit_button( __( 'Record actual repayment', 'taxocommerce-accounting' ), 'secondary small', 'submit', false );
+                    echo '</form>';
+                }
             } else {
-                // The original manual loans have no original TIN/term contract.
+                // Legacy loans retain manual adjustment; new flexible loans
+                // must always be repaid through bank movements.
                 self::start_form( 'loan_update' );
                 echo '<input type="hidden" name="loan_id" value="' . esc_attr( (string) $loan->id ) . '">';
                 echo '<label>' . esc_html__( 'Outstanding', 'taxocommerce-accounting' ) . ' <input type="number" min="0" step="0.01" name="remaining" value="' . esc_attr( (string) $loan->remaining ) . '" required></label> ';
@@ -988,7 +1105,7 @@ final class TCA_Treasury {
         self::start_form( 'loan' );
         echo '<input type="hidden" name="loan_request_key" value="' . esc_attr( wp_generate_uuid4() ) . '">';
         echo '<p class="description">' . esc_html__(
-            'Enter the amount actually borrowed, excluding any down payment. Set TIN and term to calculate instalments; leave term zero and enter a manual monthly amount for an old-style loan. The optional final balloon is extra principal due with the last instalment.',
+            'Enter the amount borrowed. For a 0% sponsor loan repayable later without fixed instalments, choose 0 months, 0% interest, and leave the first repayment date empty. Record partial or total repayments only when actually made. For scheduled financing, specify term and first instalment date.',
             'taxocommerce-accounting'
         ) . '</p>';
         echo '<div class="tca-treasury-forms"><div><p><label>' . esc_html__( 'Loan name', 'taxocommerce-accounting' ) . ' <input type="text" maxlength="191" name="name" required></label></p>';
@@ -1000,12 +1117,12 @@ final class TCA_Treasury {
         echo '<p><label>' . esc_html__( 'Loan agreement reference', 'taxocommerce-accounting' ) . ' <input type="text" maxlength="191" name="agreement_reference"></label></p>';
         echo '<p><label>' . esc_html__( 'Annual nominal interest (TIN %)', 'taxocommerce-accounting' ) . ' <input type="number" min="0" max="100" step="0.0001" name="annual_rate" value="0" required></label></p></div>';
         echo '<div><p><label>' . esc_html__( 'Financed principal (€)', 'taxocommerce-accounting' ) . ' <input type="number" min="0.01" step="0.01" name="principal" required></label></p>';
-        echo '<p><label>' . esc_html__( 'Term in months (0 = manual)', 'taxocommerce-accounting' ) . ' <input type="number" min="0" max="360" step="1" name="term_months" value="12" required></label></p>';
+        echo '<p><label>' . esc_html__( 'Term in months (0 = repay later without fixed instalments)', 'taxocommerce-accounting' ) . ' <input type="number" min="0" max="360" step="1" name="term_months" value="0" required></label></p>';
         echo '<p><label>' . esc_html__( 'Down payment from own funds (€)', 'taxocommerce-accounting' ) . ' <input type="number" min="0" step="0.01" name="upfront_payment" value="0" required></label></p>';
         echo '<p><label>' . esc_html__( 'Extra principal on final instalment (€)', 'taxocommerce-accounting' ) . ' <input type="number" min="0" step="0.01" name="balloon_payment" value="0" required></label></p>';
-        echo '<p><label>' . esc_html__( 'Manual monthly payment (€; only term 0)', 'taxocommerce-accounting' ) . ' <input type="number" min="0.01" step="0.01" name="monthly_payment"></label></p></div>';
+        echo '</div>';
         echo '<div><p><label>' . esc_html__( 'Loan date', 'taxocommerce-accounting' ) . ' <input type="date" name="start_date" value="' . esc_attr( $today ) . '" required></label></p>';
-        echo '<p><label>' . esc_html__( 'First instalment date', 'taxocommerce-accounting' ) . ' <input type="date" name="next_due_date" required></label></p>';
+        echo '<p><label>' . esc_html__( 'First instalment date (optional for flexible 0% loans)', 'taxocommerce-accounting' ) . ' <input type="date" name="next_due_date"></label></p>';
         echo '<p><label>' . esc_html__( 'Loan funds', 'taxocommerce-accounting' ) . ' <select name="funding_mode">';
         echo '<option value="pending">' . esc_html__( 'Not received yet (do not change bank)', 'taxocommerce-accounting' ) . '</option>';
         echo '<option value="opening_balance">' . esc_html__( 'Already included in bank opening balance (do not duplicate)', 'taxocommerce-accounting' ) . '</option>';
