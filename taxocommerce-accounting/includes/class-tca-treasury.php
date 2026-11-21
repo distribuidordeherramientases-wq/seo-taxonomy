@@ -71,6 +71,11 @@ final class TCA_Treasury {
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             name varchar(191) NOT NULL,
             lender varchar(191) NOT NULL DEFAULT '',
+            lender_tax_id varchar(48) NOT NULL DEFAULT '',
+            lender_relation varchar(24) NOT NULL DEFAULT 'other',
+            agreement_reference varchar(191) NOT NULL DEFAULT '',
+            funding_source varchar(24) NOT NULL DEFAULT 'pending',
+            opening_account_id bigint(20) unsigned NULL DEFAULT NULL,
             principal decimal(18,2) NOT NULL,
             remaining decimal(18,2) NOT NULL,
             monthly_payment decimal(18,2) NOT NULL,
@@ -87,6 +92,7 @@ final class TCA_Treasury {
             updated_at datetime NOT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY request_key (request_key),
+            UNIQUE KEY opening_account_id (opening_account_id),
             KEY next_due_date (next_due_date)
         ) {$collation};" );
         $payments = esc_sql( self::table( 'loan_payments' ) );
@@ -198,6 +204,16 @@ final class TCA_Treasury {
                 $wpdb->query( 'ROLLBACK' );
                 self::redirect( 'invalid' );
             }
+            // A loan linked to this opening amount must never lose its funding source.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Financial loan link must be checked before an opening correction.
+            $linked_loan = $wpdb->get_var( $wpdb->prepare(
+                'SELECT id FROM %i WHERE opening_account_id = %d LIMIT 1', self::table( 'loans' ), $id
+            ) );
+            if ( $linked_loan ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reject cancelling an assigned opening balance.
+                $wpdb->query( 'ROLLBACK' );
+                self::redirect( 'invalid' );
+            }
             $amount = (float) $account->opening_amount;
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Our own financial account table; a direct write is necessary.
             $ok = $wpdb->update( self::table( 'accounts' ),
@@ -253,7 +269,11 @@ final class TCA_Treasury {
                 'SELECT movement_id FROM %i WHERE movement_id = %d',
                 self::table( 'loan_payments' ), $id
             ) );
-            if ( $settled || $loan ) self::redirect( 'invalid' );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Loan principal receipts cannot be edited independently.
+            $loan_funding = $wpdb->get_var( $wpdb->prepare(
+                'SELECT id FROM %i WHERE funding_movement_id = %d LIMIT 1', self::table( 'loans' ), $id
+            ) );
+            if ( $settled || $loan || $loan_funding ) self::redirect( 'invalid' );
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Update a standalone movement in our own Treasury ledger.
             $ok = $wpdb->update( self::table( 'movements' ),
                 array( 'account_id' => $account->id, 'posted_on' => $date,
@@ -280,6 +300,16 @@ final class TCA_Treasury {
             if ( ! $account || ! in_array( $account->kind, array( 'cash', 'bank' ), true ) ||
                 $date < $account->opened_on || (float) $account->opening_amount <= 0 ) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reject duplicate conversion.
+                $wpdb->query( 'ROLLBACK' );
+                self::redirect( 'invalid' );
+            }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reject conversion if a lender has already been linked to this opening balance.
+            $linked_loan = $wpdb->get_var( $wpdb->prepare(
+                'SELECT id FROM %i WHERE opening_account_id = %d LIMIT 1',
+                self::table( 'loans' ), $account_id
+            ) );
+            if ( $linked_loan ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Leave linked opening funds unchanged.
                 $wpdb->query( 'ROLLBACK' );
                 self::redirect( 'invalid' );
             }
@@ -337,6 +367,9 @@ final class TCA_Treasury {
         if ( 'loan' === $operation ) {
             $name = self::posted( 'name' );
             $lender = self::posted( 'lender' );
+            $lender_tax_id = self::posted( 'lender_tax_id' );
+            $lender_relation = sanitize_key( self::posted( 'lender_relation' ) );
+            $agreement_reference = self::posted( 'agreement_reference' );
             $start = self::posted( 'start_date' );
             $due = self::posted( 'next_due_date' );
             $principal = self::money( self::posted( 'principal' ) );
@@ -346,16 +379,27 @@ final class TCA_Treasury {
             $balloon = self::money( self::posted( 'balloon_payment' ) );
             $monthly = self::money( self::posted( 'monthly_payment' ) );
             $request_key = self::posted( 'loan_request_key' );
-            $funding_received = '1' === self::posted( 'funding_received' );
-            $funding_account = $funding_received ? self::get_account( self::posted( 'funding_account_id' ) ) : false;
-            if ( '' === $name || ! self::date( $start ) || ! self::date( $due, true ) ||
+            // Existing opening balance is funding already held by the bank; no new receipt.
+            $funding_mode = sanitize_key( self::posted( 'funding_mode' ) );
+            if ( '' === $funding_mode && '1' === self::posted( 'funding_received' ) ) {
+                $funding_mode = 'new_receipt'; // Compatibility with the previous form.
+            }
+            $funding_received = 'new_receipt' === $funding_mode;
+            $funding_existing = 'opening_balance' === $funding_mode;
+            $funding_account = ( $funding_received || $funding_existing )
+                ? self::get_account( self::posted( 'funding_account_id' ) ) : false;
+            if ( '' === $name || '' === $lender ||
+                ! in_array( $lender_relation, array( 'sponsor', 'other' ), true ) ||
+                ! in_array( $funding_mode, array( 'pending', 'new_receipt', 'opening_balance' ), true ) ||
+                ! self::date( $start ) || ! self::date( $due, true ) ||
                 $due < $start || null === $principal || $principal <= 0 ||
                 ! preg_match( '/^[a-f0-9-]{36}$/', $request_key ) ||
                 null === $rate || $rate < 0 || $rate > 100 ||
                 null === $upfront || null === $balloon || $balloon > $principal ||
                 $months > 360 ||
-                ( $funding_received && ( ! $funding_account ||
-                    'bank' !== $funding_account->kind || $start < $funding_account->opened_on ) ) ) {
+                ( ( $funding_received || $funding_existing ) && ( ! $funding_account ||
+                    'bank' !== $funding_account->kind || $start < $funding_account->opened_on ) ) ||
+                ( $funding_existing && '1' !== self::posted( 'opening_verified' ) ) ) {
                 self::redirect( 'invalid' );
             }
             if ( $months > 0 ) {
@@ -378,15 +422,42 @@ final class TCA_Treasury {
             }
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own loan/funding transaction.
             $wpdb->query( 'START TRANSACTION' );
+            if ( $funding_existing ) {
+                // Lock and attribute the opening balance exactly once. No money moves.
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lock financial opening amount before assigning the lender.
+                $opening_account = $wpdb->get_row( $wpdb->prepare(
+                    'SELECT * FROM %i WHERE id = %d FOR UPDATE', self::table( 'accounts' ), $funding_account->id
+                ) );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prevent two sponsors claiming the same opening balance.
+                $already_linked = $wpdb->get_var( $wpdb->prepare(
+                    'SELECT id FROM %i WHERE opening_account_id = %d LIMIT 1',
+                    self::table( 'loans' ), $funding_account->id
+                ) );
+                if ( ! $opening_account || 'bank' !== $opening_account->kind ||
+                    (float) $opening_account->opening_amount <= 0 ||
+                    abs( round( (float) $opening_account->opening_amount, 2 ) - round( $principal, 2 ) ) > 0.001 ||
+                    $already_linked ) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Do not create an unmatched loan.
+                    $wpdb->query( 'ROLLBACK' );
+                    self::redirect( 'invalid' );
+                }
+            }
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Own loan register.
             $saved = $wpdb->insert( self::table( 'loans' ), array(
-                'name' => $name, 'lender' => $lender, 'principal' => $principal,
-                'remaining' => $principal, 'monthly_payment' => $monthly,
-                'annual_rate' => $rate, 'term_months' => $months, 'request_key' => $request_key,
+                'name' => $name, 'lender' => $lender,
+                'lender_tax_id' => $lender_tax_id, 'lender_relation' => $lender_relation,
+                'agreement_reference' => $agreement_reference,
+                'funding_source' => $funding_mode,
+                'opening_account_id' => $funding_existing ? (int) $funding_account->id : null,
+                'principal' => $principal, 'remaining' => $principal,
+                'monthly_payment' => $monthly, 'annual_rate' => $rate,
+                'term_months' => $months, 'request_key' => $request_key,
                 'upfront_payment' => $upfront, 'balloon_payment' => $balloon,
                 'start_date' => $start, 'next_due_date' => $due, 'first_due_date' => $due,
                 'created_at' => current_time( 'mysql' ), 'updated_at' => current_time( 'mysql' ),
-            ), array( '%s', '%s', '%f', '%f', '%f', '%f', '%d', '%s', '%f', '%f', '%s', '%s', '%s', '%s', '%s' ) );
+            ), array( '%s', '%s', '%s', '%s', '%s', '%s', '%d',
+                '%f', '%f', '%f', '%f', '%d', '%s', '%f', '%f',
+                '%s', '%s', '%s', '%s', '%s' ) );
             $loan_id = $saved ? (int) $wpdb->insert_id : 0;
             if ( $saved && $funding_received ) {
                 // The purchase invoice/payment must be recorded separately.
