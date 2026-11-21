@@ -728,6 +728,12 @@ final class TCA_Treasury {
         echo '<h3>' . esc_html__( 'Cash and bank accounts', 'taxocommerce-accounting' ) . '</h3>';
         echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Account', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Type', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Opening balance', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Current balance', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Funding entry', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Edit', 'taxocommerce-accounting' ) . '</th></tr></thead><tbody>';
         $by_id = array();
+        $opening_loans_by_account = array();
+        foreach ( $loans as $loan ) {
+            if ( ! empty( $loan->opening_account_id ) ) {
+                $opening_loans_by_account[ (int) $loan->opening_account_id ] = $loan;
+            }
+        }
         foreach ( $accounts as $account ) {
             $by_id[ (int) $account->id ] = $account;
             $balance = $account->opened_on <= $today ? (float) $account->opening_amount : 0.0;
@@ -738,7 +744,15 @@ final class TCA_Treasury {
                 }
             }
             echo '<tr><td>' . esc_html( $account->name ) . '</td><td>' . esc_html( 'cash' === $account->kind ? __( 'Cash', 'taxocommerce-accounting' ) : __( 'Bank', 'taxocommerce-accounting' ) ) . '</td><td>' . esc_html( tca_money( $account->opening_amount ) ) . '</td><td>' . esc_html( tca_money( $balance ) ) . '</td><td>';
-            if ( (float) $account->opening_amount > 0 ) {
+            if ( (float) $account->opening_amount > 0 &&
+                isset( $opening_loans_by_account[ (int) $account->id ] ) ) {
+                $linked = $opening_loans_by_account[ (int) $account->id ];
+                echo '<strong>' . esc_html__( 'Linked to a repayable loan from', 'taxocommerce-accounting' ) . ' ' .
+                    esc_html( $linked->lender ) . '</strong> ';
+                echo '<span class="description">' .
+                    esc_html__( 'The opening funds are already present. Conversion or cancellation is blocked while this loan is linked.', 'taxocommerce-accounting' ) .
+                    '</span>';
+            } elseif ( (float) $account->opening_amount > 0 ) {
                 self::start_form( 'opening_receipt' );
                 echo '<input type="hidden" name="account_id" value="' . esc_attr( (string) $account->id ) . '">';
                 echo '<label>' . esc_html__( 'Actual contribution date', 'taxocommerce-accounting' ) . ' <input name="posted_on" type="date" min="' . esc_attr( $account->opened_on ) . '" max="' . esc_attr( $today ) . '" value="' . esc_attr( $account->opened_on ) . '" required></label> ';
@@ -886,8 +900,22 @@ final class TCA_Treasury {
                 ? TCA_Loan_Schedule::calculate( $loan->principal, $loan->annual_rate, $loan->term_months, $loan->first_due_date, $loan->balloon_payment )
                 : array();
             $next = $schedule[ $paid_count ] ?? null;
-            echo '<tr><td>' . esc_html( $loan->name ) . '</td><td>' . esc_html( $loan->lender ) .
-                '</td><td>' . esc_html( tca_money( $loan->principal ) ) .
+            $lender_details = $loan->lender;
+            if ( isset( $loan->lender_relation ) && 'sponsor' === $loan->lender_relation ) {
+                $lender_details .= ' (' . __( 'Sponsor / lender', 'taxocommerce-accounting' ) . ')';
+            }
+            $source_details = '';
+            if ( ! empty( $loan->opening_account_id ) ) {
+                $source_details = __( 'Funded by existing opening balance; no duplicate receipt', 'taxocommerce-accounting' );
+                if ( isset( $by_id[ (int) $loan->opening_account_id ] ) ) {
+                    $source_details .= ': ' . $by_id[ (int) $loan->opening_account_id ]->name;
+                }
+            }
+            echo '<tr><td>' . esc_html( $loan->name ) . '</td><td>' . esc_html( $lender_details );
+            if ( '' !== $source_details ) {
+                echo '<p class="description">' . esc_html( $source_details ) . '</p>';
+            }
+            echo '</td><td>' . esc_html( tca_money( $loan->principal ) ) .
                 '</td><td>' . esc_html( tca_money( $next ? $next['payment'] : $loan->monthly_payment ) ) .
                 '</td><td>' . esc_html( tca_money( $loan->remaining ) ) .
                 '</td><td>' . esc_html( (float) $loan->remaining <= 0 ? '—' : $loan->next_due_date ) . '</td><td>';
@@ -964,7 +992,12 @@ final class TCA_Treasury {
             'taxocommerce-accounting'
         ) . '</p>';
         echo '<div class="tca-treasury-forms"><div><p><label>' . esc_html__( 'Loan name', 'taxocommerce-accounting' ) . ' <input type="text" maxlength="191" name="name" required></label></p>';
-        echo '<p><label>' . esc_html__( 'Lender', 'taxocommerce-accounting' ) . ' <input type="text" maxlength="191" name="lender"></label></p>';
+        echo '<p><label>' . esc_html__( 'Sponsor / lender name', 'taxocommerce-accounting' ) . ' <input type="text" maxlength="191" name="lender" required></label></p>';
+        echo '<p><label>' . esc_html__( 'Sponsor / lender tax ID (optional)', 'taxocommerce-accounting' ) . ' <input type="text" maxlength="48" name="lender_tax_id"></label></p>';
+        echo '<p><label>' . esc_html__( 'Lender relationship', 'taxocommerce-accounting' ) . ' <select name="lender_relation">';
+        echo '<option value="sponsor">' . esc_html__( 'Sponsor (repayable loan)', 'taxocommerce-accounting' ) . '</option>';
+        echo '<option value="other">' . esc_html__( 'Other lender', 'taxocommerce-accounting' ) . '</option></select></label></p>';
+        echo '<p><label>' . esc_html__( 'Loan agreement reference', 'taxocommerce-accounting' ) . ' <input type="text" maxlength="191" name="agreement_reference"></label></p>';
         echo '<p><label>' . esc_html__( 'Annual nominal interest (TIN %)', 'taxocommerce-accounting' ) . ' <input type="number" min="0" max="100" step="0.0001" name="annual_rate" value="0" required></label></p></div>';
         echo '<div><p><label>' . esc_html__( 'Financed principal (€)', 'taxocommerce-accounting' ) . ' <input type="number" min="0.01" step="0.01" name="principal" required></label></p>';
         echo '<p><label>' . esc_html__( 'Term in months (0 = manual)', 'taxocommerce-accounting' ) . ' <input type="number" min="0" max="360" step="1" name="term_months" value="12" required></label></p>';
@@ -973,21 +1006,31 @@ final class TCA_Treasury {
         echo '<p><label>' . esc_html__( 'Manual monthly payment (€; only term 0)', 'taxocommerce-accounting' ) . ' <input type="number" min="0.01" step="0.01" name="monthly_payment"></label></p></div>';
         echo '<div><p><label>' . esc_html__( 'Loan date', 'taxocommerce-accounting' ) . ' <input type="date" name="start_date" value="' . esc_attr( $today ) . '" required></label></p>';
         echo '<p><label>' . esc_html__( 'First instalment date', 'taxocommerce-accounting' ) . ' <input type="date" name="next_due_date" required></label></p>';
+        echo '<p><label>' . esc_html__( 'Loan funds', 'taxocommerce-accounting' ) . ' <select name="funding_mode">';
+        echo '<option value="pending">' . esc_html__( 'Not received yet (do not change bank)', 'taxocommerce-accounting' ) . '</option>';
+        echo '<option value="opening_balance">' . esc_html__( 'Already included in bank opening balance (do not duplicate)', 'taxocommerce-accounting' ) . '</option>';
+        echo '<option value="new_receipt">' . esc_html__( 'New confirmed bank receipt', 'taxocommerce-accounting' ) . '</option>';
+        echo '</select></label></p>';
         if ( $accounts ) {
-            echo '<p><label><input type="checkbox" name="funding_received" value="1"> ' .
-                esc_html__( 'Loan funds actually received in bank (confirmed)', 'taxocommerce-accounting' ) . '</label></p>';
-            echo '<p><label>' . esc_html__( 'Bank receiving loan', 'taxocommerce-accounting' ) . ' <select name="funding_account_id">';
+            echo '<p><label>' . esc_html__( 'Bank receiving or holding loan funds', 'taxocommerce-accounting' ) . ' <select name="funding_account_id">';
             echo '<option value="0">' . esc_html__( 'Select bank', 'taxocommerce-accounting' ) . '</option>';
             foreach ( $accounts as $account ) {
                 if ( 'bank' === $account->kind ) {
-                    echo '<option value="' . esc_attr( (string) $account->id ) . '">' . esc_html( $account->name ) . '</option>';
+                    echo '<option value="' . esc_attr( (string) $account->id ) . '">' .
+                        esc_html( $account->name . ' (' . tca_money( $account->opening_amount ) . ' ' . __( 'opening', 'taxocommerce-accounting' ) . ')' ) . '</option>';
                 }
             }
             echo '</select></label></p>';
+            echo '<p><label><input type="checkbox" name="opening_verified" value="1"> ' .
+                esc_html__( 'I confirm that the entire opening balance belongs to this loan and is already in this bank. Do not add money again.', 'taxocommerce-accounting' ) .
+                '</label></p>';
+            echo '<p class="description">' .
+                esc_html__( 'When linking an opening balance, the loan principal must equal that opening amount exactly. An opening balance can fund only one loan. No bank movement is created.', 'taxocommerce-accounting' ) .
+                '</p>';
         }
         echo '</div></div>';
         echo '<p class="description">' . esc_html__(
-            'Confirm funds received only if a real transfer into this bank account occurred. Saving the loan does not repeat the supplier payment; the down payment is informational and never moves cash automatically. Loan instalments are forecast until manually confirmed.',
+            'Select opening balance when the sponsor already financed ING: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed.',
             'taxocommerce-accounting'
         ) . '</p>';
         submit_button( __( 'Save loan', 'taxocommerce-accounting' ), 'secondary', 'submit', false );
