@@ -831,7 +831,13 @@ final class TCA_Treasury {
                         ? (float) $movement->total : -(float) $movement->total;
                 }
             }
-            echo '<tr><td>' . esc_html( $account->name ) . '</td><td>' . esc_html( 'cash' === $account->kind ? __( 'Cash', 'taxocommerce-accounting' ) : __( 'Bank', 'taxocommerce-accounting' ) ) . '</td><td>' . esc_html( tca_money( $account->opening_amount ) ) . '</td><td>' . esc_html( tca_money( $balance ) ) . '</td><td>';
+            $account_state = (float) $account->opening_amount > 0
+                ? ( isset( $opening_loans_by_account[ (int) $account->id ] )
+                    ? TCA_Status_Colors::loan( $opening_loans_by_account[ (int) $account->id ] )
+                    : 'pending' )
+                : 'neutral';
+            echo '<tr class="tca-state-' . esc_attr( $account_state ) . '"><td>' .
+                esc_html( $account->name ) . '</td><td>' . esc_html( 'cash' === $account->kind ? __( 'Cash', 'taxocommerce-accounting' ) : __( 'Bank', 'taxocommerce-accounting' ) ) . '</td><td>' . esc_html( tca_money( $account->opening_amount ) ) . '</td><td>' . esc_html( tca_money( $balance ) ) . '</td><td>';
             if ( (float) $account->opening_amount > 0 &&
                 isset( $opening_loans_by_account[ (int) $account->id ] ) ) {
                 $linked = $opening_loans_by_account[ (int) $account->id ];
