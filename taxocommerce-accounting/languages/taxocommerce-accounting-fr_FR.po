@@ -1313,8 +1313,8 @@ msgstr "Historique des corrections du solde initial"
 msgid "Create a new cash or bank account (not a receipt)"
 msgstr "Créer un compte de caisse ou bancaire (pas un encaissement)"
 
-msgid "Use the account name ING or CAJA. Record donations, initial contributions and customer receipts as movements into an existing account."
-msgstr "Utilisez un nom de compte tel que ING ou CAJA. Enregistrez les dons, apports initiaux et paiements clients comme des entrées sur un compte existant."
+msgid "Use a descriptive account name, such as Main bank or Cash register. Record donations, initial contributions and customer receipts as movements into an existing account."
+msgstr "Utilisez un nom de compte explicite, comme Banque principale ou Caisse. Enregistrez les dons, apports initiaux et encaissements clients sur un compte existant."
 
 msgid "Save changes"
 msgstr "Enregistrer les modifications"
@@ -1400,5 +1400,5 @@ msgstr "Je confirme que la totalité du solde initial correspond à ce prêt et 
 msgid "When linking an opening balance, the loan principal must equal that opening amount exactly. An opening balance can fund only one loan. No bank movement is created."
 msgstr "Lors du lien avec un solde initial, le capital du prêt doit correspondre exactement à ce montant. Un solde initial ne peut financer qu’un prêt. Aucun mouvement bancaire n’est créé."
 
-msgid "Select opening balance when the sponsor already financed ING: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed."
-msgstr "Sélectionnez solde initial si le parrain a déjà financé ING : aucun second encaissement. Choisissez un nouvel encaissement uniquement pour des fonds nouvellement reçus. C’est un prêt remboursable, ni un don ni une vente soumise à TVA. Les échéances restent prévisionnelles jusqu’à confirmation."
+msgid "Select opening balance when the lender's funds are already included in the bank opening balance: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed."
+msgstr "Sélectionnez solde initial si les fonds du prêteur figurent déjà dans le solde bancaire initial : aucun second encaissement n’est créé. Sélectionnez nouvel encaissement uniquement pour des fonds nouvellement reçus. Il s’agit d’un prêt remboursable, ni d’un don ni d’une vente soumise à TVA. Les échéances restent prévisionnelles jusqu’à confirmation."
