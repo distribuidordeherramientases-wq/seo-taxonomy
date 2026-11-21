@@ -922,3 +922,15 @@ msgstr "Montant payé"
 
 msgid "Invoice total including VAT"
 msgstr "Total de la facture TVA comprise"
+
+msgid "Financial overview (not sales or VAT)"
+msgstr "Vue financière (hors ventes et TVA)"
+
+msgid "Initial loan funding (already in opening balance)"
+msgstr "Financement initial par prêt (déjà compris dans le solde d'ouverture)"
+
+msgid "Current bank balance"
+msgstr "Solde bancaire actuel"
+
+msgid "The opening loan is shown as a bank inflow in its start month for reporting. It is already included in the opening bank balance: no second bank movement, sale or VAT is created."
+msgstr "Le prêt initial est affiché comme entrée bancaire au cours de son mois de début à des fins de rapport. Il est déjà compris dans le solde bancaire d'ouverture : aucune deuxième opération bancaire, vente ou TVA n'est créée."
