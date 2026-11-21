@@ -36,15 +36,15 @@ def valid_path(slug, relative):
     return True
 
 
-def read_hash(ftp, filename):
-    digest = hashlib.sha256()
+def exists(ftp, filename):
+    """Check presence using metadata only; never download remote file contents."""
     try:
-        ftp.retrbinary("RETR " + filename, digest.update)
+        ftp.size(filename)
+        return True
     except ftplib.error_perm as exc:
         if str(exc).startswith("550"):
-            return None
+            return False
         raise
-    return digest.hexdigest()
 
 
 def find_live_plugin_root(ftp):
@@ -62,8 +62,8 @@ def find_live_plugin_root(ftp):
             try:
                 if candidate:
                     ftp.cwd(candidate)
-                if (read_hash(ftp, "woocommerce/woocommerce.php") is not None
-                        and read_hash(ftp, "taxocommerce-core/taxocommerce-core.php") is not None):
+                if (exists(ftp, "woocommerce/woocommerce.php")
+                        and exists(ftp, "taxocommerce-core/taxocommerce-core.php")):
                     matches.add(ftp.pwd())
             except ftplib.error_perm as exc:
                 if not str(exc).startswith("550"):
@@ -79,18 +79,14 @@ def find_live_plugin_root(ftp):
 
 
 def copy_changed(ftp, slug, relative, root):
-    """Copy just one modified file; skip identical content and verify SHA-256."""
+    """Upload a Git-selected file once; do not compare or retrieve remote files."""
     if not valid_path(slug, relative):
         raise ValueError("Invalid plugin path")
     source = Path(slug, *PurePosixPath(relative).parts)
     if not source.is_file() or source.is_symlink() or source.stat().st_size > MAX_BYTES:
         raise ValueError("Changed file missing or invalid")
-    content = source.read_bytes()
-    digest = hashlib.sha256(content).hexdigest()
 
     ftp.cwd(root)
-    # This creates destination folders if a new TaxoCommerce plugin was added
-    # to GitHub; it does not activate the plugin in WordPress.
     for name in (slug, *PurePosixPath(relative).parts[:-1]):
         try:
             ftp.cwd(name)
@@ -101,34 +97,28 @@ def copy_changed(ftp, slug, relative, root):
             ftp.cwd(name)
 
     filename = PurePosixPath(relative).name
-    if read_hash(ftp, filename) == digest:
-        print("UNCHANGED " + slug + "/" + relative)
-        return False
-
-    # Use the same simple upload/rename approach as STAGING, with a local
-    # rollback copy of the previous file in case the rename/check fails.
     temporary = ".taxocommerce-upload-" + hashlib.sha256(
         (slug + "/" + relative).encode("utf-8")
     ).hexdigest()[:20] + ".tmp"
     backup = temporary + ".previous"
-    previous_exists = read_hash(ftp, filename) is not None
+    previous_exists = exists(ftp, filename)
     old_moved = False
     new_moved = False
     try:
-        ftp.storbinary("STOR " + temporary, io.BytesIO(content), blocksize=65536)
-        if read_hash(ftp, temporary) != digest:
-            raise RuntimeError("Uploaded file checksum mismatch")
+        with source.open("rb") as stream:
+            ftp.storbinary("STOR " + temporary, stream, blocksize=65536)
+        # SIZE checks the uploaded byte count without RETR/downloading content.
+        if ftp.size(temporary) != source.stat().st_size:
+            raise RuntimeError("Uploaded file size mismatch")
         if previous_exists:
             ftp.rename(filename, backup)
             old_moved = True
         ftp.rename(temporary, filename)
         new_moved = True
-        if read_hash(ftp, filename) != digest:
-            raise RuntimeError("Destination checksum mismatch")
         if old_moved:
             ftp.delete(backup)
             old_moved = False
-        print("UPDATED " + slug + "/" + relative)
+        print("UPDATED " + slug + "/" + relative, flush=True)
         return True
     except Exception:
         if new_moved:
@@ -173,13 +163,14 @@ def main():
         ftp.prot_p()
         # No WordPress inventory: only confirm that the FTPS account can
         # access the existing real WooCommerce plugin root before any write.
+        ftp.voidcmd('TYPE I')
         root = find_live_plugin_root(ftp)
-        print("PRO WordPress plugins root verified; comparing changed files.", flush=True)
+        print("PRO WordPress plugins root verified; uploading Git-selected changed files.", flush=True)
         total = 0
         for slug, paths in sorted(delta.items()):
             for relative in sorted(paths):
                 total += int(copy_changed(ftp, slug, relative, root))
-        print(f"PRO: {total} changed files copied and verified.")
+        print(f"PRO: {total} Git-selected changed files uploaded.")
     finally:
         try:
             ftp.quit()
