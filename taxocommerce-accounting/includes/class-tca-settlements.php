@@ -130,9 +130,9 @@ final class TCA_Settlements {
         exit;
     }
 
-    public static function render( $entry ) {
+    public static function render( $entry, $paid_override = null ) {
         $total = abs( (float) $entry->amount_total );
-        $paid = self::sum( (int) $entry->id );
+        $paid = null === $paid_override ? self::sum( (int) $entry->id ) : (float) $paid_override;
         $due = self::outstanding( $total, $paid );
         echo '<p><strong>' . esc_html__( 'Paid/received:', 'taxocommerce-accounting' ) . '</strong> ' . esc_html( tca_money( $paid ) ) . ' / ' . esc_html( tca_money( $total ) ) . '</p>';
         if ( $due <= 0 ) {

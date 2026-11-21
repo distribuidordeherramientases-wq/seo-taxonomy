@@ -61,3 +61,73 @@
 }
 .tca-accounting-admin .tca-treasury-scroll table { min-width: 680px; }
 .tca-accounting-admin .tca-treasury-scroll form input { max-width: 165px; }
+
+/* Accounting traffic lights: never imply that a pending invoice is erroneous. */
+.tca-accounting-admin .nav-tab-wrapper .nav-tab.tca-state-closed,
+.tca-accounting-admin .nav-tab-wrapper .nav-tab.tca-state-closed.nav-tab-active {
+    background: #d8f2df;
+    border-color: #7dbd91;
+    color: #145c34;
+}
+.tca-accounting-admin .nav-tab-wrapper .nav-tab.tca-state-pending,
+.tca-accounting-admin .nav-tab-wrapper .nav-tab.tca-state-pending.nav-tab-active {
+    background: #fff0cd;
+    border-color: #d9ab50;
+    color: #765000;
+}
+.tca-accounting-admin .nav-tab-wrapper .nav-tab.tca-state-error,
+.tca-accounting-admin .nav-tab-wrapper .nav-tab.tca-state-error.nav-tab-active {
+    background: #f9dcdd;
+    border-color: #d58d8f;
+    color: #8b1f25;
+}
+.tca-accounting-admin .nav-tab-wrapper .nav-tab.tca-state-closed:hover,
+.tca-accounting-admin .nav-tab-wrapper .nav-tab.tca-state-closed:focus {
+    background: #c1e9cd;
+    color: #145c34;
+}
+.tca-accounting-admin .nav-tab-wrapper .nav-tab.tca-state-pending:hover,
+.tca-accounting-admin .nav-tab-wrapper .nav-tab.tca-state-pending:focus {
+    background: #ffe5ad;
+    color: #765000;
+}
+.tca-accounting-admin .nav-tab-wrapper .nav-tab.tca-state-error:hover,
+.tca-accounting-admin .nav-tab-wrapper .nav-tab.tca-state-error:focus {
+    background: #f2c5c8;
+    color: #8b1f25;
+}
+.tca-accounting-admin table.widefat.striped tbody tr.tca-state-closed > td {
+    background: #e5f6e9;
+}
+.tca-accounting-admin table.widefat.striped tbody tr.tca-state-pending > td {
+    background: #fff3d7;
+}
+.tca-accounting-admin table.widefat.striped tbody tr.tca-state-error > td {
+    background: #fde3e3;
+}
+.tca-accounting-admin .tca-status-legend {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 13px 0;
+}
+.tca-accounting-admin .tca-status-label {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+.tca-accounting-admin .tca-status-label.tca-state-closed {
+    color: #145c34;
+    background: #d8f2df;
+}
+.tca-accounting-admin .tca-status-label.tca-state-pending {
+    color: #765000;
+    background: #fff0cd;
+}
+.tca-accounting-admin .tca-status-label.tca-state-error {
+    color: #8b1f25;
+    background: #f9dcdd;
+}

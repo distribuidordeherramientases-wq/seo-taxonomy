@@ -743,3 +743,34 @@ msgstr "Useful life (years)"
 
 msgid "Annual straight-line allocation starts when the asset is ready for use. The first and last years are prorated by days. Confirm the applicable accounting and tax rules separately."
 msgstr "Annual straight-line allocation starts when the asset is ready for use. The first and last years are prorated by days. Confirm the applicable accounting and tax rules separately."
+
+msgid "Error detected"
+msgstr "Error detected"
+
+msgid "Pending"
+msgstr "Pending"
+
+msgid "Validated and linked to payment"
+msgstr "Validated and linked to payment"
+
+msgid "No records"
+msgstr "No records"
+
+msgid "Payment not linked. Check Treasury before recording another payment."
+msgstr "Payment not linked. Check Treasury before recording another payment."
+
+msgid "Linked payments exceed the recorded amount. Review the settlement."
+msgstr "Linked payments exceed the recorded amount. Review the settlement."
+
+msgid "Green: validated and payment linked"
+msgstr "Green: validated and payment linked"
+
+msgid "Amber: pending validation, payment link or repayment"
+msgstr "Amber: pending validation, payment link or repayment"
+
+msgid "Red: detected inconsistency"
+msgstr "Red: detected inconsistency"
+
+msgid "Recorded movement without an invoice or loan link. Check before adding another payment."
+msgstr "Recorded movement without an invoice or loan link. Check before adding another payment."
+

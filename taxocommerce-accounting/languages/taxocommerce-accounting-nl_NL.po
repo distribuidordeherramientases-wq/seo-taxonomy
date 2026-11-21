@@ -744,3 +744,34 @@ msgstr "Gebruiksduur (jaren)"
 
 msgid "Annual straight-line allocation starts when the asset is ready for use. The first and last years are prorated by days. Confirm the applicable accounting and tax rules separately."
 msgstr "De jaarlijkse lineaire afschrijving begint zodra het bedrijfsmiddel gebruiksklaar is. Het eerste en laatste jaar worden naar rato van het aantal dagen berekend. Controleer afzonderlijk de toepasselijke boekhoudkundige en fiscale regels."
+
+msgid "Error detected"
+msgstr "Fout vastgesteld"
+
+msgid "Pending"
+msgstr "In behandeling"
+
+msgid "Validated and linked to payment"
+msgstr "Gevalideerd en aan betaling gekoppeld"
+
+msgid "No records"
+msgstr "Geen boekingen"
+
+msgid "Payment not linked. Check Treasury before recording another payment."
+msgstr "Betaling niet gekoppeld. Controleer de kasadministratie voordat u nog een betaling vastlegt."
+
+msgid "Linked payments exceed the recorded amount. Review the settlement."
+msgstr "Gekoppelde betalingen zijn hoger dan het geboekte bedrag. Controleer de afstemming."
+
+msgid "Green: validated and payment linked"
+msgstr "Groen: gevalideerd en betaling gekoppeld"
+
+msgid "Amber: pending validation, payment link or repayment"
+msgstr "Oranje: goedkeuring, betalingskoppeling of aflossing staat open"
+
+msgid "Red: detected inconsistency"
+msgstr "Rood: afwijking vastgesteld"
+
+msgid "Recorded movement without an invoice or loan link. Check before adding another payment."
+msgstr "Boeking zonder koppeling aan factuur of lening. Controleer dit voordat u nog een betaling vastlegt."
+
