@@ -1190,3 +1190,96 @@ msgstr ""
 
 msgid "Archive document"
 msgstr ""
+
+msgid "Preparation checklist"
+msgstr ""
+
+msgid "WooCommerce background sales import:"
+msgstr ""
+
+msgid "Not enabled. Enable it under Accounting Settings to keep new paid orders available for review."
+msgstr ""
+
+msgid "Enabled but not executed yet. WP-Cron requires site traffic or an external scheduler."
+msgstr ""
+
+msgid "Last check:"
+msgstr ""
+
+msgid "Last full cycle:"
+msgstr ""
+
+msgid "Not completed yet"
+msgstr ""
+
+msgid "Error:"
+msgstr ""
+
+msgid "Accounting entries in selected period:"
+msgstr ""
+
+msgid "Pending validation:"
+msgstr ""
+
+msgid "Operations outside standard domestic VAT:"
+msgstr ""
+
+msgid "Entries without a document number:"
+msgstr ""
+
+msgid "There are no recorded operations in this period. This does not establish that the tax return is zero: first check the WooCommerce import and supplier invoices."
+msgstr ""
+
+msgid "Review the outstanding records before using these figures. Non-domestic transactions and missing references need individual tax treatment."
+msgstr ""
+
+msgid "No pending status or missing document numbers were detected. This does NOT mean a tax return is complete, accurate or ready for filing."
+msgstr ""
+
+msgid "Entries without tax identification (check only where legally required):"
+msgstr ""
+
+msgid "Review purchases and expenses"
+msgstr ""
+
+msgid "Verify that the fiscal start date includes the entire applicable reporting period. Imported WooCommerce orders are drafts until reviewed, and the ledger may omit transactions not entered manually."
+msgstr ""
+
+msgid "Reporting period:"
+msgstr ""
+
+msgid "Figures recalculate from the current register whenever you open this screen; you do not have to wait for the tax deadline."
+msgstr ""
+
+msgid "The tax models shown are references, not a list of mandatory returns for this merchant. Applicability depends on tax registration and legal form; for example, Model 130 may apply to certain self-employed taxpayers under direct estimation, while Model 200 concerns corporate income tax. Check tax registration with the AEAT or your adviser before preparing a return."
+msgstr ""
+
+msgid "Official AEAT Model 130 information"
+msgstr ""
+
+msgid "Accumulated figures for the selected period"
+msgstr ""
+
+msgid "Domestic sales taxable base (validated)"
+msgstr ""
+
+msgid "Domestic sales with VAT"
+msgstr ""
+
+msgid "Domestic purchases / expenses taxable base (validated)"
+msgstr ""
+
+msgid "Domestic purchases / expenses with VAT"
+msgstr ""
+
+msgid "Accrued output VAT"
+msgstr ""
+
+msgid "Indicative domestic VAT balance (not final tax due)"
+msgstr ""
+
+msgid "Operations pending review or special tax treatment"
+msgstr ""
+
+msgid "These are live accounting totals, not official AEAT boxes. The current register does not retain an invoice-by-invoice split of VAT rates, prior period offsets, all tax adjustments or filing options. Do not copy the indicative balance directly as the amount to pay."
+msgstr ""
