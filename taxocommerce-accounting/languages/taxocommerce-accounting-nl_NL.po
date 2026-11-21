@@ -1285,3 +1285,120 @@ msgstr "Transacties die controle of bijzondere fiscale behandeling vereisen"
 
 msgid "These are live accounting totals, not official AEAT boxes. The current register does not retain an invoice-by-invoice split of VAT rates, prior period offsets, all tax adjustments or filing options. Do not copy the indicative balance directly as the amount to pay."
 msgstr "Dit zijn actuele boekhoudtotalen, geen officiële AEAT-vakken. Het register bewaart geen volledige btw-tariefverdeling per factuur, verrekeningen uit eerdere perioden, alle fiscale aanpassingen of aangifteopties. Neem het indicatieve saldo niet direct over als te betalen bedrag."
+
+msgid "Edit"
+msgstr "Bewerken"
+
+msgid "Linked to a repayable loan from"
+msgstr "Gekoppeld aan een terugbetaalbare lening van"
+
+msgid "The opening funds are already present. Conversion or cancellation is blocked while this loan is linked."
+msgstr "De beginsaldi zijn al aanwezig. Omzetten of annuleren is geblokkeerd zolang deze lening gekoppeld is."
+
+msgid "Opening amount entered in error"
+msgstr "Beginsaldo per vergissing ingevoerd"
+
+msgid "Confirm cancellation of this opening balance"
+msgstr "Annulering van dit beginsaldo bevestigen"
+
+msgid "Cancel incorrect opening balance"
+msgstr "Onjuist beginsaldo annuleren"
+
+msgid "Rename account"
+msgstr "Rekening hernoemen"
+
+msgid "Opening balance correction history"
+msgstr "Geschiedenis correcties beginsaldo"
+
+msgid "Create a new cash or bank account (not a receipt)"
+msgstr "Nieuwe kas- of bankrekening maken (geen ontvangst)"
+
+msgid "Use the account name ING or CAJA. Record donations, initial contributions and customer receipts as movements into an existing account."
+msgstr "Gebruik een rekeningnaam zoals ING of CAJA. Boek donaties, begininbreng en klantontvangsten als stortingen op een bestaande rekening."
+
+msgid "Save changes"
+msgstr "Wijzigingen opslaan"
+
+msgid "Sponsor / lender"
+msgstr "Sponsor / geldverstrekker"
+
+msgid "Funded by existing opening balance; no duplicate receipt"
+msgstr "Gefinancierd uit bestaand beginsaldo; geen dubbele ontvangst"
+
+msgid "Repayment when agreed, without fixed instalments. Interest: 0%."
+msgstr "Terugbetaling volgens afspraak, zonder vaste termijnen. Rente: 0%."
+
+msgid "Capital already returned"
+msgstr "Al terugbetaalde hoofdsom"
+
+msgid "repayments"
+msgstr "aflossingen"
+
+msgid "Repay from"
+msgstr "Terugbetalen vanaf"
+
+msgid "Actual repayment date"
+msgstr "Werkelijke aflossingsdatum"
+
+msgid "Capital to repay (€)"
+msgstr "Terug te betalen hoofdsom (€)"
+
+msgid "I confirm that this amount was actually transferred to the lender."
+msgstr "Ik bevestig dat dit bedrag daadwerkelijk aan de geldverstrekker is overgemaakt."
+
+msgid "Record actual repayment"
+msgstr "Werkelijke aflossing vastleggen"
+
+msgid "Enter the amount borrowed. For a 0% sponsor loan repayable later without fixed instalments, choose 0 months, 0% interest, and leave the first repayment date empty. Record partial or total repayments only when actually made. For scheduled financing, specify term and first instalment date."
+msgstr "Voer het geleende bedrag in. Voor een sponsorlening van 0% die later zonder vaste termijnen wordt terugbetaald, kies 0 maanden, 0% rente en laat de datum van de eerste aflossing leeg. Registreer aflossingen alleen wanneer ze echt plaatsvinden. Voor een lening op termijn, vul de looptijd en eerste termijn in."
+
+msgid "Sponsor / lender name"
+msgstr "Naam sponsor / geldverstrekker"
+
+msgid "Sponsor / lender tax ID (optional)"
+msgstr "Fiscaal nummer sponsor / geldverstrekker (optioneel)"
+
+msgid "Lender relationship"
+msgstr "Relatie tot geldverstrekker"
+
+msgid "Sponsor (repayable loan)"
+msgstr "Sponsor (terugbetaalbare lening)"
+
+msgid "Other lender"
+msgstr "Andere geldverstrekker"
+
+msgid "Loan agreement reference"
+msgstr "Referentie leningsovereenkomst"
+
+msgid "Term in months (0 = repay later without fixed instalments)"
+msgstr "Looptijd in maanden (0 = later terugbetalen zonder vaste termijnen)"
+
+msgid "First instalment date (optional for flexible 0% loans)"
+msgstr "Datum eerste termijn (optioneel bij flexibele leningen van 0%)"
+
+msgid "Loan funds"
+msgstr "Leningmiddelen"
+
+msgid "Not received yet (do not change bank)"
+msgstr "Nog niet ontvangen (bank niet wijzigen)"
+
+msgid "Already included in bank opening balance (do not duplicate)"
+msgstr "Al opgenomen in beginsaldo bank (niet dupliceren)"
+
+msgid "New confirmed bank receipt"
+msgstr "Nieuwe bevestigde bankontvangst"
+
+msgid "Bank receiving or holding loan funds"
+msgstr "Bankrekening die leningmiddelen ontvangt of aanhoudt"
+
+msgid "opening"
+msgstr "begin"
+
+msgid "I confirm that the entire opening balance belongs to this loan and is already in this bank. Do not add money again."
+msgstr "Ik bevestig dat het volledige beginsaldo bij deze lening hoort en al op deze bankrekening staat. Voeg geen geld opnieuw toe."
+
+msgid "When linking an opening balance, the loan principal must equal that opening amount exactly. An opening balance can fund only one loan. No bank movement is created."
+msgstr "Bij koppeling van een beginsaldo moet de hoofdsom exact overeenkomen met dat bedrag. Eén beginsaldo kan slechts één lening financieren. Er wordt geen bankmutatie gemaakt."
+
+msgid "Select opening balance when the sponsor already financed ING: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed."
+msgstr "Selecteer beginsaldo als de sponsor ING al heeft gefinancierd: er wordt geen tweede ontvangst gemaakt. Kies nieuwe ontvangst alleen bij nieuw binnengekomen geld. Dit is een terugbetaalbare lening, geen donatie of btw-verkoop. Termijnen blijven prognoses tot bevestiging."
