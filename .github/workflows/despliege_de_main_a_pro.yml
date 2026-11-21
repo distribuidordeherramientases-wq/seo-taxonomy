@@ -53,7 +53,7 @@ jobs:
           set -euo pipefail
           python3 .github/scripts/select_pro_release_delta.py --all-changed --output pro-delta.json
 
-      - name: Copiar archivos por FTPS directamente a wp-content/plugins
+      - name: Subir solo el delta Git por FTPS (sin comparar archivos remotos)
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
