@@ -1313,8 +1313,8 @@ msgstr "Historial de correcciones del saldo inicial"
 msgid "Create a new cash or bank account (not a receipt)"
 msgstr "Crear una cuenta nueva de caja o banco (no es un cobro)"
 
-msgid "Use the account name ING or CAJA. Record donations, initial contributions and customer receipts as movements into an existing account."
-msgstr "Utiliza un nombre de cuenta como ING o CAJA. Registra donaciones, aportaciones iniciales y cobros de clientes como movimientos de entrada en una cuenta existente."
+msgid "Use a descriptive account name, such as Main bank or Cash register. Record donations, initial contributions and customer receipts as movements into an existing account."
+msgstr "Utiliza un nombre descriptivo, como Banco principal o Caja. Registra donaciones, aportaciones iniciales y cobros de clientes como entradas en una cuenta existente."
 
 msgid "Save changes"
 msgstr "Guardar cambios"
@@ -1400,5 +1400,5 @@ msgstr "Confirmo que todo el saldo inicial corresponde a este préstamo y ya est
 msgid "When linking an opening balance, the loan principal must equal that opening amount exactly. An opening balance can fund only one loan. No bank movement is created."
 msgstr "Al vincular un saldo inicial, el capital del préstamo debe coincidir exactamente con ese importe. Un saldo inicial solo puede financiar un préstamo. No se crea ningún movimiento bancario."
 
-msgid "Select opening balance when the sponsor already financed ING: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed."
-msgstr "Selecciona saldo inicial si el patrocinador ya financió ING: no se genera un segundo cobro. Selecciona nuevo cobro solo cuando hayan llegado fondos nuevos. Es un préstamo reembolsable, no una donación ni una venta sujeta a IVA. Las cuotas siguen siendo previsiones hasta confirmarlas."
+msgid "Select opening balance when the lender's funds are already included in the bank opening balance: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed."
+msgstr "Selecciona saldo inicial si los fondos del prestamista ya están incluidos en el saldo inicial del banco: no se crea un segundo cobro. Selecciona nuevo cobro solo cuando se reciban fondos adicionales. Es un préstamo reembolsable, no una donación ni una venta sujeta a IVA. Las cuotas siguen siendo previsiones hasta confirmarlas."
