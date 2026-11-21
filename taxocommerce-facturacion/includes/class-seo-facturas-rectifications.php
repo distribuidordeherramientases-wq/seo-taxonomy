@@ -1,9 +1,9 @@
 <?php
 /**
- * Immutable VAT-only rectifying invoices, by substitution.
+ * Immutable rectifying invoices by substitution (VAT or product prices).
  *
- * The WooCommerce order, original invoice, receipt and original PDF are never
- * rewritten. Only the tax split of the same gross total can be rectified.
+ * Neither the WooCommerce order, original invoice, receipt nor original PDF
+ * is rewritten. Every correction has its own numbered fiscal document.
  *
  * @package TaxoCommerce_Facturacion
  */
@@ -130,6 +130,68 @@ final class SEO_Facturas_Rectifications {
         return $lines;
     }
 
+    /**
+     * Correct net product-line bases, with a single verified VAT rate.
+     * Never infer which item changed or spread a total adjustment arbitrarily.
+     *
+     * @param array $items Original immutable invoice lines.
+     * @param float $rate Correct VAT rate.
+     * @param array $bases New net amount per original line, in original order.
+     * @return array|WP_Error Verified totals and itemised lines.
+     */
+    public static function replacement_by_line_base( $items, $rate, $bases ) {
+        if ( ! is_array( $items ) || ! $items || ! is_array( $bases ) ||
+            count( $items ) !== count( $bases ) ||
+            ! in_array( (float) $rate, array( 0.0, 4.0, 10.0, 21.0 ), true ) ) {
+            return new WP_Error( 'sf_rectification_lines', __( 'Provide one valid taxable base per original product line.', 'taxocommerce-facturacion' ) );
+        }
+        $lines = array();
+        $classes = array();
+        $base_total = 0.0;
+        $tax_total = 0.0;
+        foreach ( array_values( $items ) as $index => $item ) {
+            if ( ! is_array( $item ) || ! isset( $item['quantity'], $item['total'], $item['total_tax'] ) ||
+                ! is_numeric( $item['quantity'] ) || (float) $item['quantity'] <= 0 ||
+                ! is_numeric( $item['total'] ) || ! is_numeric( $item['total_tax'] ) ||
+                ! array_key_exists( $index, $bases ) ||
+                ! is_scalar( $bases[ $index ] ) ||
+                ! preg_match( '/^\\d{1,12}(?:\\.\\d{1,2})?$/', (string) $bases[ $index ] ) ) {
+                return new WP_Error( 'sf_rectification_line_amount', __( 'Check every corrected product taxable base (up to two decimals).', 'taxocommerce-facturacion' ) );
+            }
+            $classes[] = (string) ( $item['tax_class'] ?? '' );
+            $base = round( (float) $bases[ $index ], 2 );
+            $tax = round( $base * (float) $rate / 100, 2 );
+            $gross = round( $base + $tax, 2 );
+            $lines[] = array(
+                'name' => (string) ( $item['name'] ?? '' ),
+                'sku' => (string) ( $item['sku'] ?? '' ),
+                'quantity' => (float) $item['quantity'],
+                'base' => $base,
+                'tax' => $tax,
+                'gross' => $gross,
+                'unit_net' => round( $base / (float) $item['quantity'], 4 ),
+            );
+            $base_total += $base;
+            $tax_total += $tax;
+        }
+        if ( count( array_unique( $classes ) ) > 1 ) {
+            return new WP_Error( 'sf_rectification_mixed', __( 'Mixed VAT classes require a separate itemised fiscal workflow.', 'taxocommerce-facturacion' ) );
+        }
+        $base_total = round( $base_total, 2 );
+        $tax_total = round( $tax_total, 2 );
+        if ( $base_total <= 0 || ! is_finite( $base_total ) || ! is_finite( $tax_total ) ||
+            ! is_finite( $base_total + $tax_total ) ) {
+            return new WP_Error( 'sf_rectification_amounts', __( 'Corrected invoice total must be positive.', 'taxocommerce-facturacion' ) );
+        }
+        return array(
+            'base_total' => $base_total,
+            'total_tax' => $tax_total,
+            'total' => round( $base_total + $tax_total, 2 ),
+            'rate' => (float) $rate,
+            'lines' => $lines,
+        );
+    }
+
     public static function get( $id ) {
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Immutable original/rectification records, no stale cache.
@@ -163,10 +225,13 @@ final class SEO_Facturas_Rectifications {
      * Issue a separate, linked fiscal document with original snapshot copied
      * as evidence. A unique original_id prevents accidental double issuance.
      */
-    public static function issue( $original_id, $rate, $reason ) {
+    public static function issue( $original_id, $rate, $reason, $mode = 'vat', $corrected_bases = array() ) {
         global $wpdb;
         $original = SEO_Facturas_Documents::get( absint( $original_id ) );
         $reason = trim( sanitize_textarea_field( (string) $reason ) );
+        if ( ! in_array( $mode, array( 'vat', 'amounts' ), true ) ) {
+            return new WP_Error( 'sf_rectification_mode', __( 'Choose a supported rectification type.', 'taxocommerce-facturacion' ) );
+        }
         if ( ! $original || SEO_Facturas_Documents::TYPE_INVOICE !== $original->document_type ||
             'issued' !== $original->status || strlen( $reason ) < 15 || strlen( $reason ) > 1000 ) {
             return new WP_Error( 'sf_rectification_invalid', __( 'An issued invoice and a detailed reason (15–1000 characters) are required.', 'taxocommerce-facturacion' ) );
@@ -194,9 +259,8 @@ final class SEO_Facturas_Rectifications {
             abs( (float) $old['base_total'] + (float) $old['total_tax'] - $total ) > 0.02 ) {
             return new WP_Error( 'sf_rectification_original', __( 'The original invoice has inconsistent totals.', 'taxocommerce-facturacion' ) );
         }
-        // This first workflow deliberately excludes mixed rates, shipping
-        // charges, refunds and total-amount changes. Those need line-level
-        // treatment, not an invented global VAT rate.
+        // A safe correction requires a single tax rate and verifiable product
+        // lines. Do not alter unrelated shipping, discounts, fees or refunds.
         if ( count( (array) ( $original_snapshot['shipping_lines'] ?? array() ) ) > 0 &&
             abs( (float) ( $old['shipping_total'] ?? 0 ) ) > 0.001 ) {
             return new WP_Error( 'sf_rectification_scope', __( 'Invoices with charged shipping need a separate itemised correction.', 'taxocommerce-facturacion' ) );
@@ -205,20 +269,31 @@ final class SEO_Facturas_Rectifications {
             abs( (float) ( $old['discount_total'] ?? 0 ) ) > 0.001 ) {
             return new WP_Error( 'sf_rectification_scope', __( 'Invoices with discounts or fees need a separate itemised correction.', 'taxocommerce-facturacion' ) );
         }
-        $replacement = self::replacement_amounts( $total, $rate );
-        if ( is_wp_error( $replacement ) ) {
-            return $replacement;
-        }
         if ( count( (array) ( $original_snapshot['tax_lines'] ?? array() ) ) > 1 ) {
             return new WP_Error( 'sf_rectification_multiple_rates', __( 'Multiple historical tax rates need an itemised correction.', 'taxocommerce-facturacion' ) );
         }
-        $corrected_lines = self::replacement_lines( $original_snapshot['items'] ?? array(),
-            $rate, $replacement['base_total'], $total );
-        if ( is_wp_error( $corrected_lines ) ) {
-            return $corrected_lines;
+        if ( 'amounts' === $mode ) {
+            $calculated = self::replacement_by_line_base( $original_snapshot['items'] ?? array(),
+                $rate, $corrected_bases );
+            if ( is_wp_error( $calculated ) ) {
+                return $calculated;
+            }
+            $corrected_lines = $calculated['lines'];
+            $replacement = $calculated;
+        } else {
+            $replacement = self::replacement_amounts( $total, $rate );
+            if ( is_wp_error( $replacement ) ) {
+                return $replacement;
+            }
+            $corrected_lines = self::replacement_lines( $original_snapshot['items'] ?? array(),
+                $rate, $replacement['base_total'], $total );
+            if ( is_wp_error( $corrected_lines ) ) {
+                return $corrected_lines;
+            }
         }
         if ( abs( $replacement['total_tax'] - (float) $old['total_tax'] ) <= 0.005 &&
-            abs( $replacement['base_total'] - (float) $old['base_total'] ) <= 0.005 ) {
+            abs( $replacement['base_total'] - (float) $old['base_total'] ) <= 0.005 &&
+            abs( $replacement['total'] - $total ) <= 0.005 ) {
             return new WP_Error( 'sf_rectification_unchanged', __( 'The corrected tax split is identical to the original.', 'taxocommerce-facturacion' ) );
         }
 
@@ -233,12 +308,14 @@ final class SEO_Facturas_Rectifications {
         $snapshot['document']['issued_at'] = $reserved['issued_at'];
         $snapshot['rectification'] = array(
             'method' => 'substitution',
+            'mode' => $mode,
             'original_number' => (string) $original->document_number,
             'original_issued_at' => (string) $original->issued_at,
             'reason' => $reason,
             'old_base' => round( (float) $old['base_total'], 2 ),
             'old_tax' => round( (float) $old['total_tax'], 2 ),
             'old_total' => round( $total, 2 ),
+            'delta_total' => round( $replacement['total'] - $total, 2 ),
             'rate' => $replacement['rate'],
         );
         $snapshot['rectification_items'] = $corrected_lines;
@@ -295,8 +372,8 @@ final class SEO_Facturas_Rectifications {
 
     /**
      * Optional integration point for Accounting (never a required dependency).
-     * A verified issued rectification supersedes only the fiscal split, not
-     * payments, WooCommerce order lines or the original invoice.
+     * A verified issued rectification supersedes fiscal totals (including
+     * the corrected gross); the original and WooCommerce order stay intact.
      */
     public static function effective_invoice( $original, $order_id ) {
         if ( ! is_array( $original ) || empty( $original['document_no'] ) ) {
@@ -319,8 +396,10 @@ final class SEO_Facturas_Rectifications {
         $tax = (float) $totals['total_tax'];
         $gross = (float) $totals['total'];
         if ( ! is_finite( $base ) || ! is_finite( $tax ) || ! is_finite( $gross ) ||
-            $base < 0 || $tax < 0 || abs( $base + $tax - $gross ) > 0.02 ||
-            ( isset( $original['amount_total'] ) && abs( (float) $original['amount_total'] - $gross ) > 0.02 ) ) {
+            $base < 0 || $tax < 0 || $gross <= 0 || abs( $base + $tax - $gross ) > 0.02 ||
+            ! isset( $original['amount_total'] ) || ! is_numeric( $original['amount_total'] ) ||
+            ! isset( $snapshot['rectification']['old_total'] ) ||
+            abs( (float) $snapshot['rectification']['old_total'] - (float) $original['amount_total'] ) > 0.02 ) {
             return $original;
         }
         return array_merge( $original, array(
@@ -328,6 +407,7 @@ final class SEO_Facturas_Rectifications {
             'amount_base' => round( $base, 2 ),
             'amount_tax' => round( $tax, 2 ),
             'amount_total' => round( $gross, 2 ),
+            'rectification_original_total' => round( (float) $original['amount_total'], 2 ),
         ) );
     }
 
@@ -349,17 +429,43 @@ final class SEO_Facturas_Rectifications {
         $html = '<details class="sf-rectification-form"><summary>' .
             esc_html__( 'Rectify issued invoice', 'taxocommerce-facturacion' ) . '</summary>';
         $html .= '<p class="description">' .
-            esc_html__( 'VAT-only correction by substitution. The total already collected is unchanged. Check the legal VAT rate before issuing.', 'taxocommerce-facturacion' ) .
+            esc_html__( 'An issued invoice cannot be overwritten. Create a numbered rectifying invoice by substitution; the original document, WooCommerce order and received payments are retained.', 'taxocommerce-facturacion' ) .
             '</p><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         $html .= '<input type="hidden" name="action" value="seo_facturas_rectify">';
         $html .= '<input type="hidden" name="original_id" value="' . esc_attr( (string) $original->id ) . '">';
         $html .= wp_nonce_field( 'sf_rectify_' . $original->id, '_wpnonce', true, false );
+        $html .= '<p><label>' . esc_html__( 'Correction type', 'taxocommerce-facturacion' ) .
+            ' <select name="correction_mode"><option value="vat">' .
+            esc_html__( 'Correct VAT only (same invoice total)', 'taxocommerce-facturacion' ) .
+            '</option><option value="amounts">' .
+            esc_html__( 'Correct product net amounts and VAT', 'taxocommerce-facturacion' ) .
+            '</option></select></label></p>';
         $html .= '<p><label>' . esc_html__( 'Correct VAT rate', 'taxocommerce-facturacion' ) .
             ' <select name="rate" required>';
         foreach ( array( '21' => '21 %', '10' => '10 %', '4' => '4 %', '0' => '0 %' ) as $value => $label ) {
             $html .= '<option value="' . esc_attr( $value ) . '">' . esc_html( $label ) . '</option>';
         }
-        $html .= '</select></label></p><p><label>' .
+        $html .= '</select></label></p>';
+        $snapshot = SEO_Facturas_Documents::decode_snapshot( $original );
+        $items = is_array( $snapshot ) ? (array) ( $snapshot['items'] ?? array() ) : array();
+        if ( $items ) {
+            $html .= '<p class="description">' .
+                esc_html__( 'For amount corrections, enter the NEW net taxable base for each original product line (not the difference). These values are ignored in VAT-only mode. The VAT and final invoice total are calculated automatically.', 'taxocommerce-facturacion' ) .
+                '</p><table class="widefat striped"><thead><tr><th>' .
+                esc_html__( 'Original product line', 'taxocommerce-facturacion' ) . '</th><th>' .
+                esc_html__( 'Corrected net taxable base', 'taxocommerce-facturacion' ) .
+                '</th></tr></thead><tbody>';
+            foreach ( array_values( $items ) as $index => $item ) {
+                $net = round( (float) ( $item['total'] ?? 0 ), 2 );
+                $html .= '<tr><td>' . esc_html( (string) ( $item['name'] ?? '' ) ) .
+                    '</td><td><input type="number" name="corrected_bases[' . esc_attr( (string) $index ) .
+                    ']" min="0" step="0.01" value="' . esc_attr( number_format( $net, 2, '.', '' ) ) .
+                    '" aria-label="' . esc_attr__( 'Corrected net taxable base', 'taxocommerce-facturacion' ) .
+                    '"></td></tr>';
+            }
+            $html .= '</tbody></table>';
+        }
+        $html .= '<p><label>' .
             esc_html__( 'Mandatory reason for rectification', 'taxocommerce-facturacion' ) .
             ' <textarea name="reason" rows="3" minlength="15" maxlength="1000" required></textarea></label></p>';
         $html .= '<p><label><input type="checkbox" name="confirmed" value="1" required> ' .
@@ -429,12 +535,16 @@ final class SEO_Facturas_Rectifications {
         $original_id = isset( $_POST['original_id'] ) ? absint( wp_unslash( $_POST['original_id'] ) ) : 0;
         check_admin_referer( 'sf_rectify_' . $original_id );
         $rate = isset( $_POST['rate'] ) ? sanitize_text_field( wp_unslash( $_POST['rate'] ) ) : '';
+        $mode = isset( $_POST['correction_mode'] ) ? sanitize_key( wp_unslash( $_POST['correction_mode'] ) ) : 'vat';
+        $bases = isset( $_POST['corrected_bases'] ) && is_array( $_POST['corrected_bases'] )
+            ? array_map( 'sanitize_text_field', wp_unslash( $_POST['corrected_bases'] ) ) : array();
         $reason = isset( $_POST['reason'] ) ? sanitize_textarea_field( wp_unslash( $_POST['reason'] ) ) : '';
         $confirmed = isset( $_POST['confirmed'] ) && '1' === sanitize_key( wp_unslash( $_POST['confirmed'] ) );
-        if ( ! $confirmed || ! in_array( $rate, array( '0', '4', '10', '21' ), true ) ) {
+        if ( ! $confirmed || ! in_array( $mode, array( 'vat', 'amounts' ), true ) ||
+            ! in_array( $rate, array( '0', '4', '10', '21' ), true ) ) {
             self::redirect( array( 'sf_error' => __( 'Confirm the correction and select a supported VAT rate.', 'taxocommerce-facturacion' ) ) );
         }
-        $issued = self::issue( $original_id, (float) $rate, $reason );
+        $issued = self::issue( $original_id, (float) $rate, $reason, $mode, $bases );
         if ( is_wp_error( $issued ) ) {
             self::redirect( array( 'sf_error' => $issued->get_error_message() ) );
         }
@@ -500,7 +610,7 @@ final class SEO_Facturas_Rectifications {
             /* translators: %s: rectifying invoice number. */
             sprintf( __( 'Rectifying invoice %s', 'taxocommerce-facturacion' ), $document->document_number ),
             /* translators: 1: rectifying invoice number, 2: original invoice number. */
-            sprintf( __( 'Attached is rectifying invoice %1$s relating to original invoice %2$s. The amount previously paid has not changed.', 'taxocommerce-facturacion' ),
+            sprintf( __( 'Attached is rectifying invoice %1$s relating to original invoice %2$s. Check the corrected amount and any outstanding balance; existing receipts are not changed.', 'taxocommerce-facturacion' ),
                 $document->document_number, $original ? $original->document_number : '' ),
             array( 'Content-Type: text/plain; charset=UTF-8' ), array( $path ) );
         if ( ! $sent ) {
