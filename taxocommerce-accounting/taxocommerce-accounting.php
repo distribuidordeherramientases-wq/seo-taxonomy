@@ -920,7 +920,9 @@ function tca_admin() {
     $summary = tca_summary( $rows );
     $paid_by_id = TCA_Status_Colors::paid_by_entry_for_year( $year );
     $tab_statuses = TCA_Status_Colors::tabs( $rows, $paid_by_id, count( $rows ) >= 400 );
-    $tab_statuses['treasury'] = TCA_Status_Colors::treasury_for_year( $year, $tab_statuses );
+    $tab_statuses['treasury'] = TCA_Status_Colors::treasury_for_year(
+        $year, $rows, $paid_by_id, count( $rows ) >= 400
+    );
     echo '<div class="wrap tca-accounting-admin"><h1>' . esc_html__( 'TaxoCommerce Accounting', 'taxocommerce-accounting' ) . ' <small>v' . esc_html( TCA_VERSION ) . '</small></h1>';
     echo '<p>' . esc_html__( 'Fiscal register, VAT review, supplier invoices and export. No tax return is filed automatically.', 'taxocommerce-accounting' ) . '</p>';
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice key.
