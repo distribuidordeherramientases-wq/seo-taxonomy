@@ -773,3 +773,162 @@ msgstr ""
 msgid "Recorded movement without an invoice or loan link. Check before adding another payment."
 msgstr ""
 
+
+msgid "Incidents"
+msgstr ""
+
+msgid "Showing the selected accounting record."
+msgstr ""
+
+msgid "Show all records"
+msgstr ""
+
+msgid "Review"
+msgstr ""
+
+msgid "Issued invoice and accounting totals disagree."
+msgstr ""
+
+msgid "Check the domestic sale with zero VAT."
+msgstr ""
+
+msgid "Check the missing invoice reference."
+msgstr ""
+
+msgid "Tax treatment requires review."
+msgstr ""
+
+msgid "Pending validation."
+msgstr ""
+
+msgid "Incidents requiring review"
+msgstr ""
+
+msgid "No matching records remain for this month."
+msgstr ""
+
+msgid "Correct entry"
+msgstr ""
+
+msgid "History"
+msgstr ""
+
+msgid "Correct accounting entry"
+msgstr ""
+
+msgid "This accounting record cannot be corrected."
+msgstr ""
+
+msgid "Check the amounts, date, VAT deduction and correction reason."
+msgstr ""
+
+msgid "Amounts must match the sign of the sale or refund."
+msgstr ""
+
+msgid "A valid invoice or credit note reference is required."
+msgstr ""
+
+msgid "Check the supplier or customer and tax identification."
+msgstr ""
+
+msgid "Check the asset category, in-service date and useful life."
+msgstr ""
+
+msgid "Fiscal date"
+msgstr ""
+
+msgid "Invoice reference"
+msgstr ""
+
+msgid "Customer or supplier"
+msgstr ""
+
+msgid "VAT amount"
+msgstr ""
+
+msgid "Deductible VAT percentage"
+msgstr ""
+
+msgid "Notes"
+msgstr ""
+
+msgid "Correction reason"
+msgstr ""
+
+msgid "Save correction as draft"
+msgstr ""
+
+msgid "Cancel"
+msgstr ""
+
+msgid "Accounting correction history (latest 50)"
+msgstr ""
+
+msgid "No corrections recorded."
+msgstr ""
+
+msgid "Administrator ID"
+msgstr ""
+
+msgid "Reason"
+msgstr ""
+
+msgid "Before: date / invoice / base / VAT / total"
+msgstr ""
+
+msgid "After: date / invoice / base / VAT / total"
+msgstr ""
+
+msgid "Check payment date, account and amount."
+msgstr ""
+
+msgid "Payment exceeds the outstanding amount or has invalid dates/account."
+msgstr ""
+
+msgid "Payment could not be recorded."
+msgstr ""
+
+msgid "Paid/received:"
+msgstr ""
+
+msgid "Add a bank or cash account in Treasury to record an actual payment."
+msgstr ""
+
+msgid "Paid from / received into"
+msgstr ""
+
+msgid "Payment date"
+msgstr ""
+
+msgid "Record receipt"
+msgstr ""
+
+msgid "Record payment"
+msgstr ""
+
+msgid "Record only actual bank/cash payments. Importing or validating an invoice never assumes it was paid."
+msgstr ""
+
+msgid "Bank or cash account"
+msgstr ""
+
+msgid "Select an account"
+msgstr ""
+
+msgid "Paid amount"
+msgstr ""
+
+msgid "Invoice total including VAT"
+msgstr ""
+
+msgid "Financial overview (not sales or VAT)"
+msgstr ""
+
+msgid "Initial loan funding (already in opening balance)"
+msgstr ""
+
+msgid "Current bank balance"
+msgstr ""
+
+msgid "The opening loan is shown as a bank inflow in its start month for reporting. It is already included in the opening bank balance: no second bank movement, sale or VAT is created."
+msgstr ""

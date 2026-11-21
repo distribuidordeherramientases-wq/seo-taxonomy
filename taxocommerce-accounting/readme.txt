@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.29
+Stable tag: 0.1.31
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,6 +16,8 @@ Independent WooCommerce fiscal register with purchase invoices, monthly VAT esti
 TaxoCommerce Accounting records fiscal data without changing WooCommerce orders, customers, supplier catalogues or invoice generation.
 
 = Key Features =
+
+* **Opening-loan report:** A loan already funded through an existing bank opening balance is displayed as an initial bank inflow in its loan-start month in Treasury reports, with no duplicate movement or bank balance change. A separate financial section in the Summary tab and additive `financial_summary` in the JSON export show the linked financing and outstanding loan balance. Fiscal sales and VAT are not increased.
 
 * **Payment status clarity:** a formally validated invoice with its full payment linked displays as closed even when historical imported notes contain `[scope=review]`. Missing-payment warnings depend on the actual outstanding settlement; formal fiscal review warnings and notes remain unchanged. No bank or VAT entries are created or altered.
 
@@ -105,6 +107,10 @@ No. It is a working summary of validated domestic records, not an official AEAT 
 No. Input VAT defaults to 0% deductible and records start in draft. A qualified professional should verify the tax treatment.
 
 == Changelog ==
+
+= 0.1.30 =
+* Localize incident review, accounting corrections and payment/receipt controls in five languages.
+
 
 = 0.1.21 =
 * Localize expense type and fixed-asset expense form in five languages.

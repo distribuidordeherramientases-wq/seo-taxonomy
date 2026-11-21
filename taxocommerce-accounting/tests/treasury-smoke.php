@@ -72,6 +72,54 @@ $converted = TCA_Treasury::calculate( $receipt_accounts, $receipt_movements, 202
 tca_treasury_assert( 500.0 === $converted['current']['cash'] && 500.0 === $converted['current']['bank'], 'Converting both openings to receipts preserves available cash' );
 tca_treasury_assert( 500.0 === $converted['months']['2026-01']['cash_in'] && 500.0 === $converted['months']['2026-01']['bank_in'], 'January loan proceeds appear as receipts after explicit conversion' );
 
+// STAGING regression: a loan sourced from an existing 362.57 EUR ING
+// opening balance is visible as January funding without creating any money.
+$ing = array( (object) array(
+    'id' => 99, 'kind' => 'bank', 'name' => 'ING',
+    'opened_on' => '2026-01-01', 'opening_amount' => 362.57,
+) );
+$ing_movements = array(
+    (object) array( 'account_id' => 99, 'month' => '2026-01', 'direction' => 'out', 'total' => 191.17 ),
+    (object) array( 'account_id' => 99, 'month' => '2026-07', 'direction' => 'out', 'total' => 24.20 ),
+    (object) array( 'account_id' => 99, 'month' => '2026-08', 'direction' => 'out', 'total' => 24.20 ),
+    (object) array( 'account_id' => 99, 'month' => '2026-09', 'direction' => 'out', 'total' => 47.50 ),
+    (object) array( 'account_id' => 99, 'month' => '2026-10', 'direction' => 'out', 'total' => 61.70 ),
+    (object) array( 'account_id' => 99, 'month' => '2026-11', 'direction' => 'in', 'total' => 16.01 ),
+    (object) array( 'account_id' => 99, 'month' => '2026-11', 'direction' => 'out', 'total' => 12.55 ),
+);
+$sponsor_loan = (object) array(
+    'id' => 1, 'name' => 'Initial sponsor loan',
+    'start_date' => '2026-01-01', 'funding_source' => 'opening_balance',
+    'opening_account_id' => 99, 'principal' => 362.57, 'remaining' => 362.57,
+);
+$loan_report = TCA_Treasury::calculate( $ing, $ing_movements, 2026, '2026-11-21', array( $sponsor_loan ) );
+tca_treasury_assert( 362.57 === $loan_report['months']['2026-01']['bank_in'], 'January shows the real 362.57 initial financing in Bank in' );
+tca_treasury_assert( 362.57 === $loan_report['months']['2026-01']['opening_loan_in'], 'Financing is explicitly identified as existing opening money' );
+tca_treasury_assert( 171.40 === round( $loan_report['months']['2026-01']['bank_balance'], 2 ), 'January closing bank balance is unchanged (171.40)' );
+tca_treasury_assert( 16.01 === $loan_report['months']['2026-11']['bank_in'], 'Normal November receipts are not duplicated' );
+tca_treasury_assert( 17.26 === round( $loan_report['current']['bank'], 2 ), 'Current ING balance is unchanged (17.26)' );
+$overview = TCA_Treasury::financial_overview_from_records( $ing, $ing_movements, array( $sponsor_loan ), 2026, '2026-11-21' );
+tca_treasury_assert( 362.57 === $overview['opening_loan_funding_total'] && 362.57 === $overview['loan_debt_current'], 'Financial overview reports both loan financing and remaining debt, not taxable sales' );
+tca_treasury_assert( 17.26 === $overview['bank_balance_current'], 'Summary and Treasury use the same actual bank balance' );
+$old_year = TCA_Treasury::calculate( $ing, $ing_movements, 2025, '2026-11-21', array( $sponsor_loan ) );
+tca_treasury_assert( 0.0 === $old_year['months']['2025-01']['bank_in'], '2026 loan never appears as 2025 income' );
+$without_loan = TCA_Treasury::calculate( $ing, $ing_movements, 2026, '2026-11-21' );
+tca_treasury_assert( 0.0 === $without_loan['months']['2026-01']['bank_in'], 'Unlinked opening balance is never invented as monthly receipt' );
+$invalid_loan = clone $sponsor_loan;
+$invalid_loan->principal = 200.0;
+$invalid = TCA_Treasury::calculate( $ing, $ing_movements, 2026, '2026-11-21', array( $invalid_loan ) );
+tca_treasury_assert( 0.0 === $invalid['months']['2026-01']['bank_in'], 'Mismatched loan principal cannot be used as a virtual receipt' );
+$invalid_loan->principal = 362.57;
+$invalid_loan->funding_source = 'pending';
+$invalid = TCA_Treasury::calculate( $ing, $ing_movements, 2026, '2026-11-21', array( $invalid_loan ) );
+tca_treasury_assert( 0.0 === $invalid['months']['2026-01']['bank_in'], 'Unfunded loan is not a bank inflow' );
+$invalid_loan->funding_source = 'opening_balance';
+$invalid_loan->start_date = '2026-12-01';
+$invalid = TCA_Treasury::calculate( $ing, $ing_movements, 2026, '2026-11-21', array( $invalid_loan ) );
+tca_treasury_assert( 0.0 === $invalid['months']['2026-12']['bank_in'], 'Future loan funding is not counted before receipt' );
+$deduped = TCA_Treasury::calculate( $ing, $ing_movements, 2026, '2026-11-21', array( $sponsor_loan, $sponsor_loan ) );
+tca_treasury_assert( 362.57 === $deduped['months']['2026-01']['bank_in'], 'Duplicate linked loan records cannot double-count the funds' );
+
 $source = file_get_contents( dirname( __DIR__ ) . '/includes/class-tca-treasury.php' );
 tca_treasury_assert( false !== $source, 'Treasury source readable' );
 tca_treasury_assert( false !== strpos( $source, "'opening_receipt' === \$operation" ), 'Opening receipt conversion is an explicit action' );

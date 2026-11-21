@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.29
+ * Version: 0.1.31
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.29' );
+define( 'TCA_VERSION', '0.1.31' );
 define( 'TCA_DB_VERSION', '10' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
@@ -626,7 +626,14 @@ function tca_export() {
     $type = isset( $_GET['format'] ) ? sanitize_key( wp_unslash( $_GET['format'] ) ) : 'csv';
     $rows = tca_rows( $year, 20000 );
     if ( 'json' === $type ) {
-        $data = array( 'plugin' => 'taxocommerce-accounting', 'version' => TCA_VERSION, 'year' => $year, 'entries' => $rows, 'notice' => 'Internal fiscal ledger export; not an official tax submission.' );
+        $data = array(
+            'plugin' => 'taxocommerce-accounting',
+            'version' => TCA_VERSION,
+            'year' => $year,
+            'entries' => $rows,
+            'financial_summary' => TCA_Treasury::financial_overview( $year ),
+            'notice' => 'Internal fiscal ledger export; not an official tax submission.',
+        );
         nocache_headers();
         header( 'Content-Type: application/json; charset=utf-8' );
         header( 'Content-Disposition: attachment; filename="accounting-' . $year . '.json"' );
@@ -1041,6 +1048,7 @@ function tca_admin() {
             echo '</td></tr>';
         }
         echo '</tbody></table>';
+        TCA_Treasury::render_financial_overview( $year );
         TCA_Review_Navigation::render_queue( $rows, $year );
         if ( count( $rows ) >= 400 ) echo '<p class="notice notice-warning">' . esc_html__( 'Year contains over 400 entries; use the exports for full reporting. This dashboard is limited.', 'taxocommerce-accounting' ) . '</p>';
     } elseif ( 'hacienda' === $tab ) {

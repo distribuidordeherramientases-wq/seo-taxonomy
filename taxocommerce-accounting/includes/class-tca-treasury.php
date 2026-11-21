@@ -668,10 +668,157 @@ final class TCA_Treasury {
     }
 
     /**
-     * Pure calculations for monthly bank/cash reports; testable without WP.
-     * $movements are aggregated by account, month and direction.
+     * Read-only attribution of an existing bank opening balance to its lender.
+     * Never posts a cash movement. A loan must cover the entire opening amount.
+     *
+     * @param array  $accounts Treasury account rows.
+     * @param array  $loans Loan register rows.
+     * @param string $today WordPress local current date (YYYY-MM-DD).
+     * @return array Eligible dated opening-loan funding records.
      */
-    public static function calculate( $accounts, $movements, $year, $today ) {
+    public static function opening_loan_funding( $accounts, $loans, $today ) {
+        $bank_accounts = array();
+        foreach ( $accounts as $account ) {
+            if ( 'bank' === (string) $account->kind ) {
+                $bank_accounts[ (int) $account->id ] = $account;
+            }
+        }
+        $used_accounts = array();
+        $funding = array();
+        foreach ( $loans as $loan ) {
+            $account_id = (int) ( $loan->opening_account_id ?? 0 );
+            $date = (string) ( $loan->start_date ?? '' );
+            if ( 'opening_balance' !== (string) ( $loan->funding_source ?? '' ) ||
+                ! $account_id || isset( $used_accounts[ $account_id ] ) ||
+                ! isset( $bank_accounts[ $account_id ] ) ||
+                ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ||
+                $date > $today ) {
+                continue;
+            }
+            $account = $bank_accounts[ $account_id ];
+            $amount = round( (float) $loan->principal, 2 );
+            if ( $date < (string) $account->opened_on || $amount <= 0 ||
+                abs( $amount - round( (float) $account->opening_amount, 2 ) ) > 0.005 ) {
+                continue;
+            }
+            $used_accounts[ $account_id ] = true;
+            $funding[] = array(
+                'loan_id' => (int) $loan->id,
+                'loan_name' => (string) $loan->name,
+                'loan_date' => $date,
+                'account_id' => $account_id,
+                'account_name' => (string) $account->name,
+                'amount' => $amount,
+                'remaining' => round( (float) $loan->remaining, 2 ),
+            );
+        }
+        return $funding;
+    }
+
+    /**
+     * Build a financial overview from real records; no fiscal entries or money writes.
+     */
+    public static function financial_overview_from_records( $accounts, $movements, $loans, $year, $today ) {
+        $report = self::calculate( $accounts, $movements, $year, $today, $loans );
+        $funding_year = array();
+        $funding_total = 0.0;
+        foreach ( self::opening_loan_funding( $accounts, $loans, $today ) as $funding ) {
+            if ( substr( $funding['loan_date'], 0, 4 ) !== (string) $year ) {
+                continue;
+            }
+            $funding_year[] = $funding;
+            $funding_total += $funding['amount'];
+        }
+        $outstanding = 0.0;
+        foreach ( $loans as $loan ) {
+            $outstanding += (float) $loan->remaining;
+        }
+        return array(
+            'year' => (int) $year,
+            'opening_loan_funding_total' => round( $funding_total, 2 ),
+            'opening_loan_funding' => $funding_year,
+            'bank_balance_current' => round( (float) $report['current']['bank'], 2 ),
+            'loan_debt_current' => round( $outstanding, 2 ),
+            'monthly_cash_flow' => $report['months'],
+        );
+    }
+
+    /** Current Treasury figures for the summary and additive general JSON export. */
+    public static function financial_overview( $year ) {
+        global $wpdb;
+        $today = current_time( 'Y-m-d' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only financial summary from plugin-owned accounts.
+        $accounts = (array) $wpdb->get_results( $wpdb->prepare(
+            'SELECT * FROM %i ORDER BY id', self::table( 'accounts' )
+        ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only loan register.
+        $loans = (array) $wpdb->get_results( $wpdb->prepare(
+            'SELECT * FROM %i ORDER BY id', self::table( 'loans' )
+        ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only cash flow aggregate.
+        $movements = (array) $wpdb->get_results( $wpdb->prepare(
+            'SELECT account_id, DATE_FORMAT(posted_on, %s) AS month, direction, SUM(amount) AS total FROM %i WHERE posted_on <= %s GROUP BY account_id, month, direction ORDER BY month',
+            '%Y-%m', self::table( 'movements' ), $today
+        ) );
+        return self::financial_overview_from_records( $accounts, $movements, $loans, $year, $today );
+    }
+
+    /** Keep fiscal totals and financing visibly separate in the main Summary tab. */
+    public static function render_financial_overview( $year ) {
+        $overview = self::financial_overview( $year );
+        echo '<h2>' . esc_html__( 'Financial overview (not sales or VAT)', 'taxocommerce-accounting' ) .
+            ' — ' . esc_html( (string) $year ) . '</h2>';
+        echo '<div class="tca-treasury-kpis">';
+        foreach ( array(
+            __( 'Initial loan funding (already in opening balance)', 'taxocommerce-accounting' ) => $overview['opening_loan_funding_total'],
+            __( 'Current bank balance', 'taxocommerce-accounting' ) => $overview['bank_balance_current'],
+            __( 'Loans outstanding (reported)', 'taxocommerce-accounting' ) => $overview['loan_debt_current'],
+        ) as $label => $value ) {
+            echo '<div class="tca-treasury-kpi"><span>' . esc_html( $label ) . '</span><strong>' .
+                esc_html( tca_money( $value ) ) . '</strong></div>';
+        }
+        echo '</div>';
+        if ( $overview['opening_loan_funding'] ) {
+            echo '<table class="widefat striped"><thead><tr>';
+            foreach ( array(
+                __( 'Loan date', 'taxocommerce-accounting' ),
+                __( 'Loan', 'taxocommerce-accounting' ),
+                __( 'Bank accounts', 'taxocommerce-accounting' ),
+                __( 'Original loan', 'taxocommerce-accounting' ),
+                __( 'Outstanding', 'taxocommerce-accounting' ),
+            ) as $label ) {
+                echo '<th>' . esc_html( $label ) . '</th>';
+            }
+            echo '</tr></thead><tbody>';
+            foreach ( $overview['opening_loan_funding'] as $funding ) {
+                echo '<tr><td>' . esc_html( $funding['loan_date'] ) .
+                    '</td><td>' . esc_html( $funding['loan_name'] ) .
+                    '</td><td>' . esc_html( $funding['account_name'] ) .
+                    '</td><td>' . esc_html( tca_money( $funding['amount'] ) ) .
+                    '</td><td>' . esc_html( tca_money( $funding['remaining'] ) ) . '</td></tr>';
+            }
+            echo '</tbody></table>';
+            echo '<p class="description">' . esc_html__(
+                'The opening loan is shown as a bank inflow in its start month for reporting. It is already included in the opening bank balance: no second bank movement, sale or VAT is created.',
+                'taxocommerce-accounting'
+            ) . '</p>';
+        }
+    }
+
+    /**
+     * Pure calculations for monthly bank/cash reports; testable without WP.
+     * Opening-loan money may be reclassified as a dated inflow for display:
+     * balances stay unchanged and no additional cash movement is created.
+     */
+    public static function calculate( $accounts, $movements, $year, $today, $loans = array() ) {
+        $opening_funding = self::opening_loan_funding( $accounts, $loans, $today );
+        $opening_by_month = array();
+        $opening_by_account = array();
+        foreach ( $opening_funding as $funding ) {
+            $month = substr( $funding['loan_date'], 0, 7 );
+            $opening_by_month[ $month ] = ( $opening_by_month[ $month ] ?? 0.0 ) + $funding['amount'];
+            $opening_by_account[ $funding['account_id'] ] = $funding;
+        }
         $accounts_by_id = array();
         foreach ( $accounts as $account ) {
             $accounts_by_id[ (int) $account->id ] = $account;
@@ -684,13 +831,23 @@ final class TCA_Treasury {
             $row = array(
                 'month' => $key, 'cash_in' => 0.0, 'cash_out' => 0.0,
                 'bank_in' => 0.0, 'bank_out' => 0.0,
+                'opening_loan_in' => 0.0,
                 'cash_balance' => 0.0, 'bank_balance' => 0.0,
             );
             foreach ( $accounts as $account ) {
                 if ( $account->opened_on <= $asof ) {
-                    $row[ $account->kind . '_balance' ] += (float) $account->opening_amount;
+                    // The loan was dated after opening: do not show its funds
+                    // in earlier closing balances, before the recorded loan date.
+                    $funding = $opening_by_account[ (int) $account->id ] ?? null;
+                    if ( ! $funding || $funding['loan_date'] <= $asof ) {
+                        $row[ $account->kind . '_balance' ] += (float) $account->opening_amount;
+                    }
                 }
             }
+            // Reclassify the existing opening funds as a dated inflow for
+            // reporting only. The balance already contains the same money.
+            $row['opening_loan_in'] = (float) ( $opening_by_month[ $key ] ?? 0.0 );
+            $row['bank_in'] += $row['opening_loan_in'];
             foreach ( $movements as $movement ) {
                 $id = (int) $movement->account_id;
                 if ( ! isset( $accounts_by_id[ $id ] ) ) {
@@ -771,7 +928,7 @@ final class TCA_Treasury {
             'SELECT m.*, s.entry_id AS settlement_entry_id, lp.loan_id AS loan_payment_id, l.id AS funding_loan_id FROM %i AS m LEFT JOIN %i AS s ON s.movement_id = m.id LEFT JOIN %i AS lp ON lp.movement_id = m.id LEFT JOIN %i AS l ON l.funding_movement_id = m.id ORDER BY m.posted_on DESC, m.id DESC LIMIT 50',
             self::table( 'movements' ), TCA_Settlements::table(), self::table( 'loan_payments' ), self::table( 'loans' )
         ) );
-        $report = self::calculate( $accounts, $movements, $year, $today );
+        $report = self::calculate( $accounts, $movements, $year, $today, $loans );
         $cash = $report['current']['cash'];
         $bank = $report['current']['bank'];
         $debt = 0.0;
@@ -946,6 +1103,15 @@ final class TCA_Treasury {
             echo '</tr>';
         }
         echo '</tbody></table></div>';
+        foreach ( $report['months'] as $month_row ) {
+            if ( $month_row['opening_loan_in'] > 0 ) {
+                echo '<p class="description">' . esc_html__(
+                    'The opening loan is shown as a bank inflow in its start month for reporting. It is already included in the opening bank balance: no second bank movement, sale or VAT is created.',
+                    'taxocommerce-accounting'
+                ) . '</p>';
+                break;
+            }
+        }
 
         echo '<h3>' . esc_html__( 'Recent cash and bank movements', 'taxocommerce-accounting' ) . '</h3>';
         echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Date', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Account', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Movement', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Amount', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Reference', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Edit', 'taxocommerce-accounting' ) . '</th></tr></thead><tbody>';

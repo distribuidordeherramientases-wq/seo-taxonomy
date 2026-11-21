@@ -775,3 +775,162 @@ msgstr "Rood: afwijking vastgesteld"
 msgid "Recorded movement without an invoice or loan link. Check before adding another payment."
 msgstr "Boeking zonder koppeling aan factuur of lening. Controleer dit voordat u nog een betaling vastlegt."
 
+
+msgid "Incidents"
+msgstr "Incidenten"
+
+msgid "Showing the selected accounting record."
+msgstr "Geselecteerde boeking wordt weergegeven."
+
+msgid "Show all records"
+msgstr "Alle boekingen tonen"
+
+msgid "Review"
+msgstr "Controleren"
+
+msgid "Issued invoice and accounting totals disagree."
+msgstr "De bedragen van de uitgereikte factuur en de boekhouding komen niet overeen."
+
+msgid "Check the domestic sale with zero VAT."
+msgstr "Controleer de binnenlandse verkoop met 0% btw."
+
+msgid "Check the missing invoice reference."
+msgstr "Controleer de ontbrekende factuurreferentie."
+
+msgid "Tax treatment requires review."
+msgstr "De fiscale behandeling moet worden gecontroleerd."
+
+msgid "Pending validation."
+msgstr "Wacht op validatie."
+
+msgid "Incidents requiring review"
+msgstr "Incidenten die controle vereisen"
+
+msgid "No matching records remain for this month."
+msgstr "Er zijn geen overeenkomende boekingen meer voor deze maand."
+
+msgid "Correct entry"
+msgstr "Boeking corrigeren"
+
+msgid "History"
+msgstr "Geschiedenis"
+
+msgid "Correct accounting entry"
+msgstr "Boekhouding corrigeren"
+
+msgid "This accounting record cannot be corrected."
+msgstr "Deze boeking kan niet worden gecorrigeerd."
+
+msgid "Check the amounts, date, VAT deduction and correction reason."
+msgstr "Controleer bedragen, datum, btw-aftrek en reden van correctie."
+
+msgid "Amounts must match the sign of the sale or refund."
+msgstr "Bedragen moeten overeenkomen met het teken van de verkoop of terugbetaling."
+
+msgid "A valid invoice or credit note reference is required."
+msgstr "Een geldige factuur- of creditnotareferentie is vereist."
+
+msgid "Check the supplier or customer and tax identification."
+msgstr "Controleer leverancier of klant en fiscale identificatie."
+
+msgid "Check the asset category, in-service date and useful life."
+msgstr "Controleer activacategorie, datum ingebruikname en gebruiksduur."
+
+msgid "Fiscal date"
+msgstr "Fiscale datum"
+
+msgid "Invoice reference"
+msgstr "Factuurreferentie"
+
+msgid "Customer or supplier"
+msgstr "Klant of leverancier"
+
+msgid "VAT amount"
+msgstr "Btw-bedrag"
+
+msgid "Deductible VAT percentage"
+msgstr "Aftrekbaar btw-percentage"
+
+msgid "Notes"
+msgstr "Opmerkingen"
+
+msgid "Correction reason"
+msgstr "Reden van correctie"
+
+msgid "Save correction as draft"
+msgstr "Correctie als concept opslaan"
+
+msgid "Cancel"
+msgstr "Annuleren"
+
+msgid "Accounting correction history (latest 50)"
+msgstr "Geschiedenis boekhoudcorrecties (laatste 50)"
+
+msgid "No corrections recorded."
+msgstr "Geen correcties geregistreerd."
+
+msgid "Administrator ID"
+msgstr "Beheerder-ID"
+
+msgid "Reason"
+msgstr "Reden"
+
+msgid "Before: date / invoice / base / VAT / total"
+msgstr "Voor: datum / factuur / grondslag / btw / totaal"
+
+msgid "After: date / invoice / base / VAT / total"
+msgstr "Na: datum / factuur / grondslag / btw / totaal"
+
+msgid "Check payment date, account and amount."
+msgstr "Controleer betaaldatum, rekening en bedrag."
+
+msgid "Payment exceeds the outstanding amount or has invalid dates/account."
+msgstr "De betaling overschrijdt het openstaande bedrag of de datum/rekening is ongeldig."
+
+msgid "Payment could not be recorded."
+msgstr "Betaling kon niet worden geregistreerd."
+
+msgid "Paid/received:"
+msgstr "Betaald/ontvangen:"
+
+msgid "Add a bank or cash account in Treasury to record an actual payment."
+msgstr "Voeg een bank- of kasrekening toe in Kasbeheer om een echte betaling vast te leggen."
+
+msgid "Paid from / received into"
+msgstr "Betaald vanaf / ontvangen op"
+
+msgid "Payment date"
+msgstr "Betaaldatum"
+
+msgid "Record receipt"
+msgstr "Ontvangst registreren"
+
+msgid "Record payment"
+msgstr "Betaling registreren"
+
+msgid "Record only actual bank/cash payments. Importing or validating an invoice never assumes it was paid."
+msgstr "Registreer alleen echte bank- of contante betalingen. Een factuur importeren of valideren betekent niet dat deze is betaald."
+
+msgid "Bank or cash account"
+msgstr "Bank- of kasrekening"
+
+msgid "Select an account"
+msgstr "Selecteer een rekening"
+
+msgid "Paid amount"
+msgstr "Betaald bedrag"
+
+msgid "Invoice total including VAT"
+msgstr "Factuurtotaal inclusief btw"
+
+msgid "Financial overview (not sales or VAT)"
+msgstr "Financieel overzicht (geen omzet of btw)"
+
+msgid "Initial loan funding (already in opening balance)"
+msgstr "Aanvangsfinanciering via lening (al opgenomen in het beginsaldo)"
+
+msgid "Current bank balance"
+msgstr "Huidig banksaldo"
+
+msgid "The opening loan is shown as a bank inflow in its start month for reporting. It is already included in the opening bank balance: no second bank movement, sale or VAT is created."
+msgstr "De oorspronkelijke lening wordt alleen voor rapportagedoeleinden als bankontvangst in de startmaand getoond. Deze is al opgenomen in het beginsaldo van de bank: er wordt geen tweede banktransactie, verkoop of btw aangemaakt."

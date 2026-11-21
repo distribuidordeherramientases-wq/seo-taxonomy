@@ -775,3 +775,162 @@ msgstr "Rot: Unstimmigkeit festgestellt"
 msgid "Recorded movement without an invoice or loan link. Check before adding another payment."
 msgstr "Buchung ohne Zuordnung zu Rechnung oder Darlehen. Vor einer weiteren Zahlung prüfen."
 
+
+msgid "Incidents"
+msgstr "Vorfälle"
+
+msgid "Showing the selected accounting record."
+msgstr "Ausgewählter Buchungssatz wird angezeigt."
+
+msgid "Show all records"
+msgstr "Alle Einträge anzeigen"
+
+msgid "Review"
+msgstr "Prüfen"
+
+msgid "Issued invoice and accounting totals disagree."
+msgstr "Ausgestellte Rechnung und Buchungsbeträge stimmen nicht überein."
+
+msgid "Check the domestic sale with zero VAT."
+msgstr "Inlandsverkauf mit 0 % MwSt. prüfen."
+
+msgid "Check the missing invoice reference."
+msgstr "Fehlende Rechnungsreferenz prüfen."
+
+msgid "Tax treatment requires review."
+msgstr "Steuerliche Behandlung muss geprüft werden."
+
+msgid "Pending validation."
+msgstr "Validierung ausstehend."
+
+msgid "Incidents requiring review"
+msgstr "Zu prüfende Vorfälle"
+
+msgid "No matching records remain for this month."
+msgstr "Für diesen Monat sind keine passenden Einträge mehr vorhanden."
+
+msgid "Correct entry"
+msgstr "Buchung korrigieren"
+
+msgid "History"
+msgstr "Verlauf"
+
+msgid "Correct accounting entry"
+msgstr "Buchungssatz korrigieren"
+
+msgid "This accounting record cannot be corrected."
+msgstr "Dieser Buchungssatz kann nicht korrigiert werden."
+
+msgid "Check the amounts, date, VAT deduction and correction reason."
+msgstr "Beträge, Datum, Vorsteuerabzug und Korrekturgrund prüfen."
+
+msgid "Amounts must match the sign of the sale or refund."
+msgstr "Beträge müssen dem Vorzeichen von Verkauf oder Erstattung entsprechen."
+
+msgid "A valid invoice or credit note reference is required."
+msgstr "Eine gültige Rechnungs- oder Gutschriftreferenz ist erforderlich."
+
+msgid "Check the supplier or customer and tax identification."
+msgstr "Lieferant bzw. Kunde und Steueridentifikation prüfen."
+
+msgid "Check the asset category, in-service date and useful life."
+msgstr "Anlagekategorie, Inbetriebnahmedatum und Nutzungsdauer prüfen."
+
+msgid "Fiscal date"
+msgstr "Steuerdatum"
+
+msgid "Invoice reference"
+msgstr "Rechnungsreferenz"
+
+msgid "Customer or supplier"
+msgstr "Kunde oder Lieferant"
+
+msgid "VAT amount"
+msgstr "Mehrwertsteuerbetrag"
+
+msgid "Deductible VAT percentage"
+msgstr "Abziehbarer Vorsteueranteil"
+
+msgid "Notes"
+msgstr "Notizen"
+
+msgid "Correction reason"
+msgstr "Korrekturgrund"
+
+msgid "Save correction as draft"
+msgstr "Korrektur als Entwurf speichern"
+
+msgid "Cancel"
+msgstr "Abbrechen"
+
+msgid "Accounting correction history (latest 50)"
+msgstr "Verlauf der Buchungskorrekturen (letzte 50)"
+
+msgid "No corrections recorded."
+msgstr "Keine Korrekturen erfasst."
+
+msgid "Administrator ID"
+msgstr "Administrator-ID"
+
+msgid "Reason"
+msgstr "Grund"
+
+msgid "Before: date / invoice / base / VAT / total"
+msgstr "Vorher: Datum / Rechnung / Netto / MwSt. / Gesamt"
+
+msgid "After: date / invoice / base / VAT / total"
+msgstr "Nachher: Datum / Rechnung / Netto / MwSt. / Gesamt"
+
+msgid "Check payment date, account and amount."
+msgstr "Zahlungsdatum, Konto und Betrag prüfen."
+
+msgid "Payment exceeds the outstanding amount or has invalid dates/account."
+msgstr "Die Zahlung übersteigt den offenen Betrag oder Datum/Konto ist ungültig."
+
+msgid "Payment could not be recorded."
+msgstr "Zahlung konnte nicht erfasst werden."
+
+msgid "Paid/received:"
+msgstr "Gezahlt/erhalten:"
+
+msgid "Add a bank or cash account in Treasury to record an actual payment."
+msgstr "Bank- oder Kassenkonto in Liquidität hinzufügen, um eine tatsächliche Zahlung zu erfassen."
+
+msgid "Paid from / received into"
+msgstr "Gezahlt von / erhalten auf"
+
+msgid "Payment date"
+msgstr "Zahlungsdatum"
+
+msgid "Record receipt"
+msgstr "Geldeingang erfassen"
+
+msgid "Record payment"
+msgstr "Zahlung erfassen"
+
+msgid "Record only actual bank/cash payments. Importing or validating an invoice never assumes it was paid."
+msgstr "Nur tatsächliche Bank- oder Barzahlungen erfassen. Import und Bestätigung einer Rechnung bedeuten nicht, dass sie bezahlt wurde."
+
+msgid "Bank or cash account"
+msgstr "Bank- oder Kassenkonto"
+
+msgid "Select an account"
+msgstr "Konto auswählen"
+
+msgid "Paid amount"
+msgstr "Gezahlter Betrag"
+
+msgid "Invoice total including VAT"
+msgstr "Rechnungsbetrag einschließlich MwSt."
+
+msgid "Financial overview (not sales or VAT)"
+msgstr "Finanzübersicht (keine Umsätze oder Umsatzsteuer)"
+
+msgid "Initial loan funding (already in opening balance)"
+msgstr "Anfangsfinanzierung durch Darlehen (bereits im Anfangssaldo enthalten)"
+
+msgid "Current bank balance"
+msgstr "Aktueller Banksaldo"
+
+msgid "The opening loan is shown as a bank inflow in its start month for reporting. It is already included in the opening bank balance: no second bank movement, sale or VAT is created."
+msgstr "Das anfängliche Darlehen wird im Startmonat nur für die Berichterstattung als Bankeingang angezeigt. Es ist bereits im Bankanfangssaldo enthalten: Es werden weder eine zweite Bankbuchung noch ein Umsatz oder Umsatzsteuer erzeugt."

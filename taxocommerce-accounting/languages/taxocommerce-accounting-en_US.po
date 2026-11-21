@@ -774,3 +774,162 @@ msgstr "Red: detected inconsistency"
 msgid "Recorded movement without an invoice or loan link. Check before adding another payment."
 msgstr "Recorded movement without an invoice or loan link. Check before adding another payment."
 
+
+msgid "Incidents"
+msgstr "Incidents"
+
+msgid "Showing the selected accounting record."
+msgstr "Showing the selected accounting record."
+
+msgid "Show all records"
+msgstr "Show all records"
+
+msgid "Review"
+msgstr "Review"
+
+msgid "Issued invoice and accounting totals disagree."
+msgstr "Issued invoice and accounting totals disagree."
+
+msgid "Check the domestic sale with zero VAT."
+msgstr "Check the domestic sale with zero VAT."
+
+msgid "Check the missing invoice reference."
+msgstr "Check the missing invoice reference."
+
+msgid "Tax treatment requires review."
+msgstr "Tax treatment requires review."
+
+msgid "Pending validation."
+msgstr "Pending validation."
+
+msgid "Incidents requiring review"
+msgstr "Incidents requiring review"
+
+msgid "No matching records remain for this month."
+msgstr "No matching records remain for this month."
+
+msgid "Correct entry"
+msgstr "Correct entry"
+
+msgid "History"
+msgstr "History"
+
+msgid "Correct accounting entry"
+msgstr "Correct accounting entry"
+
+msgid "This accounting record cannot be corrected."
+msgstr "This accounting record cannot be corrected."
+
+msgid "Check the amounts, date, VAT deduction and correction reason."
+msgstr "Check the amounts, date, VAT deduction and correction reason."
+
+msgid "Amounts must match the sign of the sale or refund."
+msgstr "Amounts must match the sign of the sale or refund."
+
+msgid "A valid invoice or credit note reference is required."
+msgstr "A valid invoice or credit note reference is required."
+
+msgid "Check the supplier or customer and tax identification."
+msgstr "Check the supplier or customer and tax identification."
+
+msgid "Check the asset category, in-service date and useful life."
+msgstr "Check the asset category, in-service date and useful life."
+
+msgid "Fiscal date"
+msgstr "Fiscal date"
+
+msgid "Invoice reference"
+msgstr "Invoice reference"
+
+msgid "Customer or supplier"
+msgstr "Customer or supplier"
+
+msgid "VAT amount"
+msgstr "VAT amount"
+
+msgid "Deductible VAT percentage"
+msgstr "Deductible VAT percentage"
+
+msgid "Notes"
+msgstr "Notes"
+
+msgid "Correction reason"
+msgstr "Correction reason"
+
+msgid "Save correction as draft"
+msgstr "Save correction as draft"
+
+msgid "Cancel"
+msgstr "Cancel"
+
+msgid "Accounting correction history (latest 50)"
+msgstr "Accounting correction history (latest 50)"
+
+msgid "No corrections recorded."
+msgstr "No corrections recorded."
+
+msgid "Administrator ID"
+msgstr "Administrator ID"
+
+msgid "Reason"
+msgstr "Reason"
+
+msgid "Before: date / invoice / base / VAT / total"
+msgstr "Before: date / invoice / base / VAT / total"
+
+msgid "After: date / invoice / base / VAT / total"
+msgstr "After: date / invoice / base / VAT / total"
+
+msgid "Check payment date, account and amount."
+msgstr "Check payment date, account and amount."
+
+msgid "Payment exceeds the outstanding amount or has invalid dates/account."
+msgstr "Payment exceeds the outstanding amount or has invalid dates/account."
+
+msgid "Payment could not be recorded."
+msgstr "Payment could not be recorded."
+
+msgid "Paid/received:"
+msgstr "Paid/received:"
+
+msgid "Add a bank or cash account in Treasury to record an actual payment."
+msgstr "Add a bank or cash account in Treasury to record an actual payment."
+
+msgid "Paid from / received into"
+msgstr "Paid from / received into"
+
+msgid "Payment date"
+msgstr "Payment date"
+
+msgid "Record receipt"
+msgstr "Record receipt"
+
+msgid "Record payment"
+msgstr "Record payment"
+
+msgid "Record only actual bank/cash payments. Importing or validating an invoice never assumes it was paid."
+msgstr "Record only actual bank/cash payments. Importing or validating an invoice never assumes it was paid."
+
+msgid "Bank or cash account"
+msgstr "Bank or cash account"
+
+msgid "Select an account"
+msgstr "Select an account"
+
+msgid "Paid amount"
+msgstr "Paid amount"
+
+msgid "Invoice total including VAT"
+msgstr "Invoice total including VAT"
+
+msgid "Financial overview (not sales or VAT)"
+msgstr "Financial overview (not sales or VAT)"
+
+msgid "Initial loan funding (already in opening balance)"
+msgstr "Initial loan funding (already in opening balance)"
+
+msgid "Current bank balance"
+msgstr "Current bank balance"
+
+msgid "The opening loan is shown as a bank inflow in its start month for reporting. It is already included in the opening bank balance: no second bank movement, sale or VAT is created."
+msgstr "The opening loan is shown as a bank inflow in its start month for reporting. It is already included in the opening bank balance: no second bank movement, sale or VAT is created."
