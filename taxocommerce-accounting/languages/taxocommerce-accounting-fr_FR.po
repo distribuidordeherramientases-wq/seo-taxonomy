@@ -775,3 +775,150 @@ msgstr "Rouge : incohérence détectée"
 msgid "Recorded movement without an invoice or loan link. Check before adding another payment."
 msgstr "Mouvement enregistré sans lien avec une facture ou un prêt. Vérifiez avant d'ajouter un paiement."
 
+
+msgid "Incidents"
+msgstr "Incidents"
+
+msgid "Showing the selected accounting record."
+msgstr "Affichage de l’écriture comptable sélectionnée."
+
+msgid "Show all records"
+msgstr "Afficher tous les enregistrements"
+
+msgid "Review"
+msgstr "Vérifier"
+
+msgid "Issued invoice and accounting totals disagree."
+msgstr "Les totaux de la facture émise et de la comptabilité diffèrent."
+
+msgid "Check the domestic sale with zero VAT."
+msgstr "Vérifier la vente nationale sans TVA."
+
+msgid "Check the missing invoice reference."
+msgstr "Vérifier la référence de facture manquante."
+
+msgid "Tax treatment requires review."
+msgstr "Le traitement fiscal doit être vérifié."
+
+msgid "Pending validation."
+msgstr "En attente de validation."
+
+msgid "Incidents requiring review"
+msgstr "Incidents nécessitant une vérification"
+
+msgid "No matching records remain for this month."
+msgstr "Aucun enregistrement correspondant pour ce mois."
+
+msgid "Correct entry"
+msgstr "Corriger l’écriture"
+
+msgid "History"
+msgstr "Historique"
+
+msgid "Correct accounting entry"
+msgstr "Corriger l’écriture comptable"
+
+msgid "This accounting record cannot be corrected."
+msgstr "Cette écriture comptable ne peut pas être corrigée."
+
+msgid "Check the amounts, date, VAT deduction and correction reason."
+msgstr "Vérifiez les montants, la date, la déduction de TVA et le motif de correction."
+
+msgid "Amounts must match the sign of the sale or refund."
+msgstr "Les montants doivent respecter le signe de la vente ou du remboursement."
+
+msgid "A valid invoice or credit note reference is required."
+msgstr "Une référence valide de facture ou d’avoir est requise."
+
+msgid "Check the supplier or customer and tax identification."
+msgstr "Vérifiez le fournisseur ou client et son identification fiscale."
+
+msgid "Check the asset category, in-service date and useful life."
+msgstr "Vérifiez la catégorie de l’actif, sa mise en service et sa durée d’utilisation."
+
+msgid "Fiscal date"
+msgstr "Date fiscale"
+
+msgid "Invoice reference"
+msgstr "Référence de facture"
+
+msgid "Customer or supplier"
+msgstr "Client ou fournisseur"
+
+msgid "VAT amount"
+msgstr "Montant de TVA"
+
+msgid "Deductible VAT percentage"
+msgstr "Pourcentage de TVA déductible"
+
+msgid "Notes"
+msgstr "Notes"
+
+msgid "Correction reason"
+msgstr "Motif de correction"
+
+msgid "Save correction as draft"
+msgstr "Enregistrer la correction en brouillon"
+
+msgid "Cancel"
+msgstr "Annuler"
+
+msgid "Accounting correction history (latest 50)"
+msgstr "Historique des corrections comptables (50 dernières)"
+
+msgid "No corrections recorded."
+msgstr "Aucune correction enregistrée."
+
+msgid "Administrator ID"
+msgstr "ID de l’administrateur"
+
+msgid "Reason"
+msgstr "Motif"
+
+msgid "Before: date / invoice / base / VAT / total"
+msgstr "Avant : date / facture / base / TVA / total"
+
+msgid "After: date / invoice / base / VAT / total"
+msgstr "Après : date / facture / base / TVA / total"
+
+msgid "Check payment date, account and amount."
+msgstr "Vérifiez la date, le compte et le montant du paiement."
+
+msgid "Payment exceeds the outstanding amount or has invalid dates/account."
+msgstr "Le paiement dépasse le montant dû ou la date ou le compte est invalide."
+
+msgid "Payment could not be recorded."
+msgstr "Le paiement n’a pas pu être enregistré."
+
+msgid "Paid/received:"
+msgstr "Payé/encaissé :"
+
+msgid "Add a bank or cash account in Treasury to record an actual payment."
+msgstr "Ajoutez un compte bancaire ou de caisse dans Trésorerie pour enregistrer un paiement réel."
+
+msgid "Paid from / received into"
+msgstr "Payé depuis / reçu sur"
+
+msgid "Payment date"
+msgstr "Date de paiement"
+
+msgid "Record receipt"
+msgstr "Enregistrer l’encaissement"
+
+msgid "Record payment"
+msgstr "Enregistrer le paiement"
+
+msgid "Record only actual bank/cash payments. Importing or validating an invoice never assumes it was paid."
+msgstr "N’enregistrez que les paiements bancaires ou en espèces réels. Importer ou valider une facture ne signifie jamais qu’elle est payée."
+
+msgid "Bank or cash account"
+msgstr "Compte bancaire ou de caisse"
+
+msgid "Select an account"
+msgstr "Sélectionnez un compte"
+
+msgid "Paid amount"
+msgstr "Montant payé"
+
+msgid "Invoice total including VAT"
+msgstr "Total de la facture TVA comprise"
