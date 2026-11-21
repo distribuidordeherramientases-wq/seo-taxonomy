@@ -1313,8 +1313,8 @@ msgstr "Geschiedenis correcties beginsaldo"
 msgid "Create a new cash or bank account (not a receipt)"
 msgstr "Nieuwe kas- of bankrekening maken (geen ontvangst)"
 
-msgid "Use the account name ING or CAJA. Record donations, initial contributions and customer receipts as movements into an existing account."
-msgstr "Gebruik een rekeningnaam zoals ING of CAJA. Boek donaties, begininbreng en klantontvangsten als stortingen op een bestaande rekening."
+msgid "Use a descriptive account name, such as Main bank or Cash register. Record donations, initial contributions and customer receipts as movements into an existing account."
+msgstr "Gebruik een duidelijke rekeningnaam, zoals Hoofdbank of Kas. Boek donaties, begininbreng en klantontvangsten als stortingen op een bestaande rekening."
 
 msgid "Save changes"
 msgstr "Wijzigingen opslaan"
@@ -1400,5 +1400,5 @@ msgstr "Ik bevestig dat het volledige beginsaldo bij deze lening hoort en al op 
 msgid "When linking an opening balance, the loan principal must equal that opening amount exactly. An opening balance can fund only one loan. No bank movement is created."
 msgstr "Bij koppeling van een beginsaldo moet de hoofdsom exact overeenkomen met dat bedrag. Eén beginsaldo kan slechts één lening financieren. Er wordt geen bankmutatie gemaakt."
 
-msgid "Select opening balance when the sponsor already financed ING: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed."
-msgstr "Selecteer beginsaldo als de sponsor ING al heeft gefinancierd: er wordt geen tweede ontvangst gemaakt. Kies nieuwe ontvangst alleen bij nieuw binnengekomen geld. Dit is een terugbetaalbare lening, geen donatie of btw-verkoop. Termijnen blijven prognoses tot bevestiging."
+msgid "Select opening balance when the lender's funds are already included in the bank opening balance: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed."
+msgstr "Selecteer beginsaldo als het geld van de geldverstrekker al in het bankbeginsaldo zit: er wordt geen tweede ontvangst gemaakt. Kies een nieuwe ontvangst alleen voor nieuw ontvangen geld. Dit is een terugbetaalbare lening, geen donatie of btw-verkoop. Termijnen blijven prognoses tot bevestiging."
