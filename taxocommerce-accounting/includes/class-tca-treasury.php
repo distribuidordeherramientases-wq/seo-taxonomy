@@ -73,6 +73,7 @@ final class TCA_Treasury {
             lender varchar(191) NOT NULL DEFAULT '',
             lender_tax_id varchar(48) NOT NULL DEFAULT '',
             lender_relation varchar(24) NOT NULL DEFAULT 'other',
+            repayment_mode varchar(16) NOT NULL DEFAULT 'legacy',
             agreement_reference varchar(191) NOT NULL DEFAULT '',
             funding_source varchar(24) NOT NULL DEFAULT 'pending',
             opening_account_id bigint(20) unsigned NULL DEFAULT NULL,
@@ -386,13 +387,20 @@ final class TCA_Treasury {
             }
             $funding_received = 'new_receipt' === $funding_mode;
             $funding_existing = 'opening_balance' === $funding_mode;
+            $flexible = 0 === $months;
+            if ( $flexible && '' === $due ) {
+                $due = '1970-01-01'; // Internal sentinel: no fixed due date agreed.
+            }
             $funding_account = ( $funding_received || $funding_existing )
                 ? self::get_account( self::posted( 'funding_account_id' ) ) : false;
             if ( '' === $name || '' === $lender ||
                 ! in_array( $lender_relation, array( 'sponsor', 'other' ), true ) ||
                 ! in_array( $funding_mode, array( 'pending', 'new_receipt', 'opening_balance' ), true ) ||
-                ! self::date( $start ) || ! self::date( $due, true ) ||
-                $due < $start || null === $principal || $principal <= 0 ||
+                ! self::date( $start ) ||
+                ( ! $flexible && ( ! self::date( $due, true ) || $due < $start ) ) ||
+                ( $flexible && '1970-01-01' !== $due &&
+                    ( ! self::date( $due, true ) || $due < $start ) ) ||
+                null === $principal || $principal <= 0 ||
                 ! preg_match( '/^[a-f0-9-]{36}$/', $request_key ) ||
                 null === $rate || $rate < 0 || $rate > 100 ||
                 null === $upfront || null === $balloon || $balloon > $principal ||
@@ -409,9 +417,11 @@ final class TCA_Treasury {
                 }
                 // Calculated loans derive the instalment from TIN and term.
                 $monthly = (float) $schedule[0]['payment'];
-            } elseif ( null === $monthly || $monthly <= 0 || $rate > 0 || $balloon > 0 ) {
-                // Pre-existing manual-amount mode remains available without a term.
+            } elseif ( 0.0 !== (float) $rate || 0.0 !== (float) $balloon ) {
+                // Flexible loans have no fixed instalments and must carry 0% interest.
                 self::redirect( 'invalid' );
+            } else {
+                $monthly = 0.0; // Repayment is recorded only when actually made.
             }
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Replayed request must never generate a second loan or bank receipt.
             $existing_loan = $wpdb->get_var( $wpdb->prepare(
@@ -446,6 +456,7 @@ final class TCA_Treasury {
             $saved = $wpdb->insert( self::table( 'loans' ), array(
                 'name' => $name, 'lender' => $lender,
                 'lender_tax_id' => $lender_tax_id, 'lender_relation' => $lender_relation,
+                'repayment_mode' => $flexible ? 'flexible' : 'scheduled',
                 'agreement_reference' => $agreement_reference,
                 'funding_source' => $funding_mode,
                 'opening_account_id' => $funding_existing ? (int) $funding_account->id : null,
@@ -455,7 +466,7 @@ final class TCA_Treasury {
                 'upfront_payment' => $upfront, 'balloon_payment' => $balloon,
                 'start_date' => $start, 'next_due_date' => $due, 'first_due_date' => $due,
                 'created_at' => current_time( 'mysql' ), 'updated_at' => current_time( 'mysql' ),
-            ), array( '%s', '%s', '%s', '%s', '%s', '%s', '%d',
+            ), array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d',
                 '%f', '%f', '%f', '%f', '%d', '%s', '%f', '%f',
                 '%s', '%s', '%s', '%s', '%s' ) );
             $loan_id = $saved ? (int) $wpdb->insert_id : 0;
