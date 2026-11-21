@@ -99,7 +99,9 @@ final class TCA_Status_Colors {
 
     public static function treasury_for_year( $year, $entry_states ) {
         global $wpdb;
-        $states = array_values( $entry_states );
+        $states = array_values( array_filter( $entry_states, static function ( $state ) {
+            return 'neutral' !== $state;
+        } ) );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live outstanding debts determine whether treasury is settled.
         $loans = (array) $wpdb->get_results( $wpdb->prepare(
             'SELECT principal, remaining FROM %i WHERE start_date <= %s',
