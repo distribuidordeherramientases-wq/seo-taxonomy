@@ -1,3 +1,6 @@
+= 0.1.34 (2026-11-21) =
+* Complete extraction and translations of 156 missing Accounting administration gettext strings in five languages; rebuild MO catalogs. Replace two installation-specific account examples with generic wording. Issue #2917.
+
 = 0.1.32 (2026-11-21) =
 * Centralize depreciable fixed-asset entry, useful life and depreciation reporting in Assets; preserve legacy fixed-expense records and their corrections without migration or duplicated payments. Issue #2922. No PRO deployment.
 
