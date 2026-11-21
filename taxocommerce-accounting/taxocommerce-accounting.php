@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.29
+ * Version: 0.1.30
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.29' );
+define( 'TCA_VERSION', '0.1.30' );
 define( 'TCA_DB_VERSION', '10' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
