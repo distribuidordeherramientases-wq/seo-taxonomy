@@ -1192,3 +1192,96 @@ msgstr "Adjuntar PDF o imagen original (hasta 10 MB)"
 
 msgid "Archive document"
 msgstr "Archivar documento"
+
+msgid "Preparation checklist"
+msgstr "Lista de comprobación previa"
+
+msgid "WooCommerce background sales import:"
+msgstr "Importación de ventas de WooCommerce en segundo plano:"
+
+msgid "Not enabled. Enable it under Accounting Settings to keep new paid orders available for review."
+msgstr "No está activada. Actívala en Configuración de Contabilidad para disponer de los nuevos pedidos pagados pendientes de revisión."
+
+msgid "Enabled but not executed yet. WP-Cron requires site traffic or an external scheduler."
+msgstr "Activada, pero todavía no se ha ejecutado. WP-Cron necesita visitas al sitio o un programador externo."
+
+msgid "Last check:"
+msgstr "Última comprobación:"
+
+msgid "Last full cycle:"
+msgstr "Último ciclo completo:"
+
+msgid "Not completed yet"
+msgstr "Todavía no se ha completado"
+
+msgid "Error:"
+msgstr "Error:"
+
+msgid "Accounting entries in selected period:"
+msgstr "Registros contables del periodo seleccionado:"
+
+msgid "Pending validation:"
+msgstr "Pendientes de validación:"
+
+msgid "Operations outside standard domestic VAT:"
+msgstr "Operaciones fuera del IVA nacional ordinario:"
+
+msgid "Entries without a document number:"
+msgstr "Registros sin número de documento:"
+
+msgid "There are no recorded operations in this period. This does not establish that the tax return is zero: first check the WooCommerce import and supplier invoices."
+msgstr "No hay operaciones registradas en este periodo. Esto no significa que la declaración sea cero: comprueba primero la importación de WooCommerce y las facturas de proveedores."
+
+msgid "Review the outstanding records before using these figures. Non-domestic transactions and missing references need individual tax treatment."
+msgstr "Revisa los registros pendientes antes de utilizar estas cifras. Las operaciones no nacionales y las referencias ausentes necesitan un tratamiento fiscal individual."
+
+msgid "No pending status or missing document numbers were detected. This does NOT mean a tax return is complete, accurate or ready for filing."
+msgstr "No se han detectado estados pendientes ni números de documento ausentes. Esto NO significa que una declaración esté completa, sea correcta o esté lista para presentarse."
+
+msgid "Entries without tax identification (check only where legally required):"
+msgstr "Registros sin identificación fiscal (comprobar solo donde sea obligatoria):"
+
+msgid "Review purchases and expenses"
+msgstr "Revisar compras y gastos"
+
+msgid "Verify that the fiscal start date includes the entire applicable reporting period. Imported WooCommerce orders are drafts until reviewed, and the ledger may omit transactions not entered manually."
+msgstr "Comprueba que la fecha de inicio fiscal incluya todo el periodo correspondiente. Los pedidos importados de WooCommerce son borradores hasta su revisión, y el libro puede omitir operaciones no introducidas manualmente."
+
+msgid "Reporting period:"
+msgstr "Periodo de declaración:"
+
+msgid "Figures recalculate from the current register whenever you open this screen; you do not have to wait for the tax deadline."
+msgstr "Las cifras se recalculan desde el registro actual cada vez que abres esta pantalla; no es necesario esperar al plazo de presentación."
+
+msgid "The tax models shown are references, not a list of mandatory returns for this merchant. Applicability depends on tax registration and legal form; for example, Model 130 may apply to certain self-employed taxpayers under direct estimation, while Model 200 concerns corporate income tax. Check tax registration with the AEAT or your adviser before preparing a return."
+msgstr "Los modelos fiscales mostrados son referencias, no una lista de declaraciones obligatorias para este negocio. Su aplicación depende del alta fiscal y la forma jurídica; por ejemplo, el modelo 130 puede corresponder a ciertos autónomos en estimación directa y el 200 al Impuesto sobre Sociedades. Comprueba tu situación con la AEAT o tu asesor antes de preparar una declaración."
+
+msgid "Official AEAT Model 130 information"
+msgstr "Officiële informatie AEAT model 130"
+
+msgid "Accumulated figures for the selected period"
+msgstr "Importes acumulados del periodo seleccionado"
+
+msgid "Domestic sales taxable base (validated)"
+msgstr "Base imponible de ventas nacionales (validadas)"
+
+msgid "Domestic sales with VAT"
+msgstr "Ventas nacionales con IVA"
+
+msgid "Domestic purchases / expenses taxable base (validated)"
+msgstr "Base imponible de compras y gastos nacionales (validados)"
+
+msgid "Domestic purchases / expenses with VAT"
+msgstr "Compras y gastos nacionales con IVA"
+
+msgid "Accrued output VAT"
+msgstr "IVA repercutido devengado"
+
+msgid "Indicative domestic VAT balance (not final tax due)"
+msgstr "Saldo orientativo del IVA nacional (no es la cuota final a ingresar)"
+
+msgid "Operations pending review or special tax treatment"
+msgstr "Operaciones pendientes de revisión o tratamiento fiscal especial"
+
+msgid "These are live accounting totals, not official AEAT boxes. The current register does not retain an invoice-by-invoice split of VAT rates, prior period offsets, all tax adjustments or filing options. Do not copy the indicative balance directly as the amount to pay."
+msgstr "Estos son totales contables actualizados, no casillas oficiales de la AEAT. El registro actual no conserva el desglose de tipos de IVA por factura, compensaciones anteriores, todos los ajustes fiscales ni las opciones de declaración. No copies directamente el saldo orientativo como importe a ingresar."
