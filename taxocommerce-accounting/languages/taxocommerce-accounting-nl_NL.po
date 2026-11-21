@@ -1192,3 +1192,96 @@ msgstr "Originele pdf of afbeelding bijvoegen (max. 10 MB)"
 
 msgid "Archive document"
 msgstr "Document archiveren"
+
+msgid "Preparation checklist"
+msgstr "Voorbereidingschecklist"
+
+msgid "WooCommerce background sales import:"
+msgstr "WooCommerce-verkoopimport op de achtergrond:"
+
+msgid "Not enabled. Enable it under Accounting Settings to keep new paid orders available for review."
+msgstr "Niet ingeschakeld. Schakel dit in bij Boekhoudinstellingen om nieuwe betaalde bestellingen te kunnen controleren."
+
+msgid "Enabled but not executed yet. WP-Cron requires site traffic or an external scheduler."
+msgstr "Ingeschakeld, maar nog niet uitgevoerd. WP-Cron vereist websiteverkeer of een externe planner."
+
+msgid "Last check:"
+msgstr "Laatste controle:"
+
+msgid "Last full cycle:"
+msgstr "Laatste volledige cyclus:"
+
+msgid "Not completed yet"
+msgstr "Nog niet voltooid"
+
+msgid "Error:"
+msgstr "Fout:"
+
+msgid "Accounting entries in selected period:"
+msgstr "Boekingen in geselecteerde periode:"
+
+msgid "Pending validation:"
+msgstr "Wachten op validatie:"
+
+msgid "Operations outside standard domestic VAT:"
+msgstr "Transacties buiten de standaard binnenlandse btw:"
+
+msgid "Entries without a document number:"
+msgstr "Boekingen zonder documentnummer:"
+
+msgid "There are no recorded operations in this period. This does not establish that the tax return is zero: first check the WooCommerce import and supplier invoices."
+msgstr "Er zijn geen transacties geregistreerd in deze periode. Dit betekent niet dat de aangifte nul is: controleer eerst de WooCommerce-import en leveranciersfacturen."
+
+msgid "Review the outstanding records before using these figures. Non-domestic transactions and missing references need individual tax treatment."
+msgstr "Controleer openstaande boekingen voordat je deze cijfers gebruikt. Niet-binnenlandse transacties en ontbrekende referenties vereisen afzonderlijke fiscale behandeling."
+
+msgid "No pending status or missing document numbers were detected. This does NOT mean a tax return is complete, accurate or ready for filing."
+msgstr "Geen openstaande statussen of ontbrekende documentnummers gevonden. Dit betekent NIET dat een aangifte volledig, correct of klaar voor indiening is."
+
+msgid "Entries without tax identification (check only where legally required):"
+msgstr "Boekingen zonder fiscale identificatie (alleen controleren waar wettelijk vereist):"
+
+msgid "Review purchases and expenses"
+msgstr "Inkopen en uitgaven controleren"
+
+msgid "Verify that the fiscal start date includes the entire applicable reporting period. Imported WooCommerce orders are drafts until reviewed, and the ledger may omit transactions not entered manually."
+msgstr "Controleer of de fiscale begindatum de hele rapportageperiode omvat. Geïmporteerde WooCommerce-bestellingen blijven concepten tot controle; niet handmatig ingevoerde transacties kunnen ontbreken."
+
+msgid "Reporting period:"
+msgstr "Aangifteperiode:"
+
+msgid "Figures recalculate from the current register whenever you open this screen; you do not have to wait for the tax deadline."
+msgstr "De cijfers worden bij het openen van dit scherm opnieuw berekend uit het actuele register; je hoeft niet te wachten op de aangiftetermijn."
+
+msgid "The tax models shown are references, not a list of mandatory returns for this merchant. Applicability depends on tax registration and legal form; for example, Model 130 may apply to certain self-employed taxpayers under direct estimation, while Model 200 concerns corporate income tax. Check tax registration with the AEAT or your adviser before preparing a return."
+msgstr "De getoonde belastingmodellen zijn ter informatie, geen lijst verplichte aangiften. Toepassing hangt af van fiscale registratie en rechtsvorm; model 130 kan gelden voor bepaalde zelfstandigen en model 200 voor vennootschapsbelasting. Controleer dit bij AEAT of een adviseur."
+
+msgid "Official AEAT Model 130 information"
+msgstr "Officiële AEAT-informatie over model 130"
+
+msgid "Accumulated figures for the selected period"
+msgstr "Opgetelde bedragen voor geselecteerde periode"
+
+msgid "Domestic sales taxable base (validated)"
+msgstr "Belastbare grondslag binnenlandse verkopen (gevalideerd)"
+
+msgid "Domestic sales with VAT"
+msgstr "Binnenlandse verkopen met btw"
+
+msgid "Domestic purchases / expenses taxable base (validated)"
+msgstr "Belastbare grondslag binnenlandse inkopen/uitgaven (gevalideerd)"
+
+msgid "Domestic purchases / expenses with VAT"
+msgstr "Binnenlandse inkopen/uitgaven met btw"
+
+msgid "Accrued output VAT"
+msgstr "Verschuldigde btw op verkopen"
+
+msgid "Indicative domestic VAT balance (not final tax due)"
+msgstr "Indicatief binnenlands btw-saldo (niet de definitief verschuldigde belasting)"
+
+msgid "Operations pending review or special tax treatment"
+msgstr "Transacties die controle of bijzondere fiscale behandeling vereisen"
+
+msgid "These are live accounting totals, not official AEAT boxes. The current register does not retain an invoice-by-invoice split of VAT rates, prior period offsets, all tax adjustments or filing options. Do not copy the indicative balance directly as the amount to pay."
+msgstr "Dit zijn actuele boekhoudtotalen, geen officiële AEAT-vakken. Het register bewaart geen volledige btw-tariefverdeling per factuur, verrekeningen uit eerdere perioden, alle fiscale aanpassingen of aangifteopties. Neem het indicatieve saldo niet direct over als te betalen bedrag."
