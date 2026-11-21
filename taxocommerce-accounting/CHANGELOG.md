@@ -1,3 +1,10 @@
+## 0.1.32 — 2026-11-21 — Centralize fixed assets in Assets (#2922)
+
+- Move new depreciable asset registration, in-service date and useful life from Expenses to Assets; current expenses remain separate.
+- Show historical fixed assets from Expenses in Assets without migrating or duplicating ledger records; preserve corrections and linked payments.
+- Include both new asset entries and legacy fixed expenses in the existing read-only straight-line depreciation report. Fiscal VAT investment-goods rules remain separate.
+- No bank, VAT, invoice or historical balance changes. STAGING and Focazul only.
+
 ## 0.1.31 — 2026-11-21 — Opening-balance loan funding visibility in reports (#2919)
 
 - Reclassify already-received loans linked to existing bank opening balances as dated bank inflows **for reporting only**, keeping the real monthly bank balances and every movement unchanged.

@@ -43,6 +43,14 @@ final class TCA_Corrections {
         return isset( $tabs[ $kind ] ) ? $tabs[ $kind ] : 'summary';
     }
 
+    /** Route historical fixed expenses to the assets screen without rewriting their ledger IDs. */
+    public static function tab_for_entry( $entry ) {
+        if ( 'expense' === $entry->kind && 'fixed_asset' === (string) ( $entry->expense_type ?? '' ) ) {
+            return 'assets';
+        }
+        return self::tab_for( $entry->kind );
+    }
+
     public static function snapshot( $entry ) {
         $result = array();
         foreach ( array( 'source', 'source_id', 'kind', 'fiscal_date', 'document_no',
@@ -108,10 +116,10 @@ final class TCA_Corrections {
         }
 
         // Preserve classification for all non-expense record kinds.
-        $expense_type = 'expense' === $entry->kind ? sanitize_key( (string) ( $input['expense_type'] ?? 'current' ) ) : 'current';
+        $expense_type = 'asset' === $entry->kind || ( 'expense' === $entry->kind && 'fixed_asset' === (string) ( $entry->expense_type ?? '' ) ) ? 'fixed_asset' : 'current';
         $service_date = 'fixed_asset' === $expense_type ? (string) ( $input['service_date'] ?? '' ) : '';
         $years = 'fixed_asset' === $expense_type ? (string) ( $input['useful_life_years'] ?? '' ) : '0';
-        if ( 'expense' === $entry->kind && ! TCA_Depreciation::valid( $expense_type, $service_date, $years, $date ) ) {
+        if ( 'fixed_asset' === $expense_type && ! TCA_Depreciation::valid( $expense_type, $service_date, $years, $date ) ) {
             return new WP_Error( 'tca_correction_asset', __( 'Check the asset category, in-service date and useful life.', 'taxocommerce-accounting' ) );
         }
         // Keep the prior tax treatment until a separate fiscal validation.
@@ -121,7 +129,7 @@ final class TCA_Corrections {
             'party' => $party,
             'tax_id' => $tax_id,
             'concept' => $concept,
-            'expense_type' => 'expense' === $entry->kind ? $expense_type : 'current',
+            'expense_type' => $expense_type,
             'service_date' => 'fixed_asset' === $expense_type ? $service_date : null,
             'useful_life_years' => 'fixed_asset' === $expense_type ? (int) $years : 0,
             'amount_base' => $base,
@@ -147,7 +155,7 @@ final class TCA_Corrections {
         if ( ! $entry ) {
             self::redirect( 'summary', 'correction_invalid' );
         }
-        $tab = self::tab_for( $entry->kind );
+        $tab = self::tab_for_entry( $entry );
         $input = array();
         foreach ( array( 'fiscal_date', 'document_no', 'party', 'tax_id', 'concept',
             'amount_base', 'amount_tax', 'deductible_pct', 'expense_type', 'service_date', 'useful_life_years', 'reason' ) as $key ) {
@@ -254,7 +262,7 @@ final class TCA_Corrections {
     }
 
     public static function render_row_action( $entry ) {
-        $tab = self::tab_for( $entry->kind );
+        $tab = self::tab_for_entry( $entry );
         if ( 'summary' === $tab ) {
             return;
         }
@@ -278,7 +286,7 @@ final class TCA_Corrections {
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read fresh record for authorized admin.
         $entry = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d LIMIT 1', tca_table(), $id ) );
-        if ( ! $entry || $tab !== self::tab_for( $entry->kind ) ) {
+        if ( ! $entry || $tab !== self::tab_for_entry( $entry ) ) {
             return;
         }
         if ( $history_id ) {
@@ -316,16 +324,11 @@ final class TCA_Corrections {
             }
             echo '></td></tr>';
         }
-        if ( 'expense' === $entry->kind ) {
-            $type = (string) ( $entry->expense_type ?? 'current' );
-            echo '<tr><th><label for="tca-expense-type">' . esc_html__( 'Expense type', 'taxocommerce-accounting' ) . '</label></th><td>';
-            echo '<select name="expense_type" id="tca-expense-type">';
-            echo '<option value="current" ' . selected( $type, 'current', false ) . '>' . esc_html__( 'Current expense', 'taxocommerce-accounting' ) . '</option>';
-            echo '<option value="fixed_asset" ' . selected( $type, 'fixed_asset', false ) . '>' . esc_html__( 'Fixed asset (depreciable)', 'taxocommerce-accounting' ) . '</option></select></td></tr>';
-            echo '<tr class="tca-asset-fields"><th><label for="tca-service-date">' . esc_html__( 'Date put into service', 'taxocommerce-accounting' ) . '</label></th><td>';
-            echo '<input type="date" id="tca-service-date" name="service_date" value="' . esc_attr( $entry->service_date ?: $entry->fiscal_date ) . '"></td></tr>';
-            echo '<tr class="tca-asset-fields"><th><label for="tca-useful-life">' . esc_html__( 'Useful life (years)', 'taxocommerce-accounting' ) . '</label></th><td>';
-            echo '<input type="number" min="1" max="50" step="1" id="tca-useful-life" name="useful_life_years" value="' . esc_attr( (string) ( (int) $entry->useful_life_years ?: 5 ) ) . '"></td></tr>';
+        if ( 'asset' === $entry->kind || ( 'expense' === $entry->kind && 'fixed_asset' === (string) ( $entry->expense_type ?? '' ) ) ) {
+            echo '<tr><th><label for="tca-service-date">' . esc_html__( 'Date put into service', 'taxocommerce-accounting' ) . '</label></th><td>';
+            echo '<input type="date" id="tca-service-date" name="service_date" value="' . esc_attr( $entry->service_date ?: $entry->fiscal_date ) . '" required></td></tr>';
+            echo '<tr><th><label for="tca-useful-life">' . esc_html__( 'Useful life (years)', 'taxocommerce-accounting' ) . '</label></th><td>';
+            echo '<input type="number" min="1" max="50" step="1" id="tca-useful-life" name="useful_life_years" value="' . esc_attr( (string) ( (int) $entry->useful_life_years ?: 5 ) ) . '" required></td></tr>';
         }
         echo '<tr><th><label for="tca-correct-pct">' . esc_html__( 'Deductible VAT percentage', 'taxocommerce-accounting' ) . '</label></th>';
         echo '<td><input id="tca-correct-pct" name="deductible_pct" type="number" min="0" max="100" step="0.01" value="' . esc_attr( $entry->deductible_pct ) . '" required></td></tr>';

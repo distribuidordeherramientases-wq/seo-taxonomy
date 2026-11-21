@@ -1,6 +1,6 @@
 <?php
 /**
- * Expense classification and read-only straight-line depreciation.
+ * Fixed-asset classification and read-only straight-line depreciation.
  *
  * @package TaxoCommerce_Accounting
  */
@@ -30,7 +30,7 @@ final class TCA_Depreciation {
      * @return array|null Calculated cost, annual expense and net book value.
      */
     public static function annual( $entry, $year ) {
-        if ( 'expense' !== (string) ( $entry->kind ?? '' ) ||
+        if ( ! in_array( (string) ( $entry->kind ?? '' ), array( 'expense', 'asset' ), true ) ||
             'fixed_asset' !== (string) ( $entry->expense_type ?? '' ) ||
             'validated' !== (string) ( $entry->status ?? '' ) ) {
             return null;
@@ -93,8 +93,8 @@ final class TCA_Depreciation {
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Current own-ledger depreciation is calculated read-only.
         $rows = (array) $wpdb->get_results( $wpdb->prepare(
-            'SELECT * FROM %i WHERE kind = %s AND expense_type = %s AND status = %s AND service_date <= %s ORDER BY service_date, id LIMIT %d',
-            tca_table(), 'expense', 'fixed_asset', 'validated', sprintf( '%04d-12-31', $year ), 20000
+            'SELECT * FROM %i WHERE kind IN (%s, %s) AND expense_type = %s AND status = %s AND service_date <= %s ORDER BY service_date, id LIMIT %d',
+            tca_table(), 'expense', 'asset', 'fixed_asset', 'validated', sprintf( '%04d-12-31', $year ), 20000
         ) );
         $report = array();
         foreach ( $rows as $entry ) {

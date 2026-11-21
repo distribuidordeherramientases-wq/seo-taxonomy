@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.31
+ * Version: 0.1.32
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.31' );
+define( 'TCA_VERSION', '0.1.32' );
 define( 'TCA_DB_VERSION', '10' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
@@ -509,18 +509,18 @@ function tca_handle() {
         $tax = tca_decimal( tca_input( 'amount_tax' ) );
         $pct = tca_decimal( tca_input( 'deductible_pct' ) );
         if ( ! tca_valid_date( $date ) || null === $base || null === $tax || null === $pct || $base < 0 || $tax < 0 || $pct < 0 || $pct > 100 ) tca_redirect( 'received', 'invalid' );
-        $expense_type = 'expense' === $kind ? sanitize_key( tca_input( 'expense_type' ) ) : 'current';
+        $expense_type = 'asset' === $kind ? 'fixed_asset' : 'current';
         $service_date = 'fixed_asset' === $expense_type ? tca_input( 'service_date' ) : '';
         $years = 'fixed_asset' === $expense_type ? tca_input( 'useful_life_years' ) : '0';
-        if ( 'expense' === $kind && ! TCA_Depreciation::valid( $expense_type, $service_date, $years, $date ) ) {
-            tca_redirect( 'expenses', 'invalid' );
+        if ( 'asset' === $kind && ! TCA_Depreciation::valid( $expense_type, $service_date, $years, $date ) ) {
+            tca_redirect( 'assets', 'invalid' );
         }
         $document = tca_input( 'document_no' );
         $party = tca_input( 'party' );
         if ( '' === $document || '' === $party ) tca_redirect( 'received', 'invalid' );
         $entry = array(
             'kind' => $kind, 'fiscal_date' => $date, 'document_no' => $document,
-            'expense_type' => 'expense' === $kind ? $expense_type : 'current',
+            'expense_type' => $expense_type,
             'service_date' => 'fixed_asset' === $expense_type ? $service_date : null,
             'useful_life_years' => 'fixed_asset' === $expense_type ? (int) $years : 0,
             'party' => $party, 'tax_id' => tca_input( 'tax_id' ),
@@ -535,7 +535,7 @@ function tca_handle() {
         $saved_id = tca_insert( $entry );
         if ( ! $saved_id ) tca_redirect( 'received', 'error' );
         $payment = TCA_Settlements::confirmed_from_form( $saved_id );
-        tca_redirect( 'received', is_wp_error( $payment ) ? 'saved_payment_failed' : 'saved' );
+        tca_redirect( 'asset' === $kind ? 'assets' : ( 'expense' === $kind ? 'expenses' : 'received' ), is_wp_error( $payment ) ? 'saved_payment_failed' : 'saved' );
     }
     if ( 'validate' === $operation ) {
         global $wpdb;
@@ -740,7 +740,8 @@ function tca_table_rows( $rows, $kind = '', $paid_by_id = array() ) {
     echo '</tr></thead><tbody>';
     $count = 0;
     foreach ( $rows as $row ) {
-        if ( $kind && $kind !== $row->kind ) continue;
+        if ( $kind && ! ( $kind === $row->kind || ( 'asset' === $kind && 'expense' === $row->kind && 'fixed_asset' === (string) ( $row->expense_type ?? '' ) ) ) ) continue;
+        if ( 'expense' === $kind && 'fixed_asset' === (string) ( $row->expense_type ?? '' ) ) continue;
         if ( $focused && $focused !== (int) $row->id ) continue;
         ++$count;
         $invoice_number = 'draft' === $row->status && 'woocommerce' === $row->source && 'sale' === $row->kind
@@ -845,10 +846,7 @@ function tca_new_invoice_form( $kind ) {
         }
         echo '</td></tr>';
     }
-    if ( 'expense' === $kind ) {
-        echo '<tr><th scope="row"><label for="tca-expense-type">' . esc_html__( 'Expense type', 'taxocommerce-accounting' ) . '</label></th><td>';
-        echo '<select name="expense_type" id="tca-expense-type"><option value="current">' . esc_html__( 'Current expense', 'taxocommerce-accounting' ) . '</option>';
-        echo '<option value="fixed_asset">' . esc_html__( 'Fixed asset (depreciable)', 'taxocommerce-accounting' ) . '</option></select></td></tr>';
+    if ( 'asset' === $kind ) {
         echo '<tr class="tca-asset-fields"><th><label for="tca-service-date">' . esc_html__( 'Date put into service', 'taxocommerce-accounting' ) . '</label></th><td>';
         echo '<input type="date" id="tca-service-date" name="service_date" value="' . esc_attr( current_time( 'Y-m-d' ) ) . '"></td></tr>';
         echo '<tr class="tca-asset-fields"><th><label for="tca-useful-life">' . esc_html__( 'Useful life (years)', 'taxocommerce-accounting' ) . '</label></th><td>';
@@ -1078,7 +1076,7 @@ function tca_admin() {
         }
         tca_new_invoice_form( $kind );
         tca_table_rows( $rows, $kind, $paid_by_id );
-        if ( 'expenses' === $tab ) {
+        if ( 'assets' === $tab ) {
             TCA_Depreciation::render( $year );
         }
     } elseif ( 'exports' === $tab ) {
