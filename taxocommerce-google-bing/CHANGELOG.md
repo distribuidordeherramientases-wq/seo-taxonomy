@@ -1,3 +1,11 @@
+## [1.1.74] — 2026-11-21 — Preflight and automatic GSC freshness before complete Analysis (#2909)
+
+- Before generating the complete report, verify the last SQL date against the finalized day and latest saved snapshot for the selected property. Automatically run the EXISTING authenticated GSC day-by-day synchronization only when SQL data are outdated; reuse its property verification, resume behavior, error handling and built-in writes.
+- Execute synchronization sequentially in the administrator's browser, observing the existing CPU speed control. Failure to refresh a connected source prevents starting a complete JSON based on outdated data; surface the provider error instead of claiming that all data are up to date.
+- Keep independent installations without a configured GSC connection functional: report the source as unavailable or outdated rather than silently asserting freshness. Do not update an unrelated provider or install another plugin.
+- Add real report-period freshness checks to Autocheck and expose GSC source freshness metadata in JSON; validate no-data, stale, current, wrong-period and missing-credential scenarios by deterministic smoke tests.
+- Run the new smoke and JavaScript syntax checks in the selective STAGING workflow. PRODUCTION remains excluded.
+
 ## [1.1.73] — 2026-11-21 — GSC history freshness and snapshot-backed Analysis charts (#2900)
 
 - Show saved Search Console daily figures in the Analysis trend only when the property identifier exactly matches; preserve SQL historical rows as authoritative and fill missing daily points without calling APIs or writing to the database.
