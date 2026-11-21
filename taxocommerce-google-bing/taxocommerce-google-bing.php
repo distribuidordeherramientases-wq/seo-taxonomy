@@ -277,6 +277,7 @@ function taxocommerce_google_bing_analysis_screen() {
                 'ajaxUrl' => admin_url( 'admin-ajax.php' ),
                 'nonce'   => wp_create_nonce( 'taxocommerce_insights_analysis' ),
                 'chunkNonce' => wp_create_nonce( TaxoCommerce_Insights_Chunked_Export::NONCE ),
+                'gscSyncNonce' => wp_create_nonce( 'seo_google_sync' ),
                 'days'    => $days,
                 'planDownloadLabel' => __( 'Descargar JSON de indicadores', 'taxocommerce-google-bing' ),
                 'planDownloadUrl' => taxocommerce_insights_plan_json_download_url(),
