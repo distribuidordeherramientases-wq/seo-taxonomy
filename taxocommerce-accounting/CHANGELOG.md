@@ -1,3 +1,10 @@
+## 0.1.31 — 2026-11-21 — Opening-balance loan funding visibility in reports (#2919)
+
+- Reclassify already-received loans linked to existing bank opening balances as dated bank inflows **for reporting only**, keeping the real monthly bank balances and every movement unchanged.
+- Add a separate financial overview below the fiscal summary showing initial financing, current bank balance and outstanding loan debt. Financing does not enter sales or VAT calculations.
+- Extend the general JSON export additively with `financial_summary` and the monthly cash flow, preserving `entries`. Exclude future, unlinked and mismatched opening loans from virtual receipts.
+- Add isolated regression for January 2026 (362.57 EUR loan, 191.17 EUR expenses, 171.40 EUR balance) and November (17.26 EUR balance); i18n for new UI text. STAGING and Focazul only, never PRO.
+
 ## 0.1.30 — 2026-11-21 — Accounting review and settlements interface localization (#2917)
 
 - Localize 49 previously missing administrative gettext strings covering incident review, accounting corrections and actual payment/receipt entry across es_ES, en_US, fr_FR, de_DE and nl_NL.

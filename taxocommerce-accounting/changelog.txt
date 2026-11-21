@@ -1,3 +1,6 @@
+= 0.1.31 (2026-11-21) =
+* Show existing opening-balance loan funding as a dated bank receipt in monthly reporting and separate financial summary/JSON, without a second bank movement or changes to fiscal VAT and actual balances. Include regression and translations. Issue #2919. No production deployment.
+
 = 0.1.30 (2026-11-21) =
 * Localize 49 review, correction and payment/receipt UI strings in five languages and rebuild gettext catalogs. Issue #2917.
 

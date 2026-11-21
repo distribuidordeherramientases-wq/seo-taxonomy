@@ -920,3 +920,15 @@ msgstr ""
 
 msgid "Invoice total including VAT"
 msgstr ""
+
+msgid "Financial overview (not sales or VAT)"
+msgstr ""
+
+msgid "Initial loan funding (already in opening balance)"
+msgstr ""
+
+msgid "Current bank balance"
+msgstr ""
+
+msgid "The opening loan is shown as a bank inflow in its start month for reporting. It is already included in the opening bank balance: no second bank movement, sale or VAT is created."
+msgstr ""

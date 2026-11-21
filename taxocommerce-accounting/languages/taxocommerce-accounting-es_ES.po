@@ -922,3 +922,15 @@ msgstr "Importe pagado"
 
 msgid "Invoice total including VAT"
 msgstr "Total de factura con IVA"
+
+msgid "Financial overview (not sales or VAT)"
+msgstr "Resumen financiero (no son ventas ni IVA)"
+
+msgid "Initial loan funding (already in opening balance)"
+msgstr "Financiación inicial por préstamo (ya incluida en el saldo inicial)"
+
+msgid "Current bank balance"
+msgstr "Saldo bancario actual"
+
+msgid "The opening loan is shown as a bank inflow in its start month for reporting. It is already included in the opening bank balance: no second bank movement, sale or VAT is created."
+msgstr "El préstamo inicial se muestra como entrada bancaria en su mes de inicio solo a efectos informativos. Ya está incluido en el saldo bancario inicial: no se crea otro movimiento bancario, venta ni IVA."
