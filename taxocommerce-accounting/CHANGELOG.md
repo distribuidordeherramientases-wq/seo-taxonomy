@@ -1,3 +1,9 @@
+## 0.1.30 — 2026-11-21 — Accounting review and settlements interface localization (#2917)
+
+- Localize 49 previously missing administrative gettext strings covering incident review, accounting corrections and actual payment/receipt entry across es_ES, en_US, fr_FR, de_DE and nl_NL.
+- Update POT, five PO and compiled MO catalogs, preserving existing accounting controls, financial calculations, stored records and transaction behavior.
+- Continue reviewing the remaining missing gettext keys in subsequent batches; no production deployment.
+
 ## 0.1.29 — 2026-11-21 — Correct fully paid invoice status (#2913)
 
 - Stop interpreting historical imported `[scope=review]` notes as a fresh pending workflow after an entry has been formally validated; retain every original note without changing VAT, deduction eligibility, or invoice data.
