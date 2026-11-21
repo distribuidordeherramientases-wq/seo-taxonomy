@@ -31,6 +31,7 @@ final class TCA_Treasury {
         $accounts = esc_sql( self::table( 'accounts' ) );
         $movements = esc_sql( self::table( 'movements' ) );
         $loans = esc_sql( self::table( 'loans' ) );
+        $corrections = esc_sql( self::table( 'corrections' ) );
         dbDelta( "CREATE TABLE {$accounts} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             kind varchar(8) NOT NULL,
@@ -52,6 +53,19 @@ final class TCA_Treasury {
             PRIMARY KEY  (id),
             KEY account_date (account_id,posted_on),
             KEY posted_on (posted_on)
+        ) {$collation};" );
+        dbDelta( "CREATE TABLE {$corrections} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            account_id bigint(20) unsigned NOT NULL,
+            movement_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            action varchar(32) NOT NULL,
+            amount decimal(18,2) NOT NULL,
+            reason varchar(191) NOT NULL,
+            user_id bigint(20) unsigned NOT NULL,
+            created_at datetime NOT NULL,
+            PRIMARY KEY  (id),
+            KEY account_id (account_id),
+            KEY movement_id (movement_id)
         ) {$collation};" );
         dbDelta( "CREATE TABLE {$loans} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -168,6 +182,30 @@ final class TCA_Treasury {
                 'opening_amount' => $opening, 'created_at' => current_time( 'mysql' ),
             ), array( '%s', '%s', '%s', '%f', '%s' ) );
             self::redirect( $ok ? 'saved' : 'error' );
+        }
+        if ( 'cancel_opening' === $operation ) {
+            $id = absint( self::posted( 'account_id' ) );
+            $reason = self::posted( 'reason' );
+            if ( ! $id || '' === $reason || '1' !== self::posted( 'confirmed' ) ) self::redirect( 'invalid' );
+            $wpdb->query( 'START TRANSACTION' );
+            $account = $wpdb->get_row( $wpdb->prepare(
+                'SELECT * FROM %i WHERE id = %d FOR UPDATE', self::table( 'accounts' ), $id
+            ) );
+            if ( ! $account || (float) $account->opening_amount <= 0 ) {
+                $wpdb->query( 'ROLLBACK' );
+                self::redirect( 'invalid' );
+            }
+            $amount = (float) $account->opening_amount;
+            $ok = $wpdb->update( self::table( 'accounts' ),
+                array( 'opening_amount' => 0 ), array( 'id' => $id ),
+                array( '%f' ), array( '%d' ) );
+            $logged = 1 === $ok && $wpdb->insert( self::table( 'corrections' ), array(
+                'account_id' => $id, 'movement_id' => 0, 'action' => 'cancel_opening',
+                'amount' => $amount, 'reason' => $reason,
+                'user_id' => get_current_user_id(), 'created_at' => current_time( 'mysql' ),
+            ), array( '%d', '%d', '%s', '%f', '%s', '%d', '%s' ) );
+            $wpdb->query( $logged ? 'COMMIT' : 'ROLLBACK' );
+            self::redirect( $logged ? 'saved' : 'error' );
         }
         if ( 'edit_account' === $operation ) {
             $account = self::get_account( self::posted( 'account_id' ) );
@@ -621,6 +659,12 @@ final class TCA_Treasury {
                 echo '<label><input type="checkbox" name="opening_verified" value="1" required> ' . esc_html__( 'Convert the opening balance, without adding funds twice', 'taxocommerce-accounting' ) . '</label> ';
                 submit_button( __( 'Convert to receipt', 'taxocommerce-accounting' ), 'secondary small', 'submit', false );
                 echo '</form>';
+                self::start_form( 'cancel_opening' );
+                echo '<input type="hidden" name="account_id" value="' . esc_attr( (string) $account->id ) . '">';
+                echo '<label>' . esc_html__( 'Correction reason', 'taxocommerce-accounting' ) . ' <input name="reason" maxlength="191" required placeholder="' . esc_attr__( 'Opening amount entered in error', 'taxocommerce-accounting' ) . '"></label> ';
+                echo '<label><input type="checkbox" name="confirmed" value="1" required> ' . esc_html__( 'Confirm cancellation of this opening balance', 'taxocommerce-accounting' ) . '</label> ';
+                submit_button( __( 'Cancel incorrect opening balance', 'taxocommerce-accounting' ), 'secondary small', 'submit', false );
+                echo '</form>';
             } else {
                 echo '&mdash;';
             }
@@ -635,6 +679,17 @@ final class TCA_Treasury {
             echo '<tr><td colspan="6">' . esc_html__( 'Add your cash register or first bank account to start tracking funds.', 'taxocommerce-accounting' ) . '</td></tr>';
         }
         echo '</tbody></table>';
+        $corrections = (array) $wpdb->get_results( $wpdb->prepare(
+            'SELECT * FROM %i ORDER BY id DESC LIMIT 30', self::table( 'corrections' )
+        ) );
+        if ( $corrections ) {
+            echo '<h4>' . esc_html__( 'Opening balance correction history', 'taxocommerce-accounting' ) . '</h4>';
+            echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Date', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Account', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Amount', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Reason', 'taxocommerce-accounting' ) . '</th></tr></thead><tbody>';
+            foreach ( $corrections as $correction ) {
+                echo '<tr><td>' . esc_html( $correction->created_at ) . '</td><td>' . esc_html( isset( $by_id[ (int) $correction->account_id ] ) ? $by_id[ (int) $correction->account_id ]->name : '' ) . '</td><td>' . esc_html( tca_money( $correction->amount ) ) . '</td><td>' . esc_html( $correction->reason ) . '</td></tr>';
+            }
+            echo '</tbody></table>';
+        }
         TCA_Settlements::render_bulk( $year );
 
         echo '<div class="tca-treasury-forms"><div>';
