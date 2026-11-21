@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.29
+Stable tag: 0.1.30
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -105,6 +105,10 @@ No. It is a working summary of validated domestic records, not an official AEAT 
 No. Input VAT defaults to 0% deductible and records start in draft. A qualified professional should verify the tax treatment.
 
 == Changelog ==
+
+= 0.1.30 =
+* Localize incident review, accounting corrections and payment/receipt controls in five languages.
+
 
 = 0.1.21 =
 * Localize expense type and fixed-asset expense form in five languages.
