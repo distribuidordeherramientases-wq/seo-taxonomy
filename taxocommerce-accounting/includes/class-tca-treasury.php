@@ -768,7 +768,8 @@ final class TCA_Treasury {
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Recent recorded transfers and cash movements.
         $recent = (array) $wpdb->get_results( $wpdb->prepare(
-            'SELECT * FROM %i ORDER BY posted_on DESC, id DESC LIMIT 50', self::table( 'movements' )
+            'SELECT m.*, s.entry_id AS settlement_entry_id, lp.loan_id AS loan_payment_id, l.id AS funding_loan_id FROM %i AS m LEFT JOIN %i AS s ON s.movement_id = m.id LEFT JOIN %i AS lp ON lp.movement_id = m.id LEFT JOIN %i AS l ON l.funding_movement_id = m.id ORDER BY m.posted_on DESC, m.id DESC LIMIT 50',
+            self::table( 'movements' ), TCA_Settlements::table(), self::table( 'loan_payments' ), self::table( 'loans' )
         ) );
         $report = self::calculate( $accounts, $movements, $year, $today );
         $cash = $report['current']['cash'];
@@ -944,9 +945,23 @@ final class TCA_Treasury {
         echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Date', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Account', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Movement', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Amount', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Reference', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Edit', 'taxocommerce-accounting' ) . '</th></tr></thead><tbody>';
         foreach ( $recent as $movement ) {
             $positive = in_array( $movement->direction, array( 'in', 'transfer_in' ), true );
-            echo '<tr><td>' . esc_html( $movement->posted_on ) . '</td><td>' . esc_html( isset( $by_id[ (int) $movement->account_id ] ) ? $by_id[ (int) $movement->account_id ]->name : '' ) . '</td><td>' .
+            $linked = ! empty( $movement->settlement_entry_id ) ||
+                ! empty( $movement->loan_payment_id ) || ! empty( $movement->funding_loan_id );
+            $movement_state = (float) $movement->amount <= 0 || ! isset( $by_id[ (int) $movement->account_id ] )
+                ? 'error'
+                : ( $linked || in_array( $movement->direction, array( 'transfer_in', 'transfer_out' ), true )
+                    ? 'closed' : 'pending' );
+            echo '<tr class="tca-state-' . esc_attr( $movement_state ) .
+                '"><td>' . esc_html( $movement->posted_on ) . '</td><td>' .
+                esc_html( isset( $by_id[ (int) $movement->account_id ] ) ? $by_id[ (int) $movement->account_id ]->name : '' ) . '</td><td>' .
                 esc_html( $positive ? __( 'Money in', 'taxocommerce-accounting' ) : __( 'Money out', 'taxocommerce-accounting' ) ) . '</td><td>' .
-                esc_html( ( $positive ? '+' : '−' ) . tca_money( $movement->amount ) ) . '</td><td>' . esc_html( $movement->reference ) . '</td><td>';
+                esc_html( ( $positive ? '+' : '−' ) . tca_money( $movement->amount ) ) . '</td><td>' . esc_html( $movement->reference );
+            if ( 'pending' === $movement_state ) {
+                echo '<p class="description">' .
+                    esc_html__( 'Recorded movement without an invoice or loan link. Check before adding another payment.', 'taxocommerce-accounting' ) .
+                    '</p>';
+            }
+            echo '</td><td>';
             if ( in_array( $movement->direction, array( 'in', 'out' ), true ) ) {
                 self::start_form( 'edit_movement' );
                 echo '<input type="hidden" name="movement_id" value="' . esc_attr( (string) $movement->id ) . '">';
@@ -999,7 +1014,9 @@ final class TCA_Treasury {
                     $source_details .= ': ' . $by_id[ (int) $loan->opening_account_id ]->name;
                 }
             }
-            echo '<tr><td>' . esc_html( $loan->name ) . '</td><td>' . esc_html( $lender_details );
+            $loan_state = TCA_Status_Colors::loan( $loan );
+            echo '<tr class="tca-state-' . esc_attr( $loan_state ) . '"><td>' .
+                esc_html( $loan->name ) . '</td><td>' . esc_html( $lender_details );
             if ( '' !== $source_details ) {
                 echo '<p class="description">' . esc_html( $source_details ) . '</p>';
             }
