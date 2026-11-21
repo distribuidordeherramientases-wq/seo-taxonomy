@@ -744,3 +744,34 @@ msgstr "Vida útil (años)"
 
 msgid "Annual straight-line allocation starts when the asset is ready for use. The first and last years are prorated by days. Confirm the applicable accounting and tax rules separately."
 msgstr "La amortización lineal anual comienza cuando el bien está listo para usarse. El primer y último año se prorratean por días. Comprueba por separado las normas contables y fiscales aplicables."
+
+msgid "Error detected"
+msgstr "Error detectado"
+
+msgid "Pending"
+msgstr "Pendiente"
+
+msgid "Validated and linked to payment"
+msgstr "Validado y pago vinculado"
+
+msgid "No records"
+msgstr "Sin registros"
+
+msgid "Payment not linked. Check Treasury before recording another payment."
+msgstr "Pago sin vincular. Comprueba Tesorería antes de registrar otro pago."
+
+msgid "Linked payments exceed the recorded amount. Review the settlement."
+msgstr "Los pagos vinculados superan el importe registrado. Revisa la conciliación."
+
+msgid "Green: validated and payment linked"
+msgstr "Verde: validado y pago vinculado"
+
+msgid "Amber: pending validation, payment link or repayment"
+msgstr "Ámbar: pendiente de validar, vincular el pago o devolver el préstamo"
+
+msgid "Red: detected inconsistency"
+msgstr "Rojo: discrepancia detectada"
+
+msgid "Recorded movement without an invoice or loan link. Check before adding another payment."
+msgstr "Movimiento registrado sin vínculo con una factura o préstamo. Comprueba antes de añadir otro pago."
+

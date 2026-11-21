@@ -744,3 +744,34 @@ msgstr "Nutzungsdauer (Jahre)"
 
 msgid "Annual straight-line allocation starts when the asset is ready for use. The first and last years are prorated by days. Confirm the applicable accounting and tax rules separately."
 msgstr "Die jährliche lineare Abschreibung beginnt, sobald das Wirtschaftsgut einsatzbereit ist. Das erste und das letzte Jahr werden tagegenau anteilig berechnet. Prüfen Sie die geltenden handels- und steuerrechtlichen Regeln gesondert."
+
+msgid "Error detected"
+msgstr "Fehler festgestellt"
+
+msgid "Pending"
+msgstr "Ausstehend"
+
+msgid "Validated and linked to payment"
+msgstr "Bestätigt und Zahlung zugeordnet"
+
+msgid "No records"
+msgstr "Keine Einträge"
+
+msgid "Payment not linked. Check Treasury before recording another payment."
+msgstr "Zahlung nicht zugeordnet. Prüfen Sie die Kasse, bevor Sie eine weitere Zahlung erfassen."
+
+msgid "Linked payments exceed the recorded amount. Review the settlement."
+msgstr "Zugeordnete Zahlungen übersteigen den erfassten Betrag. Prüfen Sie die Abstimmung."
+
+msgid "Green: validated and payment linked"
+msgstr "Grün: bestätigt und Zahlung zugeordnet"
+
+msgid "Amber: pending validation, payment link or repayment"
+msgstr "Gelb: Prüfung, Zahlungszuordnung oder Rückzahlung ausstehend"
+
+msgid "Red: detected inconsistency"
+msgstr "Rot: Unstimmigkeit festgestellt"
+
+msgid "Recorded movement without an invoice or loan link. Check before adding another payment."
+msgstr "Buchung ohne Zuordnung zu Rechnung oder Darlehen. Vor einer weiteren Zahlung prüfen."
+
