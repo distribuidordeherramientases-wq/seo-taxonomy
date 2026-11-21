@@ -1400,5 +1400,5 @@ msgstr "Confirmo que todo el saldo inicial corresponde a este préstamo y ya est
 msgid "When linking an opening balance, the loan principal must equal that opening amount exactly. An opening balance can fund only one loan. No bank movement is created."
 msgstr "Al vincular un saldo inicial, el capital del préstamo debe coincidir exactamente con ese importe. Un saldo inicial solo puede financiar un préstamo. No se crea ningún movimiento bancario."
 
-msgid "Select opening balance when the lender's funds are already included in the bank opening balance: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed."
+msgid "Select opening balance when funds from the lender are already included in the bank opening balance: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed."
 msgstr "Selecciona saldo inicial si los fondos del prestamista ya están incluidos en el saldo inicial del banco: no se crea un segundo cobro. Selecciona nuevo cobro solo cuando se reciban fondos adicionales. Es un préstamo reembolsable, no una donación ni una venta sujeta a IVA. Las cuotas siguen siendo previsiones hasta confirmarlas."
