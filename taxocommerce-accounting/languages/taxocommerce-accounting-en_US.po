@@ -1284,3 +1284,120 @@ msgstr "Operations pending review or special tax treatment"
 
 msgid "These are live accounting totals, not official AEAT boxes. The current register does not retain an invoice-by-invoice split of VAT rates, prior period offsets, all tax adjustments or filing options. Do not copy the indicative balance directly as the amount to pay."
 msgstr "These are live accounting totals, not official AEAT boxes. The current register does not retain an invoice-by-invoice split of VAT rates, prior period offsets, all tax adjustments or filing options. Do not copy the indicative balance directly as the amount to pay."
+
+msgid "Edit"
+msgstr "Edit"
+
+msgid "Linked to a repayable loan from"
+msgstr "Linked to a repayable loan from"
+
+msgid "The opening funds are already present. Conversion or cancellation is blocked while this loan is linked."
+msgstr "The opening funds are already present. Conversion or cancellation is blocked while this loan is linked."
+
+msgid "Opening amount entered in error"
+msgstr "Opening amount entered in error"
+
+msgid "Confirm cancellation of this opening balance"
+msgstr "Confirm cancellation of this opening balance"
+
+msgid "Cancel incorrect opening balance"
+msgstr "Cancel incorrect opening balance"
+
+msgid "Rename account"
+msgstr "Rename account"
+
+msgid "Opening balance correction history"
+msgstr "Opening balance correction history"
+
+msgid "Create a new cash or bank account (not a receipt)"
+msgstr "Create a new cash or bank account (not a receipt)"
+
+msgid "Use the account name ING or CAJA. Record donations, initial contributions and customer receipts as movements into an existing account."
+msgstr "Use the account name ING or CAJA. Record donations, initial contributions and customer receipts as movements into an existing account."
+
+msgid "Save changes"
+msgstr "Save changes"
+
+msgid "Sponsor / lender"
+msgstr "Sponsor / lender"
+
+msgid "Funded by existing opening balance; no duplicate receipt"
+msgstr "Funded by existing opening balance; no duplicate receipt"
+
+msgid "Repayment when agreed, without fixed instalments. Interest: 0%."
+msgstr "Repayment when agreed, without fixed instalments. Interest: 0%."
+
+msgid "Capital already returned"
+msgstr "Capital already returned"
+
+msgid "repayments"
+msgstr "repayments"
+
+msgid "Repay from"
+msgstr "Repay from"
+
+msgid "Actual repayment date"
+msgstr "Actual repayment date"
+
+msgid "Capital to repay (€)"
+msgstr "Capital to repay (€)"
+
+msgid "I confirm that this amount was actually transferred to the lender."
+msgstr "I confirm that this amount was actually transferred to the lender."
+
+msgid "Record actual repayment"
+msgstr "Record actual repayment"
+
+msgid "Enter the amount borrowed. For a 0% sponsor loan repayable later without fixed instalments, choose 0 months, 0% interest, and leave the first repayment date empty. Record partial or total repayments only when actually made. For scheduled financing, specify term and first instalment date."
+msgstr "Enter the amount borrowed. For a 0% sponsor loan repayable later without fixed instalments, choose 0 months, 0% interest, and leave the first repayment date empty. Record partial or total repayments only when actually made. For scheduled financing, specify term and first instalment date."
+
+msgid "Sponsor / lender name"
+msgstr "Sponsor / lender name"
+
+msgid "Sponsor / lender tax ID (optional)"
+msgstr "Sponsor / lender tax ID (optional)"
+
+msgid "Lender relationship"
+msgstr "Lender relationship"
+
+msgid "Sponsor (repayable loan)"
+msgstr "Sponsor (repayable loan)"
+
+msgid "Other lender"
+msgstr "Other lender"
+
+msgid "Loan agreement reference"
+msgstr "Loan agreement reference"
+
+msgid "Term in months (0 = repay later without fixed instalments)"
+msgstr "Term in months (0 = repay later without fixed instalments)"
+
+msgid "First instalment date (optional for flexible 0% loans)"
+msgstr "First instalment date (optional for flexible 0% loans)"
+
+msgid "Loan funds"
+msgstr "Loan funds"
+
+msgid "Not received yet (do not change bank)"
+msgstr "Not received yet (do not change bank)"
+
+msgid "Already included in bank opening balance (do not duplicate)"
+msgstr "Already included in bank opening balance (do not duplicate)"
+
+msgid "New confirmed bank receipt"
+msgstr "New confirmed bank receipt"
+
+msgid "Bank receiving or holding loan funds"
+msgstr "Bank receiving or holding loan funds"
+
+msgid "opening"
+msgstr "opening"
+
+msgid "I confirm that the entire opening balance belongs to this loan and is already in this bank. Do not add money again."
+msgstr "I confirm that the entire opening balance belongs to this loan and is already in this bank. Do not add money again."
+
+msgid "When linking an opening balance, the loan principal must equal that opening amount exactly. An opening balance can fund only one loan. No bank movement is created."
+msgstr "When linking an opening balance, the loan principal must equal that opening amount exactly. An opening balance can fund only one loan. No bank movement is created."
+
+msgid "Select opening balance when the sponsor already financed ING: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed."
+msgstr "Select opening balance when the sponsor already financed ING: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed."
