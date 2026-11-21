@@ -9,6 +9,9 @@ define( 'DAY_IN_SECONDS', 86400 );
 function add_action( $hook, $callback ) { return true; }
 function absint( $value ) { return abs( (int) $value ); }
 function __( $value, $domain = '' ) { return $value; }
+class TaxoCommerce_Connections_Status {
+    public static function definitions() { return array(); }
+}
 function seo_analista_resolve_property_id() { return $GLOBALS['gsc_property']; }
 function seo_google_connection_status() { return $GLOBALS['gsc_connection']; }
 function seo_google_sync_start_handler() {}
