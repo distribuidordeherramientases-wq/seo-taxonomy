@@ -1073,3 +1073,120 @@ msgstr ""
 
 msgid "When an eligible WooCommerce order is synchronised, post its confirmed receipt once to this bank. Earlier payments remain available for manual reconciliation in Treasury. Fees and bank net deposits may need separate entries."
 msgstr ""
+
+msgid "Fixed asset depreciation"
+msgstr ""
+
+msgid "Straight-line accounting allocation by actual days from the in-service date. Does not change VAT, supplier invoices, bank payments, or determine a statutory tax deduction."
+msgstr ""
+
+msgid "Asset"
+msgstr ""
+
+msgid "In service"
+msgstr ""
+
+msgid "Amortizable cost"
+msgstr ""
+
+msgid "Annual depreciation"
+msgstr ""
+
+msgid "Remaining book value"
+msgstr ""
+
+msgid "No validated fixed assets for this year."
+msgstr ""
+
+msgid "Total annual depreciation:"
+msgstr ""
+
+msgid "Supplier purchases: CSV import and export"
+msgstr ""
+
+msgid "Import supplier invoices for merchandise bought for resale. All entries are draft purchases and require review. Upload the original PDF or image to each row after importing."
+msgstr ""
+
+msgid "Export supplier purchases CSV for %d"
+msgstr ""
+
+msgid "Supplier purchases CSV file"
+msgstr ""
+
+msgid "Import supplier purchase drafts"
+msgstr ""
+
+msgid "Maximum 500 rows / 2 MB per import. Repeated documents are skipped. Attach PDF, JPG, PNG or WEBP originals to each imported row, then verify VAT and approve. CSV imports never attach the original document or register a payment."
+msgstr ""
+
+msgid "This changes only the accounting record, not the WooCommerce order, issued invoice, or supplier PDF. If an issued invoice is wrong, follow the required rectifying-invoice procedure before fiscal approval."
+msgstr ""
+
+msgid "Saving a correction moves this record back to draft and removes it from validated tax totals until it is reviewed and approved again."
+msgstr ""
+
+msgid "Configure a bank or cash account in Treasury before linking a payment."
+msgstr ""
+
+msgid "Payment received and verified"
+msgstr ""
+
+msgid "Invoice already paid (confirmed)"
+msgstr ""
+
+msgid "Select this only if the payment actually occurred. It immediately creates a linked cash/bank movement when this form is saved; leave unchecked for unpaid invoices."
+msgstr ""
+
+msgid "Reconcile confirmed payments and receipts"
+msgstr ""
+
+msgid "Only for invoices paid or customer sales actually collected and not yet linked to Treasury. Review each item and its actual payment date. Purchases are bank/cash out; sales are bank/cash in. No movements are generated until confirmed."
+msgstr ""
+
+msgid "Account used for the confirmed payments or receipts"
+msgstr ""
+
+msgid "Select bank or cash account"
+msgstr ""
+
+msgid "Confirmed?"
+msgstr ""
+
+msgid "Invoice"
+msgstr ""
+
+msgid "Actual bank payment date"
+msgstr ""
+
+msgid "Sale"
+msgstr ""
+
+msgid "Refund"
+msgstr ""
+
+msgid "Purchase / expense"
+msgstr ""
+
+msgid "I confirm each selected purchase was paid or sale was received using this account on the dates shown, with no matching Treasury movement already recorded."
+msgstr ""
+
+msgid "Post confirmed historical payments"
+msgstr ""
+
+msgid "At most 100 invoices are shown at once. Refresh to reconcile more. This does not change invoices, VAT deductions or financing/loan balances."
+msgstr ""
+
+msgid "Select a PDF, JPG, PNG or WEBP document smaller than 10 MB."
+msgstr ""
+
+msgid "Select a valid original PDF or image."
+msgstr ""
+
+msgid "Original invoice documents"
+msgstr ""
+
+msgid "Attach original PDF or image (up to 10 MB)"
+msgstr ""
+
+msgid "Archive document"
+msgstr ""
