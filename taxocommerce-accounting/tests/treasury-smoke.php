@@ -109,6 +109,13 @@ foreach ( array(
     tca_treasury_assert( array() === TCA_Loan_Schedule::calculate( ...$invalid ), 'Invalid financing terms must be refused' );
 }
 tca_treasury_assert( false !== strpos( $source, "'loan_payment' === \$operation" ), 'Loan repayments require an explicit action' );
+tca_treasury_assert( false !== strpos( $source, "'opening_account_id' => $funding_existing" ), 'Existing ING opening balance is linked to its lender without posting a new receipt' );
+tca_treasury_assert( false !== strpos( $source, "opening_account_id = %d" ), 'Linked opening funds cannot be reused, converted or cancelled' );
+tca_treasury_assert( false !== strpos( $source, "'funding_source' => $funding_mode" ), 'Loan financing origin is recorded independently from cash' );
+tca_treasury_assert( false !== strpos( $source, "'Sponsor (repayable loan)'" ), 'Sponsors are identified as repayable lenders' );
+tca_treasury_assert( false !== strpos( $source, "name=\"lender_tax_id\"" ), 'Lender identity can include tax ID' );
+tca_treasury_assert( false !== strpos( $source, "'new_receipt' === $funding_mode" ), 'Only explicitly new funding creates another bank receipt' );
+tca_treasury_assert( false !== strpos( $source, "'opening_verified' " ), 'Existing loan funding must be explicitly confirmed' );
 tca_treasury_assert( false !== strpos( $source, "'funding_received' " ), 'Loan funds enter bank only after explicit confirmation' );
 tca_treasury_assert( false !== strpos( $source, "loan_payments" ), 'Loan instalments have a linked audit ledger' );
 tca_treasury_assert( false !== strpos( $source, "first_due_date" ), 'Original first due date stays immutable across payments' );
