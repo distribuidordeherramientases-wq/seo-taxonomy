@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.28
+ * Version: 0.1.29
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.28' );
+define( 'TCA_VERSION', '0.1.29' );
 define( 'TCA_DB_VERSION', '10' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
@@ -755,7 +755,8 @@ function tca_table_rows( $rows, $kind = '', $paid_by_id = array() ) {
         echo '<td>' . esc_html( $row->status . ' / ' . $row->treatment );
         echo '<p><span class="tca-status-label tca-state-' . esc_attr( $traffic_status ) . '">' .
             esc_html( TCA_Status_Colors::label( $traffic_status ) ) . '</span></p>';
-        if ( 'pending' === $traffic_status && ! $review_state['pending'] && ! $review_state['incident'] ) {
+        if ( TCA_Status_Colors::payment_outstanding( $row, $paid ) &&
+            ! $review_state['pending'] && ! $review_state['incident'] ) {
             echo '<p><a href="' . esc_url( tca_admin_url( 'treasury', array( 'year' => absint( substr( (string) $row->fiscal_date, 0, 4 ) ) ) ) ) . '">' .
                 esc_html__( 'Payment not linked. Check Treasury before recording another payment.', 'taxocommerce-accounting' ) . '</a></p>';
         }

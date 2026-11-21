@@ -1,3 +1,9 @@
+## 0.1.29 — 2026-11-21 — Correct fully paid invoice status (#2913)
+
+- Stop interpreting historical imported `[scope=review]` notes as a fresh pending workflow after an entry has been formally validated; retain every original note without changing VAT, deduction eligibility, or invoice data.
+- Show the «Payment not linked» notice only when an actual payment balance remains unlinked, not when the settlement is complete.
+- Cover fully linked, partial, missing, formal tax review, and overpayment scenarios with the isolated traffic-light regression; no actual bank or fiscal data changed.
+
 ## 0.1.23 — 2026-11-20 — Reopen validated expense as draft with audited notes (#2894)
 
 - Fix «No data changed» when an already validated entry is intentionally returned to draft with unchanged monetary/document fields; fiscal status change is now detected and saved transactionally with a mandatory audited reason.

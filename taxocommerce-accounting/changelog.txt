@@ -1,3 +1,6 @@
+= 0.1.29 (2026-11-21) =
+* Fix false amber status and «Payment not linked» on fully paid validated invoices with imported [scope=review] notes. Preserve formal tax review, original notes, all fiscal amounts and Treasury movements. Issue #2913. No PRO deployment.
+
 = 0.1.23 (2026-11-20) =
 * Fix reverting validated entries to draft without changing amounts or documents. Audit the required reason and allow editing the record notes in the correction form. Existing drafts with no changes remain no-ops. Issue #2894. No production deployment.
 
