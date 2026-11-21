@@ -39,6 +39,7 @@ $draft = entry( 3, 'purchase', 'draft', 20.56 );
 $wrong = entry( 4, 'sale', 'validated', 30.00, array( 'error' => true ) );
 check_status( TCA_Status_Colors::entry( $sale, 16.01 ), 'closed', 'Fully linked validated sale is green' );
 check_status( TCA_Status_Colors::entry( $expense, 0 ), 'pending', 'Validated FNMT expense without a linked bank movement is amber, not red' );
+check_status( TCA_Status_Colors::entry( entry( 6, 'expense', 'validated', 16.94, array( 'notes' => '[scope=review] Receipt recorded, fiscal review ongoing' ) ), 16.94 ), 'pending', 'Explicit fiscal-review notes prevent premature green even after payment' );
 check_status( TCA_Status_Colors::entry( $draft, 20.56 ), 'pending', 'Paid draft is still awaiting fiscal validation' );
 check_status( TCA_Status_Colors::entry( $wrong, 30.00 ), 'error', 'Verified invoice mismatch is red' );
 check_status( TCA_Status_Colors::entry( $sale, 16.50 ), 'error', 'Excess linked payment is an error' );
