@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.28
+Stable tag: 0.1.29
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,6 +16,8 @@ Independent WooCommerce fiscal register with purchase invoices, monthly VAT esti
 TaxoCommerce Accounting records fiscal data without changing WooCommerce orders, customers, supplier catalogues or invoice generation.
 
 = Key Features =
+
+* **Payment status clarity:** a formally validated invoice with its full payment linked displays as closed even when historical imported notes contain `[scope=review]`. Missing-payment warnings depend on the actual outstanding settlement; formal fiscal review warnings and notes remain unchanged. No bank or VAT entries are created or altered.
 
 * **Correction to draft:** an already validated accounting entry can be returned to draft, with no change to its amounts or invoice reference, when an administrator supplies a correction reason. The status transition and editable Notes are recorded in the existing audit history; untouched drafts are not logged again. The operation does not modify WooCommerce, issued invoices, supplier files or actual Treasury movements.
 
