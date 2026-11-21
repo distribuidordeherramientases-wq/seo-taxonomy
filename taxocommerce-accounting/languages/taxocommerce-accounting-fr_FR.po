@@ -934,3 +934,144 @@ msgstr "Solde bancaire actuel"
 
 msgid "The opening loan is shown as a bank inflow in its start month for reporting. It is already included in the opening bank balance: no second bank movement, sale or VAT is created."
 msgstr "Le prêt initial est affiché comme entrée bancaire au cours de son mois de début à des fins de rapport. Il est déjà compris dans le solde bancaire d'ouverture : aucune deuxième opération bancaire, vente ou TVA n'est créée."
+
+msgid "Issued invoice totals differ from the WooCommerce order. Review the original invoice and order before approving this draft."
+msgstr "Les totaux de la facture émise diffèrent de la commande WooCommerce. Vérifiez les documents avant de valider le brouillon."
+
+msgid "Totals updated from rectifying invoice %s; review the VAT classification and approve the draft again."
+msgstr "Totaux mis à jour depuis la facture rectificative %s ; vérifiez la TVA puis validez de nouveau le brouillon."
+
+msgid "Issued invoice and accounting totals disagree. Check the original invoice and the order; validation is blocked until reconciled."
+msgstr "Les montants de la facture émise et de la comptabilité diffèrent. Vérifiez la facture et la commande ; validation bloquée."
+
+msgid "Validated sale has zero VAT. Check its original invoice and applicable tax regime."
+msgstr "La vente validée comporte une TVA nulle. Vérifiez la facture initiale et le régime fiscal applicable."
+
+msgid "(automatically linked to this WooCommerce order)"
+msgstr "(lié automatiquement à cette commande WooCommerce)"
+
+msgid "WooCommerce imported this sale with zero VAT. Check its invoice and the correct fiscal treatment before approving."
+msgstr "WooCommerce a importé cette vente sans TVA. Vérifiez la facture et le traitement fiscal avant approbation."
+
+msgid "I have checked the zero VAT amount and confirm its domestic tax treatment."
+msgstr "J’ai vérifié la TVA nulle et confirme son traitement fiscal national."
+
+msgid "Deductible percentage of the VAT amount, NOT the invoice VAT rate. 0% means no deduction; 100% only when fully deductible."
+msgstr "Pourcentage de TVA déductible, et NON taux de TVA de la facture. 0 % : non déductible ; 100 % : entièrement déductible."
+
+msgid "Enter the percentage of VAT legally deductible, NOT the VAT rate: 0% if not deductible, 100% only if fully deductible, or another applicable percentage. You must choose a value."
+msgstr "Indiquez le pourcentage de TVA légalement déductible, et NON le taux : 0 % si non déductible, 100 % si entièrement déductible, ou un autre pourcentage applicable. Une valeur est obligatoire."
+
+msgid "Invoice amount checks"
+msgstr "Contrôle des montants de facture"
+
+msgid "Total of supplier invoice (base + VAT):"
+msgstr "Total de la facture fournisseur (base + TVA) :"
+
+msgid "Potential deductible VAT (VAT × deductible percentage):"
+msgstr "TVA potentiellement déductible (TVA × pourcentage déductible) :"
+
+msgid "Compare these amounts with the supplier invoice. This preview is not a tax deduction decision."
+msgstr "Comparez ces montants à la facture fournisseur. Cet aperçu ne détermine pas la déduction fiscale."
+
+msgid "Original PDF or image securely archived with this accounting entry."
+msgstr "PDF ou image originale archivé de manière sécurisée avec cette écriture comptable."
+
+msgid "Select a valid original PDF, JPG, PNG or WEBP document smaller than 10 MB."
+msgstr "Sélectionnez un document original PDF, JPG, PNG ou WEBP valide de moins de 10 Mo."
+
+msgid "Correction saved. This entry is now a draft and must be validated again."
+msgstr "Correction enregistrée. Cette écriture redevient un brouillon et doit être validée à nouveau."
+
+msgid "Could not correct the entry. Check all fields and the mandatory reason."
+msgstr "Impossible de corriger l’écriture. Vérifiez tous les champs et le motif obligatoire."
+
+msgid "No data changed; nothing was recorded."
+msgstr "Aucune donnée modifiée ni opération enregistrée."
+
+msgid "The correction failed. The previous ledger entry was retained."
+msgstr "La correction a échoué. L’écriture comptable précédente est conservée."
+
+msgid "This WooCommerce sale has zero VAT. Check its issued invoice and confirm the domestic VAT treatment before validating it."
+msgstr "Cette vente WooCommerce a une TVA nulle. Vérifiez la facture émise et confirmez le traitement fiscal national avant validation."
+
+msgid "Accounting totals do not match the immutable issued invoice. Validation was blocked; reconcile the original document and WooCommerce order."
+msgstr "Les totaux comptables ne correspondent pas à la facture émise immuable. Validation bloquée ; rapprochez facture et commande WooCommerce."
+
+msgid "Actual payment/receipt recorded in Treasury."
+msgstr "Paiement/encaissement réel enregistré en Trésorerie."
+
+msgid "Historical payment reconciliation processed; review the posted, skipped and error counts shown."
+msgstr "Rapprochement des paiements historiques terminé ; vérifiez les montants enregistrés, ignorés et en erreur."
+
+msgid "Invoice draft saved, but the selected payment could not be recorded. Register it from the invoice row after checking account, date and amount."
+msgstr "Brouillon de facture enregistré, mais paiement non enregistré. Saisissez-le depuis la ligne de facture après vérification du compte, de la date et du montant."
+
+msgid "Invoice validated, but the selected payment could not be recorded. Register it from the invoice row."
+msgstr "Facture validée, mais paiement non enregistré. Saisissez-le depuis la ligne de facture."
+
+msgid "Payment amount, date or account is invalid or exceeds the outstanding balance."
+msgstr "Montant, date ou compte de paiement invalide, ou montant supérieur au solde dû."
+
+msgid "Payment could not be recorded; no money was moved."
+msgstr "Le paiement n’a pas pu être enregistré ; aucun fonds n’a été déplacé."
+
+msgid "Treasury record saved."
+msgstr "Enregistrement de trésorerie sauvegardé."
+
+msgid "Could not save the treasury record."
+msgstr "Impossible d’enregistrer l’écriture de trésorerie."
+
+msgid "Check the treasury values and dates."
+msgstr "Vérifiez les valeurs et dates de trésorerie."
+
+msgid "Supplier purchase CSV processed. Check the drafts in Received invoices."
+msgstr "CSV d’achats fournisseurs traité. Vérifiez les brouillons dans Factures reçues."
+
+msgid "Select a valid supplier purchase CSV smaller than 2 MB."
+msgstr "Sélectionnez un CSV d’achats fournisseurs valide de moins de 2 Mo."
+
+msgid "Invalid purchase CSV headers; use the downloaded template."
+msgstr "En-têtes CSV des achats invalides ; utilisez le modèle téléchargé."
+
+msgid "Purchase CSV contains more than 500 rows."
+msgstr "Le CSV d’achats contient plus de 500 lignes."
+
+msgid "Invalid supplier purchase data; no rows imported."
+msgstr "Données d’achats fournisseurs invalides ; aucune ligne importée."
+
+msgid "Supplier purchase CSV contains no documents."
+msgstr "Le CSV d’achats fournisseurs ne contient aucun document."
+
+msgid "Could not save the supplier purchase batch; please retry."
+msgstr "Impossible d’enregistrer le lot d’achats fournisseurs ; réessayez."
+
+msgid "%d validated domestic WooCommerce sales have positive values but zero VAT. Review the original invoice and the tax treatment; these entries still contribute zero output VAT to this summary."
+msgstr "%d ventes nationales WooCommerce validées ont des montants positifs mais une TVA nulle. Vérifiez les factures d’origine et le traitement fiscal ; elles contribuent toujours 0 de TVA collectée au résumé."
+
+msgid "Review sales"
+msgstr "Vérifier les ventes"
+
+msgid "Import new paid WooCommerce orders automatically in small background batches"
+msgstr "Importer automatiquement les nouvelles commandes WooCommerce payées par petits lots en arrière-plan"
+
+msgid "Uses WordPress WP-Cron while the website receives visits. Imported sales and refunds remain drafts until invoice numbers, dates and tax treatment are verified. Does not import supplier bills or mark taxes as ready."
+msgstr "Utilise WP-Cron de WordPress lors des visites. Les ventes et remboursements importés restent des brouillons jusqu’à vérification des numéros de facture, dates et traitement fiscal. N’importe pas les factures fournisseurs ni ne considère les taxes comme finalisées."
+
+msgid "Bank receipts from paid WooCommerce orders"
+msgstr "Encaissements bancaires des commandes WooCommerce payées"
+
+msgid "Optional. Only WooCommerce orders with an actual payment date, an issued invoice number and matching totals are recorded. No tax validation or payment is inferred from an unpaid order. Existing unrelated bank movements must be reconciled first."
+msgstr "Facultatif. Seules les commandes WooCommerce avec date réelle de paiement, numéro de facture émise et totaux concordants sont enregistrées. Aucun paiement ou validation fiscale n’est présumé pour les commandes impayées. Rapprochez d’abord les mouvements bancaires existants."
+
+msgid "Bank for confirmed WooCommerce payments"
+msgstr "Banque pour les encaissements WooCommerce confirmés"
+
+msgid "Do not record payments automatically"
+msgstr "Ne pas enregistrer les paiements automatiquement"
+
+msgid "Only payments received since"
+msgstr "Uniquement les paiements reçus depuis"
+
+msgid "When an eligible WooCommerce order is synchronised, post its confirmed receipt once to this bank. Earlier payments remain available for manual reconciliation in Treasury. Fees and bank net deposits may need separate entries."
+msgstr "Lorsqu’une commande WooCommerce admissible est synchronisée, enregistrez son encaissement confirmé une fois sur cette banque. Les paiements antérieurs peuvent être rapprochés dans Trésorerie. Les frais et versements bancaires nets peuvent nécessiter des écritures séparées."
