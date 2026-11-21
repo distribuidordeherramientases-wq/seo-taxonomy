@@ -1283,3 +1283,120 @@ msgstr ""
 
 msgid "These are live accounting totals, not official AEAT boxes. The current register does not retain an invoice-by-invoice split of VAT rates, prior period offsets, all tax adjustments or filing options. Do not copy the indicative balance directly as the amount to pay."
 msgstr ""
+
+msgid "Edit"
+msgstr ""
+
+msgid "Linked to a repayable loan from"
+msgstr ""
+
+msgid "The opening funds are already present. Conversion or cancellation is blocked while this loan is linked."
+msgstr ""
+
+msgid "Opening amount entered in error"
+msgstr ""
+
+msgid "Confirm cancellation of this opening balance"
+msgstr ""
+
+msgid "Cancel incorrect opening balance"
+msgstr ""
+
+msgid "Rename account"
+msgstr ""
+
+msgid "Opening balance correction history"
+msgstr ""
+
+msgid "Create a new cash or bank account (not a receipt)"
+msgstr ""
+
+msgid "Use the account name ING or CAJA. Record donations, initial contributions and customer receipts as movements into an existing account."
+msgstr ""
+
+msgid "Save changes"
+msgstr ""
+
+msgid "Sponsor / lender"
+msgstr ""
+
+msgid "Funded by existing opening balance; no duplicate receipt"
+msgstr ""
+
+msgid "Repayment when agreed, without fixed instalments. Interest: 0%."
+msgstr ""
+
+msgid "Capital already returned"
+msgstr ""
+
+msgid "repayments"
+msgstr ""
+
+msgid "Repay from"
+msgstr ""
+
+msgid "Actual repayment date"
+msgstr ""
+
+msgid "Capital to repay (€)"
+msgstr ""
+
+msgid "I confirm that this amount was actually transferred to the lender."
+msgstr ""
+
+msgid "Record actual repayment"
+msgstr ""
+
+msgid "Enter the amount borrowed. For a 0% sponsor loan repayable later without fixed instalments, choose 0 months, 0% interest, and leave the first repayment date empty. Record partial or total repayments only when actually made. For scheduled financing, specify term and first instalment date."
+msgstr ""
+
+msgid "Sponsor / lender name"
+msgstr ""
+
+msgid "Sponsor / lender tax ID (optional)"
+msgstr ""
+
+msgid "Lender relationship"
+msgstr ""
+
+msgid "Sponsor (repayable loan)"
+msgstr ""
+
+msgid "Other lender"
+msgstr ""
+
+msgid "Loan agreement reference"
+msgstr ""
+
+msgid "Term in months (0 = repay later without fixed instalments)"
+msgstr ""
+
+msgid "First instalment date (optional for flexible 0% loans)"
+msgstr ""
+
+msgid "Loan funds"
+msgstr ""
+
+msgid "Not received yet (do not change bank)"
+msgstr ""
+
+msgid "Already included in bank opening balance (do not duplicate)"
+msgstr ""
+
+msgid "New confirmed bank receipt"
+msgstr ""
+
+msgid "Bank receiving or holding loan funds"
+msgstr ""
+
+msgid "opening"
+msgstr ""
+
+msgid "I confirm that the entire opening balance belongs to this loan and is already in this bank. Do not add money again."
+msgstr ""
+
+msgid "When linking an opening balance, the loan principal must equal that opening amount exactly. An opening balance can fund only one loan. No bank movement is created."
+msgstr ""
+
+msgid "Select opening balance when the sponsor already financed ING: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed."
+msgstr ""
