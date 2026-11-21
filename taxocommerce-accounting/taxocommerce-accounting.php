@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 define( 'TCA_VERSION', '0.1.25' );
-define( 'TCA_DB_VERSION', '7' );
+define( 'TCA_DB_VERSION', '8' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
 add_action( 'init', static function () {
