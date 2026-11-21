@@ -169,6 +169,44 @@ final class TCA_Treasury {
             ), array( '%s', '%s', '%s', '%f', '%s' ) );
             self::redirect( $ok ? 'saved' : 'error' );
         }
+        if ( 'edit_account' === $operation ) {
+            $account = self::get_account( self::posted( 'account_id' ) );
+            $name = self::posted( 'name' );
+            if ( ! $account || '' === $name ) self::redirect( 'invalid' );
+            $ok = $wpdb->update( self::table( 'accounts' ),
+                array( 'name' => $name ), array( 'id' => $account->id ),
+                array( '%s' ), array( '%d' ) );
+            self::redirect( false !== $ok ? 'saved' : 'error' );
+        }
+        if ( 'edit_movement' === $operation ) {
+            $id = absint( self::posted( 'movement_id' ) );
+            $account = self::get_account( self::posted( 'account_id' ) );
+            $date = self::posted( 'posted_on' );
+            $amount = self::money( self::posted( 'amount' ) );
+            $direction = sanitize_key( self::posted( 'direction' ) );
+            $movement = $wpdb->get_row( $wpdb->prepare(
+                'SELECT * FROM %i WHERE id = %d', self::table( 'movements' ), $id
+            ) );
+            if ( ! $movement || ! in_array( $movement->direction, array( 'in', 'out' ), true )
+                || ! in_array( $direction, array( 'in', 'out' ), true ) || ! $account
+                || ! self::date( $date ) || $date < $account->opened_on
+                || null === $amount || $amount <= 0 ) self::redirect( 'invalid' );
+            // Do not edit invoice settlements, loan payments or paired transfers.
+            $settled = $wpdb->get_var( $wpdb->prepare(
+                'SELECT movement_id FROM %i WHERE movement_id = %d',
+                $wpdb->prefix . 'tca_treasury_settlements', $id
+            ) );
+            $loan = $wpdb->get_var( $wpdb->prepare(
+                'SELECT movement_id FROM %i WHERE movement_id = %d',
+                self::table( 'loan_payments' ), $id
+            ) );
+            if ( $settled || $loan ) self::redirect( 'invalid' );
+            $ok = $wpdb->update( self::table( 'movements' ),
+                array( 'account_id' => $account->id, 'posted_on' => $date,
+                    'direction' => $direction, 'amount' => $amount, 'reference' => self::posted( 'reference' ) ),
+                array( 'id' => $id ), array( '%d', '%s', '%s', '%f', '%s' ), array( '%d' ) );
+            self::redirect( false !== $ok ? 'saved' : 'error' );
+        }
         if ( 'opening_receipt' === $operation ) {
             $account_id = absint( self::posted( 'account_id' ) );
             $date = self::posted( 'posted_on' );
@@ -482,10 +520,10 @@ final class TCA_Treasury {
         echo '<input type="hidden" name="treasury_action" value="' . esc_attr( $action ) . '">';
     }
 
-    private static function account_select( $accounts, $name ) {
+    private static function account_select( $accounts, $name, $selected = 0 ) {
         echo '<select name="' . esc_attr( $name ) . '" required>';
         foreach ( $accounts as $account ) {
-            echo '<option value="' . esc_attr( (string) $account->id ) . '">' . esc_html( $account->name ) . ' (' .
+            echo '<option value="' . esc_attr( (string) $account->id ) . '"' . selected( (int) $account->id, $selected, false ) . '>' . esc_html( $account->name ) . ' (' .
                 esc_html( 'cash' === $account->kind ? __( 'Cash', 'taxocommerce-accounting' ) : __( 'Bank', 'taxocommerce-accounting' ) ) . ')</option>';
         }
         echo '</select>';
@@ -563,7 +601,7 @@ final class TCA_Treasury {
         echo '</div>';
 
         echo '<h3>' . esc_html__( 'Cash and bank accounts', 'taxocommerce-accounting' ) . '</h3>';
-        echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Account', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Type', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Opening balance', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Current balance', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Funding entry', 'taxocommerce-accounting' ) . '</th></tr></thead><tbody>';
+        echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Account', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Type', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Opening balance', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Current balance', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Funding entry', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Edit', 'taxocommerce-accounting' ) . '</th></tr></thead><tbody>';
         $by_id = array();
         foreach ( $accounts as $account ) {
             $by_id[ (int) $account->id ] = $account;
@@ -586,16 +624,22 @@ final class TCA_Treasury {
             } else {
                 echo '&mdash;';
             }
-            echo '</td></tr>';
+            echo '</td><td>';
+            self::start_form( 'edit_account' );
+            echo '<input type="hidden" name="account_id" value="' . esc_attr( (string) $account->id ) . '">';
+            echo '<input type="text" name="name" maxlength="191" value="' . esc_attr( $account->name ) . '" required>';
+            submit_button( __( 'Rename account', 'taxocommerce-accounting' ), 'secondary small', 'submit', false );
+            echo '</form></td></tr>';
         }
         if ( ! $accounts ) {
-            echo '<tr><td colspan="5">' . esc_html__( 'Add your cash register or first bank account to start tracking funds.', 'taxocommerce-accounting' ) . '</td></tr>';
+            echo '<tr><td colspan="6">' . esc_html__( 'Add your cash register or first bank account to start tracking funds.', 'taxocommerce-accounting' ) . '</td></tr>';
         }
         echo '</tbody></table>';
         TCA_Settlements::render_bulk( $year );
 
         echo '<div class="tca-treasury-forms"><div>';
-        echo '<h4>' . esc_html__( 'Add cash register / bank account', 'taxocommerce-accounting' ) . '</h4>';
+        echo '<h4>' . esc_html__( 'Create a new cash or bank account (not a receipt)', 'taxocommerce-accounting' ) . '</h4>';
+        echo '<p class="description">' . esc_html__( 'Use the account name ING or CAJA. Record donations, initial contributions and customer receipts as movements into an existing account.', 'taxocommerce-accounting' ) . '</p>';
         self::start_form( 'account' );
         echo '<p><label>' . esc_html__( 'Name', 'taxocommerce-accounting' ) . ' <input type="text" name="name" maxlength="191" required></label></p>';
         echo '<p><label>' . esc_html__( 'Type', 'taxocommerce-accounting' ) . ' <select name="kind"><option value="cash">' . esc_html__( 'Cash', 'taxocommerce-accounting' ) . '</option><option value="bank">' . esc_html__( 'Bank', 'taxocommerce-accounting' ) . '</option></select></label></p>';
@@ -653,7 +697,7 @@ final class TCA_Treasury {
         echo '</tbody></table></div>';
 
         echo '<h3>' . esc_html__( 'Recent cash and bank movements', 'taxocommerce-accounting' ) . '</h3>';
-        echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Date', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Account', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Movement', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Amount', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Reference', 'taxocommerce-accounting' ) . '</th></tr></thead><tbody>';
+        echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Date', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Account', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Movement', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Amount', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Reference', 'taxocommerce-accounting' ) . '</th><th>' . esc_html__( 'Edit', 'taxocommerce-accounting' ) . '</th></tr></thead><tbody>';
         foreach ( $recent as $movement ) {
             $positive = in_array( $movement->direction, array( 'in', 'transfer_in' ), true );
             echo '<tr><td>' . esc_html( $movement->posted_on ) . '</td><td>' . esc_html( isset( $by_id[ (int) $movement->account_id ] ) ? $by_id[ (int) $movement->account_id ]->name : '' ) . '</td><td>' .
