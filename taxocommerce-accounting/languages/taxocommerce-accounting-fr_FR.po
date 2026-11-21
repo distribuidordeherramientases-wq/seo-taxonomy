@@ -1075,3 +1075,120 @@ msgstr "Uniquement les paiements reçus depuis"
 
 msgid "When an eligible WooCommerce order is synchronised, post its confirmed receipt once to this bank. Earlier payments remain available for manual reconciliation in Treasury. Fees and bank net deposits may need separate entries."
 msgstr "Lorsqu’une commande WooCommerce admissible est synchronisée, enregistrez son encaissement confirmé une fois sur cette banque. Les paiements antérieurs peuvent être rapprochés dans Trésorerie. Les frais et versements bancaires nets peuvent nécessiter des écritures séparées."
+
+msgid "Fixed asset depreciation"
+msgstr "Amortissement des immobilisations"
+
+msgid "Straight-line accounting allocation by actual days from the in-service date. Does not change VAT, supplier invoices, bank payments, or determine a statutory tax deduction."
+msgstr "Répartition comptable linéaire selon les jours réels depuis la mise en service. Ne modifie ni la TVA, ni les factures fournisseurs, ni les paiements bancaires, et ne détermine pas la déduction fiscale légale."
+
+msgid "Asset"
+msgstr "Actif"
+
+msgid "In service"
+msgstr "En service"
+
+msgid "Amortizable cost"
+msgstr "Coût amortissable"
+
+msgid "Annual depreciation"
+msgstr "Amortissement annuel"
+
+msgid "Remaining book value"
+msgstr "Valeur comptable restante"
+
+msgid "No validated fixed assets for this year."
+msgstr "Aucune immobilisation validée pour cette année."
+
+msgid "Total annual depreciation:"
+msgstr "Amortissement annuel total :"
+
+msgid "Supplier purchases: CSV import and export"
+msgstr "Achats fournisseurs : importation et exportation CSV"
+
+msgid "Import supplier invoices for merchandise bought for resale. All entries are draft purchases and require review. Upload the original PDF or image to each row after importing."
+msgstr "Importez les factures fournisseurs de marchandises destinées à la revente. Toutes les entrées sont des achats brouillons à vérifier. Joignez le PDF ou l’image originale à chaque ligne après l’importation."
+
+msgid "Export supplier purchases CSV for %d"
+msgstr "Exporter les achats fournisseurs en CSV pour %d"
+
+msgid "Supplier purchases CSV file"
+msgstr "Fichier CSV d’achats fournisseurs"
+
+msgid "Import supplier purchase drafts"
+msgstr "Importer les brouillons d’achats fournisseurs"
+
+msgid "Maximum 500 rows / 2 MB per import. Repeated documents are skipped. Attach PDF, JPG, PNG or WEBP originals to each imported row, then verify VAT and approve. CSV imports never attach the original document or register a payment."
+msgstr "Maximum 500 lignes ou 2 Mo par importation. Les documents en double sont ignorés. Joignez les originaux PDF, JPG, PNG ou WEBP à chaque ligne importée, vérifiez la TVA et approuvez. L’import CSV ne joint pas de documents et n’enregistre pas de paiements."
+
+msgid "This changes only the accounting record, not the WooCommerce order, issued invoice, or supplier PDF. If an issued invoice is wrong, follow the required rectifying-invoice procedure before fiscal approval."
+msgstr "Cette modification ne concerne que l’écriture comptable, pas la commande WooCommerce, la facture émise ni le PDF fournisseur. Si la facture émise est incorrecte, suivez la procédure de facture rectificative avant validation fiscale."
+
+msgid "Saving a correction moves this record back to draft and removes it from validated tax totals until it is reviewed and approved again."
+msgstr "L’enregistrement d’une correction remet l’écriture en brouillon et l’exclut des totaux fiscaux validés jusqu’à sa nouvelle vérification et approbation."
+
+msgid "Configure a bank or cash account in Treasury before linking a payment."
+msgstr "Configurez un compte bancaire ou de caisse dans Trésorerie avant d’associer un paiement."
+
+msgid "Payment received and verified"
+msgstr "Paiement reçu et vérifié"
+
+msgid "Invoice already paid (confirmed)"
+msgstr "Facture déjà payée (confirmé)"
+
+msgid "Select this only if the payment actually occurred. It immediately creates a linked cash/bank movement when this form is saved; leave unchecked for unpaid invoices."
+msgstr "Cochez uniquement si le paiement a réellement eu lieu. L’enregistrement du formulaire crée immédiatement un mouvement bancaire ou de caisse lié. Ne cochez pas pour une facture impayée."
+
+msgid "Reconcile confirmed payments and receipts"
+msgstr "Rapprocher paiements et encaissements confirmés"
+
+msgid "Only for invoices paid or customer sales actually collected and not yet linked to Treasury. Review each item and its actual payment date. Purchases are bank/cash out; sales are bank/cash in. No movements are generated until confirmed."
+msgstr "Uniquement pour les factures payées ou ventes réellement encaissées, non encore liées à Trésorerie. Vérifiez chaque élément et sa date réelle. Les achats sont des sorties, les ventes des entrées de banque/caisse. Aucun mouvement avant confirmation."
+
+msgid "Account used for the confirmed payments or receipts"
+msgstr "Compte utilisé pour les paiements ou encaissements confirmés"
+
+msgid "Select bank or cash account"
+msgstr "Sélectionnez un compte bancaire ou de caisse"
+
+msgid "Confirmed?"
+msgstr "Confirmé ?"
+
+msgid "Invoice"
+msgstr "Facture"
+
+msgid "Actual bank payment date"
+msgstr "Date réelle du paiement bancaire"
+
+msgid "Sale"
+msgstr "Vente"
+
+msgid "Refund"
+msgstr "Remboursement"
+
+msgid "Purchase / expense"
+msgstr "Achat / dépense"
+
+msgid "I confirm each selected purchase was paid or sale was received using this account on the dates shown, with no matching Treasury movement already recorded."
+msgstr "Je confirme que chaque achat sélectionné a été payé ou vente encaissée sur ce compte aux dates indiquées, sans mouvement correspondant déjà enregistré dans Trésorerie."
+
+msgid "Post confirmed historical payments"
+msgstr "Comptabiliser les paiements historiques confirmés"
+
+msgid "At most 100 invoices are shown at once. Refresh to reconcile more. This does not change invoices, VAT deductions or financing/loan balances."
+msgstr "Maximum 100 factures affichées à la fois. Actualisez pour en rapprocher d’autres. Cela ne modifie ni factures, ni déductions de TVA, ni soldes de financement ou prêts."
+
+msgid "Select a PDF, JPG, PNG or WEBP document smaller than 10 MB."
+msgstr "Sélectionnez un document PDF, JPG, PNG ou WEBP de moins de 10 Mo."
+
+msgid "Select a valid original PDF or image."
+msgstr "Sélectionnez un PDF ou une image originale valide."
+
+msgid "Original invoice documents"
+msgstr "Documents originaux de facture"
+
+msgid "Attach original PDF or image (up to 10 MB)"
+msgstr "Joindre un PDF ou une image originale (10 Mo max.)"
+
+msgid "Archive document"
+msgstr "Archiver le document"
