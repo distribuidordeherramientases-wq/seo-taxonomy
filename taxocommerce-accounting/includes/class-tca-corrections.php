@@ -262,7 +262,7 @@ final class TCA_Corrections {
     }
 
     public static function render_row_action( $entry ) {
-        $tab = self::tab_for( $entry->kind );
+        $tab = self::tab_for_entry( $entry );
         if ( 'summary' === $tab ) {
             return;
         }
