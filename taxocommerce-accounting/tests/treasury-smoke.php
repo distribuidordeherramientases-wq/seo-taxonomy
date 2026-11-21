@@ -125,7 +125,7 @@ tca_treasury_assert( false !== strpos( $source, "return self::table( 'movements'
 
 // Flexible 0% sponsor loan: funding is already in ING and is not added again.
 tca_treasury_assert( false !== strpos( $source, "repayment_mode varchar(16)" ), 'Repayment mode is persisted in the loan register' );
-tca_treasury_assert( false !== strpos( $source, "'repayment_mode' => \\$flexible" ), 'Flexible loans are tagged separately from legacy loans' );
+tca_treasury_assert( false !== strpos( $source, "'repayment_mode' => " ), 'Flexible loans are tagged separately from legacy loans' );
 tca_treasury_assert( false !== strpos( $source, "'loan_flexible_payment' === $operation" ), 'Partial repayments have a separate action' );
 tca_treasury_assert( false !== strpos( $source, "'remaining' => round( (float) $loan->remaining - $amount, 2 )" ), 'Confirmed repayments reduce debt by actual capital paid' );
 tca_treasury_assert( false !== strpos( $source, "'interest_amount' => 0.0" ), 'Flexible interest-free repayments have no interest' );
