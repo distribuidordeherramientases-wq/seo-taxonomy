@@ -397,9 +397,11 @@ final class SEO_Facturas_Rectifications {
         $gross = (float) $totals['total'];
         if ( ! is_finite( $base ) || ! is_finite( $tax ) || ! is_finite( $gross ) ||
             $base < 0 || $tax < 0 || $gross <= 0 || abs( $base + $tax - $gross ) > 0.02 ||
-            ! isset( $original['amount_total'] ) || ! is_numeric( $original['amount_total'] ) ||
             ! isset( $snapshot['rectification']['old_total'] ) ||
-            abs( (float) $snapshot['rectification']['old_total'] - (float) $original['amount_total'] ) > 0.02 ) {
+            ! is_numeric( $snapshot['rectification']['old_total'] ) ||
+            ( isset( $original['amount_total'] ) &&
+                ( ! is_numeric( $original['amount_total'] ) ||
+                    abs( (float) $snapshot['rectification']['old_total'] - (float) $original['amount_total'] ) > 0.02 ) ) ) {
             return $original;
         }
         return array_merge( $original, array(
