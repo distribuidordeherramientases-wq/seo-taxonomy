@@ -189,3 +189,117 @@ msgstr "El servidor SMTP ha aceptado el mensaje. No se garantiza su entrega al d
 
 msgid "SMTP send failed. Check account settings and SMTP restrictions."
 msgstr "Error al enviar por SMTP. Comprueba la configuración y las restricciones del servidor."
+
+msgid "Run the check before exporting."
+msgstr "Ejecuta primero la comprobación."
+
+msgid "Unable to create JSON."
+msgstr "No se puede generar el JSON."
+
+msgid "Functionality Check"
+msgstr "Comprobación funcional"
+
+msgid "Code Check"
+msgstr "Comprobación de código"
+
+msgid "Checks do not access your inbox or send messages. Each connection must be tested separately."
+msgstr "Las comprobaciones no leen correos ni envían mensajes. Cada conexión se prueba por separado."
+
+msgid "Run Code Check"
+msgstr "Ejecutar comprobación de código"
+
+msgid "Run Functionality Check"
+msgstr "Ejecutar comprobación funcional"
+
+msgid "Fecha de ejecución:"
+msgstr "Fecha de ejecución:"
+
+msgid "Check"
+msgstr "Comprobación"
+
+msgid "Status"
+msgstr "Estado"
+
+msgid "Details"
+msgstr "Detalles"
+
+msgid "Download JSON report"
+msgstr "Descargar informe JSON"
+
+msgid "Architecture"
+msgstr "Arquitectura"
+
+msgid "Accounts and encrypted credentials are kept as a non-autoloaded WordPress option; no message copies or mail attachments are saved. Only manage_options can access mail."
+msgstr "Las cuentas y credenciales cifradas se almacenan como una opción de WordPress sin carga automática. No se guardan mensajes ni adjuntos. Solo puede acceder quien tenga manage_options."
+
+msgid "Security"
+msgstr "Seguridad"
+
+msgid "Credential encryption uses AES-256-GCM and keys derived from WordPress authentication salts. Changing salts invalidates stored passwords. IMAP uses port 993 with TLS peer verification. SMTP uses only 465/587 and authenticates directly with the selected account."
+msgstr "El cifrado utiliza AES-256-GCM y claves derivadas de las sales de WordPress. Cambiar las sales invalida contraseñas guardadas. IMAP usa el puerto 993 y verifica TLS. SMTP solo admite 465/587 y autentica la cuenta seleccionada."
+
+msgid "Supported protocol"
+msgstr "Protocolo admitido"
+
+msgid "Uses read-only IMAP LOGIN, EXAMINE, UID SEARCH and BODY.PEEK; does not mark mail as read. Message size is limited to 2 MB for on-demand viewing. Supports basic plain-text and HTML MIME; complex encrypted/signed messages may not display."
+msgstr "IMAP utiliza LOGIN, EXAMINE, UID SEARCH y BODY.PEEK en solo lectura, sin marcar mensajes como leídos. El límite de visualización es 2 MB por mensaje. Admite MIME básico de texto y HTML; algunos mensajes firmados o cifrados pueden no verse."
+
+msgid "SMTP"
+msgstr "SMTP"
+
+msgid "Uses a new WordPress-bundled PHPMailer instance, never changes wp_mail(), WooCommerce notifications or global mail filters. SMTP accepted does not guarantee delivery."
+msgstr "Usa una instancia nueva de PHPMailer incluida en WordPress. No modifica wp_mail(), avisos de WooCommerce ni filtros globales. La aceptación SMTP no garantiza la entrega."
+
+msgid "Diagnostics"
+msgstr "Diagnóstico"
+
+msgid "Autocheck functionality checks local capabilities and configuration. Code Check parses plugin PHP files only. Live IMAP authentication and SMTP delivery are explicit administrator actions and are not falsely claimed by Autocheck."
+msgstr "Autocheck comprueba las capacidades y configuración locales. Code Check solo analiza PHP del plugin. Autenticar por IMAP y enviar por SMTP requieren acciones explícitas del administrador y no se consideran comprobados automáticamente."
+
+msgid "Add accounts"
+msgstr "Añadir cuentas"
+
+msgid "Create the email address at your hosting provider, then open Mail > Accounts in WordPress. Enter only the complete email address as username, masked password and secure IMAP hostname. Additional accounts can be configured separately. SMTP name, host and encrypted port are optional advanced settings for sending."
+msgstr "Crea la dirección en el proveedor y abre Correo > Cuentas en WordPress. Introduce la dirección completa, contraseña y servidor IMAP seguro. Puedes añadir varias cuentas. Nombre, SMTP y puerto cifrado son ajustes avanzados opcionales."
+
+msgid "Webempresa settings"
+msgstr "Configuración de Webempresa"
+
+msgid "Open WePanel > Email > Mail clients (or the equivalent configuration section). Copy the exact SSL server hostnames and ports. IMAP TLS uses port 993; SMTP TLS uses 465 or STARTTLS 587."
+msgstr "En WePanel, abre Correo > Clientes de correo (o equivalente). Copia los servidores SSL y puertos. IMAP TLS utiliza 993; SMTP TLS utiliza 465 o STARTTLS 587."
+
+msgid "Read mail"
+msgstr "Leer correos"
+
+msgid "Select Mail > Inbox, choose a configured account and open a message. The plugin reads up to 12 recent messages from INBOX without marking them read. Messages remain on the mail server."
+msgstr "En Correo > Bandeja de entrada, selecciona cuenta y mensaje. El plugin lee hasta 12 mensajes recientes de INBOX sin marcarlos como leídos. Permanecen en el servidor."
+
+msgid "Send and reply"
+msgstr "Enviar y responder"
+
+msgid "Use Compose to send plain-text mail from the selected account. Reply prefills the sender and subject. One recipient per message; no attachments in this initial version."
+msgstr "Usa Redactar para enviar texto sin formato desde la cuenta elegida. Responder rellena destinatario y asunto. Solo un destinatario por mensaje, sin adjuntos en esta versión."
+
+msgid "Check accounts"
+msgstr "Comprobar cuentas"
+
+msgid "Use Test IMAP per account to verify inbound access. Send a test SMTP message to an address you control and verify it arrived. Autocheck alone cannot confirm external delivery."
+msgstr "Usa Probar IMAP para verificar cada cuenta. Envía un mensaje SMTP a una dirección propia y comprueba su recepción. Autocheck no confirma por sí solo la entrega externa."
+
+msgid "Manage several hosting email accounts inside WordPress through secure IMAP and SMTP."
+msgstr "Gestiona varias cuentas de correo de alojamiento desde WordPress mediante IMAP y SMTP seguros."
+
+msgid "Private hosting email client."
+msgstr "Cliente privado de correo de alojamiento."
+
+msgid "Version"
+msgstr "Versión"
+
+msgid "Last updated"
+msgstr "Última actualización"
+
+msgid "Version history and improvements"
+msgstr "Historial de versiones y mejoras"
+
+msgid "Official plugin page"
+msgstr "Página oficial del plugin"

@@ -189,3 +189,117 @@ msgstr "De SMTP-server heeft het bericht geaccepteerd. Aflevering aan de ontvang
 
 msgid "SMTP send failed. Check account settings and SMTP restrictions."
 msgstr "SMTP-verzending mislukt. Controleer instellingen en serverbeperkingen."
+
+msgid "Run the check before exporting."
+msgstr "Voer eerst de controle uit."
+
+msgid "Unable to create JSON."
+msgstr "Kan JSON niet maken."
+
+msgid "Functionality Check"
+msgstr "Functionaliteitscontrole"
+
+msgid "Code Check"
+msgstr "Codecontrole"
+
+msgid "Checks do not access your inbox or send messages. Each connection must be tested separately."
+msgstr "Controles lezen geen e-mail en verzenden niets. Test elke verbinding apart."
+
+msgid "Run Code Check"
+msgstr "Codecontrole uitvoeren"
+
+msgid "Run Functionality Check"
+msgstr "Functionaliteitscontrole uitvoeren"
+
+msgid "Fecha de ejecución:"
+msgstr "Uitvoeringsdatum:"
+
+msgid "Check"
+msgstr "Controle"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Details"
+msgstr "Details"
+
+msgid "Download JSON report"
+msgstr "JSON-rapport downloaden"
+
+msgid "Architecture"
+msgstr "Architectuur"
+
+msgid "Accounts and encrypted credentials are kept as a non-autoloaded WordPress option; no message copies or mail attachments are saved. Only manage_options can access mail."
+msgstr "Accounts en versleutelde gegevens worden opgeslagen in een WordPress-optie zonder autoload. Geen berichten of bijlagen. Alleen manage_options heeft toegang."
+
+msgid "Security"
+msgstr "Beveiliging"
+
+msgid "Credential encryption uses AES-256-GCM and keys derived from WordPress authentication salts. Changing salts invalidates stored passwords. IMAP uses port 993 with TLS peer verification. SMTP uses only 465/587 and authenticates directly with the selected account."
+msgstr "AES-256-GCM met sleutels uit WordPress-salts. Bij wijziging vervallen opgeslagen wachtwoorden. IMAP gebruikt poort 993 met TLS-controle. SMTP alleen 465/587 met geselecteerd account."
+
+msgid "Supported protocol"
+msgstr "Ondersteund protocol"
+
+msgid "Uses read-only IMAP LOGIN, EXAMINE, UID SEARCH and BODY.PEEK; does not mark mail as read. Message size is limited to 2 MB for on-demand viewing. Supports basic plain-text and HTML MIME; complex encrypted/signed messages may not display."
+msgstr "IMAP gebruikt LOGIN, EXAMINE, UID SEARCH en BODY.PEEK alleen-lezen. Berichten worden niet als gelezen gemarkeerd. Maximaal 2 MB per bericht, eenvoudige tekst/HTML-MIME. Complex beveiligde berichten kunnen ontbreken."
+
+msgid "SMTP"
+msgstr "SMTP"
+
+msgid "Uses a new WordPress-bundled PHPMailer instance, never changes wp_mail(), WooCommerce notifications or global mail filters. SMTP accepted does not guarantee delivery."
+msgstr "Gebruikt een nieuwe WordPress-PHPMailer-instantie. Wijzigt wp_mail(), WooCommerce-meldingen en globale filters niet. SMTP-acceptatie garandeert geen aflevering."
+
+msgid "Diagnostics"
+msgstr "Diagnose"
+
+msgid "Autocheck functionality checks local capabilities and configuration. Code Check parses plugin PHP files only. Live IMAP authentication and SMTP delivery are explicit administrator actions and are not falsely claimed by Autocheck."
+msgstr "Zelfcontrole controleert lokale functies en instellingen. Codecontrole analyseert alleen PHP. Echte IMAP-aanmelding en SMTP-verzending vereisen beheerdersacties en zijn niet automatisch bevestigd."
+
+msgid "Add accounts"
+msgstr "Accounts toevoegen"
+
+msgid "Create the email address at your hosting provider, then open Mail > Accounts in WordPress. Enter only the complete email address as username, masked password and secure IMAP hostname. Additional accounts can be configured separately. SMTP name, host and encrypted port are optional advanced settings for sending."
+msgstr "Maak het adres aan bij je provider en open E-mail > Accounts. Voer volledig adres, wachtwoord en veilige IMAP-server in. Meerdere accounts mogelijk. Naam, SMTP en versleutelde poort zijn optioneel."
+
+msgid "Webempresa settings"
+msgstr "Webempresa-instellingen"
+
+msgid "Open WePanel > Email > Mail clients (or the equivalent configuration section). Copy the exact SSL server hostnames and ports. IMAP TLS uses port 993; SMTP TLS uses 465 or STARTTLS 587."
+msgstr "Open WePanel > E-mail > E-mailclients (of equivalent). Kopieer SSL-servers en poorten. IMAP TLS: 993; SMTP TLS: 465 of STARTTLS 587."
+
+msgid "Read mail"
+msgstr "E-mails lezen"
+
+msgid "Select Mail > Inbox, choose a configured account and open a message. The plugin reads up to 12 recent messages from INBOX without marking them read. Messages remain on the mail server."
+msgstr "Kies E-mail > Postvak IN, account en bericht. De plugin leest maximaal 12 recente INBOX-berichten zonder ze als gelezen te markeren. Ze blijven op de server."
+
+msgid "Send and reply"
+msgstr "Verzenden en beantwoorden"
+
+msgid "Use Compose to send plain-text mail from the selected account. Reply prefills the sender and subject. One recipient per message; no attachments in this initial version."
+msgstr "Gebruik Opstellen om platte-tekstmail te verzenden. Beantwoorden vult ontvanger en onderwerp in. Eén ontvanger per bericht, geen bijlagen in deze versie."
+
+msgid "Check accounts"
+msgstr "Accounts controleren"
+
+msgid "Use Test IMAP per account to verify inbound access. Send a test SMTP message to an address you control and verify it arrived. Autocheck alone cannot confirm external delivery."
+msgstr "Gebruik IMAP testen per account. Stuur een SMTP-test naar een eigen adres en controleer ontvangst. Zelfcontrole bevestigt externe aflevering niet automatisch."
+
+msgid "Manage several hosting email accounts inside WordPress through secure IMAP and SMTP."
+msgstr undefined
+
+msgid "Private hosting email client."
+msgstr undefined
+
+msgid "Version"
+msgstr undefined
+
+msgid "Last updated"
+msgstr undefined
+
+msgid "Version history and improvements"
+msgstr undefined
+
+msgid "Official plugin page"
+msgstr undefined

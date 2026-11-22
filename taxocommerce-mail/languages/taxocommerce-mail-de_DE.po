@@ -189,3 +189,117 @@ msgstr "Der SMTP-Server hat die Nachricht akzeptiert. Die Zustellung ist nicht g
 
 msgid "SMTP send failed. Check account settings and SMTP restrictions."
 msgstr "SMTP-Versand fehlgeschlagen. Einstellungen und Serverbeschränkungen prüfen."
+
+msgid "Run the check before exporting."
+msgstr "Prüfung zuerst ausführen."
+
+msgid "Unable to create JSON."
+msgstr "JSON konnte nicht erstellt werden."
+
+msgid "Functionality Check"
+msgstr "Funktionsprüfung"
+
+msgid "Code Check"
+msgstr "Codeprüfung"
+
+msgid "Checks do not access your inbox or send messages. Each connection must be tested separately."
+msgstr "Prüfungen lesen keine Mails und senden keine Nachrichten. Jede Verbindung separat testen."
+
+msgid "Run Code Check"
+msgstr "Codeprüfung ausführen"
+
+msgid "Run Functionality Check"
+msgstr "Funktionsprüfung ausführen"
+
+msgid "Fecha de ejecución:"
+msgstr "Ausführungsdatum:"
+
+msgid "Check"
+msgstr "Prüfung"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Details"
+msgstr "Details"
+
+msgid "Download JSON report"
+msgstr "JSON-Bericht herunterladen"
+
+msgid "Architecture"
+msgstr "Architektur"
+
+msgid "Accounts and encrypted credentials are kept as a non-autoloaded WordPress option; no message copies or mail attachments are saved. Only manage_options can access mail."
+msgstr "Konten und verschlüsselte Zugangsdaten werden ohne Autoload in einer WordPress-Option gespeichert. Keine Nachrichten oder Anhänge. Zugriff nur mit manage_options."
+
+msgid "Security"
+msgstr "Sicherheit"
+
+msgid "Credential encryption uses AES-256-GCM and keys derived from WordPress authentication salts. Changing salts invalidates stored passwords. IMAP uses port 993 with TLS peer verification. SMTP uses only 465/587 and authenticates directly with the selected account."
+msgstr "AES-256-GCM mit Schlüsseln aus WordPress-Salts. Geänderte Salts machen Passwörter ungültig. IMAP nutzt Port 993 mit TLS-Prüfung. SMTP nur 465/587 und Anmeldung mit gewähltem Konto."
+
+msgid "Supported protocol"
+msgstr "Unterstütztes Protokoll"
+
+msgid "Uses read-only IMAP LOGIN, EXAMINE, UID SEARCH and BODY.PEEK; does not mark mail as read. Message size is limited to 2 MB for on-demand viewing. Supports basic plain-text and HTML MIME; complex encrypted/signed messages may not display."
+msgstr "IMAP nutzt LOGIN, EXAMINE, UID SEARCH und BODY.PEEK nur lesend; Nachrichten bleiben ungelesen. Anzeige bis 2 MB. Einfaches Text-/HTML-MIME; komplex signierte oder verschlüsselte Nachrichten ggf. nicht sichtbar."
+
+msgid "SMTP"
+msgstr "SMTP"
+
+msgid "Uses a new WordPress-bundled PHPMailer instance, never changes wp_mail(), WooCommerce notifications or global mail filters. SMTP accepted does not guarantee delivery."
+msgstr "Verwendet eine neue WordPress-PHPMailer-Instanz. Ändert weder wp_mail(), WooCommerce-Benachrichtigungen noch globale Filter. SMTP-Annahme garantiert keine Zustellung."
+
+msgid "Diagnostics"
+msgstr "Diagnose"
+
+msgid "Autocheck functionality checks local capabilities and configuration. Code Check parses plugin PHP files only. Live IMAP authentication and SMTP delivery are explicit administrator actions and are not falsely claimed by Autocheck."
+msgstr "Selbstprüfung prüft lokale Funktionen und Einstellungen. Codeprüfung analysiert nur Plugin-PHP. Echte IMAP-Anmeldung und SMTP-Zustellung erfordern Admin-Aktionen und gelten nicht automatisch als geprüft."
+
+msgid "Add accounts"
+msgstr "Konten hinzufügen"
+
+msgid "Create the email address at your hosting provider, then open Mail > Accounts in WordPress. Enter only the complete email address as username, masked password and secure IMAP hostname. Additional accounts can be configured separately. SMTP name, host and encrypted port are optional advanced settings for sending."
+msgstr "Adresse beim Provider anlegen und E-Mail > Konten öffnen. Ganze Adresse, Passwort und sicheren IMAP-Server eingeben. Mehrere Konten möglich. Name, SMTP und verschlüsselter Port sind optional."
+
+msgid "Webempresa settings"
+msgstr "Webempresa-Einstellungen"
+
+msgid "Open WePanel > Email > Mail clients (or the equivalent configuration section). Copy the exact SSL server hostnames and ports. IMAP TLS uses port 993; SMTP TLS uses 465 or STARTTLS 587."
+msgstr "In WePanel E-Mail > E-Mail-Clients (oder ähnlich) öffnen. SSL-Server und Ports übernehmen. IMAP TLS: 993; SMTP TLS: 465 oder STARTTLS 587."
+
+msgid "Read mail"
+msgstr "E-Mails lesen"
+
+msgid "Select Mail > Inbox, choose a configured account and open a message. The plugin reads up to 12 recent messages from INBOX without marking them read. Messages remain on the mail server."
+msgstr "Unter E-Mail > Posteingang Konto und Nachricht wählen. Das Plugin liest bis zu 12 aktuelle INBOX-Nachrichten, ohne sie als gelesen zu markieren. Sie bleiben auf dem Server."
+
+msgid "Send and reply"
+msgstr "Senden und Antworten"
+
+msgid "Use Compose to send plain-text mail from the selected account. Reply prefills the sender and subject. One recipient per message; no attachments in this initial version."
+msgstr "Mit Verfassen reine Text-E-Mails vom gewählten Konto senden. Antworten ergänzt Empfänger und Betreff. Ein Empfänger je Nachricht, keine Anhänge in dieser Version."
+
+msgid "Check accounts"
+msgstr "Konten prüfen"
+
+msgid "Use Test IMAP per account to verify inbound access. Send a test SMTP message to an address you control and verify it arrived. Autocheck alone cannot confirm external delivery."
+msgstr "IMAP testen für jedes Konto nutzen. SMTP-Test an eigene Adresse senden und Empfang prüfen. Selbstprüfung allein bestätigt keine externe Zustellung."
+
+msgid "Manage several hosting email accounts inside WordPress through secure IMAP and SMTP."
+msgstr "Beheer meerdere hosting-e-mailaccounts vanuit WordPress met veilige IMAP en SMTP."
+
+msgid "Private hosting email client."
+msgstr "Privé e-mailclient voor hosting."
+
+msgid "Version"
+msgstr "Versie"
+
+msgid "Last updated"
+msgstr "Laatst bijgewerkt"
+
+msgid "Version history and improvements"
+msgstr "Versiegeschiedenis en verbeteringen"
+
+msgid "Official plugin page"
+msgstr "Officiële pluginpagina"
