@@ -212,7 +212,7 @@ msgid "Run Functionality Check"
 msgstr "Run Functionality Check"
 
 msgid "Fecha de ejecución:"
-msgstr "Fecha de ejecución:"
+msgstr "Execution date:"
 
 msgid "Check"
 msgstr "Check"
