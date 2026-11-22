@@ -99,7 +99,7 @@ final class TCSUP_Source_Safety {
 		return '' !== $provider && '' !== $external &&
 			0 === strcasecmp( $provider, trim( (string) ( $row['proveedor'] ?? '' ) ) ) &&
 			$external === trim( (string) ( $row['proveedor_id_externo'] ?? '' ) ) &&
-			( '' === $row_country || '' === $country || $row_country === $country );
+			( '' === $row_country || ( '' !== $country && $row_country === $country ) );
 	}
 
 	/**
@@ -211,7 +211,7 @@ final class TCSUP_Source_Safety {
 				return false;
 			}
 			update_post_meta( $id, '_tcsup_supplier_discarded_catalog_id', absint( $discarded_row['id'] ?? 0 ) );
-		} catch ( Exception $e ) {
+		} catch ( Throwable $e ) {
 			return false;
 		}
 		return true;
