@@ -103,6 +103,11 @@ jobs:
               php -l "$slug/tests/classifier-cpu-smoke.php"
               php "$slug/tests/classifier-cpu-smoke.php"
             fi
+            if [ "$slug" = "taxocommerce-suppliers" ]; then
+              php -l "$slug/tests/source-safety-smoke.php"
+              php "$slug/tests/source-safety-smoke.php"
+              php "$slug/tests/smoke.php"
+            fi
             if [ "$slug" = "taxocommerce-accounting" ]; then
               php -l "$slug/tests/depreciation-smoke.php"
               php "$slug/tests/depreciation-smoke.php"
