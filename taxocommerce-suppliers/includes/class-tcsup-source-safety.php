@@ -94,7 +94,8 @@ final class TCSUP_Source_Safety {
 		$row_id      = absint( $row['id'] ?? 0 );
 		$catalog_id  = absint( get_post_meta( $product_id, '_seo_proveedor_catalogo_id', true ) );
 		if ( $catalog_id ) {
-			return $catalog_id === $row_id;
+			$mapped_id = absint( $row['object_id'] ?? 0 );
+			return $catalog_id === $row_id && ( ! $mapped_id || $mapped_id === $product_id );
 		}
 		$provider    = trim( (string) get_post_meta( $product_id, '_seo_proveedor', true ) );
 		$external    = trim( (string) get_post_meta( $product_id, '_seo_proveedor_id_externo', true ) );
