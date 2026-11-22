@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 — 2026-11-22
+- Add full gettext catalogs with 100 user-facing strings in Spanish, English, French, German and Dutch, covering mailbox administration, messages, Autocheck, user/technical guides and plugin branding.
+- Bundle five PO/MO catalogs and POT extraction template, while preferring official WordPress language packs when present.
+- Preserve mailbox accounts, encryption, IMAP/SMTP behavior, message storage policy and existing capabilities. Issue #2932.
+- Test-only package publication; no production deployment.
+
 ## 0.1.1 — 2026-11-20
 - Simplify mailbox setup to complete email/username, masked password and secure IMAP hostname; keep SMTP settings as optional advanced controls without removing send/reply.
 - Publish an installable TaxoCommerce Mail ZIP and updated manifest in the two authorized test installations, allowing Core to discover/download it without changes to Core.
