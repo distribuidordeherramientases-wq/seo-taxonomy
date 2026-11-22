@@ -73,7 +73,11 @@ final class TCSUP_Source_Safety {
 				$matches[] = $candidate;
 			}
 		}
-		return 1 === count( $matches ) && count( $posts ) < 20 ? $matches[0] : 0;
+		if ( 1 !== count( $matches ) || count( $posts ) >= 20 ) {
+			return 0;
+		}
+		$matched_row = self::source_for_product( $matches[0] );
+		return $matched_row && absint( $matched_row['id'] ?? 0 ) === $catalog_id ? $matches[0] : 0;
 	}
 
 	/**
