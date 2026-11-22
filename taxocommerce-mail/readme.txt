@@ -4,7 +4,7 @@ Tags: email, imap, smtp, webmail, multiple-accounts
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.1
+Stable tag: 0.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,10 @@ No. SMTP configured for a mailbox in this plugin is used only by this plugin, no
 No. In this initial version, only administrators can access mail and manage accounts.
 
 == Changelog ==
+
+= 0.1.2 =
+* Add five locale catalogs for accounts, inbox, compose, Autocheck and manuals.
+
 
 = 0.1.1 =
 * Simple three-field hosting mailbox setup; previous advanced SMTP options preserved.
