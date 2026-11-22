@@ -150,6 +150,11 @@ assert_safety( 0 === TCSUP_Source_Safety::product_for_row( $GLOBALS['safety_rows
 
 $GLOBALS['safety_posts'][905] = array( 'type' => 'product', 'status' => 'publish' );
 assert_safety( ! TCSUP_Source_Safety::is_blocked( 905 ), 'Generic WooCommerce product without supplier link is not affected' );
+$GLOBALS['safety_rows'][55]['object_id'] = 999;
+assert_safety( ! TCSUP_Source_Safety::is_blocked( 901 ), 'Conflicting catalogue object_id does not withdraw another WooCommerce product' );
+assert_safety( 0 === TCSUP_Source_Safety::product_for_row( $GLOBALS['safety_rows'][55] ), 'Conflicting row/product linkage is not considered verified' );
+$GLOBALS['safety_rows'][55]['object_id'] = 901;
+
 $bootstrap_source = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-suppliers.php' );
 $products_source  = file_get_contents( dirname( __DIR__ ) . '/includes/class-tcsup-products.php' );
 $admin_source     = file_get_contents( dirname( __DIR__ ) . '/includes/class-tcsup-admin.php' );
