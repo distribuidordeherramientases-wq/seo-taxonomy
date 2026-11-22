@@ -1,0 +1,191 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: nl_NL\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Settings"
+msgstr "Instellingen"
+
+msgid "Mail"
+msgstr "E-mail"
+
+msgid "Permission denied."
+msgstr "Toegang geweigerd."
+
+msgid "Mailbox"
+msgstr "Postvak"
+
+msgid "Open"
+msgstr "Openen"
+
+msgid "Mail accounts"
+msgstr "E-mailaccounts"
+
+msgid "Add existing hosting mailboxes. Mailbox creation and passwords are managed by your provider, not WordPress. Enter the exact secure hosts from your provider settings."
+msgstr "Voeg bestaande postvakken van je hoster toe. Aanmaken en wachtwoorden worden bij de provider beheerd, niet in WordPress. Vul de juiste beveiligde servers in."
+
+msgid "Name"
+msgstr "Naam"
+
+msgid "Address"
+msgstr "Adres"
+
+msgid "IMAP server"
+msgstr "IMAP-server"
+
+msgid "SMTP server"
+msgstr "SMTP-server"
+
+msgid "Actions"
+msgstr "Acties"
+
+msgid "Edit"
+msgstr "Bewerken"
+
+msgid "Inbox"
+msgstr "Postvak IN"
+
+msgid "Test IMAP"
+msgstr "IMAP testen"
+
+msgid "Remove this account from WordPress? Messages remain on the mail server."
+msgstr "Dit account uit WordPress verwijderen? Berichten blijven op de mailserver."
+
+msgid "Remove"
+msgstr "Verwijderen"
+
+msgid "No mailboxes configured."
+msgstr "Geen postvakken ingesteld."
+
+msgid "Edit mailbox"
+msgstr "Postvak bewerken"
+
+msgid "Add mailbox"
+msgstr "Postvak toevoegen"
+
+msgid "OpenSSL AES-256-GCM is required for encrypted credential storage. No account can be saved."
+msgstr "OpenSSL AES-256-GCM is vereist voor versleutelde opslag van inloggegevens. Accounts kunnen niet worden opgeslagen."
+
+msgid "Quick setup: enter your full mailbox email address, password and the secure IMAP server from your hosting provider."
+msgstr "Snelle configuratie: voer volledig e-mailadres, wachtwoord en beveiligde IMAP-server in."
+
+msgid "Email / username"
+msgstr "E-mail / gebruikersnaam"
+
+msgid "Mailbox password"
+msgstr "Postvakwachtwoord"
+
+msgid "The password remains hidden. Leave blank when editing to keep the saved encrypted password."
+msgstr "Het wachtwoord blijft verborgen. Laat leeg bij bewerken om het opgeslagen versleutelde wachtwoord te behouden."
+
+msgid "Incoming mail server (IMAP SSL 993)"
+msgstr "Inkomende server (IMAP SSL 993)"
+
+msgid "Copy the SSL/TLS host name exactly as shown by your mail hosting provider. Do not include https:// or a port."
+msgstr "Kopieer de SSL/TLS-hostnaam exact van je provider. Voeg geen https:// of poort toe."
+
+msgid "Advanced details (optional)"
+msgstr "Geavanceerde gegevens (optioneel)"
+
+msgid "These values are optional for receiving messages. SMTP defaults to the same server, port 465. Change them only if your provider gives different settings."
+msgstr "Deze gegevens zijn optioneel voor ontvangen. SMTP gebruikt standaard dezelfde server en poort 465. Wijzig alleen als je provider andere instellingen opgeeft."
+
+msgid "Display name"
+msgstr "Weergavenaam"
+
+msgid "Sender email (defaults to username)"
+msgstr "E-mail afzender (standaard gebruikersnaam)"
+
+msgid "Outgoing mail server (SMTP)"
+msgstr "Uitgaande server (SMTP)"
+
+msgid "SMTP encrypted port"
+msgstr "Versleutelde SMTP-poort"
+
+msgid "Update mailbox"
+msgstr "Postvak bijwerken"
+
+msgid "Add and select a mailbox first."
+msgstr "Voeg eerst een postvak toe en selecteer het."
+
+msgid "Showing the latest 12 messages without changing their read status. Emails remain on your provider server."
+msgstr "De laatste 12 berichten worden getoond zonder de leesstatus te wijzigen. Ze blijven op de server van de provider."
+
+msgid "Back to inbox"
+msgstr "Terug naar Postvak IN"
+
+msgid "From"
+msgstr "Van"
+
+msgid "Reply"
+msgstr "Beantwoorden"
+
+msgid "Subject"
+msgstr "Onderwerp"
+
+msgid "Date"
+msgstr "Datum"
+
+msgid "No messages found."
+msgstr "Geen berichten gevonden."
+
+msgid "Unable to read this inbox. Check the server, credentials and TLS certificate using Test IMAP. Message details are not stored."
+msgstr "Dit postvak kan niet worden gelezen. Controleer server, inloggegevens en TLS-certificaat via IMAP testen. Berichtgegevens worden niet opgeslagen."
+
+msgid "Compose email"
+msgstr "E-mail opstellen"
+
+msgid "Sending from:"
+msgstr "Verzenden vanaf:"
+
+msgid "To"
+msgstr "Aan"
+
+msgid "Message (plain text)"
+msgstr "Bericht (platte tekst)"
+
+msgid "Send email"
+msgstr "E-mail verzenden"
+
+msgid "TaxoCommerce Mail"
+msgstr "TaxoCommerce Mail"
+
+msgid "Compose"
+msgstr "Opstellen"
+
+msgid "Accounts"
+msgstr "Accounts"
+
+msgid "Autocheck"
+msgstr "Zelfcontrole"
+
+msgid "User manual"
+msgstr "Gebruikershandleiding"
+
+msgid "Technical manual"
+msgstr "Technische handleiding"
+
+msgid "Mail sections"
+msgstr "E-mailonderdelen"
+
+msgid "Mailbox settings saved."
+msgstr "Postvakinstellingen opgeslagen."
+
+msgid "Mailbox disconnected from WordPress. Server messages were not deleted."
+msgstr "Postvak losgekoppeld van WordPress. Serverberichten zijn niet verwijderd."
+
+msgid "Invalid data, missing password or encryption unavailable. Account was not saved."
+msgstr "Ongeldige gegevens, ontbrekend wachtwoord of versleuteling niet beschikbaar. Account niet opgeslagen."
+
+msgid "IMAP connection succeeded. SMTP delivery has not been tested."
+msgstr "IMAP-verbinding geslaagd. SMTP-verzending is niet getest."
+
+msgid "IMAP connection failed. Check your host, credentials, certificate and server access."
+msgstr "IMAP-verbinding mislukt. Controleer server, inloggegevens, certificaat en toegang."
+
+msgid "SMTP server accepted the message. Delivery to the recipient cannot be guaranteed."
+msgstr "De SMTP-server heeft het bericht geaccepteerd. Aflevering aan de ontvanger is niet gegarandeerd."
+
+msgid "SMTP send failed. Check account settings and SMTP restrictions."
+msgstr "SMTP-verzending mislukt. Controleer instellingen en serverbeperkingen."

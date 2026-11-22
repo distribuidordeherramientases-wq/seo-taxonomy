@@ -1,0 +1,191 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: es_ES\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Settings"
+msgstr "Configuración"
+
+msgid "Mail"
+msgstr "Correo"
+
+msgid "Permission denied."
+msgstr "Permiso denegado."
+
+msgid "Mailbox"
+msgstr "Buzón"
+
+msgid "Open"
+msgstr "Abrir"
+
+msgid "Mail accounts"
+msgstr "Cuentas de correo"
+
+msgid "Add existing hosting mailboxes. Mailbox creation and passwords are managed by your provider, not WordPress. Enter the exact secure hosts from your provider settings."
+msgstr "Añade buzones existentes de tu proveedor de alojamiento. La creación y las contraseñas se gestionan con el proveedor, no con WordPress. Introduce los servidores seguros exactos facilitados."
+
+msgid "Name"
+msgstr "Nombre"
+
+msgid "Address"
+msgstr "Dirección"
+
+msgid "IMAP server"
+msgstr "Servidor IMAP"
+
+msgid "SMTP server"
+msgstr "Servidor SMTP"
+
+msgid "Actions"
+msgstr "Acciones"
+
+msgid "Edit"
+msgstr "Editar"
+
+msgid "Inbox"
+msgstr "Bandeja de entrada"
+
+msgid "Test IMAP"
+msgstr "Probar IMAP"
+
+msgid "Remove this account from WordPress? Messages remain on the mail server."
+msgstr "¿Quitar esta cuenta de WordPress? Los mensajes permanecerán en el servidor de correo."
+
+msgid "Remove"
+msgstr "Eliminar"
+
+msgid "No mailboxes configured."
+msgstr "No hay buzones configurados."
+
+msgid "Edit mailbox"
+msgstr "Editar buzón"
+
+msgid "Add mailbox"
+msgstr "Añadir buzón"
+
+msgid "OpenSSL AES-256-GCM is required for encrypted credential storage. No account can be saved."
+msgstr "Se necesita OpenSSL AES-256-GCM para guardar credenciales cifradas. No se puede guardar ninguna cuenta."
+
+msgid "Quick setup: enter your full mailbox email address, password and the secure IMAP server from your hosting provider."
+msgstr "Configuración rápida: introduce la dirección completa, la contraseña y el servidor IMAP seguro de tu proveedor."
+
+msgid "Email / username"
+msgstr "Correo electrónico / usuario"
+
+msgid "Mailbox password"
+msgstr "Contraseña del buzón"
+
+msgid "The password remains hidden. Leave blank when editing to keep the saved encrypted password."
+msgstr "La contraseña permanece oculta. Déjalo en blanco al editar para conservar la contraseña cifrada existente."
+
+msgid "Incoming mail server (IMAP SSL 993)"
+msgstr "Servidor de entrada (IMAP SSL 993)"
+
+msgid "Copy the SSL/TLS host name exactly as shown by your mail hosting provider. Do not include https:// or a port."
+msgstr "Copia exactamente el nombre de servidor SSL/TLS de tu proveedor. No incluyas https:// ni un puerto."
+
+msgid "Advanced details (optional)"
+msgstr "Datos avanzados (opcionales)"
+
+msgid "These values are optional for receiving messages. SMTP defaults to the same server, port 465. Change them only if your provider gives different settings."
+msgstr "Estos datos son opcionales para recibir mensajes. Por defecto, SMTP utiliza el mismo servidor y el puerto 465. Cámbialos solo si tu proveedor indica otros valores."
+
+msgid "Display name"
+msgstr "Nombre para mostrar"
+
+msgid "Sender email (defaults to username)"
+msgstr "Correo del remitente (por defecto, el usuario)"
+
+msgid "Outgoing mail server (SMTP)"
+msgstr "Servidor saliente (SMTP)"
+
+msgid "SMTP encrypted port"
+msgstr "Puerto SMTP cifrado"
+
+msgid "Update mailbox"
+msgstr "Actualizar buzón"
+
+msgid "Add and select a mailbox first."
+msgstr "Añade y selecciona primero un buzón."
+
+msgid "Showing the latest 12 messages without changing their read status. Emails remain on your provider server."
+msgstr "Se muestran los últimos 12 mensajes sin cambiar su estado de lectura. Permanecen en el servidor de tu proveedor."
+
+msgid "Back to inbox"
+msgstr "Volver a la bandeja de entrada"
+
+msgid "From"
+msgstr "De"
+
+msgid "Reply"
+msgstr "Responder"
+
+msgid "Subject"
+msgstr "Asunto"
+
+msgid "Date"
+msgstr "Fecha"
+
+msgid "No messages found."
+msgstr "No se han encontrado mensajes."
+
+msgid "Unable to read this inbox. Check the server, credentials and TLS certificate using Test IMAP. Message details are not stored."
+msgstr "No se puede leer esta bandeja. Comprueba servidor, credenciales y certificado TLS con «Probar IMAP». No se guardan los detalles del mensaje."
+
+msgid "Compose email"
+msgstr "Redactar correo"
+
+msgid "Sending from:"
+msgstr "Enviar desde:"
+
+msgid "To"
+msgstr "Para"
+
+msgid "Message (plain text)"
+msgstr "Mensaje (texto sin formato)"
+
+msgid "Send email"
+msgstr "Enviar correo"
+
+msgid "TaxoCommerce Mail"
+msgstr "TaxoCommerce Mail"
+
+msgid "Compose"
+msgstr "Redactar"
+
+msgid "Accounts"
+msgstr "Cuentas"
+
+msgid "Autocheck"
+msgstr "Autochequeo"
+
+msgid "User manual"
+msgstr "Manual de usuario"
+
+msgid "Technical manual"
+msgstr "Manual técnico"
+
+msgid "Mail sections"
+msgstr "Secciones de correo"
+
+msgid "Mailbox settings saved."
+msgstr "Configuración del buzón guardada."
+
+msgid "Mailbox disconnected from WordPress. Server messages were not deleted."
+msgstr "Buzón desconectado de WordPress. No se han borrado mensajes del servidor."
+
+msgid "Invalid data, missing password or encryption unavailable. Account was not saved."
+msgstr "Datos inválidos, falta la contraseña o no hay cifrado disponible. No se ha guardado la cuenta."
+
+msgid "IMAP connection succeeded. SMTP delivery has not been tested."
+msgstr "Conexión IMAP correcta. El envío SMTP no se ha probado."
+
+msgid "IMAP connection failed. Check your host, credentials, certificate and server access."
+msgstr "Error en la conexión IMAP. Comprueba servidor, credenciales, certificado y acceso."
+
+msgid "SMTP server accepted the message. Delivery to the recipient cannot be guaranteed."
+msgstr "El servidor SMTP ha aceptado el mensaje. No se garantiza su entrega al destinatario."
+
+msgid "SMTP send failed. Check account settings and SMTP restrictions."
+msgstr "Error al enviar por SMTP. Comprueba la configuración y las restricciones del servidor."
