@@ -150,4 +150,11 @@ assert_safety( 0 === TCSUP_Source_Safety::product_for_row( $GLOBALS['safety_rows
 
 $GLOBALS['safety_posts'][905] = array( 'type' => 'product', 'status' => 'publish' );
 assert_safety( ! TCSUP_Source_Safety::is_blocked( 905 ), 'Generic WooCommerce product without supplier link is not affected' );
+$bootstrap_source = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-suppliers.php' );
+$products_source  = file_get_contents( dirname( __DIR__ ) . '/includes/class-tcsup-products.php' );
+$admin_source     = file_get_contents( dirname( __DIR__ ) . '/includes/class-tcsup-admin.php' );
+assert_safety( false !== strpos( $bootstrap_source, "'woocommerce_is_purchasable'" ), 'WooCommerce purchase safety filter is actually registered' );
+assert_safety( false !== strpos( $bootstrap_source, "'woocommerce_product_is_visible'" ), 'WooCommerce catalogue visibility filter is registered' );
+assert_safety( false !== strpos( $products_source, 'TCSUP_Source_Safety::unpublish_discarded( $row )' ), 'Discard action reconciles the WooCommerce publication state' );
+assert_safety( false !== strpos( $admin_source, 'TCSUP_Source_Safety::possible_orphan( $row )' ), 'Supplier inventory exposes unlinked published SKU warnings' );
 echo "Suppliers rejected-source sale safety regression: PASS\n";
