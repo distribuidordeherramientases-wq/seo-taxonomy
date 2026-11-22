@@ -287,19 +287,19 @@ msgid "Use Test IMAP per account to verify inbound access. Send a test SMTP mess
 msgstr "Gebruik IMAP testen per account. Stuur een SMTP-test naar een eigen adres en controleer ontvangst. Zelfcontrole bevestigt externe aflevering niet automatisch."
 
 msgid "Manage several hosting email accounts inside WordPress through secure IMAP and SMTP."
-msgstr undefined
+msgstr "Beheer meerdere hosting-e-mailaccounts vanuit WordPress via veilige IMAP en SMTP."
 
 msgid "Private hosting email client."
-msgstr undefined
+msgstr "Privé e-mailclient voor hosting."
 
 msgid "Version"
-msgstr undefined
+msgstr "Versie"
 
 msgid "Last updated"
-msgstr undefined
+msgstr "Laatst bijgewerkt"
 
 msgid "Version history and improvements"
-msgstr undefined
+msgstr "Versiegeschiedenis en verbeteringen"
 
 msgid "Official plugin page"
-msgstr undefined
+msgstr "Officiële pluginpagina"
