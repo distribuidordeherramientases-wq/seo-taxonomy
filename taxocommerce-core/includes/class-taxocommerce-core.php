@@ -577,7 +577,8 @@ final class TaxoCommerce_Core {
 
 		// Lite editions are standalone tools, not centrally managed Core extensions.
 		foreach ( $extensions as $id => $entry ) {
-			$entry_slug = sanitize_key( (string) ( (array) $entry )['org_slug'] ?? '' );
+			$entry_data = (array) $entry;
+			$entry_slug = sanitize_key( (string) ( $entry_data['org_slug'] ?? '' ) );
 			if ( preg_match( '/-lite$/', $entry_slug ) ) {
 				unset( $extensions[ $id ] );
 			}
