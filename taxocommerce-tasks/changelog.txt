@@ -1,3 +1,6 @@
+= 0.1.19 (2026-11-23) =
+* Tasks Pro header and its styles render only on `page=taxocommerce-tasks`, not the independent Tasks Lite page. Issue #2942. No task data or features changed.
+
 = 0.1.18 (2026-11-13) =
 * Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.
 
