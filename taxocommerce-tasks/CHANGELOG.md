@@ -1,3 +1,8 @@
+## [0.1.19] — 2026-11-23 — Aislamiento de la cabecera Pro frente a Lite (#2942)
+
+- La cabecera y el estilo de Tasks Pro se muestran solo en la página administrativa exacta `taxocommerce-tasks`; no se activan en `taxocommerce-tasks-lite`.
+- Prueba de regresión sobre el detector de página. Sin alterar tareas, tablas, categorías, menús, traducciones ni código Lite.
+
 ## [0.1.18] — 2026-11-13 — Code Check equiparado a Core 0.4.82 (#2626)
 
 - Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.
