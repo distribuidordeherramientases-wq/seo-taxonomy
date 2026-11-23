@@ -121,7 +121,8 @@ final class TCMAIL_Autocheck {
         if ( ! is_array( $report ) ) {
             return;
         }
-        echo '<p>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-mail' ) . ': ' . esc_html( $report['executed_at'] ) . '</p>';
+        echo '<p>' . esc_html__( 'Last executed', 'taxocommerce-mail' ) . ': ' . esc_html( $report['executed_at'] ) . '</p>';
+        echo '<p><strong>' . esc_html( 'OK ' . (int) $report['totals']['ok'] . ' / WARN ' . (int) $report['totals']['warning'] . ' / ERROR ' . (int) $report['totals']['error'] ) . '</strong></p>';
         echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Check', 'taxocommerce-mail' ) . '</th><th>' . esc_html__( 'Status', 'taxocommerce-mail' ) . '</th><th>' . esc_html__( 'Details', 'taxocommerce-mail' ) . '</th></tr></thead><tbody>';
         foreach ( $report['rows'] as $row ) {
             echo '<tr><td>' . esc_html( $row['check'] ) . '</td><td>' . esc_html( $row['status'] ) . '</td><td>' . esc_html( $row['details'] ) . '</td></tr>';
