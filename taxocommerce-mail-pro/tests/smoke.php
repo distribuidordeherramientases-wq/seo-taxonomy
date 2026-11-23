@@ -16,8 +16,8 @@ function sanitize_email( $value ) { return strtolower( filter_var( $value, FILTE
 function is_email( $value ) { return (bool) filter_var( $value, FILTER_VALIDATE_EMAIL ); }
 function wp_strip_all_tags( $value ) { return strip_tags( $value ); }
 function sanitize_text_field( $value ) { return preg_replace( '/[\x00-\x1f\x7f]/', '', strip_tags( (string) $value ) ); }
-require_once dirname( __DIR__ ) . '/includes/class-tcmail-accounts.php';
-require_once dirname( __DIR__ ) . '/includes/class-tcmail-imap.php';
+require_once dirname( __DIR__ ) . '/includes/class-tcmailpro-accounts.php';
+require_once dirname( __DIR__ ) . '/includes/class-tcmailpro-imap.php';
 function assert_mail( $value, $message ) {
     if ( ! $value ) {
         fwrite( STDERR, "FAIL: $message\n" );
@@ -60,4 +60,10 @@ $multipart = "From: customer@example.test\r\nContent-Type: multipart/alternative
 $parsed = TCMAILPRO_IMAP::parse_message( $multipart );
 assert_mail( 'Preferred plain part' === $parsed['body'], 'Multipart alternative should use text/plain.' );
 assert_mail( TCMAILPRO_Accounts::remove( $id ) && 0 === count( TCMAILPRO_Accounts::public_list() ), 'Disconnecting mailbox failed.' );
-echo "PASS: encrypted account storage, mailbox validation and basic MIME reading.\n";
+assert_mail( array( 1, 2 ) === TCMAILPRO_IMAP::safe_uids( array( '1', '2', '1' ) ), 'Unique selected UIDs are not validated.' );
+assert_mail( array() === TCMAILPRO_IMAP::safe_uids( array( '1', '0' ) ), 'Invalid UID must reject whole selection.' );
+assert_mail( TCMAILPRO_IMAP::valid_folder_name( 'My Archive 2026' ), 'Personal folder should be permitted.' );
+assert_mail( ! TCMAILPRO_IMAP::valid_folder_name( 'INBOX' ), 'System folder must not be renamable.' );
+assert_mail( ! TCMAILPRO_IMAP::valid_folder_name( '../tmp' ), 'Unsafe folder name accepted.' );
+assert_mail( 'Sent' === TCMAILPRO_IMAP::special_folder( array( 'Sent' => array( 'sent' => true ) ), 'sent' ), 'Sent folder detection failed.' );
+echo "PASS: Pro independent encrypted accounts, MIME, safe UIDs, safe folders and mailbox operation guards.\n";
