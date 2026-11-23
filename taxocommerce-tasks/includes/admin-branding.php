@@ -13,7 +13,8 @@ $tc_brand_info = require __DIR__ . '/official-excerpt.php';
 $tc_brand_on_screen = static function () use ( $tc_brand_slug ) {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only WordPress admin route.
     $page = isset( $_GET['page'] ) && is_string( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-    return $page === $tc_brand_slug || 0 === strpos( $page, $tc_brand_slug . '-' );
+    // Lite owns a separate administration page; never render the Pro header there.
+    return $page === $tc_brand_slug;
 };
 
 add_filter( 'admin_body_class', static function ( $classes ) use ( $tc_brand_on_screen ) {
