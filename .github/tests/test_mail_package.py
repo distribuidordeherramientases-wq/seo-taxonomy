@@ -51,7 +51,7 @@ class MailPackageTests(unittest.TestCase):
         self.assertIn("Version: 0.1.3", entry)
         self.assertIn("Stable tag: 0.1.3", readme)
         self.assertIn("Text Domain: taxocommerce-mail", entry)
-        self.assertIn("TCMAIL_Accounts", entry)
+        self.assertIn("includes/class-tcmail-accounts.php", entry)
         self.assertIn("taxocommerce-mail/taxocommerce-mail.php", entry)
         self.assertIn("TaxoCommerce Mail Lite", entry)
         self.assertIn("TaxoCommerce Mail Pro", admin)
