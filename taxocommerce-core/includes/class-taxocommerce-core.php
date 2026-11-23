@@ -547,13 +547,13 @@ final class TaxoCommerce_Core {
 			),
 			'tasks' => array(
 				'id'            => 'tasks',
-				'name'          => 'TaxoCommerce Tasks',
+				'name'          => 'TaxoCommerce Tasks Pro',
 				'plugin_file'   => 'taxocommerce-tasks/taxocommerce-tasks.php',
 				'org_slug'      => 'taxocommerce-tasks',
-				'search_term'   => 'TaxoCommerce Tasks',
+				'search_term'   => 'TaxoCommerce Tasks Pro',
 				'wordpress_org' => false,
 				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-tasks' ),
-				'description'   => __( 'Private task agenda, calendar, categories and indicators.', 'taxocommerce-core' ),
+				'description'   => __( 'Advanced task agenda, categories, assignments, calendar and indicators.', 'taxocommerce-core' ),
 			),
 			'auditor' => array(
 				'id'            => 'auditor',
@@ -574,6 +574,14 @@ final class TaxoCommerce_Core {
 		 * @param array $extensions Family extensions.
 		 */
 		$extensions = (array) apply_filters( 'taxocommerce_core_family_extensions', $extensions );
+
+		// Lite editions are standalone tools, not centrally managed Core extensions.
+		foreach ( $extensions as $id => $entry ) {
+			$entry_slug = sanitize_key( (string) ( (array) $entry )['org_slug'] ?? '' );
+			if ( preg_match( '/-lite$/', $entry_slug ) ) {
+				unset( $extensions[ $id ] );
+			}
+		}
 
 		return $this->discover_family_extensions( $extensions );
 	}
@@ -613,6 +621,9 @@ final class TaxoCommerce_Core {
 				continue;
 			}
 			$slug = $matches[1];
+			if ( preg_match( '/-lite$/', $slug ) ) {
+				continue;
+			}
 			$name = trim( (string) ( $plugin_data['Name'] ?? '' ) );
 			// The folder prefix alone is insufficient: unrelated software is excluded.
 			if ( 'taxocommerce-core' === $slug || 0 !== stripos( $name, 'TaxoCommerce' ) ) {
@@ -653,6 +664,9 @@ final class TaxoCommerce_Core {
 				continue;
 			}
 			$slug = $matches[1];
+			if ( preg_match( '/-lite$/', $slug ) ) {
+				continue;
+			}
 			if ( 'taxocommerce-core' === $slug || isset( $known_slugs[ $slug ] )
 				|| is_link( $package ) || ! is_file( $package ) || ! is_readable( $package ) ) {
 				continue;
