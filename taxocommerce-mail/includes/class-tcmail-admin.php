@@ -31,10 +31,11 @@ final class TCMAIL_Admin {
 
     public static function menu() {
         $parent = function_exists( 'taxocommerce_core' ) || defined( 'TAXOCOMMERCE_CORE_VERSION' ) ? 'taxocommerce-core' : '';
+        $menu_label = __( 'Mail', 'taxocommerce-mail' ) . ' Lite';
         if ( $parent ) {
-            add_submenu_page( $parent, __( 'Mail', 'taxocommerce-mail' ), __( 'Mail', 'taxocommerce-mail' ), self::CAP, 'taxocommerce-mail', array( __CLASS__, 'render' ) );
+            add_submenu_page( $parent, $menu_label, $menu_label, self::CAP, 'taxocommerce-mail', array( __CLASS__, 'render' ) );
         } else {
-            add_menu_page( __( 'Mail', 'taxocommerce-mail' ), __( 'Mail', 'taxocommerce-mail' ), self::CAP, 'taxocommerce-mail', array( __CLASS__, 'render' ), 'dashicons-email-alt', 55 );
+            add_menu_page( $menu_label, $menu_label, self::CAP, 'taxocommerce-mail', array( __CLASS__, 'render' ), 'dashicons-email-alt', 55 );
         }
     }
 
