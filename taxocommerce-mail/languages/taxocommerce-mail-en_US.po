@@ -148,8 +148,8 @@ msgstr "Message (plain text)"
 msgid "Send email"
 msgstr "Send email"
 
-msgid "TaxoCommerce Mail"
-msgstr "TaxoCommerce Mail"
+msgid "TaxoCommerce Mail Lite"
+msgstr "TaxoCommerce Mail Lite"
 
 msgid "Compose"
 msgstr "Compose"
@@ -303,3 +303,30 @@ msgstr "Historique des versions et améliorations"
 
 msgid "Official plugin page"
 msgstr "Page officielle du plugin"
+
+msgid "The Pro edition is planned as an optional separate add-on. Lite is free and fully functional as described in its manuals; no purchase or activation is required."
+msgstr "The Pro edition is planned as an optional separate add-on. Lite is free and fully functional as described in its manuals; no purchase or activation is required."
+
+msgid "Pro roadmap: manage sent messages, create and organize folders, move messages, bulk selection and move-to-Trash/restore. These functions are not included in Lite."
+msgstr "Pro roadmap: manage sent messages, create and organize folders, move messages, bulk selection and move-to-Trash/restore. These functions are not included in Lite."
+
+msgid "Last executed"
+msgstr "Last executed"
+
+msgid "Optional extensions"
+msgstr "Optional extensions"
+
+msgid "The Pro page is informational only. Lite includes no premium feature gates, licensing checks, external Pro code or mandatory connections to TaxoCommerce Core. The plugin basename, text domain and saved options remain unchanged."
+msgstr "The Pro page is informational only. Lite includes no premium feature gates, licensing checks, external Pro code or mandatory connections to TaxoCommerce Core. The plugin basename, text domain and saved options remain unchanged."
+
+msgid "Lite and Pro editions"
+msgstr "Lite and Pro editions"
+
+msgid "Mail Lite is the free standalone edition. It can configure multiple accounts, read the 12 newest inbox messages, compose and reply; it does not provide folders, a Sent view or message deletion. Pro is a future separate add-on, not required to use Lite."
+msgstr "Mail Lite is the free standalone edition. It can configure multiple accounts, read the 12 newest inbox messages, compose and reply; it does not provide folders, a Sent view or message deletion. Pro is a future separate add-on, not required to use Lite."
+
+msgid "Hosting provider settings"
+msgstr "Hosting provider settings"
+
+msgid "In your hosting control panel, find email client connection details. Use the exact SSL/TLS host and ports provided: IMAP 993, SMTP 465 or STARTTLS 587."
+msgstr "In your hosting control panel, find email client connection details. Use the exact SSL/TLS host and ports provided: IMAP 993, SMTP 465 or STARTTLS 587."

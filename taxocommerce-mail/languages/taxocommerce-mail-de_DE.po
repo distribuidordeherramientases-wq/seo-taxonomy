@@ -148,8 +148,8 @@ msgstr "Nachricht (Nur-Text)"
 msgid "Send email"
 msgstr "E-Mail senden"
 
-msgid "TaxoCommerce Mail"
-msgstr "TaxoCommerce Mail"
+msgid "TaxoCommerce Mail Lite"
+msgstr "TaxoCommerce Mail Lite"
 
 msgid "Compose"
 msgstr "Verfassen"
@@ -303,3 +303,30 @@ msgstr "Versiegeschiedenis en verbeteringen"
 
 msgid "Official plugin page"
 msgstr "Officiële pluginpagina"
+
+msgid "The Pro edition is planned as an optional separate add-on. Lite is free and fully functional as described in its manuals; no purchase or activation is required."
+msgstr "Die Pro-Edition ist als optionales, separates Zusatzmodul geplant. Lite ist kostenlos und bietet alle im Handbuch beschriebenen Funktionen; Kauf oder Aktivierung sind nicht erforderlich."
+
+msgid "Pro roadmap: manage sent messages, create and organize folders, move messages, bulk selection and move-to-Trash/restore. These functions are not included in Lite."
+msgstr "Geplante Pro-Funktionen: gesendete Nachrichten verwalten, Ordner erstellen und organisieren, Nachrichten verschieben, Mehrfachauswahl und Papierkorb/Wiederherstellung. Diese Funktionen sind nicht in Lite enthalten."
+
+msgid "Last executed"
+msgstr "Letzte Ausführung"
+
+msgid "Optional extensions"
+msgstr "Optionale Erweiterungen"
+
+msgid "The Pro page is informational only. Lite includes no premium feature gates, licensing checks, external Pro code or mandatory connections to TaxoCommerce Core. The plugin basename, text domain and saved options remain unchanged."
+msgstr "Die Pro-Seite dient nur zur Information. Lite enthält keine gesperrten Bezahlfunktionen, keine Lizenzprüfung, keinen externen Pro-Code und keine verpflichtende Verbindung zu TaxoCommerce Core. Plugin-Kennung, Textdomain und gespeicherte Einstellungen bleiben unverändert."
+
+msgid "Lite and Pro editions"
+msgstr "Lite- und Pro-Editionen"
+
+msgid "Mail Lite is the free standalone edition. It can configure multiple accounts, read the 12 newest inbox messages, compose and reply; it does not provide folders, a Sent view or message deletion. Pro is a future separate add-on, not required to use Lite."
+msgstr "Mail Lite ist die kostenlose, eigenständige Edition. Sie kann mehrere Konten einrichten, die 12 neuesten Nachrichten im Posteingang lesen sowie Nachrichten verfassen und beantworten; Ordner, ein Gesendet-Ordner und das Löschen fehlen. Pro ist ein künftiges separates, optionales Zusatzmodul."
+
+msgid "Hosting provider settings"
+msgstr "Mailserver-Einstellungen des Hosters"
+
+msgid "In your hosting control panel, find email client connection details. Use the exact SSL/TLS host and ports provided: IMAP 993, SMTP 465 or STARTTLS 587."
+msgstr "Die Verbindungsdaten finden Sie in der E-Mail-Konfiguration Ihres Hosters. Verwenden Sie genau den angegebenen SSL/TLS-Server und die Ports: IMAP 993, SMTP 465 oder STARTTLS 587."

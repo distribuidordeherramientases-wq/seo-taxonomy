@@ -148,8 +148,8 @@ msgstr "Bericht (platte tekst)"
 msgid "Send email"
 msgstr "E-mail verzenden"
 
-msgid "TaxoCommerce Mail"
-msgstr "TaxoCommerce Mail"
+msgid "TaxoCommerce Mail Lite"
+msgstr "TaxoCommerce Mail Lite"
 
 msgid "Compose"
 msgstr "Opstellen"
@@ -303,3 +303,30 @@ msgstr "Versiegeschiedenis en verbeteringen"
 
 msgid "Official plugin page"
 msgstr "Officiële pluginpagina"
+
+msgid "The Pro edition is planned as an optional separate add-on. Lite is free and fully functional as described in its manuals; no purchase or activation is required."
+msgstr "De Pro-editie is gepland als een afzonderlijke optionele uitbreiding. Lite is gratis en volledig bruikbaar zoals beschreven in de handleidingen; aankoop of activering is niet nodig."
+
+msgid "Pro roadmap: manage sent messages, create and organize folders, move messages, bulk selection and move-to-Trash/restore. These functions are not included in Lite."
+msgstr "Geplande Pro-functies: verzonden berichten beheren, mappen maken en organiseren, berichten verplaatsen, meerdere berichten selecteren en naar de prullenbak verplaatsen of herstellen. Deze functies zijn niet beschikbaar in Lite."
+
+msgid "Last executed"
+msgstr "Laatst uitgevoerd"
+
+msgid "Optional extensions"
+msgstr "Optionele uitbreidingen"
+
+msgid "The Pro page is informational only. Lite includes no premium feature gates, licensing checks, external Pro code or mandatory connections to TaxoCommerce Core. The plugin basename, text domain and saved options remain unchanged."
+msgstr "Het Pro-tabblad is alleen informatief. Lite bevat geen geblokkeerde betaalfuncties, licentiecontroles, externe Pro-code of verplichte koppeling met TaxoCommerce Core. De pluginidentificatie, het tekstdomein en de opgeslagen instellingen blijven gelijk."
+
+msgid "Lite and Pro editions"
+msgstr "Lite- en Pro-edities"
+
+msgid "Mail Lite is the free standalone edition. It can configure multiple accounts, read the 12 newest inbox messages, compose and reply; it does not provide folders, a Sent view or message deletion. Pro is a future separate add-on, not required to use Lite."
+msgstr "Mail Lite is de gratis zelfstandige editie. Je kunt meerdere accounts instellen, de 12 nieuwste berichten lezen, berichten opstellen en beantwoorden; mappen, een Verzonden-weergave en verwijderen ontbreken. Pro wordt een aparte optionele uitbreiding."
+
+msgid "Hosting provider settings"
+msgstr "Instellingen van de hostingprovider"
+
+msgid "In your hosting control panel, find email client connection details. Use the exact SSL/TLS host and ports provided: IMAP 993, SMTP 465 or STARTTLS 587."
+msgstr "Zoek de verbindingsgegevens voor e-mailclients in het controlepaneel van je hostingprovider. Gebruik de exacte SSL/TLS-server en poorten: IMAP 993, SMTP 465 of STARTTLS 587."
