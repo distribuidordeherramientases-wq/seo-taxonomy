@@ -47,7 +47,7 @@ final class TCMAILPRO_Mailbox {
         $tab = isset( $_POST['tab'] ) && is_string( $_POST['tab'] ) ? sanitize_key( wp_unslash( $_POST['tab'] ) ) : 'inbox';
         $action = isset( $_POST['bulk_action'] ) && is_string( $_POST['bulk_action'] ) ? sanitize_key( wp_unslash( $_POST['bulk_action'] ) ) : '';
         $target = isset( $_POST['destination'] ) && is_string( $_POST['destination'] ) ? sanitize_text_field( wp_unslash( $_POST['destination'] ) ) : '';
-        $uids = isset( $_POST['uid'] ) && is_array( $_POST['uid'] ) ? TCMAILPRO_IMAP::safe_uids( wp_unslash( $_POST['uid'] ) ) : array();
+        $uids = isset( $_POST['uid'] ) && is_array( $_POST['uid'] ) ? TCMAILPRO_IMAP::safe_uids( map_deep( wp_unslash( $_POST['uid'] ), 'sanitize_text_field' ) ) : array();
         // phpcs:enable WordPress.Security.NonceVerification.Missing
         if ( ! in_array( $tab, array( 'inbox', 'sent', 'trash', 'folders' ), true ) ) {
             $tab = 'inbox';
@@ -237,6 +237,7 @@ final class TCMAILPRO_Mailbox {
         submit_button( __( 'Search', 'taxocommerce-mail-pro' ), 'secondary', 'submit', false );
         echo '</form>';
         $result = $imap->messages( $folder, $page, $search );
+        /* translators: %d: number of messages matching the current IMAP search. */
         echo '<p>' . esc_html( sprintf( __( '%d matching messages', 'taxocommerce-mail-pro' ), $result['total'] ) ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="tcmailpro_bulk"><input type="hidden" name="account" value="' . esc_attr( $id ) . '"><input type="hidden" name="folder" value="' . esc_attr( $folder ) . '"><input type="hidden" name="tab" value="' . esc_attr( $tab ) . '">';
