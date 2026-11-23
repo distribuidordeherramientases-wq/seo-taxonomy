@@ -43,6 +43,21 @@ class ProPackageTests(unittest.TestCase):
         self.assertEqual(original["plugins"]["taxocommerce-ticketing"], updated["plugins"]["taxocommerce-ticketing"])
         self.assertEqual("pro-only", updated["plugins"]["taxocommerce-mail-pro"]["sha256"])
 
+    def test_pro_manual_truthful_and_localizations_parse(self):
+        import gettext
+        manual = (ROOT / "taxocommerce-mail-pro/includes/class-tcmailpro-autocheck.php").read_text(encoding="utf-8")
+        self.assertIn("UID MOVE (RFC 6851)", manual)
+        self.assertIn("Mail Pro > Accounts", manual)
+        self.assertNotIn("12 newest inbox messages", manual)
+        for locale in ("es_ES", "en_US", "fr_FR", "de_DE", "nl_NL"):
+            with self.subTest(locale=locale):
+                with (ROOT / "taxocommerce-mail-pro/languages" / f"taxocommerce-mail-pro-{locale}.mo").open("rb") as handle:
+                    catalog = gettext.GNUTranslations(handle)
+                self.assertEqual(catalog.gettext("TaxoCommerce Mail Pro"), "TaxoCommerce Mail Pro")
+                self.assertNotEqual(catalog.gettext("Folders"), "")
+                if locale != "en_US":
+                    self.assertNotEqual(catalog.gettext("Folders"), "Folders")
+
     def test_independent_admin_and_credentials(self):
         main = (ROOT / "taxocommerce-mail-pro/taxocommerce-mail-pro.php").read_text()
         accounts = (ROOT / "taxocommerce-mail-pro/includes/class-tcmailpro-accounts.php").read_text()
