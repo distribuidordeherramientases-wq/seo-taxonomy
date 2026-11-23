@@ -31,7 +31,7 @@ final class TCMAILPRO_Admin {
 
     public static function menu() {
         $parent = function_exists( 'taxocommerce_core' ) || defined( 'TAXOCOMMERCE_CORE_VERSION' ) ? 'taxocommerce-core' : '';
-        $menu_label = __( 'Mail', 'taxocommerce-mail-pro' ) . ' Lite';
+        $menu_label = __( 'Mail', 'taxocommerce-mail-pro' ) . ' Pro';
         if ( $parent ) {
             add_submenu_page( $parent, $menu_label, $menu_label, self::CAP, 'taxocommerce-mail-pro', array( __CLASS__, 'render' ) );
         } else {
@@ -107,8 +107,26 @@ final class TCMAILPRO_Admin {
         if ( ! $account ) {
             self::location( 'compose', 'invalid' );
         }
-        $success = TCMAILPRO_SMTP::send( $account, $to, $subject, $body );
-        self::location( 'compose', $success ? 'sent' : 'send_failed' );
+        $mime = TCMAILPRO_SMTP::send( $account, $to, $subject, $body );
+        if ( false === $mime ) {
+            self::location( 'compose', 'send_failed' );
+        }
+        $imap = new TCMAILPRO_IMAP();
+        try {
+            $imap->connect( $account );
+            $sent_folder = TCMAILPRO_IMAP::special_folder( $imap->folders(), 'sent' );
+            if ( '' === $sent_folder ) {
+                self::location( 'compose', 'sent_unarchived' );
+            }
+            $imap->append_sent( $sent_folder, $mime );
+            $notice = 'sent';
+        } catch ( RuntimeException $error ) {
+            // SMTP was accepted; failure to file a copy cannot be reported as unsent.
+            $notice = 'sent_unarchived';
+        } finally {
+            $imap->disconnect();
+        }
+        self::location( 'compose', $notice );
     }
 
     private static function account_selector( $tab, $selected ) {
@@ -199,57 +217,6 @@ final class TCMAILPRO_Admin {
         echo '</form>';
     }
 
-    private static function inbox() {
-        $account = self::selected_account();
-        if ( ! $account ) {
-            echo '<p>' . esc_html__( 'Add and select a mailbox first.', 'taxocommerce-mail-pro' ) . '</p>';
-            return;
-        }
-        self::account_selector( 'inbox', $account['id'] );
-        echo '<h2>' . esc_html__( 'Inbox', 'taxocommerce-mail-pro' ) . ' — ' . esc_html( $account['email'] ) . '</h2>';
-        echo '<p>' . esc_html__( 'Showing the latest 12 messages without changing their read status. Emails remain on your provider server.', 'taxocommerce-mail-pro' ) . '</p>';
-        $imap = new TCMAILPRO_IMAP();
-        try {
-            $imap->connect( $account );
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only message UID, no mutations.
-            $uid = isset( $_GET['uid'] ) ? absint( $_GET['uid'] ) : 0;
-            if ( $uid ) {
-                $message = $imap->message( $uid );
-                echo '<p><a href="' . esc_url( add_query_arg( array( 'page' => 'taxocommerce-mail-pro', 'tab' => 'inbox', 'account' => $account['id'] ), admin_url( 'admin.php' ) ) ) . '">' . esc_html__( 'Back to inbox', 'taxocommerce-mail-pro' ) . '</a></p>';
-                echo '<h3>' . esc_html( $message['subject'] ) . '</h3>';
-                echo '<p><strong>' . esc_html__( 'From', 'taxocommerce-mail-pro' ) . ':</strong> ' . esc_html( $message['from'] ) . ' · ' . esc_html( $message['date'] ) . '</p>';
-                echo '<div style="max-width:900px;white-space:pre-wrap;word-wrap:break-word;background:white;padding:18px;border:1px solid #ccc">' . esc_html( $message['body'] ) . '</div>';
-                $reply = self::address_from_header( $message['reply_to'] );
-                if ( $reply ) {
-                    echo '<p><a class="button button-primary" href="' . esc_url( add_query_arg( array( 'page' => 'taxocommerce-mail-pro', 'tab' => 'compose', 'account' => $account['id'], 'to' => $reply, 're' => $message['subject'] ), admin_url( 'admin.php' ) ) ) . '">' . esc_html__( 'Reply', 'taxocommerce-mail-pro' ) . '</a></p>';
-                }
-            } else {
-                $messages = $imap->inbox();
-                echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'From', 'taxocommerce-mail-pro' ) . '</th><th>' . esc_html__( 'Subject', 'taxocommerce-mail-pro' ) . '</th><th>' . esc_html__( 'Date', 'taxocommerce-mail-pro' ) . '</th></tr></thead><tbody>';
-                foreach ( $messages as $row ) {
-                    $link = add_query_arg( array( 'page' => 'taxocommerce-mail-pro', 'tab' => 'inbox', 'account' => $account['id'], 'uid' => $row['uid'] ), admin_url( 'admin.php' ) );
-                    echo '<tr><td>' . esc_html( $row['from'] ) . '</td><td><a href="' . esc_url( $link ) . '">' . esc_html( $row['subject'] ) . '</a></td><td>' . esc_html( $row['date'] ) . '</td></tr>';
-                }
-                if ( ! $messages ) {
-                    echo '<tr><td colspan="3">' . esc_html__( 'No messages found.', 'taxocommerce-mail-pro' ) . '</td></tr>';
-                }
-                echo '</tbody></table>';
-            }
-        } catch ( RuntimeException $error ) {
-            echo '<div class="notice notice-error"><p>' . esc_html__( 'Unable to read this inbox. Check the server, credentials and TLS certificate using Test IMAP. Message details are not stored.', 'taxocommerce-mail-pro' ) . '</p></div>';
-        } finally {
-            $imap->disconnect();
-        }
-    }
-
-    private static function address_from_header( $header ) {
-        if ( preg_match( '/<([^<>]+)>/', $header, $matches ) ) {
-            $header = $matches[1];
-        }
-        $email = sanitize_email( trim( $header ) );
-        return is_email( $email ) ? $email : '';
-    }
-
     private static function compose() {
         $account = self::selected_account();
         if ( ! $account ) {
@@ -275,17 +242,6 @@ final class TCMAILPRO_Admin {
         echo '</form>';
     }
 
-    /**
-     * Informational comparison only; Pro is a separate future add-on, not
-     * functionality hidden or remotely activated in the free Lite package.
-     */
-    private static function pro_information() {
-        echo '<div style="max-width:920px"><h2>TaxoCommerce Mail Pro</h2>';
-        echo '<p>' . esc_html__( 'The Pro edition is planned as an optional separate add-on. Lite is free and fully functional as described in its manuals; no purchase or activation is required.', 'taxocommerce-mail-pro' ) . '</p>';
-        echo '<p>' . esc_html__( 'Pro roadmap: manage sent messages, create and organize folders, move messages, bulk selection and move-to-Trash/restore. These functions are not included in Lite.', 'taxocommerce-mail-pro' ) . '</p>';
-        echo '</div>';
-    }
-
     public static function render() {
         if ( ! current_user_can( self::CAP ) ) {
             wp_die( esc_html__( 'Permission denied.', 'taxocommerce-mail-pro' ), '', array( 'response' => 403 ) );
@@ -294,9 +250,9 @@ final class TCMAILPRO_Admin {
         $tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'inbox';
         $notice = isset( $_GET['tcmailpro_notice'] ) && is_string( $_GET['tcmailpro_notice'] ) ? sanitize_key( wp_unslash( $_GET['tcmailpro_notice'] ) ) : '';
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
-        // The standalone three-zone family header already renders the full Lite name.
+        // The standalone three-zone family header renders the Pro name.
         echo '<div class="wrap">';
-        $tabs = array( 'inbox' => __( 'Inbox', 'taxocommerce-mail-pro' ), 'compose' => __( 'Compose', 'taxocommerce-mail-pro' ), 'accounts' => __( 'Accounts', 'taxocommerce-mail-pro' ), 'autocheck' => __( 'Autocheck', 'taxocommerce-mail-pro' ), 'manual' => __( 'User manual', 'taxocommerce-mail-pro' ), 'technical' => __( 'Technical manual', 'taxocommerce-mail-pro' ), 'pro' => 'Pro' );
+        $tabs = array( 'inbox' => __( 'Inbox', 'taxocommerce-mail-pro' ), 'sent' => __( 'Sent', 'taxocommerce-mail-pro' ), 'folders' => __( 'Folders', 'taxocommerce-mail-pro' ), 'trash' => __( 'Trash', 'taxocommerce-mail-pro' ), 'compose' => __( 'Compose', 'taxocommerce-mail-pro' ), 'accounts' => __( 'Accounts', 'taxocommerce-mail-pro' ), 'autocheck' => __( 'Autocheck', 'taxocommerce-mail-pro' ), 'manual' => __( 'User manual', 'taxocommerce-mail-pro' ), 'technical' => __( 'Technical manual', 'taxocommerce-mail-pro' ) );
         echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Mail sections', 'taxocommerce-mail-pro' ) . '">';
         foreach ( $tabs as $key => $label ) {
             echo '<a href="' . esc_url( add_query_arg( array( 'page' => 'taxocommerce-mail-pro', 'tab' => $key ), admin_url( 'admin.php' ) ) ) . '" class="nav-tab' . ( $key === $tab ? ' nav-tab-active' : '' ) . '">' . esc_html( $label ) . '</a>';
@@ -310,9 +266,15 @@ final class TCMAILPRO_Admin {
             'connection_failed' => __( 'IMAP connection failed. Check your host, credentials, certificate and server access.', 'taxocommerce-mail-pro' ),
             'sent' => __( 'SMTP server accepted the message. Delivery to the recipient cannot be guaranteed.', 'taxocommerce-mail-pro' ),
             'send_failed' => __( 'SMTP send failed. Check account settings and SMTP restrictions.', 'taxocommerce-mail-pro' ),
+            'sent_unarchived' => __( 'SMTP accepted the message, but the Sent-folder copy could not be saved. Check the folder settings.', 'taxocommerce-mail-pro' ),
+            'moved' => __( 'Messages moved on the mail server.', 'taxocommerce-mail-pro' ),
+            'unsupported' => __( 'This server does not support safe IMAP MOVE. Messages were not changed.', 'taxocommerce-mail-pro' ),
+            'operation_failed' => __( 'Mail server rejected the requested action. No local message copies were changed.', 'taxocommerce-mail-pro' ),
+            'folder_created' => __( 'Folder created on the mail server.', 'taxocommerce-mail-pro' ),
+            'folder_renamed' => __( 'Folder renamed on the mail server.', 'taxocommerce-mail-pro' ),
         );
         if ( isset( $notices[ $notice ] ) ) {
-            echo '<div class="notice notice-' . ( in_array( $notice, array( 'saved', 'removed', 'connected', 'sent' ), true ) ? 'success' : 'error' ) . '"><p>' . esc_html( $notices[ $notice ] ) . '</p></div>';
+            echo '<div class="notice notice-' . ( in_array( $notice, array( 'saved', 'removed', 'connected', 'sent', 'moved', 'folder_created', 'folder_renamed' ), true ) ? 'success' : 'error' ) . '"><p>' . esc_html( $notices[ $notice ] ) . '</p></div>';
         }
         if ( 'accounts' === $tab ) {
             self::list_accounts();
@@ -322,10 +284,8 @@ final class TCMAILPRO_Admin {
             TCMAILPRO_Autocheck::render();
         } elseif ( 'manual' === $tab || 'technical' === $tab ) {
             TCMAILPRO_Autocheck::manual( 'technical' === $tab );
-        } elseif ( 'pro' === $tab ) {
-            self::pro_information();
         } else {
-            self::inbox();
+            TCMAILPRO_Mailbox::render( in_array( $tab, array( 'inbox', 'sent', 'folders', 'trash' ), true ) ? $tab : 'inbox' );
         }
         echo '</div>';
     }

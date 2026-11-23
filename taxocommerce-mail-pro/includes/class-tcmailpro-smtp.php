@@ -40,7 +40,8 @@ final class TCMAILPRO_SMTP {
             $mail->Body = $message;
             $mail->AltBody = $message;
             $mail->isHTML( false );
-            return $mail->send();
+            // Return the MIME payload only on SMTP acceptance; never persist it locally.
+            return $mail->send() ? $mail->getSentMIMEMessage() : false;
         } catch ( \PHPMailer\PHPMailer\Exception $exception ) {
             // Never expose SMTP authentication, headers, customer data or exception details.
             return false;

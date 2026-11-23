@@ -17,11 +17,12 @@ defined( 'ABSPATH' ) || exit;
 define( 'TCMAILPRO_VERSION', '0.1.0' );
 define( 'TCMAILPRO_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TCMAILPRO_URL', plugin_dir_url( __FILE__ ) );
-require_once TCMAILPRO_PATH . 'includes/class-tcmail-accounts.php';
-require_once TCMAILPRO_PATH . 'includes/class-tcmail-imap.php';
-require_once TCMAILPRO_PATH . 'includes/class-tcmail-smtp.php';
-require_once TCMAILPRO_PATH . 'includes/class-tcmail-admin.php';
-require_once TCMAILPRO_PATH . 'includes/class-tcmail-autocheck.php';
+require_once TCMAILPRO_PATH . 'includes/class-tcmailpro-accounts.php';
+require_once TCMAILPRO_PATH . 'includes/class-tcmailpro-imap.php';
+require_once TCMAILPRO_PATH . 'includes/class-tcmailpro-smtp.php';
+require_once TCMAILPRO_PATH . 'includes/class-tcmailpro-admin.php';
+require_once TCMAILPRO_PATH . 'includes/class-tcmailpro-mailbox.php';
+require_once TCMAILPRO_PATH . 'includes/class-tcmailpro-autocheck.php';
 require_once TCMAILPRO_PATH . 'includes/admin-branding.php';
 register_activation_hook( __FILE__, array( 'TCMAILPRO_Admin', 'activate' ) );
 // Prefer WordPress.org language packs; use bundled locale catalogs for offline shops.
@@ -43,6 +44,7 @@ add_action( 'init', static function () {
     }
 }, 1 );
 add_action( 'plugins_loaded', array( 'TCMAILPRO_Admin', 'boot' ) );
+add_action( 'plugins_loaded', array( 'TCMAILPRO_Mailbox', 'boot' ) );
 add_action( 'plugins_loaded', array( 'TCMAILPRO_Autocheck', 'boot' ) );
 add_filter( 'taxocommerce_core_family_extensions', static function ( $extensions ) {
     $extensions = is_array( $extensions ) ? $extensions : array();
