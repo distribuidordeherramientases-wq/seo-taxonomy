@@ -691,7 +691,7 @@ jobs:
           STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
         run: python3 -u .github/scripts/publish_mail_package.py
 
-mail-pro-package:
+  mail-pro-package:
     name: Publish independent Mail Pro ZIP to STAGING and Focazul package repositories
     needs: [verify, mail-package]
     if: github.event_name == 'push' && needs.verify.result == 'success' && needs.mail-package.result == 'success'
