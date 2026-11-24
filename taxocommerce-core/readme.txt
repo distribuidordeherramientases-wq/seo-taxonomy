@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.85
+Stable tag: 0.4.86
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -65,6 +65,9 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.86 =
+* Restored native Action Scheduler overdue-action warnings; no scheduler or queue override.
 
 = 0.4.78 =
 * Kept installed Core translations compatible with the short plugin directory and prepared a separate checked WordPress.org archive with its assigned long slug; both undergo strict Plugin Check.
