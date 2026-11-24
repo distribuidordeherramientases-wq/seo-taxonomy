@@ -1,6 +1,6 @@
 <?php
 /**
- * Verify the exact scoped Action Scheduler overdue notice suppression.
+ * Verify that native Action Scheduler overdue notices are not suppressed.
  *
  * @package TaxoCommerceCore
  */
@@ -9,9 +9,8 @@ if ( false === $source ) {
     fwrite( STDERR, "Core entrypoint is unreadable.\n" );
     exit( 1 );
 }
-$needle = "add_filter( 'action_scheduler_check_pastdue_actions', '__return_false', PHP_INT_MAX );";
-if ( 1 !== substr_count( $source, $needle ) ) {
-    fwrite( STDERR, "Expected exactly one early, explicit overdue-warning filter.\n" );
+if ( false !== strpos( $source, 'action_scheduler_check_pastdue_actions' ) ) {
+    fwrite( STDERR, "Core must not override native overdue-action warnings.\n" );
     exit( 1 );
 }
 if ( false !== strpos( $source, "remove_all_actions( 'admin_notices'" ) ||
@@ -20,4 +19,4 @@ if ( false !== strpos( $source, "remove_all_actions( 'admin_notices'" ) ||
     fwrite( STDERR, "Broad notice or queue suppression is forbidden.\n" );
     exit( 1 );
 }
-echo "PASS: only Action Scheduler overdue-actions notice suppressed.\n";
+echo "PASS: native Action Scheduler overdue-actions notices preserved.\n";
