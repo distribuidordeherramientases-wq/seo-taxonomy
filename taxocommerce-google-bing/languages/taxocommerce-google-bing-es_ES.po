@@ -2830,11 +2830,11 @@ msgstr ""
 
 #: includes/google/seo-google-demand-catalog.php:1486
 msgid "No se pudo calcular el periodo de analisis."
-msgstr ""
+msgstr "No se pudo calcular el período de análisis."
 
 #: includes/google/seo-google-demand-catalog.php:1529
 msgid "Demanda × Catalogo"
-msgstr ""
+msgstr "Demanda × Catálogo"
 
 #: includes/google/seo-google-demand-catalog.php:1530
 msgid ""
@@ -2844,7 +2844,7 @@ msgstr ""
 
 #: includes/google/seo-google-demand-catalog.php:1530
 msgid "No mide todo el mercado"
-msgstr ""
+msgstr "No mide todo el mercado"
 
 #: includes/google/seo-google-demand-catalog.php:1530
 msgid ""
@@ -2855,7 +2855,7 @@ msgstr ""
 
 #: includes/google/seo-google-demand-catalog.php:1552
 msgid "Como leerlo:"
-msgstr ""
+msgstr "Cómo interpretarlo:"
 
 #: includes/google/seo-google-demand-catalog.php:1552
 msgid ""
@@ -2865,7 +2865,7 @@ msgstr ""
 
 #: includes/google/seo-google-demand-catalog.php:1552
 msgid "no autoriza por si solo a reducir o eliminar catalogo"
-msgstr ""
+msgstr "no justifica por sí solo reducir o eliminar catálogo"
 
 #: includes/google/seo-google-demand-catalog.php:1552
 msgid ""
@@ -2877,7 +2877,7 @@ msgstr ""
 #: includes/google/seo-google-demand-catalog.php:1669
 #: includes/google/seo-google-demand-catalog.php:1724
 msgid "Decision"
-msgstr ""
+msgstr "Decisión"
 
 #: includes/google/seo-google-demand-catalog.php:1571
 msgid "Todas"
@@ -2885,27 +2885,27 @@ msgstr "Todas"
 
 #: includes/google/seo-google-demand-catalog.php:1586
 msgid "Diagnostico de datos almacenados:"
-msgstr ""
+msgstr "Diagnóstico de datos almacenados:"
 
 #: includes/google/seo-google-demand-catalog.php:1600
 msgid "Que potenciar y en que sentido"
-msgstr ""
+msgstr "Qué potenciar y en qué sentido"
 
 #: includes/google/seo-google-demand-catalog.php:1603
 msgid "No hay oportunidades suficientes con los filtros actuales."
-msgstr ""
+msgstr "No hay oportunidades suficientes con los filtros actuales."
 
 #: includes/google/seo-google-demand-catalog.php:1606
 msgid "Que potenciar"
-msgstr ""
+msgstr "Qué potenciar"
 
 #: includes/google/seo-google-demand-catalog.php:1606
 msgid "Estrategia"
-msgstr ""
+msgstr "Estrategia"
 
 #: includes/google/seo-google-demand-catalog.php:1606
 msgid "Direccion detectada"
-msgstr ""
+msgstr "Dirección detectada"
 
 #: includes/google/seo-google-demand-catalog.php:1606
 #: includes/google/seo-google-demand-catalog.php:1669
@@ -2918,14 +2918,14 @@ msgstr ""
 #: includes/google/seo-google-info.php:4285
 #: includes/google/seo-google-info.php:4550
 msgid "Imp."
-msgstr ""
+msgstr "Imp."
 
 #: includes/google/seo-google-demand-catalog.php:1606
 #: includes/google/seo-google-demand-catalog.php:1669
 #: includes/google/seo-google-demand-catalog.php:1724
 #: includes/google/seo-google-demand-catalog.php:1758
 msgid "Demanda util"
-msgstr ""
+msgstr "Demanda útil"
 
 #: includes/google/seo-google-demand-catalog.php:1606
 #: includes/google/seo-google-demand-catalog.php:1669
@@ -2938,7 +2938,7 @@ msgstr ""
 #: includes/google/seo-google-info.php:4285
 #: includes/google/seo-google-info.php:4550
 msgid "Pos."
-msgstr ""
+msgstr "Pos."
 
 #: includes/google/seo-google-demand-catalog.php:1606
 #: includes/google/seo-google-demand-catalog.php:1669
@@ -2946,71 +2946,71 @@ msgstr ""
 #: includes/google/seo-google-demand-catalog.php:1758
 #: includes/google/seo-google-opportunity-engine.php:1630
 msgid "Tendencia"
-msgstr ""
+msgstr "Tendencia"
 
 #: includes/google/seo-google-demand-catalog.php:1606
 msgid "Catalogo / pista"
-msgstr ""
+msgstr "Catálogo / pista"
 
 #: includes/google/seo-google-demand-catalog.php:1606
 msgid "Por que"
-msgstr ""
+msgstr "Por qué"
 
 #: includes/google/seo-google-demand-catalog.php:1627
 msgid "Sin atributo concreto suficiente; revisar subintenciones."
-msgstr ""
+msgstr "Sin atributo concreto suficiente; revisar subintenciones."
 
 #: includes/google/seo-google-demand-catalog.php:1640
 msgid "Sin categoria clara"
-msgstr ""
+msgstr "Sin categoría clara"
 
 #: includes/google/seo-google-demand-catalog.php:1645
 msgid "Apta para automatizacion:"
-msgstr ""
+msgstr "Apta para automatización:"
 
 #: includes/google/seo-google-demand-catalog.php:1645
 msgid "si, con validacion de cobertura."
-msgstr ""
+msgstr "sí, con validación de cobertura."
 
 #: includes/google/seo-google-demand-catalog.php:1647
 msgid "Consultas que lo justifican"
-msgstr ""
+msgstr "Consultas que lo justifican"
 
 #: includes/google/seo-google-demand-catalog.php:1660
 msgid "Prioridad por categoria"
-msgstr ""
+msgstr "Prioridad por categoría"
 
 #: includes/google/seo-google-demand-catalog.php:1663
 msgid "No hay categorias que cumplan los filtros."
-msgstr ""
+msgstr "No hay categorías que cumplan los filtros."
 
 #: includes/google/seo-google-demand-catalog.php:1669
 msgid "Categoria"
-msgstr ""
+msgstr "Categoría"
 
 #: includes/google/seo-google-demand-catalog.php:1669
 #: includes/google/seo-google-demand-catalog.php:1724
 #: includes/google/seo-google-demand-catalog.php:1758
 msgid "Precision"
-msgstr ""
+msgstr "Precisión"
 
 #: includes/google/seo-google-demand-catalog.php:1669
 msgid "Consultas / landings"
-msgstr ""
+msgstr "Consultas / páginas de destino"
 
 #: includes/google/seo-google-demand-catalog.php:1669
 #: includes/google/seo-google-info.php:3366
 #: includes/google/seo-google-info.php:3399
 msgid "Evidencias"
-msgstr ""
+msgstr "Evidencias"
 
 #: includes/google/seo-google-demand-catalog.php:1697
 msgid "Ver consultas principales"
-msgstr ""
+msgstr "Ver consultas principales"
 
 #: includes/google/seo-google-demand-catalog.php:1717
 msgid "Intenciones sin representar claramente"
-msgstr ""
+msgstr "Intenciones sin representar claramente"
 
 #: includes/google/seo-google-demand-catalog.php:1718
 msgid ""
@@ -3031,36 +3031,36 @@ msgstr ""
 
 #: includes/google/seo-google-demand-catalog.php:1721
 msgid "No hay intenciones no mapeadas con los filtros actuales."
-msgstr ""
+msgstr "No hay intenciones sin asignar con los filtros actuales."
 
 #: includes/google/seo-google-demand-catalog.php:1724
 msgid "Intencion"
-msgstr ""
+msgstr "Intención"
 
 #: includes/google/seo-google-demand-catalog.php:1724
 msgid "Posible categoria"
-msgstr ""
+msgstr "Posible categoría"
 
 #: includes/google/seo-google-demand-catalog.php:1750
 msgid "Ver consultas individuales sin mapear"
-msgstr ""
+msgstr "Ver consultas individuales sin asignar"
 
 #: includes/google/seo-google-demand-catalog.php:1752
 msgid "Detalle sin agrupar"
-msgstr ""
+msgstr "Detalle sin agrupar"
 
 #: includes/google/seo-google-demand-catalog.php:1755
 msgid "No hay demanda sin mapear con los filtros actuales."
-msgstr ""
+msgstr "No hay demanda sin asignar con los filtros actuales."
 
 #: includes/google/seo-google-demand-catalog.php:1758
 #: includes/google/seo-google-opportunity-engine.php:1694
 msgid "Landings"
-msgstr ""
+msgstr "Páginas de destino"
 
 #: includes/google/seo-google-demand-catalog.php:1790
 msgid "Limites de esta version"
-msgstr ""
+msgstr "Límites de esta versión"
 
 #: includes/google/seo-google-demand-catalog.php:1792
 msgid ""
@@ -3580,7 +3580,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:4116
 msgid "Google vs. catálogo"
-msgstr ""
+msgstr "Google frente al catálogo"
 
 #: includes/google/seo-google-info.php:4117
 msgid ""
@@ -3591,19 +3591,19 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:4126
 msgid "URL de Google / destino"
-msgstr ""
+msgstr "URL de Google / destino"
 
 #: includes/google/seo-google-info.php:4126
 msgid "Entidad local"
-msgstr ""
+msgstr "Entidad local"
 
 #: includes/google/seo-google-info.php:4154
 msgid "Relacionada por redirección"
-msgstr ""
+msgstr "Relacionada por redirección"
 
 #: includes/google/seo-google-info.php:4275
 msgid "Cobertura observada"
-msgstr ""
+msgstr "Cobertura observada"
 
 #: includes/google/seo-google-info.php:4276
 msgid ""
@@ -3619,19 +3619,19 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:4284
 msgid "Áreas URL"
-msgstr ""
+msgstr "Áreas de URL"
 
 #: includes/google/seo-google-info.php:4292
 msgid "Páginas por rango de posición"
-msgstr ""
+msgstr "Páginas por rango de posición"
 
 #: includes/google/seo-google-info.php:4293
 msgid "Rango"
-msgstr ""
+msgstr "Rango"
 
 #: includes/google/seo-google-info.php:4297
 msgid "Cada página se sitúa según su posición media ponderada del período."
-msgstr ""
+msgstr "Cada página se sitúa según su posición media ponderada del período."
 
 #: includes/google/seo-google-info.php:4416
 #: includes/google/seo-google-info.php:4457
@@ -3694,7 +3694,7 @@ msgstr ""
 #: includes/google/seo-google-opportunity-engine.php:1626
 #: includes/google/seo-google-trends.php:2597
 msgid "Radar emergente"
-msgstr ""
+msgstr "Radar emergente"
 
 #: includes/google/seo-google-opportunity-engine.php:1626
 msgid ""
@@ -3710,16 +3710,16 @@ msgstr ""
 
 #: includes/google/seo-google-opportunity-engine.php:1630
 msgid "Relevancia"
-msgstr ""
+msgstr "Relevancia"
 
 #: includes/google/seo-google-opportunity-engine.php:1630
 msgid "Volumen agrupado"
-msgstr ""
+msgstr "Volumen agrupado"
 
 #: includes/google/seo-google-opportunity-engine.php:1630
 #: includes/google/seo-google-trends.php:2687
 msgid "Área relacionada"
-msgstr ""
+msgstr "Área relacionada"
 
 #: includes/google/seo-google-opportunity-engine.php:1630
 #: includes/google/seo-google-trends.php:2687
@@ -3728,7 +3728,7 @@ msgstr ""
 
 #: includes/google/seo-google-opportunity-engine.php:1638
 msgid "Exploración de mercado"
-msgstr ""
+msgstr "Exploración de mercado"
 
 #: includes/google/seo-google-opportunity-engine.php:1638
 msgid ""
@@ -3744,20 +3744,20 @@ msgstr ""
 
 #: includes/google/seo-google-opportunity-engine.php:1642
 msgid "Puntuación"
-msgstr ""
+msgstr "Puntuación"
 
 #: includes/google/seo-google-opportunity-engine.php:1642
 msgid "Semilla"
-msgstr ""
+msgstr "Semilla"
 
 #: includes/google/seo-google-opportunity-engine.php:1642
 #: includes/google/seo-google-trends.php:2687
 msgid "Fuente"
-msgstr ""
+msgstr "Fuente"
 
 #: includes/google/seo-google-opportunity-engine.php:1696
 msgid "No hay métricas disponibles para landings publicadas."
-msgstr ""
+msgstr "No hay métricas disponibles para las páginas de destino publicadas."
 
 #: includes/google/seo-google-opportunity-engine.php:1698
 msgid "Landing"
@@ -3774,15 +3774,15 @@ msgstr "Posts"
 
 #: includes/google/seo-google-opportunity-engine.php:1708
 msgid "No hay métricas disponibles para posts publicados."
-msgstr ""
+msgstr "No hay métricas disponibles para las entradas publicadas."
 
 #: includes/google/seo-google-opportunity-engine.php:1710
 msgid "Post"
-msgstr ""
+msgstr "Entrada"
 
 #: includes/google/seo-google-opportunity-engine.php:1739
 msgid "Informes técnicos conservados"
-msgstr ""
+msgstr "Informes técnicos conservados"
 
 #: includes/google/seo-google-opportunity-engine.php:1739
 msgid ""
