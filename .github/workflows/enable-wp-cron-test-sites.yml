@@ -1,0 +1,194 @@
+name: Activar WP-Cron - STAGING y Foca Azul
+
+on:
+  push:
+    branches: [staging]
+    paths:
+      - '.github/workflows/enable-wp-cron-test-sites.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: taxocommerce-site-delivery
+  cancel-in-progress: false
+
+jobs:
+  enable:
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Enable WP-Cron in the two authorized installations
+        env:
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import ftplib
+          import io
+          import os
+          import posixpath
+          import re
+          import ssl
+          import subprocess
+          import uuid
+
+          # Exact, previously established FTPS destinations. Never access PRO
+          # or search parent directories for a configuration file.
+          SITES = {
+              "STAGING": "staging.distribuidordeherramientas.es",
+              "Foca Azul": "asociacionfocazul",
+          }
+          CONFIG = "wp-config.php"
+          MAX_BYTES = 1024 * 1024
+          LINE = re.compile(
+              rb"(?m)^[ \t]*(?i:define)[ \t]*\([ \t]*(['\"])DISABLE_WP_CRON\1"
+              rb"[ \t]*,[ \t]*((?i:true|false))[ \t]*\)[ \t]*;"
+              rb"[ \t]*(?://[^\r\n]*)?\r?$"
+          )
+
+          class Refusal(Exception):
+              pass
+
+          def lint(data):
+              result = subprocess.run(["php", "-l"], input=data, capture_output=True)
+              if result.returncode:
+                  raise Refusal("PHP syntax validation failed; no change applied")
+
+          def patch(data):
+              # Strictly one literal definition; refuse unfamiliar syntax.
+              # PHP is only used to tokenize/lint, never execute the config.
+              matches = list(LINE.finditer(data))
+              if data.count(b"DISABLE_WP_CRON") != 1 or len(matches) != 1:
+                  raise Refusal("Unique literal DISABLE_WP_CRON definition not found")
+              match = matches[0]
+              token_check = (
+                  '$o=0; foreach(token_get_all(stream_get_contents(STDIN)) as $t) {'
+                  '$s=is_array($t)?$t[1]:$t;'
+                  'if(is_array($t)&&$t[0]===T_STRING&&'
+                  'in_array(strtolower($s),["true","false"],true)) echo $o,"\\n";'
+                  '$o+=strlen($s);}'
+              )
+              check = subprocess.run(["php", "-r", token_check], input=data, capture_output=True)
+              if check.returncode or str(match.start(2)).encode() not in check.stdout.splitlines():
+                  raise Refusal("Definition is not an active PHP token")
+              lint(data)
+              updated = data[:match.start(2)] + b"false" + data[match.end(2):]
+              lint(updated)
+              return updated
+
+          def read(ftp, name):
+              ftp.voidcmd("TYPE I")
+              size = ftp.size(name)
+              if not size or size > MAX_BYTES:
+                  raise Refusal("Unexpected configuration size")
+              buf = io.BytesIO()
+              def collect(chunk):
+                  if buf.tell() + len(chunk) > MAX_BYTES:
+                      raise Refusal("Configuration exceeds permitted size")
+                  buf.write(chunk)
+              ftp.retrbinary("RETR " + name, collect)
+              data = buf.getvalue()
+              if len(data) != size:
+                  raise Refusal("Incomplete transfer")
+              return data
+
+          def identity(ftp, name):
+              rows = []
+              ftp.dir(name, rows.append)
+              # Only accept a regular file with an unambiguous Unix LIST mode,
+              # owner and group. Never replace a symlink.
+              for row in rows:
+                  fields = row.split(None, 8)
+                  if len(fields) == 9 and posixpath.basename(fields[8]) == name:
+                      mode = fields[0]
+                      if not re.fullmatch(r"-[rwx-]{9}", mode):
+                          break
+                      value = sum(bit for ch, bit in zip(
+                          mode[1:], (256,128,64,32,16,8,4,2,1)
+                      ) if ch != "-")
+                      return value, fields[2], fields[3]
+              raise Refusal("Cannot establish regular-file permissions safely")
+
+          def enable(ftp, home, root):
+              ftp.cwd(home)
+              ftp.cwd("./" + root)
+              if posixpath.normpath(ftp.pwd()) != posixpath.normpath(posixpath.join(home, root)):
+                  raise Refusal("Unexpected installation directory")
+              ftp.voidcmd("TYPE I")
+              if not ftp.size("wp-load.php") or not ftp.size("wp-settings.php"):
+                  raise Refusal("WordPress root could not be verified")
+              original_identity = identity(ftp, CONFIG)
+              original = read(ftp, CONFIG)
+              updated = patch(original)
+              if updated == original:
+                  return "already enabled (literal false)"
+              # Upload under a hidden PHP filename and preserve original mode
+              # and ownership. Rename over the existing file; never delete the
+              # original first. No configuration in logs, Git or artifacts.
+              temp = ".wp-config-cron-" + uuid.uuid4().hex + ".php"
+              created = False
+              try:
+                  ftp.storbinary("STOR " + temp, io.BytesIO(b""))
+                  created = True
+                  if identity(ftp, temp)[0] != original_identity[0]:
+                      ftp.sendcmd("SITE CHMOD %03o %s" % (original_identity[0], temp))
+                  if identity(ftp, temp) != original_identity:
+                      raise Refusal("Temporary file permissions/ownership differ")
+                  ftp.storbinary("STOR " + temp, io.BytesIO(updated))
+                  if read(ftp, temp) != updated or identity(ftp, temp) != original_identity:
+                      raise Refusal("Staged file verification failed")
+                  if read(ftp, CONFIG) != original or identity(ftp, CONFIG) != original_identity:
+                      raise Refusal("Configuration changed concurrently")
+                  ftp.rename(temp, CONFIG)
+                  created = False
+                  if read(ftp, CONFIG) != updated or identity(ftp, CONFIG) != original_identity:
+                      raise Refusal("Final verification failed; inspect installation")
+                  return "DISABLE_WP_CRON changed to false and verified by FTPS"
+              finally:
+                  if created:
+                      try:
+                          ftp.delete(temp)
+                      except ftplib.all_errors:
+                          print("WARNING: temporary PHP file cleanup could not be verified")
+
+          # Offline sanity checks before connecting to either site.
+          fixture = b"<?php\n// test only\n define('DISABLE_WP_CRON', true);\n"
+          expected = fixture.replace(b"true", b"false")
+          assert patch(fixture) == expected and patch(expected) == expected
+          for invalid in (
+              b"<?php\n/*\ndefine('DISABLE_WP_CRON', true);\n*/\n",
+              b"<?php\n// no definition\n",
+              fixture + b"define('DISABLE_WP_CRON', true);\n",
+          ):
+              try:
+                  patch(invalid)
+              except Refusal:
+                  pass
+              else:
+                  raise RuntimeError("Unsafe config fixture was accepted")
+
+          keys = ("STAGING_FTP_SERVER", "STAGING_FTP_USERNAME", "STAGING_FTP_PASSWORD")
+          if not all(os.getenv(k) for k in keys):
+              raise SystemExit("Required FTPS credentials are not configured")
+          failed = False
+          for site, root in SITES.items():
+              try:
+                  with ftplib.FTP_TLS(context=ssl.create_default_context(), timeout=45) as ftp:
+                      ftp.connect(os.environ[keys[0]], 21)
+                      ftp.login(os.environ[keys[1]], os.environ[keys[2]])
+                      ftp.prot_p()
+                      print(site + ": " + enable(ftp, ftp.pwd(), root))
+              except Refusal as exc:
+                  print(site + ": " + str(exc))
+                  failed = True
+              except Exception:
+                  # Do not expose raw FTP responses or sensitive PHP contents.
+                  print(site + ": FTPS operation failed; configuration not verified")
+                  failed = True
+          raise SystemExit(1 if failed else 0)
+          PY
