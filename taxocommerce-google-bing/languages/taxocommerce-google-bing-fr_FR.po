@@ -3141,27 +3141,27 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:239
 msgid "No tienes permisos para configurar Google Intelligence."
-msgstr ""
+msgstr "Vous n'avez pas les droits nécessaires pour configurer Google Intelligence."
 
 #: includes/google/seo-google-info.php:291
 msgid "No tienes permisos para conectar Google."
-msgstr ""
+msgstr "Vous n'avez pas les droits nécessaires pour connecter Google."
 
 #: includes/google/seo-google-info.php:353
 msgid "No tienes permisos para completar esta conexión."
-msgstr ""
+msgstr "Vous n'avez pas les droits nécessaires pour terminer cette connexion."
 
 #: includes/google/seo-google-info.php:609
 msgid "No tienes permisos para probar esta conexión."
-msgstr ""
+msgstr "Vous n'avez pas les droits nécessaires pour tester cette connexion."
 
 #: includes/google/seo-google-info.php:645
 msgid "No tienes permisos para desconectar Google."
-msgstr ""
+msgstr "Vous n'avez pas les droits nécessaires pour déconnecter Google."
 
 #: includes/google/seo-google-info.php:937
 msgid "No tienes permisos para reparar las tablas."
-msgstr ""
+msgstr "Vous n'avez pas les droits nécessaires pour réparer les tables."
 
 #: includes/google/seo-google-info.php:2026
 msgid "Google Intelligence"
@@ -3181,23 +3181,23 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2193
 msgid "Conexión con Google Search Console"
-msgstr ""
+msgstr "Connexion à Google Search Console"
 
 #: includes/google/seo-google-info.php:2204
 msgid "Identificador del cliente OAuth 2.0 de tipo “Aplicación web”."
-msgstr ""
+msgstr "Identifiant client OAuth 2.0 de type « Application Web »."
 
 #: includes/google/seo-google-info.php:2209
 msgid "Se guarda en WordPress y nunca se muestra completo de nuevo."
-msgstr ""
+msgstr "Il est enregistré dans WordPress et n'est plus jamais affiché intégralement."
 
 #: includes/google/seo-google-info.php:2212
 msgid "URI de redirección"
-msgstr ""
+msgstr "URI de redirection"
 
 #: includes/google/seo-google-info.php:2214
 msgid "URI única del módulo."
-msgstr ""
+msgstr "URI unique du module."
 
 #: includes/google/seo-google-info.php:2214
 msgid ""
@@ -3208,19 +3208,19 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2217
 msgid "Propiedad de Search Console"
-msgstr ""
+msgstr "Propriété Search Console"
 
 #: includes/google/seo-google-info.php:2224
 msgid "Selecciona una propiedad"
-msgstr ""
+msgstr "Sélectionner une propriété"
 
 #: includes/google/seo-google-info.php:2237
 msgid "La lista aparecerá automáticamente después de autorizar Google."
-msgstr ""
+msgstr "La liste s'affichera automatiquement après l'autorisation de Google."
 
 #: includes/google/seo-google-info.php:2242
 msgid "Frecuencia"
-msgstr ""
+msgstr "Fréquence"
 
 #: includes/google/seo-google-info.php:2248
 msgid ""
@@ -3230,11 +3230,11 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2292
 msgid "Cómo obtener las credenciales"
-msgstr ""
+msgstr "Comment obtenir les identifiants"
 
 #: includes/google/seo-google-info.php:2294
 msgid "Entra en Google Cloud Console y crea o selecciona un proyecto."
-msgstr ""
+msgstr "Ouvrez Google Cloud Console et créez ou sélectionnez un projet."
 
 #: includes/google/seo-google-info.php:2295
 msgid "Activa la"
@@ -3246,7 +3246,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2296
 msgid "Configura Google Auth Platform y la pantalla de consentimiento OAuth."
-msgstr ""
+msgstr "Configurez Google Auth Platform et l'écran de consentement OAuth."
 
 #: includes/google/seo-google-info.php:2297
 msgid "Crea credenciales OAuth 2.0 de tipo"
@@ -3254,11 +3254,11 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2297
 msgid "Aplicación web"
-msgstr ""
+msgstr "Application Web"
 
 #: includes/google/seo-google-info.php:2298
 msgid "URIs de redireccionamiento autorizados"
-msgstr ""
+msgstr "URI de redirection autorisées"
 
 #: includes/google/seo-google-info.php:2298
 msgid ""
@@ -3268,7 +3268,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2299
 msgid "Copia aquí el Client ID y el Client Secret y guarda."
-msgstr ""
+msgstr "Copiez ici l'identifiant et le secret du client, puis enregistrez."
 
 #: includes/google/seo-google-info.php:2300
 msgid "Si la aplicación está en modo Pruebas, añade tu cuenta en"
@@ -3276,7 +3276,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2300
 msgid "Usuarios de prueba"
-msgstr ""
+msgstr "Utilisateurs de test"
 
 #: includes/google/seo-google-info.php:2300
 msgid "; si está en producción, completa los requisitos que Google solicite."
@@ -3288,7 +3288,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2301
 msgid "Conectar con Google"
-msgstr ""
+msgstr "Se connecter à Google"
 
 #: includes/google/seo-google-info.php:2301
 msgid "y acepta el permiso de lectura."
@@ -3302,7 +3302,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2306
 msgid "Problemas frecuentes y solución"
-msgstr ""
+msgstr "Problèmes fréquents et solutions"
 
 #: includes/google/seo-google-info.php:2308
 msgid "Error 400: redirect_uri_mismatch"
@@ -3328,7 +3328,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2311
 msgid "Credenciales guardadas; falta autorizar Google"
-msgstr ""
+msgstr "Identifiants enregistrés ; autorisation Google requise"
 
 #: includes/google/seo-google-info.php:2311
 msgid ""
@@ -3337,7 +3337,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2317
 msgid "Permiso solicitado"
-msgstr ""
+msgstr "Autorisation demandée"
 
 #: includes/google/seo-google-info.php:2319
 msgid ""
@@ -3347,15 +3347,15 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2322
 msgid "Abrir credenciales de Google Cloud"
-msgstr ""
+msgstr "Ouvrir les identifiants Google Cloud"
 
 #: includes/google/seo-google-info.php:2323
 msgid "Activar Search Console API"
-msgstr ""
+msgstr "Activer l'API Search Console"
 
 #: includes/google/seo-google-info.php:2340
 msgid "Sincronización"
-msgstr ""
+msgstr "Synchronisation"
 
 #: includes/google/seo-google-info.php:2352
 msgid "No se consultará el historial hasta que todas las tablas indiquen"
@@ -3363,11 +3363,11 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2358
 msgid "Completa la conexión y selecciona una propiedad antes de sincronizar."
-msgstr ""
+msgstr "Terminez la connexion et sélectionnez une propriété avant la synchronisation."
 
 #: includes/google/seo-google-info.php:2372
 msgid "Primera sincronización o migración:"
-msgstr ""
+msgstr "Première synchronisation ou migration :"
 
 #: includes/google/seo-google-info.php:2372
 msgid ""
@@ -3376,7 +3376,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2373
 msgid "Sincronizaciones posteriores:"
-msgstr ""
+msgstr "Synchronisations suivantes :"
 
 #: includes/google/seo-google-info.php:2373
 msgid ""
@@ -3386,7 +3386,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2376
 msgid "Sincronizar ahora"
-msgstr ""
+msgstr "Synchroniser maintenant"
 
 #: includes/google/seo-google-info.php:2381
 msgid ""
@@ -3396,11 +3396,11 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2494
 msgid "Historial reciente"
-msgstr ""
+msgstr "Historique récent"
 
 #: includes/google/seo-google-info.php:2497
 msgid "No hay sincronizaciones registradas."
-msgstr ""
+msgstr "Aucune synchronisation enregistrée."
 
 #: includes/google/seo-google-info.php:2500
 msgid "Inicio"
@@ -3409,11 +3409,11 @@ msgstr "Début"
 #: includes/google/seo-google-info.php:2500
 #: includes/google/seo-google-info.php:3346
 msgid "Período"
-msgstr ""
+msgstr "Période"
 
 #: includes/google/seo-google-info.php:2500
 msgid "Días"
-msgstr ""
+msgstr "Jours"
 
 #: includes/google/seo-google-info.php:2500
 msgid "Filas"
@@ -3431,19 +3431,19 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2645
 msgid "menos es mejor"
-msgstr ""
+msgstr "plus bas, c'est mieux"
 
 #: includes/google/seo-google-info.php:2648
 msgid "Diario"
-msgstr ""
+msgstr "Quotidien"
 
 #: includes/google/seo-google-info.php:2649
 msgid "Semanal"
-msgstr ""
+msgstr "Hebdomadaire"
 
 #: includes/google/seo-google-info.php:2650
 msgid "Mensual"
-msgstr ""
+msgstr "Mensuel"
 
 #: includes/google/seo-google-info.php:2674
 msgid ""
@@ -3454,15 +3454,15 @@ msgstr ""
 #: includes/google/seo-google-info.php:2961
 #: includes/google/seo-google-info.php:3084
 msgid "Google Search Console todavía no está conectado completamente."
-msgstr ""
+msgstr "Google Search Console n'est pas encore entièrement connecté."
 
 #: includes/google/seo-google-info.php:2969
 msgid "La conexión está preparada, pero aún no hay datos almacenados."
-msgstr ""
+msgstr "La connexion est prête, mais aucune donnée n'a encore été enregistrée."
 
 #: includes/google/seo-google-info.php:2984
 msgid "Últimos 28 días disponibles"
-msgstr ""
+msgstr "28 derniers jours disponibles"
 
 #: includes/google/seo-google-info.php:2998
 msgid ""
@@ -3473,7 +3473,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:3022
 msgid "No hay datos para este período."
-msgstr ""
+msgstr "Aucune donnée pour cette période."
 
 #: includes/google/seo-google-info.php:3026
 #: includes/google/seo-google-info.php:3578
@@ -3482,15 +3482,15 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:3090
 msgid "Primero debes ejecutar la sincronización."
-msgstr ""
+msgstr "Lancez d'abord la synchronisation."
 
 #: includes/google/seo-google-info.php:3320
 msgid "No se pudo calcular el período de análisis."
-msgstr ""
+msgstr "Impossible de calculer la période d'analyse."
 
 #: includes/google/seo-google-info.php:3342
 msgid "Señales observadas por Google"
-msgstr ""
+msgstr "Signaux observés par Google"
 
 #: includes/google/seo-google-info.php:3343
 msgid ""
@@ -3507,11 +3507,11 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:3362
 msgid "Consultas y páginas asociadas"
-msgstr ""
+msgstr "Requêtes et pages associées"
 
 #: includes/google/seo-google-info.php:3364
 msgid "No hay consultas que cumplan los filtros."
-msgstr ""
+msgstr "Aucune requête ne correspond aux filtres."
 
 #: includes/google/seo-google-info.php:3366
 msgid "URLs"
@@ -3519,15 +3519,15 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:3377
 msgid "Ver URLs relacionadas"
-msgstr ""
+msgstr "Voir les URL associées"
 
 #: includes/google/seo-google-info.php:3395
 msgid "Páginas y consultas asociadas"
-msgstr ""
+msgstr "Pages et requêtes associées"
 
 #: includes/google/seo-google-info.php:3397
 msgid "No hay páginas que cumplan los filtros."
-msgstr ""
+msgstr "Aucune page ne correspond aux filtres."
 
 #: includes/google/seo-google-info.php:3399
 #: includes/google/seo-google-info.php:4550
@@ -3536,15 +3536,15 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:3407
 msgid "Ver consultas"
-msgstr ""
+msgstr "Voir les requêtes"
 
 #: includes/google/seo-google-info.php:3524
 msgid "No se pudo calcular el período de comparación."
-msgstr ""
+msgstr "Impossible de calculer la période de comparaison."
 
 #: includes/google/seo-google-info.php:3532
 msgid "Cambios entre períodos equivalentes"
-msgstr ""
+msgstr "Évolutions entre périodes équivalentes"
 
 #: includes/google/seo-google-info.php:3533
 msgid ""
@@ -3554,7 +3554,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:3536
 msgid "Duración de cada período"
-msgstr ""
+msgstr "Durée de chaque période"
 
 #: includes/google/seo-google-info.php:3548
 msgid ""
@@ -3564,7 +3564,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:3575
 msgid "No hay elementos con los filtros actuales."
-msgstr ""
+msgstr "Aucun élément ne correspond aux filtres actuels."
 
 #: includes/google/seo-google-info.php:3578
 msgid "Ahora"
@@ -3636,11 +3636,11 @@ msgstr ""
 #: includes/google/seo-google-info.php:4416
 #: includes/google/seo-google-info.php:4457
 msgid "No tienes permisos para exportar estos datos."
-msgstr ""
+msgstr "Vous n'avez pas les droits nécessaires pour exporter ces données."
 
 #: includes/google/seo-google-info.php:4422
 msgid "Google Search Console no está conectado."
-msgstr ""
+msgstr "Google Search Console n'est pas connecté."
 
 #: includes/google/seo-google-info.php:4466
 msgid "El motor de decisiones de Google Intelligence no está disponible."
@@ -3648,7 +3648,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:4502
 msgid "Laboratorio de datos"
-msgstr ""
+msgstr "Laboratoire de données"
 
 #: includes/google/seo-google-info.php:4503
 msgid ""
@@ -3658,19 +3658,19 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:4506
 msgid "Agrupar por"
-msgstr ""
+msgstr "Grouper par"
 
 #: includes/google/seo-google-info.php:4516
 msgid "Orden"
-msgstr ""
+msgstr "Ordre de tri"
 
 #: includes/google/seo-google-info.php:4521
 msgid "Límite"
-msgstr ""
+msgstr "Limite"
 
 #: includes/google/seo-google-info.php:4547
 msgid "No hay filas que cumplan los filtros."
-msgstr ""
+msgstr "Aucune ligne ne correspond aux filtres."
 
 #: includes/google/seo-google-info.php:4550
 msgid "Fecha"

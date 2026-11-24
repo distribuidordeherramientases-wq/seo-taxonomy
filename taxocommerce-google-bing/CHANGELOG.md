@@ -1,3 +1,7 @@
+## [1.1.75] — 2026-11-24 — Search Console administration translations (#2783)
+
+- Localize 65 previously untranslated Search Console administration strings in es_ES, en_US, fr_FR, de_DE and nl_NL: permissions, OAuth setup, property selection, synchronization, reporting filters and data lab controls. Rebuild all five compiled MO catalogs and verify representative translations. Preserve existing gettext keys, existing translations, report calculations, connections, credentials and data. No production deployment.
+
 ## [1.1.74] — 2026-11-21 — Preflight and automatic GSC freshness before complete Analysis (#2909)
 
 - Before generating the complete report, verify the last SQL date against the finalized day and latest saved snapshot for the selected property. Automatically run the EXISTING authenticated GSC day-by-day synchronization only when SQL data are outdated; reuse its property verification, resume behavior, error handling and built-in writes.
