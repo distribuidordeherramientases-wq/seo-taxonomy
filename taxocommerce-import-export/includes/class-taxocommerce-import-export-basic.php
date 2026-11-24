@@ -45,6 +45,8 @@ final class TaxoCommerce_Import_Export_Basic {
 				'sku' => 'SKU',
 				'name' => __( 'Nombre', 'taxocommerce-import-export' ),
 				'slug' => 'Slug',
+				'product_type' => __( 'Tipo WooCommerce (simple, virtual, downloadable)', 'taxocommerce-import-export' ),
+				'published' => __( 'Publicado en WooCommerce (1/0/-1)', 'taxocommerce-import-export' ),
 				'status' => __( 'Estado', 'taxocommerce-import-export' ),
 				'regular_price' => __( 'Precio normal', 'taxocommerce-import-export' ),
 				'sale_price' => __( 'Precio rebajado', 'taxocommerce-import-export' ),
@@ -63,6 +65,11 @@ final class TaxoCommerce_Import_Export_Basic {
 				'catalog_visibility' => __( 'Visibilidad en el catálogo', 'taxocommerce-import-export' ),
 				'featured' => __( 'Destacado (sí/no)', 'taxocommerce-import-export' ),
 				'virtual' => __( 'Virtual (sí/no)', 'taxocommerce-import-export' ),
+				'downloadable' => __( 'Descargable (sí/no)', 'taxocommerce-import-export' ),
+				'download_1_name' => __( 'Descarga 1: nombre', 'taxocommerce-import-export' ),
+				'download_1_url' => __( 'Descarga 1: URL', 'taxocommerce-import-export' ),
+				'download_limit' => __( 'Límite de descargas (-1 = ilimitadas)', 'taxocommerce-import-export' ),
+				'download_expiry' => __( 'Caducidad en días (-1 = sin caducidad)', 'taxocommerce-import-export' ),
 				'sold_individually' => __( 'Vender individualmente (sí/no)', 'taxocommerce-import-export' ),
 			);
 		}
@@ -260,10 +267,10 @@ final class TaxoCommerce_Import_Export_Basic {
 						</select></p>
 					<p><label for="tc-ie-basic-mode"><?php esc_html_e( 'Acción', 'taxocommerce-import-export' ); ?></label>
 						<select name="mode" id="tc-ie-basic-mode">
-							<option value="update"><?php esc_html_e( 'Actualizar solo registros existentes', 'taxocommerce-import-export' ); ?></option>
 							<option value="create"><?php esc_html_e( 'Actualizar y crear los que falten', 'taxocommerce-import-export' ); ?></option>
+							<option value="update"><?php esc_html_e( 'Actualizar solo registros existentes', 'taxocommerce-import-export' ); ?></option>
 						</select></p>
-					<p class="description"><?php esc_html_e( 'La identidad se busca por SKU (productos), slug o ID. Los campos sin asignar y las celdas vacías se conservan. Las altas se crean como borrador salvo estado explícito. Categorías y etiquetas se relacionan con términos existentes mediante slugs separados por |. Las imágenes destacadas deben estar ya en la biblioteca Media; no se descargan archivos externos.', 'taxocommerce-import-export' ); ?></p>
+					<p class="description"><?php esc_html_e( 'La identidad se busca por SKU (productos), slug o ID. Los campos sin asignar y las celdas vacías se conservan. Las altas se crean como borrador salvo estado explícito. Categorías y etiquetas se relacionan con términos existentes mediante slugs separados por |. Las categorías y etiquetas son opcionales y no se asignan automáticamente: selecciónalas solo si quieres importarlas y ya existen en WordPress. Para crear productos descargables, relaciona también los campos Descarga 1: nombre y URL. Las imágenes destacadas deben estar ya en la biblioteca Media; no se descargan archivos externos.', 'taxocommerce-import-export' ); ?></p>
 					<table class="widefat striped"><thead><tr><th><?php esc_html_e( 'Columna del CSV', 'taxocommerce-import-export' ); ?></th><th><?php esc_html_e( 'Campo de destino', 'taxocommerce-import-export' ); ?></th><th><?php esc_html_e( 'Ejemplo', 'taxocommerce-import-export' ); ?></th></tr></thead><tbody>
 					<?php foreach ( $state['headers'] as $i => $header ) : ?>
 						<tr><td><?php echo esc_html( $header ); ?></td><td>
@@ -289,7 +296,7 @@ final class TaxoCommerce_Import_Export_Basic {
 			var fields=<?php echo wp_json_encode( array_map( array( __CLASS__, 'fields' ), array_keys( $types ) ) ); ?>;
 			var keys=<?php echo wp_json_encode( array_keys( $types ) ); ?>;
 			var byType={};keys.forEach(function(k,i){byType[k]=fields[i];});
-			var alias={product:{product_id:'id',product_name:'name',nombre:'name',estado:'status',published:'status',precio:'regular_price',precio_normal:'regular_price',precio_rebajado:'sale_price',regularprice:'regular_price',saleprice:'sale_price',shortdescription:'short_description',stock:'stock_quantity',instock:'stock_status',weightkg:'weight',lengthcm:'length',widthcm:'width',heightcm:'height',images:'featured_image',imagen:'featured_image',categorias:'categories',etiquetas:'tags'},page:{post_id:'id',post_title:'title',post_content:'content',titulo:'title',estado:'status',contenido:'content',fecha:'date',imagen:'featured_image'},post:{post_id:'id',post_title:'title',post_content:'content',titulo:'title',estado:'status',contenido:'content',fecha:'date',categorias:'categories',etiquetas:'tags',imagen:'featured_image'},category:{nombre:'name',categoria:'name'},product_cat:{nombre:'name',categoria:'name'}};
+			var alias={product:{product_id:'id',product_name:'name',nombre:'name',type:'product_type',tipo:'product_type',published:'published',publicado:'published',estado:'status',precio:'regular_price',precio_normal:'regular_price',precio_rebajado:'sale_price',regularprice:'regular_price',saleprice:'sale_price',shortdescription:'short_description',stock:'stock_quantity',instock:'stock_status',weightkg:'weight',lengthcm:'length',widthcm:'width',heightcm:'height',images:'featured_image',imagen:'featured_image',categorias:'categories',etiquetas:'tags',download1name:'download_1_name',download1url:'download_1_url',downloadlimit:'download_limit',downloadexpirydays:'download_expiry',downloadexpiry:'download_expiry',downloadable:'downloadable'},page:{post_id:'id',post_title:'title',post_content:'content',titulo:'title',estado:'status',contenido:'content',fecha:'date',imagen:'featured_image'},post:{post_id:'id',post_title:'title',post_content:'content',titulo:'title',estado:'status',contenido:'content',fecha:'date',categorias:'categories',etiquetas:'tags',imagen:'featured_image'},category:{nombre:'name',categoria:'name'},product_cat:{nombre:'name',categoria:'name'}};
 			function updateFields(){
 				var type=typeSelect.value, available=byType[type]||{};
 				document.querySelectorAll('.tc-ie-basic-map').forEach(function(el){
@@ -297,7 +304,7 @@ final class TaxoCommerce_Import_Export_Basic {
 					el.replaceChildren();
 					var blank=document.createElement('option');blank.value='';blank.textContent='<?php echo esc_js( __( 'No importar', 'taxocommerce-import-export' ) ); ?>';el.appendChild(blank);
 					Object.keys(available).forEach(function(key){var op=document.createElement('option');op.value=key;op.textContent=available[key];el.appendChild(op);});
-					el.value=Object.prototype.hasOwnProperty.call(available,current)?current:(Object.prototype.hasOwnProperty.call(available,suggested)?suggested:'');
+					el.value=Object.prototype.hasOwnProperty.call(available,current)?current:((type==='product'&&(suggested==='categories'||suggested==='tags'))?'':(Object.prototype.hasOwnProperty.call(available,suggested)?suggested:''));
 				});
 			}
 			typeSelect.addEventListener('change',updateFields);updateFields();
@@ -363,6 +370,20 @@ final class TaxoCommerce_Import_Export_Basic {
 			if ( 'featured_image' === $field ) {
 				return $product->get_image_id() ? (string) wp_get_attachment_url( $product->get_image_id() ) : '';
 			}
+			if ( 'product_type' === $field ) {
+				return $product->get_type() . ( $product->get_virtual() ? ', virtual' : '' ) . ( $product->get_downloadable() ? ', downloadable' : '' );
+			}
+			if ( 'published' === $field ) {
+				return 'publish' === $product->get_status() ? '1' : '0';
+			}
+			if ( 'download_1_name' === $field || 'download_1_url' === $field ) {
+				$downloads = $product->get_downloads();
+				$download = $downloads ? reset( $downloads ) : false;
+				if ( ! $download ) {
+					return '';
+				}
+				return 'download_1_name' === $field ? $download->get_name() : $download->get_file();
+			}
 			$methods = array(
 				'id' => 'get_id', 'sku' => 'get_sku', 'name' => 'get_name',
 				'slug' => 'get_slug', 'status' => 'get_status',
@@ -373,6 +394,8 @@ final class TaxoCommerce_Import_Export_Basic {
 				'weight' => 'get_weight', 'length' => 'get_length', 'width' => 'get_width',
 				'height' => 'get_height', 'catalog_visibility' => 'get_catalog_visibility',
 				'featured' => 'get_featured', 'virtual' => 'get_virtual',
+				'downloadable' => 'get_downloadable', 'download_limit' => 'get_download_limit',
+				'download_expiry' => 'get_download_expiry',
 				'sold_individually' => 'get_sold_individually',
 			);
 			$method = $methods[ $field ] ?? '';
@@ -605,6 +628,28 @@ final class TaxoCommerce_Import_Export_Basic {
 
 	private function import_record( $type, $data, $mode ) {
 		if ( ! $data ) return new WP_Error( 'empty', __( 'Fila sin campos con valores.', 'taxocommerce-import-export' ) );
+		if ( 'product' === $type && isset( $data['published'] ) && ! isset( $data['status'] ) ) {
+			$published = strtolower( trim( (string) $data['published'] ) );
+			if ( in_array( $published, array( '1', 'yes', 'true', 'publish' ), true ) ) {
+				$data['status'] = 'publish';
+			} elseif ( in_array( $published, array( '0', '-1', 'no', 'false', 'draft' ), true ) ) {
+				$data['status'] = 'draft';
+			} else {
+				return new WP_Error( 'invalid_published', __( 'El campo Published debe indicar 1, 0 o -1.', 'taxocommerce-import-export' ) );
+			}
+		}
+		if ( 'product' === $type && isset( $data['product_type'] ) ) {
+			$parts = array_map( 'trim', explode( ',', strtolower( (string) $data['product_type'] ) ) );
+			if ( 'simple' !== $parts[0] ) {
+				return new WP_Error( 'unsupported_product_type', __( 'El importador básico admite productos simples, virtuales y descargables. Otros tipos deben importarse con WooCommerce.', 'taxocommerce-import-export' ) );
+			}
+			if ( in_array( 'virtual', $parts, true ) && ! isset( $data['virtual'] ) ) {
+				$data['virtual'] = 'yes';
+			}
+			if ( in_array( 'downloadable', $parts, true ) && ! isset( $data['downloadable'] ) ) {
+				$data['downloadable'] = 'yes';
+			}
+		}
 		if ( isset( $data['status'] ) ) {
 			$source_status = strtolower( trim( $data['status'] ) );
 			$native_status = array( '1' => 'publish', '0' => 'draft', '-1' => 'private', 'yes' => 'publish', 'no' => 'draft' );
@@ -676,6 +721,8 @@ final class TaxoCommerce_Import_Export_Basic {
 				'width' => 'set_width', 'height' => 'set_height',
 				'catalog_visibility' => 'set_catalog_visibility',
 				'featured' => 'set_featured', 'virtual' => 'set_virtual',
+				'downloadable' => 'set_downloadable', 'download_limit' => 'set_download_limit',
+				'download_expiry' => 'set_download_expiry',
 				'sold_individually' => 'set_sold_individually',
 			);
 			try {
@@ -689,9 +736,14 @@ final class TaxoCommerce_Import_Export_Basic {
 						if ( ! is_numeric( $value ) || (float) $value < 0 ) {
 							return new WP_Error( 'invalid_number', __( 'Precio, peso o dimensión no válidos.', 'taxocommerce-import-export' ) );
 						}
-					} elseif ( in_array( $field, array( 'manage_stock', 'featured', 'virtual', 'sold_individually' ), true ) ) {
+					} elseif ( in_array( $field, array( 'manage_stock', 'featured', 'virtual', 'downloadable', 'sold_individually' ), true ) ) {
 						$value = $this->csv_boolean( $value );
 						if ( is_wp_error( $value ) ) return $value;
+					} elseif ( in_array( $field, array( 'download_limit', 'download_expiry' ), true ) ) {
+						if ( ! preg_match( '/^-?\d+$/D', (string) $value ) || (int) $value < -1 ) {
+							return new WP_Error( 'invalid_download_setting', __( 'El límite y la caducidad de descargas deben ser números enteros iguales o superiores a -1.', 'taxocommerce-import-export' ) );
+						}
+						$value = (int) $value;
 					} elseif ( 'stock_status' === $field ) {
 						if ( ! in_array( $value, array( 'instock', 'outofstock', 'onbackorder' ), true ) ) {
 							return new WP_Error( 'invalid_stock_status', __( 'Estado de existencias no válido.', 'taxocommerce-import-export' ) );
@@ -714,6 +766,21 @@ final class TaxoCommerce_Import_Export_Basic {
 				}
 				if ( null !== $image_id ) {
 					$p->set_image_id( $image_id );
+				}
+				if ( isset( $data['download_1_url'] ) ) {
+					$file = esc_url_raw( (string) $data['download_1_url'] );
+					$scheme = strtolower( (string) wp_parse_url( $file, PHP_URL_SCHEME ) );
+					if ( ! in_array( $scheme, array( 'http', 'https' ), true ) || ! wp_parse_url( $file, PHP_URL_HOST ) ) {
+						return new WP_Error( 'invalid_download_url', __( 'La descarga requiere una URL HTTP o HTTPS válida.', 'taxocommerce-import-export' ) );
+					}
+					$download = new WC_Product_Download();
+					$download->set_id( md5( $file ) );
+					$download->set_name( sanitize_text_field( (string) ( $data['download_1_name'] ?? __( 'Archivo descargable', 'taxocommerce-import-export' ) ) ) );
+					$download->set_file( $file );
+					$p->set_downloads( array( $download ) );
+					if ( ! isset( $data['downloadable'] ) ) {
+						$p->set_downloadable( true );
+					}
 				}
 				$p->save();
 			} catch ( Exception $e ) {
@@ -825,7 +892,7 @@ final class TaxoCommerce_Import_Export_Basic {
 		if ( ! $state || empty( $state['path'] ) ) wp_send_json_error( array( 'message' => __( 'El CSV ha caducado. Vuelve a subirlo.', 'taxocommerce-import-export' ) ) );
 		if ( empty( $state['started'] ) ) {
 			$type = sanitize_key( wp_unslash( $_POST['content_type'] ?? '' ) );
-			$mode = sanitize_key( wp_unslash( $_POST['mode'] ?? 'update' ) );
+			$mode = sanitize_key( wp_unslash( $_POST['mode'] ?? 'create' ) );
 			if ( ! isset( self::types()[ $type ] ) || ! in_array( $mode, array( 'update', 'create' ), true ) ) wp_send_json_error( array( 'message' => 'Invalid type or mode' ) );
 			$raw_map = isset( $_POST['mapping'] ) && is_array( $_POST['mapping'] ) ? wp_unslash( $_POST['mapping'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each value sanitized and whitelisted below.
 			$allowed = self::fields( $type );

@@ -86,6 +86,10 @@ jobs:
             if [ -f "$slug/tests/standalone-bootstrap-smoke.php" ]; then
               php "$slug/tests/standalone-bootstrap-smoke.php"
             fi
+            if [ "$slug" = "taxocommerce-import-export" ]; then
+              php -l "$slug/tests/basic-native-woocommerce-smoke.php"
+              php "$slug/tests/basic-native-woocommerce-smoke.php"
+            fi
             if [ "$slug" = "taxocommerce-ticketing" ]; then
               php "$slug/tests/smoke.php"
             fi
