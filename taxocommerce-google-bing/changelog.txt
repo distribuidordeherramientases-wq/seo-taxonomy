@@ -1,3 +1,6 @@
+= 1.1.75 (2026-11-24) =
+* Localize 65 previously untranslated Search Console administration strings in es_ES, en_US, fr_FR, de_DE and nl_NL: permissions, OAuth setup, property selection, synchronization, reporting filters and data lab controls. Rebuild all five compiled MO catalogs and verify representative translations. Preserve existing gettext keys, existing translations, report calculations, connections, credentials and data. No production deployment. Issue #2783.
+
 = 1.1.72 (2026-11-20) =
 * Localize ten Google Trends administration labels, links and information notices in five locales. Recompile PO/MO catalogs. Issue #2852.
 

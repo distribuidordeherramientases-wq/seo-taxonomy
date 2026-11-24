@@ -18,6 +18,13 @@ $required_connection_translations = array(
     'de_DE' => array( 'Google speichern', 'Pinterest testen', 'Verbindungen' ),
     'nl_NL' => array( 'Google opslaan', 'Pinterest testen', 'Verbindingen' ),
 );
+$required_gsc_translations = array(
+    'es_ES' => array( 'Selecciona una propiedad', 'Sincronizar ahora', 'No hay datos para este período.', 'Laboratorio de datos' ),
+    'en_US' => array( 'Select a property', 'Synchronize now', 'No data for this period.', 'Data lab' ),
+    'fr_FR' => array( 'Sélectionner une propriété', 'Synchroniser maintenant', 'Aucune donnée pour cette période.', 'Laboratoire de données' ),
+    'de_DE' => array( 'Property auswählen', 'Jetzt synchronisieren', 'Keine Daten für diesen Zeitraum.', 'Datenlabor' ),
+    'nl_NL' => array( 'Selecteer een property', 'Nu synchroniseren', 'Geen gegevens voor deze periode.', 'Datalab' ),
+);
 foreach ($expected as $locale => $translation) {
     $po = file_get_contents($root . $locale . '.po');
     $bytes = file_get_contents($root . $locale . '.mo');
@@ -51,7 +58,19 @@ foreach ($expected as $locale => $translation) {
             fwrite(STDERR, "FAIL empty compiled translation hides UI label $locale: $original\n");
             exit(1);
         }
+        if ( $i > 0 && strcmp( $previous_original, $original ) >= 0 ) {
+            fwrite( STDERR, "FAIL unsorted MO originals $locale\n" );
+            exit( 1 );
+        }
+        $previous_original = $original;
         $catalog[$original] = $translated;
+    }
+    $gsc_keys = array( 'Selecciona una propiedad', 'Sincronizar ahora', 'No hay datos para este período.', 'Laboratorio de datos' );
+    foreach ( $gsc_keys as $i => $key ) {
+        if ( ( $catalog[$key] ?? null ) !== $required_gsc_translations[$locale][$i] ) {
+            fwrite( STDERR, "FAIL Search Console translation $locale: $key\n" );
+            exit( 1 );
+        }
     }
     if (($catalog['Añadir a la cola IndexNow'] ?? null) !== $translation ||
         !isset($catalog['Activar IndexNow para avisar a Bing de URL creadas, modificadas o eliminadas. No actives esta opción si otro servicio ya envía estas notificaciones.']) ||
