@@ -4,13 +4,18 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.77
+Stable tag: 1.1.78
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 External connections, manual provider data downloads, and market intelligence for WooCommerce.
 
 == Description ==
+
+= ChatGPT Search referral traffic =
+The ChatGPT Search tab reports GA4-attributed sessions, users, engaged sessions, pageviews and landing pages for completed periods. It uses the existing Google Analytics 4 connection. Organic ChatGPT queries, impressions, recommendation clicks and CTR are not available through a public publisher API; the tab does not claim otherwise. Manual updates only.
+
+
 
 TaxoCommerce Insights keeps external service connections and manual data downloads in one place.
 
@@ -62,7 +67,7 @@ It is the continued plugin under the historical slug taxocommerce-google-bing, r
 
 == Changelog ==
 
-= 1.1.77 =
+= 1.1.78 =
 * Localize 251 previously empty translation entries covering Google Trends, market radar, administrative permissions and report interface labels across es_ES, en_US, fr_FR, de_DE and nl_NL. Retain existing nonempty translations, rebuild five compiled MO catalogs, extend the locale smoke test and preserve all reporting behavior and data. No production deployment.
 
 = 1.1.76 =

@@ -100,6 +100,7 @@ jobs:
               php "$slug/tests/smoke.php"
             fi
             if [ "$slug" = "taxocommerce-google-bing" ]; then
+              php "$slug/tests/chatgpt-search-smoke.php"
               php "$slug/tests/gsc-freshness-smoke.php"
               php "$slug/tests/analysis-full-refresh-smoke.php"
               node --check "$slug/includes/analysis/assets/analista-lazy.js"

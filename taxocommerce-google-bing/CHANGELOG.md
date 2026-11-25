@@ -1,3 +1,9 @@
+## [1.1.78] — 2026-11-25 — ChatGPT Search referral reporting (#2969)
+
+- Add a standalone ChatGPT Search tab to Insights with GA4-attributed sessions, users, engaged sessions, pageviews and landing pages, plus comparison across two closed 28-day periods. Refresh is manual, permission/nonce protected, and saved locally with autoload disabled; opening the tab makes no remote request.
+- Identify the source as GA4 session attribution and explicitly report organic ChatGPT impressions, recommendations, prompts, clicks and CTR as unavailable. Do not conflate ChatGPT Ads or product feeds with Search analytics.
+- Reuse the existing GA4 service; no ChatGPT credentials, new dependency, Analysis changes or production deployment. Add standalone regression for filtering, sanitization and offline rendering.
+
 ## [1.1.77] — 2026-11-25 — Trends and market radar translations (#2783)
 
 - Localize 251 previously empty translation entries covering Google Trends, market radar, administrative permissions and report interface labels across es_ES, en_US, fr_FR, de_DE and nl_NL. Retain existing nonempty translations, rebuild five compiled MO catalogs, extend the locale smoke test and preserve all reporting behavior and data. No production deployment.

@@ -1,3 +1,8 @@
+= 1.1.78 - 2026-11-25 =
+* Added ChatGPT Search referral traffic tab backed by GA4, with closed 28-day comparisons, landing pages and manual cached snapshots.
+* Explicitly mark unavailable organic ChatGPT query, impression, click and CTR statistics as unavailable; no new OpenAI connection or Analysis changes.
+* Restricted refresh to administrators, verified nonce and sanitized landing paths; no production deployment.
+
 = 1.1.77 (2026-11-25) =
 * Localize 251 previously empty translation entries covering Google Trends, market radar, administrative permissions and report interface labels across es_ES, en_US, fr_FR, de_DE and nl_NL. Retain existing nonempty translations, rebuild five compiled MO catalogs, extend the locale smoke test and preserve all reporting behavior and data. No production deployment. Issue #2783.
 
