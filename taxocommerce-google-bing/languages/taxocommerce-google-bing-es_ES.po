@@ -34,7 +34,7 @@ msgstr ""
 #: includes/analysis/analista-bing.php:379
 #: includes/class-taxocommerce-google-bing-bing-service.php:379
 msgid "· conexion complementaria"
-msgstr ""
+msgstr "· conexión complementaria"
 
 #: includes/analysis/analista-bing.php:386
 #: includes/class-taxocommerce-google-bing-bing-service.php:386
@@ -863,7 +863,7 @@ msgstr "Última sincronización"
 
 #: includes/analysis/analista-lazy.php:307
 msgid "Frescura operativa · Action Scheduler"
-msgstr ""
+msgstr "Actualidad operativa · Action Scheduler"
 
 #: includes/analysis/analista-lazy.php:307
 msgid ""
@@ -1153,7 +1153,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-connections-guide.php:110
 msgid "Illustrated click path (not a live screenshot)."
-msgstr ""
+msgstr "Ruta de navegación ilustrada (no es una captura real)."
 
 #: includes/class-taxocommerce-connections-pinterest.php:147
 msgid "OpenSSL is not available."
@@ -1324,7 +1324,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-connections.php:218
 msgid "Google Analytics / Search Console · Cuenta de servicio"
-msgstr ""
+msgstr "Google Analytics / Search Console · Cuenta de servicio"
 
 #: includes/class-taxocommerce-google-bing-connections.php:218
 msgid ""
@@ -1365,7 +1365,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-connections.php:296
 msgid "Proveedores de Mercado · YouTube y SerpApi"
-msgstr ""
+msgstr "Proveedores de mercado · YouTube y SerpApi"
 
 #: includes/class-taxocommerce-google-bing-connections.php:296
 msgid ""
@@ -1404,7 +1404,7 @@ msgstr ""
 #: includes/class-taxocommerce-google-bing-reports.php:230
 #: includes/class-taxocommerce-google-bing-trends.php:154
 msgid "Acceso no autorizado."
-msgstr ""
+msgstr "Acceso no autorizado."
 
 #: includes/class-taxocommerce-google-bing-merchant.php:310
 msgid ""
@@ -1810,7 +1810,7 @@ msgstr "Límite de la fuente:"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:277
 msgid "Google facilita gráficos visuales, pero esta integración"
-msgstr ""
+msgstr "Google facilita gráficos visuales, pero esta integración"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:278
 msgid ""
@@ -1850,7 +1850,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:310
 msgid "no son una medición del porcentaje real de CPU del servidor."
-msgstr ""
+msgstr "no miden el porcentaje real de uso de la CPU del servidor."
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:312
 msgid "Actualizar gráficos"
@@ -1943,11 +1943,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends.php:204
 msgid "Región:"
-msgstr ""
+msgstr "Región:"
 
 #: includes/class-taxocommerce-google-bing-trends.php:204
 msgid "España"
-msgstr ""
+msgstr "España"
 
 #: includes/class-taxocommerce-google-bing-trends.php:207
 msgid "Period:"
@@ -1984,11 +1984,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends.php:236
 msgid "official API for downloadable series"
-msgstr ""
+msgstr "API oficial de series descargables"
 
 #: includes/class-taxocommerce-google-bing-trends.php:236
 msgid "remains in restricted alpha access."
-msgstr ""
+msgstr "sigue en fase alfa de acceso restringido."
 
 #: includes/class-taxocommerce-google-bing-trends.php:355
 msgid "You do not have permission to download reports."
@@ -2822,11 +2822,11 @@ msgstr ""
 #: includes/google/google-python-runner.php:226
 #: includes/google/google-search.php:317
 msgid "No tienes permisos para guardar esta conexion."
-msgstr ""
+msgstr "No tienes permisos para guardar esta conexión."
 
 #: includes/google/google-python-runner.php:429
 msgid "No tienes permisos para iniciar el scraper Python."
-msgstr ""
+msgstr "No tienes permisos para iniciar el scraper de Python."
 
 #: includes/google/seo-google-demand-catalog.php:1486
 msgid "No se pudo calcular el periodo de analisis."
@@ -3095,15 +3095,15 @@ msgstr ""
 
 #: includes/google/seo-google-growth-guidance.php:58
 msgid "Lista priorizada"
-msgstr ""
+msgstr "Lista priorizada"
 
 #: includes/google/seo-google-growth-guidance.php:58
 msgid "Nivel / área"
-msgstr ""
+msgstr "Nivel / área"
 
 #: includes/google/seo-google-growth-guidance.php:58
 msgid "Qué hacer"
-msgstr ""
+msgstr "Qué hacer"
 
 #: includes/google/seo-google-growth-guidance.php:58
 msgid "Trends"
@@ -3111,11 +3111,11 @@ msgstr ""
 
 #: includes/google/seo-google-growth-guidance.php:58
 msgid "Catálogo"
-msgstr ""
+msgstr "Catálogo"
 
 #: includes/google/seo-google-growth-guidance.php:58
 msgid "Dirección"
-msgstr ""
+msgstr "Dirección"
 
 #: includes/google/seo-google-growth-guidance.php:58
 msgid "Confianza"
@@ -3123,11 +3123,11 @@ msgstr "Confianza"
 
 #: includes/google/seo-google-growth-guidance.php:59
 msgid "Sin señal importada"
-msgstr ""
+msgstr "Sin señal importada"
 
 #: includes/google/seo-google-growth-guidance.php:61
 msgid "Regla de lectura"
-msgstr ""
+msgstr "Regla de interpretación"
 
 #: includes/google/seo-google-growth-guidance.php:61
 msgid ""
@@ -3478,7 +3478,7 @@ msgstr "No hay datos para este período."
 #: includes/google/seo-google-info.php:3026
 #: includes/google/seo-google-info.php:3578
 msgid "Elemento"
-msgstr ""
+msgstr "Elemento"
 
 #: includes/google/seo-google-info.php:3090
 msgid "Primero debes ejecutar la sincronización."
@@ -3568,15 +3568,15 @@ msgstr "No hay elementos con los filtros actuales."
 
 #: includes/google/seo-google-info.php:3578
 msgid "Ahora"
-msgstr ""
+msgstr "Ahora"
 
 #: includes/google/seo-google-info.php:3578
 msgid "Pos. antes"
-msgstr ""
+msgstr "Pos. anterior"
 
 #: includes/google/seo-google-info.php:3578
 msgid "Pos. ahora"
-msgstr ""
+msgstr "Pos. actual"
 
 #: includes/google/seo-google-info.php:4116
 msgid "Google vs. catálogo"
@@ -3644,7 +3644,7 @@ msgstr "Google Search Console no está conectado."
 
 #: includes/google/seo-google-info.php:4466
 msgid "El motor de decisiones de Google Intelligence no está disponible."
-msgstr ""
+msgstr "El motor de decisiones de Google Intelligence no está disponible."
 
 #: includes/google/seo-google-info.php:4502
 msgid "Laboratorio de datos"
@@ -3678,11 +3678,11 @@ msgstr "Fecha"
 
 #: includes/google/seo-google-opportunity-engine.php:1517
 msgid "Destino actual:"
-msgstr ""
+msgstr "Destino actual:"
 
 #: includes/google/seo-google-opportunity-engine.php:1604
 msgid "Decisiones recomendadas"
-msgstr ""
+msgstr "Decisiones recomendadas"
 
 #: includes/google/seo-google-opportunity-engine.php:1604
 msgid ""
@@ -3724,7 +3724,7 @@ msgstr "Área relacionada"
 #: includes/google/seo-google-opportunity-engine.php:1630
 #: includes/google/seo-google-trends.php:2687
 msgid "Observada"
-msgstr ""
+msgstr "Observada"
 
 #: includes/google/seo-google-opportunity-engine.php:1638
 msgid "Exploración de mercado"
@@ -3792,27 +3792,27 @@ msgstr ""
 
 #: includes/google/seo-google-trends.php:178
 msgid "No tienes permisos para configurar Google Trends."
-msgstr ""
+msgstr "No tienes permisos para configurar Google Trends."
 
 #: includes/google/seo-google-trends.php:1946
 msgid "No tienes permisos para actualizar Google Trends."
-msgstr ""
+msgstr "No tienes permisos para actualizar Google Trends."
 
 #: includes/google/seo-google-trends.php:2099
 msgid "No tienes permisos para importar Google Trends."
-msgstr ""
+msgstr "No tienes permisos para importar Google Trends."
 
 #: includes/google/seo-google-trends.php:2203
 msgid "No tienes permisos para borrar Google Trends."
-msgstr ""
+msgstr "No tienes permisos para borrar los datos de Google Trends."
 
 #: includes/google/seo-google-trends.php:2571
 msgid "Mercado Google · Trends"
-msgstr ""
+msgstr "Mercado Google · Trends"
 
 #: includes/google/seo-google-trends.php:2572
 msgid "Objetivo:"
-msgstr ""
+msgstr "Objetivo:"
 
 #: includes/google/seo-google-trends.php:2572
 msgid ""
@@ -3824,19 +3824,19 @@ msgstr ""
 
 #: includes/google/seo-google-trends.php:2584
 msgid "Se han eliminado las señales almacenadas de Trends."
-msgstr ""
+msgstr "Se han eliminado las señales almacenadas de Trends."
 
 #: includes/google/seo-google-trends.php:2586
 msgid "Configuración del radar guardada."
-msgstr ""
+msgstr "Configuración del radar guardada."
 
 #: includes/google/seo-google-trends.php:2611
 msgid "Exploración de mercado · web pública"
-msgstr ""
+msgstr "Exploración de mercado · web pública"
 
 #: includes/google/seo-google-trends.php:2629
 msgid "Ultimo diagnostico tecnico:"
-msgstr ""
+msgstr "Último diagnóstico técnico:"
 
 #: includes/google/seo-google-trends.php:2643
 msgid ""
@@ -3846,7 +3846,7 @@ msgstr ""
 
 #: includes/google/seo-google-trends.php:2650
 msgid "Perímetro comercial del radar"
-msgstr ""
+msgstr "Perímetro comercial del radar"
 
 #: includes/google/seo-google-trends.php:2651
 msgid ""
@@ -3856,11 +3856,11 @@ msgstr ""
 
 #: includes/google/seo-google-trends.php:2651
 msgid "No se escanean landings ni posts para decidir qué busca el mercado."
-msgstr ""
+msgstr "No se analizan las páginas de destino ni las entradas para determinar qué busca el mercado."
 
 #: includes/google/seo-google-trends.php:2671
 msgid "Importación CSV · respaldo manual"
-msgstr ""
+msgstr "Importación CSV · alternativa manual"
 
 #: includes/google/seo-google-trends.php:2672
 msgid ""
@@ -3872,25 +3872,25 @@ msgstr ""
 #: includes/google/seo-google-trends.php:2672
 #: includes/google/seo-google-trends.php:2676
 msgid "En aumento"
-msgstr ""
+msgstr "En aumento"
 
 #: includes/google/seo-google-trends.php:2672
 #: includes/google/seo-google-trends.php:2676
 msgid "Principales"
-msgstr ""
+msgstr "Principales"
 
 #: includes/google/seo-google-trends.php:2672
 #: includes/google/seo-google-trends.php:2676
 msgid "Relacionadas"
-msgstr ""
+msgstr "Relacionadas"
 
 #: includes/google/seo-google-trends.php:2672
 msgid "sin perder el motor de decisiones."
-msgstr ""
+msgstr "sin renunciar al motor de decisiones."
 
 #: includes/google/seo-google-trends.php:2675
 msgid "Semilla analizada"
-msgstr ""
+msgstr "Término de partida analizado"
 
 #: includes/google/seo-google-trends.php:2679
 msgid "CSV"
@@ -3898,7 +3898,7 @@ msgstr "CSV"
 
 #: includes/google/seo-google-trends.php:2683
 msgid "Señales externas almacenadas"
-msgstr ""
+msgstr "Señales externas almacenadas"
 
 #: includes/google/seo-google-trends.php:2685
 msgid ""
@@ -3908,11 +3908,11 @@ msgstr ""
 
 #: includes/google/seo-google-trends.php:2687
 msgid "Señal"
-msgstr ""
+msgstr "Señal"
 
 #: includes/google/seo-google-trends.php:2687
 msgid "Indicador"
-msgstr ""
+msgstr "Indicador"
 
 #: taxocommerce-google-bing.php:102 taxocommerce-google-bing.php:112
 msgid "Insights"
@@ -3927,7 +3927,7 @@ msgstr ""
 
 #: taxocommerce-google-bing.php:255
 msgid "Analysis"
-msgstr ""
+msgstr "Análisis"
 
 #: taxocommerce-google-bing.php:256
 msgid ""

@@ -1,3 +1,7 @@
+## [1.1.77] — 2026-11-25 — Trends and market radar translations (#2783)
+
+- Localize 251 previously empty translation entries covering Google Trends, market radar, administrative permissions and report interface labels across es_ES, en_US, fr_FR, de_DE and nl_NL. Retain existing nonempty translations, rebuild five compiled MO catalogs, extend the locale smoke test and preserve all reporting behavior and data. No production deployment.
+
 ## [1.1.76] — 2026-11-24 — Demand and catalog reporting translations (#2783)
 
 - Localize 60 previously untranslated demand, catalog coverage and market opportunity report interface strings in es_ES, en_US, fr_FR, de_DE and nl_NL. Rebuild and verify all five compiled MO catalogs; extend the existing translation regression. Preserve gettext keys, existing translations, generated content, analytics and business data. No production deployment.
