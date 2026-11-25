@@ -333,6 +333,7 @@ function tcdist_feed_render_admin() {
                         </label>
                     <?php endforeach; ?>
 
+                    <p class="description">OpenAI / ChatGPT: <?php esc_html_e( 'Organic search only. A generated file does not mean the merchant or market has been approved by OpenAI.', 'taxocommerce-distribution' ); ?> <a href="https://chatgpt.com/business-hub/" target="_blank" rel="noopener noreferrer">Business Hub</a></p>
                     <p style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;">
                         <label>
                             <strong><?php esc_html_e( 'Country', 'taxocommerce-distribution' ); ?></strong><br>
@@ -425,6 +426,12 @@ function tcdist_feed_render_admin() {
                 <p class="description"><?php esc_html_e( 'Start creates a new generation and hands it to the Distribution worker. Stop invalidates the current run without replacing the last valid feed. Batch size, pause, pressure, and recovery are controlled by Processes; this plugin keeps a single bounded worker.', 'taxocommerce-distribution' ); ?></p>
                 <p class="description"><?php esc_html_e( 'Google, Microsoft y Pinterest descargan despues los archivos desde sus URLs; no existe un envio directo.', 'taxocommerce-distribution' ); ?></p>
 
+                <?php if ( isset( $state['files']['openai'] ) ) : ?>
+                    <p><strong>OpenAI:</strong> <?php esc_html_e( 'published:', 'taxocommerce-distribution' ); ?> <?php echo esc_html( number_format_i18n( absint( $state['openai_written'] ?? 0 ) ) ); ?> · <?php esc_html_e( 'excluded:', 'taxocommerce-distribution' ); ?> <?php echo esc_html( number_format_i18n( absint( $state['openai_excluded'] ?? 0 ) ) ); ?></p>
+                    <?php foreach ( (array) ( $state['openai_excluded_reasons'] ?? [] ) as $reason => $count ) : ?>
+                        <p class="description"><code><?php echo esc_html( $reason ); ?></code>: <?php echo esc_html( number_format_i18n( absint( $count ) ) ); ?></p>
+                    <?php endforeach; ?>
+                <?php endif; ?>
                 <?php if ( ! empty( $state['excluded_reasons'] ) ) : ?>
                     <details>
                         <summary><?php esc_html_e( 'Exclusion reasons', 'taxocommerce-distribution' ); ?></summary>
@@ -454,6 +461,7 @@ function tcdist_feed_render_admin() {
             <p><?php esc_html_e( 'These are stable URLs registered once with each platform. The platform then downloads them again according to its own schedule.', 'taxocommerce-distribution' ); ?></p>
             <p class="description"><?php esc_html_e( 'The plugin records feed generation, not each remote download: these files are served directly by the web server.', 'taxocommerce-distribution' ); ?></p>
 
+            <p><strong>ChatGPT Search:</strong> <a href="<?php echo esc_url( home_url( '/robots.txt' ) ); ?>" target="_blank" rel="noopener noreferrer">robots.txt</a> · <a href="<?php echo esc_url( home_url( '/sitemap.xml' ) ); ?>" target="_blank" rel="noopener noreferrer">sitemap.xml</a> · <a href="https://developers.openai.com/api/docs/bots" target="_blank" rel="noopener noreferrer">OAI-SearchBot</a>. <?php esc_html_e( 'Review crawler access and the active sitemap before registration. No crawler permission is changed automatically.', 'taxocommerce-distribution' ); ?></p>
             <table class="widefat striped" style="max-width:1180px;">
                 <thead>
                     <tr>

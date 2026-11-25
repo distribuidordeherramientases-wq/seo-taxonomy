@@ -1,3 +1,6 @@
+= 0.1.22 (2026-11-25) =
+* Prepare optional OpenAI product CSV, channel-specific exclusions and crawler guidance. Issue #2954.
+
 = 0.1.21 (2026-11-18) =
 * Fix the Spanish Overview tab translation to Resumen and recompile es_ES MO. Preserve other locales and all feed/sitemap logic. Issue #2783.
 

@@ -293,6 +293,8 @@ jobs:
           php -l taxocommerce-dependiente/tests/m11-checkpoint-large-lexicon.php
           php taxocommerce-dependiente/tests/m11-checkpoint-large-lexicon.php
           php taxocommerce-distribution/tests/manual-autocheck-smoke.php
+          php -l taxocommerce-distribution/includes/feeds/openai.php
+          php taxocommerce-distribution/tests/openai-feed-smoke.php
           php -l taxocommerce-distribution/tests/overview-i18n-smoke.php
           php taxocommerce-distribution/tests/overview-i18n-smoke.php
           php taxocommerce-facturacion/tests/manual-autotest-smoke.php
