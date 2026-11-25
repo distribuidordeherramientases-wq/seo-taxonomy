@@ -12,6 +12,11 @@ External connections, manual provider data downloads, and market intelligence fo
 
 == Description ==
 
+= ChatGPT Search referral traffic =
+The ChatGPT Search tab reports GA4-attributed sessions, users, engaged sessions, pageviews and landing pages for completed periods. It uses the existing Google Analytics 4 connection. Organic ChatGPT queries, impressions, recommendation clicks and CTR are not available through a public publisher API; the tab does not claim otherwise. Manual updates only.
+
+
+
 TaxoCommerce Insights keeps external service connections and manual data downloads in one place.
 
 = Key Features =
