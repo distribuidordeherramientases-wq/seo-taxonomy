@@ -144,8 +144,27 @@ final class Admin {
 		if ( UPLOAD_ERR_OK !== (int) ( $file['error'] ?? -1 ) || $size < 1 || $size > self::MAX_CSV_BYTES || 'csv' !== strtolower( pathinfo( $name, PATHINFO_EXTENSION ) ) || ! is_uploaded_file( $tmp ) ) {
 			wp_die( esc_html__( 'Adjunta un CSV válido de hasta 30 MB.', 'taxocommerce-import-export-lite' ) );
 		}
-		$path = wp_tempnam( 'tciel-' );
-		if ( ! $path || ! move_uploaded_file( $tmp, $path ) ) {
+		// Store the CSV outside the public uploads directory using WordPress upload handling.
+		// The filter is scoped to this single operation and always removed afterwards.
+		$temp_upload_dir = static function ( $uploads ) {
+			$uploads['path']    = trailingslashit( get_temp_dir() );
+			$uploads['basedir'] = trailingslashit( get_temp_dir() );
+			$uploads['subdir']  = '';
+			$uploads['url']     = '';
+			$uploads['baseurl'] = '';
+			return $uploads;
+		};
+		add_filter( 'upload_dir', $temp_upload_dir );
+		$uploaded = wp_handle_upload(
+			$file,
+			array(
+				'test_form' => false,
+				'mimes'     => array( 'csv' => 'text/csv' ),
+			)
+		);
+		remove_filter( 'upload_dir', $temp_upload_dir );
+		$path = ! empty( $uploaded['file'] ) ? $uploaded['file'] : '';
+		if ( ! $path || ! is_readable( $path ) ) {
 			wp_die( esc_html__( 'No se pudo almacenar temporalmente el CSV.', 'taxocommerce-import-export-lite' ) );
 		}
 		$handle = fopen( $path, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Temporary uploaded CSV, read-only.
