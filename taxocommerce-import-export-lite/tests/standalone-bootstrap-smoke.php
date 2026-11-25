@@ -89,6 +89,9 @@ class TC_Stub_DB {
 }
 $GLOBALS['wpdb'] = new TC_Stub_DB();
 function get_page_by_path( $slug, $output = null, $type = '' ) {
+	$types = is_array( $type ) ? $type : array( $type, 'attachment' );
+	if ( in_array( 'attachment', $types, true ) && isset( $GLOBALS['attachment_slug_index'][ $slug ] ) ) return (object) array( 'ID' => $GLOBALS['attachment_slug_index'][ $slug ] );
+	$type = is_array( $type ) ? reset( $type ) : $type;
 	if ( 'product' === $type && isset( $GLOBALS['lookup_slug_override'][ $slug ] ) ) return (object) array( 'ID' => $GLOBALS['lookup_slug_override'][ $slug ] );
 	foreach ( $GLOBALS['products'] as $p ) {
 		if ( 'product' === $type && $p->get_slug() === $slug ) return (object) array( 'ID' => $p->get_id() );
@@ -182,6 +185,11 @@ $pro_row  = array( 'sku' => 'TC-MAIL-PRO', 'slug' => 'mail-product-fresh-pro', '
 check_tciel( true === CSV::precheck( 'product', $lite_row ), 'New Mail Lite precheck accepts upsert mode' );
 check_tciel( true === CSV::precheck( 'product', $pro_row ), 'New Mail Pro precheck accepts upsert mode' );
 check_tciel( is_wp_error( CSV::precheck( 'product', $pro_row, 'update' ) ), 'Update-only still rejects missing products' );
+$GLOBALS['attachment_slug_index']['mail-product-fresh-pro'] = 20965;
+$GLOBALS['lookup_post_status_override'][20965] = 'inherit';
+check_tciel( true === CSV::precheck( 'product', $pro_row ), 'Attachment slug collision does not block precheck' );
+check_tciel( is_wp_error( CSV::precheck( 'product', $pro_row, 'update' ) ), 'Attachment is not an existing product' );
+unset( $GLOBALS['attachment_slug_index'], $GLOBALS['lookup_post_status_override'][20965] );
 // WooCommerce SKU lookups can point to old records that no longer exist.
 $GLOBALS['lookup_sku_override']['TC-MAIL-PRO'] = 9988;
 check_tciel( true === CSV::precheck( 'product', $pro_row ), 'Orphaned SKU lookup is not a product' );
@@ -221,7 +229,11 @@ check_tciel( 1 === count( $GLOBALS['products'] ), 'Re-import does not duplicate'
 $data['sku'] = 'TC-TEST-2';
 $data['slug'] = 'taxocommerce-mail-pro';
 check_tciel( is_wp_error( CSV::import( 'product', $data, 'update' ) ), 'Explicit update-only rejects unknown product' );
-check_tciel( is_int( CSV::import( 'product', $data ) ), 'Default mode creates second product' );
+$GLOBALS['attachment_slug_index']['taxocommerce-mail-pro'] = 20965;
+$GLOBALS['lookup_post_status_override'][20965] = 'inherit';
+check_tciel( is_int( CSV::import( 'product', $data ) ), 'Default mode creates second product despite attachment slug' );
+check_tciel( 20965 === $GLOBALS['attachment_slug_index']['taxocommerce-mail-pro'], 'Attachment remains unchanged' );
+unset( $GLOBALS['attachment_slug_index'], $GLOBALS['lookup_post_status_override'][20965] );
 check_tciel( 2 === count( $GLOBALS['products'] ), 'Second product exists' );
 $data['categories'] = 'nonexisting-taxonomy';
 check_tciel( is_wp_error( CSV::import( 'product', $data ) ), 'Explicit missing category rejected without silent creation' );
