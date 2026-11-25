@@ -2,6 +2,8 @@
 
 ## [0.1.0] — 2026-11-25
 
+- Primera instalación autorizada exclusivamente en STAGING y Asociación Focazul mediante el despliegue selectivo de GitHub Actions (Issue #2952); no se instala en producción ni se altera el plugin Import-Export original.
+
 - First standalone Lite release, separate from the current TaxoCommerce Import-Export plugin and its advanced batch importer.
 - Native WordPress pages, posts, categories and tags; native WooCommerce products, product categories and product tags.
 - Single CSV upload; per-column mapping; default create-or-update with SKU/slug identity; new content saved as draft unless explicitly published with appropriate capability.
