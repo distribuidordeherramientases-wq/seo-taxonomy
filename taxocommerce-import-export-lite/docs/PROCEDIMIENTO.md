@@ -2,7 +2,9 @@
 
 El modo **Crear nuevos y actualizar existentes** localiza productos por SKU o slug usando las API estándar de WooCommerce y WordPress. No se necesita ninguna categoría, etiqueta ni plugin TaxoCommerce adicional.
 
-## Identidades de productos — versión 0.1.2
+## Identidades de productos — versión 0.1.3
+
+Los slugs de archivos multimedia no son identidades de productos: la búsqueda se limita al tipo de contenido solicitado. Un ZIP con el mismo slug no impide crear un producto.
 
 Si un identificador de SKU/slug apunta a un registro antiguo que ya no existe, se considera una referencia huérfana, no un producto editable. Si hay un producto en la papelera, no se restaura ni actualiza automáticamente; se permite crear uno nuevo solo si el SKU está realmente disponible.
 
