@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.75
+Stable tag: 1.1.76
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,9 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.76 =
+* Localize 60 previously untranslated demand, catalog coverage and market opportunity report interface strings in es_ES, en_US, fr_FR, de_DE and nl_NL. Rebuild and verify all five compiled MO catalogs; extend the existing translation regression. Preserve gettext keys, existing translations, generated content, analytics and business data. No production deployment.
 
 = 1.1.75 =
 * Localize 65 previously untranslated Search Console administration strings in es_ES, en_US, fr_FR, de_DE and nl_NL: permissions, OAuth setup, property selection, synchronization, reporting filters and data lab controls. Rebuild all five compiled MO catalogs and verify representative translations. Preserve existing gettext keys, existing translations, report calculations, connections, credentials and data. No production deployment.

@@ -2830,11 +2830,11 @@ msgstr ""
 
 #: includes/google/seo-google-demand-catalog.php:1486
 msgid "No se pudo calcular el periodo de analisis."
-msgstr ""
+msgstr "Der Analysezeitraum konnte nicht berechnet werden."
 
 #: includes/google/seo-google-demand-catalog.php:1529
 msgid "Demanda × Catalogo"
-msgstr ""
+msgstr "Nachfrage × Katalog"
 
 #: includes/google/seo-google-demand-catalog.php:1530
 msgid ""
@@ -2844,7 +2844,7 @@ msgstr ""
 
 #: includes/google/seo-google-demand-catalog.php:1530
 msgid "No mide todo el mercado"
-msgstr ""
+msgstr "Erfasst nicht den gesamten Markt"
 
 #: includes/google/seo-google-demand-catalog.php:1530
 msgid ""
@@ -2855,7 +2855,7 @@ msgstr ""
 
 #: includes/google/seo-google-demand-catalog.php:1552
 msgid "Como leerlo:"
-msgstr ""
+msgstr "So ist die Auswertung zu lesen:"
 
 #: includes/google/seo-google-demand-catalog.php:1552
 msgid ""
@@ -2865,7 +2865,7 @@ msgstr ""
 
 #: includes/google/seo-google-demand-catalog.php:1552
 msgid "no autoriza por si solo a reducir o eliminar catalogo"
-msgstr ""
+msgstr "rechtfertigt für sich allein weder eine Verkleinerung des Katalogs noch das Entfernen von Katalogeinträgen"
 
 #: includes/google/seo-google-demand-catalog.php:1552
 msgid ""
@@ -2877,7 +2877,7 @@ msgstr ""
 #: includes/google/seo-google-demand-catalog.php:1669
 #: includes/google/seo-google-demand-catalog.php:1724
 msgid "Decision"
-msgstr ""
+msgstr "Entscheidung"
 
 #: includes/google/seo-google-demand-catalog.php:1571
 msgid "Todas"
@@ -2885,27 +2885,27 @@ msgstr "Alle"
 
 #: includes/google/seo-google-demand-catalog.php:1586
 msgid "Diagnostico de datos almacenados:"
-msgstr ""
+msgstr "Diagnose gespeicherter Daten:"
 
 #: includes/google/seo-google-demand-catalog.php:1600
 msgid "Que potenciar y en que sentido"
-msgstr ""
+msgstr "Was in welcher Richtung gestärkt werden sollte"
 
 #: includes/google/seo-google-demand-catalog.php:1603
 msgid "No hay oportunidades suficientes con los filtros actuales."
-msgstr ""
+msgstr "Mit den aktuellen Filtern gibt es nicht genügend Chancen."
 
 #: includes/google/seo-google-demand-catalog.php:1606
 msgid "Que potenciar"
-msgstr ""
+msgstr "Was gestärkt werden sollte"
 
 #: includes/google/seo-google-demand-catalog.php:1606
 msgid "Estrategia"
-msgstr ""
+msgstr "Strategie"
 
 #: includes/google/seo-google-demand-catalog.php:1606
 msgid "Direccion detectada"
-msgstr ""
+msgstr "Erkannte Ausrichtung"
 
 #: includes/google/seo-google-demand-catalog.php:1606
 #: includes/google/seo-google-demand-catalog.php:1669
@@ -2918,14 +2918,14 @@ msgstr ""
 #: includes/google/seo-google-info.php:4285
 #: includes/google/seo-google-info.php:4550
 msgid "Imp."
-msgstr ""
+msgstr "Impr."
 
 #: includes/google/seo-google-demand-catalog.php:1606
 #: includes/google/seo-google-demand-catalog.php:1669
 #: includes/google/seo-google-demand-catalog.php:1724
 #: includes/google/seo-google-demand-catalog.php:1758
 msgid "Demanda util"
-msgstr ""
+msgstr "Nutzbare Nachfrage"
 
 #: includes/google/seo-google-demand-catalog.php:1606
 #: includes/google/seo-google-demand-catalog.php:1669
@@ -2938,7 +2938,7 @@ msgstr ""
 #: includes/google/seo-google-info.php:4285
 #: includes/google/seo-google-info.php:4550
 msgid "Pos."
-msgstr ""
+msgstr "Pos."
 
 #: includes/google/seo-google-demand-catalog.php:1606
 #: includes/google/seo-google-demand-catalog.php:1669
@@ -2946,71 +2946,71 @@ msgstr ""
 #: includes/google/seo-google-demand-catalog.php:1758
 #: includes/google/seo-google-opportunity-engine.php:1630
 msgid "Tendencia"
-msgstr ""
+msgstr "Trend"
 
 #: includes/google/seo-google-demand-catalog.php:1606
 msgid "Catalogo / pista"
-msgstr ""
+msgstr "Katalog / Hinweis"
 
 #: includes/google/seo-google-demand-catalog.php:1606
 msgid "Por que"
-msgstr ""
+msgstr "Warum"
 
 #: includes/google/seo-google-demand-catalog.php:1627
 msgid "Sin atributo concreto suficiente; revisar subintenciones."
-msgstr ""
+msgstr "Kein ausreichend konkretes Attribut; Teilintentionen prüfen."
 
 #: includes/google/seo-google-demand-catalog.php:1640
 msgid "Sin categoria clara"
-msgstr ""
+msgstr "Keine eindeutige Kategorie"
 
 #: includes/google/seo-google-demand-catalog.php:1645
 msgid "Apta para automatizacion:"
-msgstr ""
+msgstr "Für die Automatisierung geeignet:"
 
 #: includes/google/seo-google-demand-catalog.php:1645
 msgid "si, con validacion de cobertura."
-msgstr ""
+msgstr "ja, bei Prüfung der Abdeckung."
 
 #: includes/google/seo-google-demand-catalog.php:1647
 msgid "Consultas que lo justifican"
-msgstr ""
+msgstr "Begründende Suchanfragen"
 
 #: includes/google/seo-google-demand-catalog.php:1660
 msgid "Prioridad por categoria"
-msgstr ""
+msgstr "Priorität nach Kategorie"
 
 #: includes/google/seo-google-demand-catalog.php:1663
 msgid "No hay categorias que cumplan los filtros."
-msgstr ""
+msgstr "Keine Kategorien entsprechen den Filtern."
 
 #: includes/google/seo-google-demand-catalog.php:1669
 msgid "Categoria"
-msgstr ""
+msgstr "Kategorie"
 
 #: includes/google/seo-google-demand-catalog.php:1669
 #: includes/google/seo-google-demand-catalog.php:1724
 #: includes/google/seo-google-demand-catalog.php:1758
 msgid "Precision"
-msgstr ""
+msgstr "Präzision"
 
 #: includes/google/seo-google-demand-catalog.php:1669
 msgid "Consultas / landings"
-msgstr ""
+msgstr "Suchanfragen / Landingpages"
 
 #: includes/google/seo-google-demand-catalog.php:1669
 #: includes/google/seo-google-info.php:3366
 #: includes/google/seo-google-info.php:3399
 msgid "Evidencias"
-msgstr ""
+msgstr "Nachweise"
 
 #: includes/google/seo-google-demand-catalog.php:1697
 msgid "Ver consultas principales"
-msgstr ""
+msgstr "Wichtigste Suchanfragen anzeigen"
 
 #: includes/google/seo-google-demand-catalog.php:1717
 msgid "Intenciones sin representar claramente"
-msgstr ""
+msgstr "Nicht eindeutig abgebildete Intentionen"
 
 #: includes/google/seo-google-demand-catalog.php:1718
 msgid ""
@@ -3031,36 +3031,36 @@ msgstr ""
 
 #: includes/google/seo-google-demand-catalog.php:1721
 msgid "No hay intenciones no mapeadas con los filtros actuales."
-msgstr ""
+msgstr "Keine nicht zugeordneten Intentionen entsprechen den aktuellen Filtern."
 
 #: includes/google/seo-google-demand-catalog.php:1724
 msgid "Intencion"
-msgstr ""
+msgstr "Intention"
 
 #: includes/google/seo-google-demand-catalog.php:1724
 msgid "Posible categoria"
-msgstr ""
+msgstr "Mögliche Kategorie"
 
 #: includes/google/seo-google-demand-catalog.php:1750
 msgid "Ver consultas individuales sin mapear"
-msgstr ""
+msgstr "Einzelne nicht zugeordnete Suchanfragen anzeigen"
 
 #: includes/google/seo-google-demand-catalog.php:1752
 msgid "Detalle sin agrupar"
-msgstr ""
+msgstr "Nicht gruppierte Details"
 
 #: includes/google/seo-google-demand-catalog.php:1755
 msgid "No hay demanda sin mapear con los filtros actuales."
-msgstr ""
+msgstr "Keine nicht zugeordnete Nachfrage entspricht den aktuellen Filtern."
 
 #: includes/google/seo-google-demand-catalog.php:1758
 #: includes/google/seo-google-opportunity-engine.php:1694
 msgid "Landings"
-msgstr ""
+msgstr "Landingpages"
 
 #: includes/google/seo-google-demand-catalog.php:1790
 msgid "Limites de esta version"
-msgstr ""
+msgstr "Grenzen dieser Version"
 
 #: includes/google/seo-google-demand-catalog.php:1792
 msgid ""
@@ -3580,7 +3580,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:4116
 msgid "Google vs. catálogo"
-msgstr ""
+msgstr "Google im Vergleich zum Katalog"
 
 #: includes/google/seo-google-info.php:4117
 msgid ""
@@ -3591,19 +3591,19 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:4126
 msgid "URL de Google / destino"
-msgstr ""
+msgstr "Google-URL / Ziel"
 
 #: includes/google/seo-google-info.php:4126
 msgid "Entidad local"
-msgstr ""
+msgstr "Lokales Objekt"
 
 #: includes/google/seo-google-info.php:4154
 msgid "Relacionada por redirección"
-msgstr ""
+msgstr "Über Weiterleitung zugeordnet"
 
 #: includes/google/seo-google-info.php:4275
 msgid "Cobertura observada"
-msgstr ""
+msgstr "Beobachtete Abdeckung"
 
 #: includes/google/seo-google-info.php:4276
 msgid ""
@@ -3619,19 +3619,19 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:4284
 msgid "Áreas URL"
-msgstr ""
+msgstr "URL-Bereiche"
 
 #: includes/google/seo-google-info.php:4292
 msgid "Páginas por rango de posición"
-msgstr ""
+msgstr "Seiten nach Positionsbereich"
 
 #: includes/google/seo-google-info.php:4293
 msgid "Rango"
-msgstr ""
+msgstr "Bereich"
 
 #: includes/google/seo-google-info.php:4297
 msgid "Cada página se sitúa según su posición media ponderada del período."
-msgstr ""
+msgstr "Jede Seite wird anhand ihrer gewichteten Durchschnittsposition im Zeitraum eingeordnet."
 
 #: includes/google/seo-google-info.php:4416
 #: includes/google/seo-google-info.php:4457
@@ -3694,7 +3694,7 @@ msgstr ""
 #: includes/google/seo-google-opportunity-engine.php:1626
 #: includes/google/seo-google-trends.php:2597
 msgid "Radar emergente"
-msgstr ""
+msgstr "Radar für aufkommende Trends"
 
 #: includes/google/seo-google-opportunity-engine.php:1626
 msgid ""
@@ -3710,16 +3710,16 @@ msgstr ""
 
 #: includes/google/seo-google-opportunity-engine.php:1630
 msgid "Relevancia"
-msgstr ""
+msgstr "Relevanz"
 
 #: includes/google/seo-google-opportunity-engine.php:1630
 msgid "Volumen agrupado"
-msgstr ""
+msgstr "Gruppiertes Volumen"
 
 #: includes/google/seo-google-opportunity-engine.php:1630
 #: includes/google/seo-google-trends.php:2687
 msgid "Área relacionada"
-msgstr ""
+msgstr "Zugehöriger Bereich"
 
 #: includes/google/seo-google-opportunity-engine.php:1630
 #: includes/google/seo-google-trends.php:2687
@@ -3728,7 +3728,7 @@ msgstr ""
 
 #: includes/google/seo-google-opportunity-engine.php:1638
 msgid "Exploración de mercado"
-msgstr ""
+msgstr "Markterkundung"
 
 #: includes/google/seo-google-opportunity-engine.php:1638
 msgid ""
@@ -3744,20 +3744,20 @@ msgstr ""
 
 #: includes/google/seo-google-opportunity-engine.php:1642
 msgid "Puntuación"
-msgstr ""
+msgstr "Bewertung"
 
 #: includes/google/seo-google-opportunity-engine.php:1642
 msgid "Semilla"
-msgstr ""
+msgstr "Ausgangsbegriff"
 
 #: includes/google/seo-google-opportunity-engine.php:1642
 #: includes/google/seo-google-trends.php:2687
 msgid "Fuente"
-msgstr ""
+msgstr "Quelle"
 
 #: includes/google/seo-google-opportunity-engine.php:1696
 msgid "No hay métricas disponibles para landings publicadas."
-msgstr ""
+msgstr "Keine Kennzahlen für veröffentlichte Landingpages verfügbar."
 
 #: includes/google/seo-google-opportunity-engine.php:1698
 msgid "Landing"
@@ -3774,15 +3774,15 @@ msgstr "Beiträge"
 
 #: includes/google/seo-google-opportunity-engine.php:1708
 msgid "No hay métricas disponibles para posts publicados."
-msgstr ""
+msgstr "Keine Kennzahlen für veröffentlichte Beiträge verfügbar."
 
 #: includes/google/seo-google-opportunity-engine.php:1710
 msgid "Post"
-msgstr ""
+msgstr "Beitrag"
 
 #: includes/google/seo-google-opportunity-engine.php:1739
 msgid "Informes técnicos conservados"
-msgstr ""
+msgstr "Beibehaltene technische Berichte"
 
 #: includes/google/seo-google-opportunity-engine.php:1739
 msgid ""

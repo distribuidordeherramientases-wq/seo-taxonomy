@@ -25,6 +25,13 @@ $required_gsc_translations = array(
     'de_DE' => array( 'Property auswählen', 'Jetzt synchronisieren', 'Keine Daten für diesen Zeitraum.', 'Datenlabor' ),
     'nl_NL' => array( 'Selecteer een property', 'Nu synchroniseren', 'Geen gegevens voor deze periode.', 'Datalab' ),
 );
+$required_demand_translations = array(
+    'es_ES' => array( 'Demanda × Catálogo', 'Prioridad por categoría', 'Cobertura observada', 'Exploración de mercado' ),
+    'en_US' => array( 'Demand × Catalog', 'Priority by category', 'Observed coverage', 'Market exploration' ),
+    'fr_FR' => array( 'Demande × Catalogue', 'Priorité par catégorie', 'Couverture observée', 'Exploration du marché' ),
+    'de_DE' => array( 'Nachfrage × Katalog', 'Priorität nach Kategorie', 'Beobachtete Abdeckung', 'Markterkundung' ),
+    'nl_NL' => array( 'Vraag × Catalogus', 'Prioriteit per categorie', 'Waargenomen dekking', 'Marktverkenning' ),
+);
 foreach ($expected as $locale => $translation) {
     $po = file_get_contents($root . $locale . '.po');
     $bytes = file_get_contents($root . $locale . '.mo');
@@ -64,6 +71,13 @@ foreach ($expected as $locale => $translation) {
         }
         $previous_original = $original;
         $catalog[$original] = $translated;
+    }
+    $demand_keys = array( 'Demanda × Catalogo', 'Prioridad por categoria', 'Cobertura observada', 'Exploración de mercado' );
+    foreach ( $demand_keys as $i => $key ) {
+        if ( ( $catalog[$key] ?? null ) !== $required_demand_translations[$locale][$i] ) {
+            fwrite( STDERR, "FAIL demand reporting translation $locale: $key\n" );
+            exit( 1 );
+        }
     }
     $gsc_keys = array( 'Selecciona una propiedad', 'Sincronizar ahora', 'No hay datos para este período.', 'Laboratorio de datos' );
     foreach ( $gsc_keys as $i => $key ) {
