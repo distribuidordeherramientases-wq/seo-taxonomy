@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.77
+Stable tag: 1.1.78
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,6 +26,7 @@ TaxoCommerce Insights keeps external service connections and manual data downloa
 * Google Search downloads and explicit day-by-day synchronization of the historical Search Console tables used by Analysis, authorized via current Connections OAuth or service-account credentials.
 * Google Analytics downloads; optional GA4 product add-to-cart item chart and ecommerce event comparison in saved reports.
 * Bing downloads.
+* ChatGPT Business Hub: manually register official aggregate 28-day mentions, website clicks and discovery topics, with history and JSON export. No public statistics API is assumed.
 * Optional IndexNow notifications for public URL changes, independent of Cloudflare; disabled by default to avoid duplicate providers. Configure in Connections > Bing. Uses WP-Cron, so regular scheduled execution is required.
 * Google Trends automatically compares all Spanish clusters (up to 5 per chart), then separately compares each cluster's primary hubs on page load. The underlying SEO hierarchy is dynamic, category and secondary-hub consultations remain manual; five-speed browser load controller, pause/resume/stop, and links to Google Explore. Charts are visual and do not provide machine-readable growth scores or verification of search term meaning. Historical RSS snapshots remain supported.
 * Analysis offers an executive market opportunity plan based on Search Console, GA4, Google Trends and available competitor evidence, without auditing catalog quality. AI referral sessions are compared across equal-length periods when GA4 has data; these do not represent AI citations. Historical specialized content, structure, trends and comparison reports remain available. Its historical GSC tables are refreshed by the separate Google Search synchronization button without WP-Cron. The GA4 Analysis adapter queries the live Data API through current Connections credentials.
@@ -61,6 +62,9 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.78 =
+* Add independent ChatGPT Business Hub statistics register (#2960).
 
 = 1.1.77 =
 * Localize 251 previously empty translation entries covering Google Trends, market radar, administrative permissions and report interface labels across es_ES, en_US, fr_FR, de_DE and nl_NL. Retain existing nonempty translations, rebuild five compiled MO catalogs, extend the locale smoke test and preserve all reporting behavior and data. No production deployment.
