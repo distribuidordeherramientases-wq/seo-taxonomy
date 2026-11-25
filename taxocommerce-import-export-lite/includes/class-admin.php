@@ -45,12 +45,11 @@ final class Admin {
 				'running' => __( 'Importando por bloques…', 'taxocommerce-import-export-lite' ),
 				'checking' => __( 'Comprobando todas las filas antes de guardar…', 'taxocommerce-import-export-lite' ),
 				'ready' => __( 'Prechequeo correcto. Confirma para importar.', 'taxocommerce-import-export-lite' ),
-				'invalid' => __( 'Prechequeo con errores. Corrige el CSV o la asignación antes de importar.', 'taxocommerce-import-export-lite' ),
+				'invalid' => __( 'Prechequeo con errores. Corrige el CSV antes de importar.', 'taxocommerce-import-export-lite' ),
 				'validate' => __( 'Comprobar CSV', 'taxocommerce-import-export-lite' ),
 				'confirm' => __( 'Confirmar e importar', 'taxocommerce-import-export-lite' ),
 				'done' => __( 'Importación finalizada.', 'taxocommerce-import-export-lite' ),
 				'error' => __( 'Error de conexión: puedes reintentar sin duplicar la importación.', 'taxocommerce-import-export-lite' ),
-				'duplicate' => __( 'Dos columnas están asignadas al mismo campo.', 'taxocommerce-import-export-lite' ),
 			),
 		) );
 	}
@@ -76,69 +75,56 @@ final class Admin {
 		echo '</div>';
 	}
 
-	private static function selector( $name, $selected = '' ) {
-		echo '<select name="' . esc_attr( $name ) . '" id="tciel-type">';
-		foreach ( CSV::types() as $key => $label ) {
-			echo '<option value="' . esc_attr( $key ) . '"' . selected( $selected, $key, false ) . '>' . esc_html( $label ) . '</option>';
-		}
-		echo '</select>';
-	}
-
 	private static function transient_key( $token ) {
 		return 'tciel_' . get_current_user_id() . '_' . sanitize_key( $token );
 	}
 
+	/** Fixed content blocks share the same native CSV schema and never a type selector. */
 	public static function render_import() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only reference to the current user's private upload state.
 		$token = isset( $_GET['token'] ) && is_string( $_GET['token'] ) ? sanitize_key( wp_unslash( $_GET['token'] ) ) : '';
 		$state = $token ? get_transient( self::transient_key( $token ) ) : false;
-		echo '<section class="tciel-panel"><h2>' . esc_html__( 'Importar un CSV', 'taxocommerce-import-export-lite' ) . '</h2>';
-		echo '<p>' . esc_html__( 'Selecciona un archivo y asigna las columnas. Por defecto crea registros nuevos y actualiza los existentes por SKU o slug. No necesitas categorías.', 'taxocommerce-import-export-lite' ) . '</p>';
-		if ( ! is_array( $state ) ) {
-			echo '<form enctype="multipart/form-data" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tciel_upload">';
-			wp_nonce_field( 'tciel_upload' );
-			echo '<label for="tciel-file">' . esc_html__( 'Archivo CSV', 'taxocommerce-import-export-lite' ) . '</label> <input id="tciel-file" type="file" name="csv_file" accept=".csv,text/csv" required> ';
-			submit_button( __( 'Leer columnas', 'taxocommerce-import-export-lite' ), 'primary', 'submit', false );
+		echo '<p>' . esc_html__( 'Carga el CSV en el bloque correspondiente. Las columnas se reconocen automáticamente: se crean los registros nuevos y se actualizan los existentes. Se comprueba todo el archivo antes de guardar.', 'taxocommerce-import-export-lite' ) . '</p>';
+		foreach ( CSV::types() as $type => $title ) {
+			echo '<section class="tciel-panel" id="tciel-import-' . esc_attr( $type ) . '"><h2>' . esc_html( $title ) . '</h2>';
+			echo '<form enctype="multipart/form-data" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tciel_upload"><input type="hidden" name="type" value="' . esc_attr( $type ) . '">';
+			wp_nonce_field( 'tciel_upload_' . $type );
+			echo '<label for="tciel-file-' . esc_attr( $type ) . '">' . esc_html__( 'Archivo CSV', 'taxocommerce-import-export-lite' ) . '</label> <input id="tciel-file-' . esc_attr( $type ) . '" type="file" name="csv_file" accept=".csv,text/csv" required> ';
+			submit_button( __( 'Cargar CSV', 'taxocommerce-import-export-lite' ), 'primary', 'submit', false );
 			echo '</form>';
-		} else {
-			echo '<p><strong>' . esc_html( $state['filename'] ) . '</strong> · ' . esc_html( count( $state['headers'] ) ) . ' ' . esc_html__( 'columnas', 'taxocommerce-import-export-lite' ) . '</p>';
-			echo '<form id="tciel-import-form"><input type="hidden" name="token" value="' . esc_attr( $token ) . '"><p><label for="tciel-type">' . esc_html__( 'Importar como', 'taxocommerce-import-export-lite' ) . '</label> ';
-			self::selector( 'type', 'product' );
-			echo ' <label for="tciel-mode">' . esc_html__( 'Acción', 'taxocommerce-import-export-lite' ) . '</label> <select id="tciel-mode" name="mode"><option value="upsert">' . esc_html__( 'Crear nuevos y actualizar existentes (recomendado)', 'taxocommerce-import-export-lite' ) . '</option><option value="update">' . esc_html__( 'Solo actualizar existentes', 'taxocommerce-import-export-lite' ) . '</option></select></p>';
-			echo '<p class="description">' . esc_html__( 'Identificación por SKU o slug. ID, categorías, etiquetas e imágenes no se asignan automáticamente desde archivos externos; así evitas modificar registros ajenos o exigir categorías inexistentes. El CSV se valida completo antes de confirmar el guardado.', 'taxocommerce-import-export-lite' ) . '</p>';
-			echo '<div class="tciel-scroll"><table class="widefat striped"><thead><tr><th>' . esc_html__( 'Columna del CSV', 'taxocommerce-import-export-lite' ) . '</th><th>' . esc_html__( 'Campo de destino', 'taxocommerce-import-export-lite' ) . '</th><th>' . esc_html__( 'Ejemplo', 'taxocommerce-import-export-lite' ) . '</th></tr></thead><tbody>';
-			foreach ( $state['headers'] as $i => $name ) {
-				echo '<tr><td>' . esc_html( $name ) . '</td><td><select class="tciel-field-map" name="map[' . esc_attr( (string) $i ) . ']" data-column="' . esc_attr( $name ) . '"></select></td><td>' . esc_html( isset( $state['sample'][ $i ] ) ? $state['sample'][ $i ] : '' ) . '</td></tr>';
+			if ( is_array( $state ) && ( $state['type'] ?? '' ) === $type && isset( $state['map'], $state['ignored'] ) ) {
+				echo '<p><strong>' . esc_html( $state['filename'] ) . '</strong></p><p>' . esc_html__( 'Campos reconocidos:', 'taxocommerce-import-export-lite' ) . ' ' . esc_html( implode( ', ', $state['map'] ) ) . '</p>';
+				if ( $state['ignored'] ) {
+					echo '<p>' . esc_html__( 'Columnas omitidas (sin modificar datos):', 'taxocommerce-import-export-lite' ) . ' ' . esc_html( implode( ', ', $state['ignored'] ) ) . '</p>';
+				}
+				echo '<form id="tciel-import-form"><input type="hidden" name="token" value="' . esc_attr( $token ) . '">';
+				submit_button( __( 'Comprobar CSV', 'taxocommerce-import-export-lite' ), 'primary', 'start', false );
+				echo '</form><p id="tciel-progress" role="status" aria-live="polite"></p><pre id="tciel-errors" class="tciel-errors"></pre>';
 			}
-			echo '</tbody></table></div><p>';
-			submit_button( __( 'Comprobar CSV', 'taxocommerce-import-export-lite' ), 'primary', 'start', false );
-			echo '</p></form><p id="tciel-progress" role="status" aria-live="polite"></p><pre id="tciel-errors" class="tciel-errors"></pre>';
-			$definitions = array();
-			foreach ( CSV::types() as $key => $label ) $definitions[ $key ] = CSV::fields( $key );
-			echo '<script type="application/json" id="tciel-fields">' . wp_json_encode( $definitions, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ) . '</script>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Encoded JSON with HTML-safe hex escapes.
+			echo '</section>';
 		}
-		echo '</section>';
 	}
 
 	public static function render_export() {
-		echo '<section class="tciel-panel"><h2>' . esc_html__( 'Exportar datos nativos a CSV', 'taxocommerce-import-export-lite' ) . '</h2><p>' . esc_html__( 'Selecciona el tipo y los campos que quieres exportar.', 'taxocommerce-import-export-lite' ) . '</p>';
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tciel_export">';
-		wp_nonce_field( 'tciel_export' );
-		self::selector( 'type' );
+		echo '<p>' . esc_html__( 'Descarga directamente el CSV del bloque que necesites. Por defecto incluye todos los campos compatibles.', 'taxocommerce-import-export-lite' ) . '</p>';
 		foreach ( CSV::types() as $type => $title ) {
-			echo '<fieldset class="tciel-field-group" data-type="' . esc_attr( $type ) . '"><legend><strong>' . esc_html( $title ) . '</strong></legend>';
+			echo '<section class="tciel-panel"><h2>' . esc_html( $title ) . '</h2><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tciel_export"><input type="hidden" name="type" value="' . esc_attr( $type ) . '">';
+			wp_nonce_field( 'tciel_export_' . $type );
+			echo '<details><summary>' . esc_html__( 'Campos opcionales de exportación', 'taxocommerce-import-export-lite' ) . '</summary><fieldset class="tciel-field-group">';
 			foreach ( CSV::fields( $type ) as $field => $name ) {
 				echo '<label><input type="checkbox" name="fields[' . esc_attr( $type ) . '][]" value="' . esc_attr( $field ) . '" checked> ' . esc_html( $name ) . '</label>';
 			}
-			echo '</fieldset>';
+			echo '</fieldset></details>';
+			submit_button( __( 'Descargar CSV', 'taxocommerce-import-export-lite' ) );
+			echo '</form></section>';
 		}
-		submit_button( __( 'Descargar CSV', 'taxocommerce-import-export-lite' ) );
-		echo '</form></section>';
 	}
 
 	public static function upload() {
 		self::allowed();
-		check_admin_referer( 'tciel_upload' );
+		$type = isset( $_POST['type'] ) && is_string( $_POST['type'] ) ? sanitize_key( wp_unslash( $_POST['type'] ) ) : '';
+		if ( ! isset( CSV::types()[ $type ] ) ) wp_die( esc_html__( 'Tipo de datos incorrecto.', 'taxocommerce-import-export-lite' ) );
+		check_admin_referer( 'tciel_upload_' . $type );
 		if ( ! isset( $_FILES['csv_file'] ) || ! is_array( $_FILES['csv_file'] ) ) {
 			wp_die( esc_html__( 'No se ha adjuntado ningún archivo.', 'taxocommerce-import-export-lite' ) );
 		}
@@ -191,10 +177,15 @@ final class Admin {
 			wp_die( esc_html__( 'Cabecera o primera fila CSV incorrectas.', 'taxocommerce-import-export-lite' ) );
 		}
 		$headers[0] = preg_replace( '/^\xEF\xBB\xBF/', '', $headers[0] );
+		$mapping = CSV::automatic_mapping( $type, $headers );
+		if ( is_wp_error( $mapping ) ) {
+			wp_delete_file( $path );
+			wp_die( esc_html( $mapping->get_error_message() ), '', array( 'back_link' => true ) );
+		}
 		$token = str_replace( '-', '', wp_generate_uuid4() );
-		$state = array( 'path' => $path, 'filename' => $name, 'headers' => $headers, 'sample' => $sample, 'delimiter' => $delimiter, 'offset' => 0, 'processed' => 0, 'saved' => 0, 'errors' => 0, 'notices' => array(), 'started' => false, 'done' => false, 'phase' => 'uploaded', 'checked' => 0, 'seen' => array() );
+		$state = array( 'type' => $type, 'map' => $mapping['map'], 'ignored' => $mapping['ignored'], 'path' => $path, 'filename' => $name, 'headers' => $headers, 'delimiter' => $delimiter, 'offset' => 0, 'processed' => 0, 'saved' => 0, 'errors' => 0, 'notices' => array(), 'done' => false, 'phase' => 'uploaded', 'checked' => 0, 'seen' => array() );
 		set_transient( self::transient_key( $token ), $state, HOUR_IN_SECONDS );
-		wp_safe_redirect( self::url( array( 'tab' => 'import', 'token' => $token ) ) );
+		wp_safe_redirect( self::url( array( 'tab' => 'import', 'token' => $token ) ) . '#tciel-import-' . $type );
 		exit;
 	}
 
@@ -209,24 +200,13 @@ final class Admin {
 		$phase = isset( $state['phase'] ) ? $state['phase'] : 'uploaded';
 		if ( 'done' === $phase ) wp_send_json_success( self::progress( $state ) );
 
+		// The upload token binds the content type and header mapping; AJAX callers cannot change them.
+		if ( ! isset( $state['type'], $state['map'], $state['ignored'] ) || ! isset( CSV::types()[ $state['type'] ] ) ) {
+			wp_send_json_error( array( 'message' => __( 'Vuelve a cargar el CSV en su bloque de contenido.', 'taxocommerce-import-export-lite' ) ) );
+		}
 		if ( in_array( $phase, array( 'uploaded', 'invalid', 'ready' ), true ) ) {
-			$type = isset( $_POST['type'] ) && is_string( $_POST['type'] ) ? sanitize_key( wp_unslash( $_POST['type'] ) ) : '';
-			$mode = isset( $_POST['mode'] ) && is_string( $_POST['mode'] ) ? sanitize_key( wp_unslash( $_POST['mode'] ) ) : '';
-			$raw  = isset( $_POST['map'] ) && is_array( $_POST['map'] ) ? wp_unslash( $_POST['map'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Values checked against exact field allowlist below.
-			if ( ! isset( CSV::types()[ $type ] ) || ! in_array( $mode, array( 'upsert', 'update' ), true ) ) wp_send_json_error( array( 'message' => __( 'Tipo o acción no válidos.', 'taxocommerce-import-export-lite' ) ) );
-			$allowed = CSV::fields( $type );
-			$map = array();
-			foreach ( $raw as $index => $field ) {
-				$field = is_string( $field ) ? sanitize_text_field( $field ) : '';
-				if ( '' !== $field && ctype_digit( (string) $index ) && isset( $state['headers'][ (int) $index ] ) && isset( $allowed[ $field ] ) ) $map[ (int) $index ] = $field;
-			}
-			if ( ! $map || count( $map ) !== count( array_unique( array_values( $map ) ) ) ) wp_send_json_error( array( 'message' => __( 'Asignación de columnas vacía o duplicada.', 'taxocommerce-import-export-lite' ) ) );
-			if ( 'product' === $type && ! array_intersect( array( 'sku', 'slug' ), $map ) ) wp_send_json_error( array( 'message' => __( 'Asigna SKU o slug para no duplicar productos.', 'taxocommerce-import-export-lite' ) ) );
-			if ( in_array( $type, array( 'page', 'post' ), true ) && ! array_intersect( array( 'slug', 'id' ), $map ) ) wp_send_json_error( array( 'message' => __( 'Asigna slug para no duplicar páginas o entradas.', 'taxocommerce-import-export-lite' ) ) );
-			$signature = hash( 'sha256', wp_json_encode( array( $type, $mode, $map ) ) );
 			$confirmed = isset( $_POST['confirmed'] ) && is_string( $_POST['confirmed'] ) && '1' === sanitize_key( wp_unslash( $_POST['confirmed'] ) );
 			if ( 'ready' === $phase && $confirmed ) {
-				if ( ! hash_equals( $state['signature'], $signature ) ) wp_send_json_error( array( 'message' => __( 'La asignación cambió. Ejecuta el prechequeo de nuevo.', 'taxocommerce-import-export-lite' ) ) );
 				$state['phase'] = 'importing';
 				$state['offset'] = 0;
 				$state['processed'] = 0;
@@ -234,10 +214,6 @@ final class Admin {
 				$state['errors'] = 0;
 				$state['notices'] = array();
 			} else {
-				$state['type'] = $type;
-				$state['mode'] = $mode;
-				$state['map'] = $map;
-				$state['signature'] = $signature;
 				$state['phase'] = 'checking';
 				$state['offset'] = 0;
 				$state['checked'] = 0;
@@ -260,7 +236,7 @@ final class Admin {
 			} else {
 				$data = CSV::map_row( $row, $state['map'] );
 				if ( 'checking' === $phase ) {
-					$result = CSV::precheck( $state['type'], $data, $state['mode'] );
+					$result = CSV::precheck( $state['type'], $data, 'upsert' );
 					if ( ! is_wp_error( $result ) ) {
 						$identity = 'product' === $state['type'] ? ( ! empty( $data['sku'] ) ? 'sku:' . $data['sku'] : 'slug:' . ( $data['slug'] ?? '' ) ) :
 							( ! empty( $data['slug'] ) ? 'slug:' . $data['slug'] : ( ! empty( $data['name'] ) ? 'name:' . $data['name'] : 'id:' . ( $data['id'] ?? '' ) ) );
@@ -269,7 +245,7 @@ final class Admin {
 						else $state['seen'][ $hash ] = true;
 					}
 				} else {
-					$result = CSV::import( $state['type'], $data, $state['mode'] );
+					$result = CSV::import( $state['type'], $data, 'upsert' );
 				}
 			}
 			if ( is_wp_error( $result ) ) {
@@ -308,9 +284,9 @@ final class Admin {
 
 	public static function export() {
 		self::allowed();
-		check_admin_referer( 'tciel_export' );
 		$type = isset( $_POST['type'] ) && is_string( $_POST['type'] ) ? sanitize_key( wp_unslash( $_POST['type'] ) ) : '';
 		if ( ! isset( CSV::types()[ $type ] ) ) wp_die( esc_html__( 'Tipo de datos incorrecto.', 'taxocommerce-import-export-lite' ) );
+		check_admin_referer( 'tciel_export_' . $type );
 		$selected = isset( $_POST['fields'][ $type ] ) && is_array( $_POST['fields'][ $type ] ) ? wp_unslash( $_POST['fields'][ $type ] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Every value filtered with allowlist below.
 		$allowed = CSV::fields( $type );
 		$fields = array_values( array_unique( array_filter( array_map( 'sanitize_text_field', $selected ), static function ( $field ) use ( $allowed ) { return isset( $allowed[ $field ] ); } ) ) );
