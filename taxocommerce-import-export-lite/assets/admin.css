@@ -1,0 +1,20 @@
+.tciel-admin { max-width: 1160px; }
+.tciel-header { padding: 16px 0 12px; }
+.tciel-header h1 { margin: 0 0 6px; }
+.tciel-header p { margin: 0 0 8px; color: #50575e; }
+.tciel-version { color: #646970; font-weight: 600; }
+.tciel-admin .nav-tab-wrapper { margin-bottom: 20px; }
+.tciel-panel { padding: 18px 22px; margin: 16px 0; border: 1px solid #dcdcde; background: #fff; border-radius: 4px; }
+.tciel-panel h2 { margin-top: 0; }
+.tciel-panel p { max-width: 95ch; }
+.tciel-panel select { min-width: 210px; }
+.tciel-field-group { margin: 16px 0; padding: 12px; border: 1px solid #dcdcde; }
+.tciel-field-group[hidden] { display: none; }
+.tciel-field-group label { display: inline-block; margin: 7px 14px 7px 0; }
+.tciel-scroll { overflow-x: auto; max-width: 100%; }
+.tciel-scroll table td, .tciel-scroll table th { padding: 10px; }
+.tciel-scroll select { max-width: 300px; }
+.tciel-errors { max-height: 250px; overflow: auto; white-space: pre-wrap; }
+.tciel-check-pass { color: #008a20; }
+.tciel-check-fail { color: #b32d2e; }
+@media (max-width: 780px) { .tciel-panel { padding: 12px; } .tciel-panel select { max-width: 100%; } }
