@@ -60,8 +60,8 @@ final class Admin {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selector.
 		$tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'import';
 		if ( ! in_array( $tab, array( 'import', 'export', 'check', 'manual', 'technical' ), true ) ) $tab = 'import';
-		echo '<div class="wrap tciel-admin"><div class="tciel-header"><h1>' . esc_html__( 'TaxoCommerce Import-Export Lite', 'taxocommerce-import-export-lite' ) . '</h1><p>' . esc_html__( 'Importación y exportación nativa de WordPress y WooCommerce. Sin dependencia de otros plugins TaxoCommerce.', 'taxocommerce-import-export-lite' ) . '</p>';
-		echo '<span class="tciel-version">' . esc_html__( 'Versión', 'taxocommerce-import-export-lite' ) . ' ' . esc_html( VERSION ) . ' · ' . esc_html( RELEASE_DATE ) . '</span></div>';
+		echo '<div class="wrap tciel-admin">';
+		Header::render();
 		$tabs = array( 'import' => __( 'Importar CSV', 'taxocommerce-import-export-lite' ), 'export' => __( 'Exportar CSV', 'taxocommerce-import-export-lite' ), 'check' => __( 'Chequeo', 'taxocommerce-import-export-lite' ), 'manual' => __( 'Manual de usuario', 'taxocommerce-import-export-lite' ), 'technical' => __( 'Manual técnico', 'taxocommerce-import-export-lite' ) );
 		echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Secciones de Import-Export Lite', 'taxocommerce-import-export-lite' ) . '">';
 		foreach ( $tabs as $key => $label ) {
