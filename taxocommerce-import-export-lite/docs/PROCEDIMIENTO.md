@@ -1,8 +1,8 @@
 # Import-Export Lite: altas y actualizaciones por CSV
 
-El modo **Crear nuevos y actualizar existentes** localiza productos por SKU o slug usando las API estándar de WooCommerce y WordPress. No se necesita ninguna categoría, etiqueta ni plugin TaxoCommerce adicional.
+La importación por bloques crea o actualiza automáticamente y localiza productos por SKU o slug usando las API estándar de WooCommerce y WordPress. No se necesita ninguna categoría, etiqueta ni plugin TaxoCommerce adicional.
 
-## Identidades de productos — versión 0.1.4
+## Identidades de productos — versión 0.1.5
 
 Los slugs de archivos multimedia no son identidades de productos: la búsqueda se limita al tipo de contenido solicitado. Un ZIP con el mismo slug no impide crear un producto.
 
@@ -12,9 +12,12 @@ Un producto activo cuyo SKU o slug coincida se actualiza únicamente cuando WooC
 
 ## Procedimiento de prueba con Mail Lite y Pro
 
-1. Seleccionar **Productos WooCommerce**.
-2. Cargar el CSV de Mail Lite y Mail Pro y mantener la asignación automática de SKU, slug, nombre, precio, virtual, descargable y URL de descarga. Categorías y etiquetas vacías/no asignadas.
-3. Elegir **Crear nuevos y actualizar existentes**.
-4. Pulsar **Comprobar CSV**; se valida el archivo íntegro sin guardar ningún producto.
-5. Si aparecen **2 filas, 0 errores**, pulsar **Confirmar e importar**.
-6. Comprobar ambos productos en **Productos** (borrador, precio, SKU, descargas y URL). Repetir el CSV para verificar que se actualizan sin duplicarse.
+1. En **Importar CSV**, localizar el bloque **Productos WooCommerce**.
+2. Adjuntar el CSV de Mail Lite y Mail Pro y pulsar **Cargar CSV**. El servidor reconoce las cabeceras; no hay asignación manual ni selector de acción.
+3. Pulsar **Comprobar CSV** y revisar el resultado de solo lectura.
+4. Si aparecen **2 filas, 0 errores**, pulsar **Confirmar e importar**.
+5. Comprobar ambos productos en **Productos** (borrador, precio, SKU, descargas y URL). Repetir el CSV para verificar que se actualizan sin duplicarse.
+
+## Otros contenidos
+
+Cada tipo tiene su propio bloque de importación y exportación, incluidas las etiquetas. Usa el CSV exportado como modelo de cabeceras. Los IDs ajenos se omiten. Las relaciones categories, tags, parent_slug y featured_image se reconocen cuando aparecen como cabeceras exactas; los términos o imágenes deben existir previamente. Las columnas desconocidas se muestran como omitidas y las celdas vacías no sobrescriben datos.
