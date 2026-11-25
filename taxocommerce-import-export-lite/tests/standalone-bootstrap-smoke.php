@@ -347,3 +347,34 @@ check_tciel( 5 === count( $GLOBALS['products'] ), 'No unrelated products modifie
 check_tciel( ! file_exists( $tmp ), 'Temporary CSV removed after completed import' );
 
 echo "Import-Export Lite: basic + custom metadata + Woo attributes + precheck + no duplication + standalone bootstrap OK\n";
+
+// Header regression: entirely self-contained, using local plugin metadata and
+// bundled changelog, no Core, remote services or administrator settings.
+function get_file_data( $file, $fields, $context = '' ) {
+	$source = file_get_contents( $file );
+	$info   = array();
+	foreach ( $fields as $key => $header ) {
+		$found = preg_match( '/^[ \t]*\*[ \t]*' . preg_quote( $header, '/' ) . ':[ \t]*(.+)$/mi', $source, $match );
+		$info[ $key ] = $found ? trim( $match[1] ) : '';
+	}
+	return $info;
+}
+function wp_strip_all_tags( $value ) { return strip_tags( $value ); }
+function determine_locale() { return 'es_ES'; }
+function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
+function esc_url( $value ) { return (string) $value; }
+require dirname( __DIR__ ) . '/includes/class-header.php';
+ob_start();
+\TaxoCommerce\ImportExportLite\Header::render();
+$header = ob_get_clean();
+check_tciel( 1 === substr_count( $header, '<h1>' ), 'One header title; no duplicate H1' );
+check_tciel( false !== strpos( $header, 'TaxoCommerce Import-Export Lite' ), 'Plugin metadata title in header' );
+check_tciel( false !== strpos( $header, 'Versión 0.1.4' ), 'Version follows main plugin header' );
+check_tciel( false !== strpos( $header, 'Última actualización: 2026-11-25' ), 'Valid release date displayed' );
+check_tciel( false !== strpos( $header, 'Independent CSV import and export' ), 'Plugin metadata description displayed' );
+check_tciel( false !== strpos( $header, '<details class="tciel-hero__history">' ), 'Own changelog is collapsed by default' );
+check_tciel( false !== strpos( $header, '[0.1.4]' ), 'Latest changelog entry included' );
+check_tciel( false !== strpos( $header, 'Historial de versiones y mejoras' ), 'WordPress Spanish locale fallback' );
+check_tciel( false !== strpos( $header, 'github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/staging/taxocommerce-import-export-lite' ), 'Official source link from plugin URI' );
+echo "Import-Export Lite: autonomous admin header metadata, localized labels and bundled history OK\n";
+

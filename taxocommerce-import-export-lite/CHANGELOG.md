@@ -1,9 +1,15 @@
 # TaxoCommerce Import-Export Lite
 
-## [0.1.3] — 2026-11-25 — Slugs de archivos multimedia (#2962)
+## [0.1.4] — 2026-11-25 — Slugs de archivos multimedia (#2962)
 
 - Restringe get_page_by_path al tipo de contenido solicitado; evita confundir ZIP, imágenes y otros adjuntos con productos, páginas o entradas.
 - Regresión de prechequeo e importación con slug multimedia coincidente. Conserva los conflictos reales y no modifica archivos adjuntos.
+
+## [0.1.3] — 2026-11-25 — Cabecera administrativa uniforme (#2966)
+
+- Cabecera autónoma de tres zonas en Import-Export Lite: identificación y descripción locales del plugin con enlace a la ficha de su código; historial de versiones desplegable desde el `CHANGELOG.md` incluido; versión y fecha del archivo principal.
+- Diseño adaptable a móvil y al idioma administrativo de WordPress (ES/EN/FR/DE/NL); el historial permanece plegado por defecto y sin consultas externas.
+- Se conservan sin cambios los formularios, importación/exportación CSV, prechequeos, datos, permisos, pestañas y funcionamiento autónomo sin Core.
 
 ## [0.1.2] — 2026-11-25 — Resolución segura de productos inexistentes (#2962)
 
