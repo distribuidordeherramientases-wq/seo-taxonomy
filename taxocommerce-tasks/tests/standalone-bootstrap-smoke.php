@@ -15,7 +15,17 @@ if ( preg_match( '/register_post_type|register_taxonomy|add_shortcode|register_r
     fwrite( STDERR, "FAIL: public or post-based storage detected\n" );
     exit( 1 );
 }
-echo "PASS: standalone agenda boot/static safety contract.\n";
+// Regression: the Pro header must never match the independent Lite screen.
+$branding = file_get_contents( dirname( __DIR__ ) . '/includes/admin-branding.php' );
+if (
+    false === strpos( $branding, 'return $page === $tc_brand_slug;' ) ||
+    false !== strpos( $branding, 'strpos( $page, $tc_brand_slug' )
+) {
+    fwrite( STDERR, "FAIL: Tasks Pro header leaks into Tasks Lite administration.\n" );
+    exit( 1 );
+}
+
+echo "PASS: standalone agenda boot/static safety contract and Pro/Lite header isolation.\n";
 
 
 /**
