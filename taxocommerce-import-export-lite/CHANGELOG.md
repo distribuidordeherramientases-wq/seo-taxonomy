@@ -1,5 +1,11 @@
 # TaxoCommerce Import-Export Lite
 
+## [0.1.3] — 2026-11-25 — Cabecera administrativa uniforme (#2966)
+
+- Cabecera autónoma de tres zonas en Import-Export Lite: identificación y descripción locales del plugin con enlace a la ficha de su código; historial de versiones desplegable desde el `CHANGELOG.md` incluido; versión y fecha del archivo principal.
+- Diseño adaptable a móvil y al idioma administrativo de WordPress (ES/EN/FR/DE/NL); el historial permanece plegado por defecto y sin consultas externas.
+- Se conservan sin cambios los formularios, importación/exportación CSV, prechequeos, datos, permisos, pestañas y funcionamiento autónomo sin Core.
+
 ## [0.1.2] — 2026-11-25 — Resolución segura de productos inexistentes (#2962)
 
 - El modo Crear y actualizar ya no confunde una referencia huérfana de SKU/slug o un producto en la papelera con un producto actualizable. Evita el error genérico «El producto relacionado no existe» para nuevos productos; no restaura, sobrescribe ni borra registros antiguos.
