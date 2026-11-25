@@ -298,6 +298,23 @@ check_tciel( $custom_id === CSV::import( 'product', $local_data ), 'Selected loc
 check_tciel( 'Acero|Aluminio' === CSV::export_value( 'product', $custom_id, 'attr:material' ), 'Local WooCommerce attribute exported without a custom table' );
 check_tciel( 'red|blue' === CSV::export_value( 'product', $custom_id, 'attr:pa_color' ), 'Other global attribute preserved on local import' );
 
+// Every content block recognizes its own native export headers automatically.
+foreach ( CSV::types() as $kind => $title ) {
+	$headers = array_keys( CSV::fields( $kind ) );
+	$auto = CSV::automatic_mapping( $kind, $headers );
+	check_tciel( ! is_wp_error( $auto ), 'Canonical export headers recognized for ' . $kind );
+	check_tciel( ! in_array( 'id', $auto['map'], true ), 'Foreign ID is never imported for ' . $kind );
+	check_tciel( array( 'id' ) === $auto['ignored'], 'Only ID omitted from canonical export of ' . $kind );
+}
+$auto = CSV::automatic_mapping( 'product', array( 'SKU', 'Product Name', 'Slug', 'Download 1 URL', 'meta:custom_warranty', 'attr:pa_color', 'Categories', 'Unknown' ) );
+check_tciel( array( 'sku', 'name', 'slug', 'download_1_url', 'meta:custom_warranty', 'attr:pa_color' ) === array_values( $auto['map'] ), 'Native aliases and existing custom fields recognized' );
+check_tciel( array( 'Categories', 'Unknown' ) === $auto['ignored'], 'Foreign taxonomy and unknown header disclosed' );
+check_tciel( is_wp_error( CSV::automatic_mapping( 'product', array( 'sku', 'SKU', 'name' ) ) ), 'Duplicate aliases rejected' );
+check_tciel( is_wp_error( CSV::automatic_mapping( 'product', array( 'id', 'name' ) ) ), 'ID-only product identity rejected' );
+check_tciel( is_wp_error( CSV::automatic_mapping( 'page', array( 'id', 'title' ) ) ), 'Page requires slug rather than foreign ID' );
+check_tciel( 'slug' === CSV::automatic_mapping( 'page', array( 'post_name', 'post_title' ) )['map'][0], 'WordPress native slug alias recognized' );
+check_tciel( 'categories' === CSV::automatic_mapping( 'product', array( 'sku', 'categories' ) )['map'][1], 'Explicit canonical relationship header retained' );
+
 /** Test the real two-phase CSV AJAX handler with no WordPress installation. */
 define( 'HOUR_IN_SECONDS', 3600 );
 class TCIEL_JSON_Stop extends \Exception {
@@ -324,22 +341,23 @@ $tmp = tempnam( sys_get_temp_dir(), 'tciel-' );
 file_put_contents( $tmp, "sku,name,attr:pa_color\nTC-CSV-A,Producto A,red\nTC-CSV-B,Producto B,green\n" );
 $GLOBALS['transients']['tciel_1_testtoken'] = array(
 	'path' => $tmp, 'headers' => array( 'sku', 'name', 'attr:pa_color' ), 'delimiter' => ',',
+	'type' => 'product', 'map' => CSV::automatic_mapping( 'product', array( 'sku', 'name', 'attr:pa_color' ) )['map'], 'ignored' => array(),
 	'filename' => 'dos-productos.csv', 'sample' => array( 'TC-CSV-A', 'Producto A', 'red' ),
 	'offset' => 0, 'checked' => 0, 'processed' => 0, 'saved' => 0,
 	'errors' => 0, 'notices' => array(), 'phase' => 'uploaded', 'started' => false, 'done' => false,
 );
-$mapping = array( 0 => 'sku', 1 => 'name', 2 => 'attr:pa_color' );
-$input = array( 'type' => 'product', 'mode' => 'upsert', 'map' => $mapping );
+// AJAX accepts only the token and confirmation; client-supplied type/mode/map must never override the bound schema.
+$input = array();
 $preflight = tciel_ajax_test( $input );
 while ( $preflight['data']['phase'] === 'checking' ) $preflight = tciel_ajax_test( array() );
 check_tciel( $preflight['success'] && 'invalid' === $preflight['data']['phase'], 'Preview fails when a global attribute value is missing' );
 check_tciel( 0 === $preflight['data']['saved'] && 3 === count( $GLOBALS['products'] ), 'No product is saved during failed preflight' );
 file_put_contents( $tmp, "sku,name,attr:pa_color\nTC-CSV-A,Producto A,red\nTC-CSV-B,Producto B,blue\n" );
-$preflight = tciel_ajax_test( $input );
+$preflight = tciel_ajax_test( array( 'type' => 'page', 'mode' => 'update', 'map' => array( 0 => 'id' ) ) );
 while ( $preflight['data']['phase'] === 'checking' ) $preflight = tciel_ajax_test( array() );
 check_tciel( $preflight['success'] && 'ready' === $preflight['data']['phase'], 'Complete preflight requires explicit confirmation' );
 check_tciel( 0 === $preflight['data']['saved'] && 3 === count( $GLOBALS['products'] ), 'Preflight never saves data' );
-$imported = tciel_ajax_test( $input + array( 'confirmed' => '1' ) );
+$imported = tciel_ajax_test( array( 'confirmed' => '1', 'type' => 'page', 'mode' => 'update', 'map' => array( 0 => 'id' ) ) );
 while ( $imported['data']['phase'] === 'importing' ) $imported = tciel_ajax_test( array() );
 check_tciel( $imported['success'] && 'done' === $imported['data']['phase'], 'Second request executes confirmed import' );
 check_tciel( 2 === $imported['data']['saved'] && 0 === $imported['data']['errors'], 'Two Woo products saved from CSV' );
@@ -369,12 +387,34 @@ ob_start();
 $header = ob_get_clean();
 check_tciel( 1 === substr_count( $header, '<h1>' ), 'One header title; no duplicate H1' );
 check_tciel( false !== strpos( $header, 'TaxoCommerce Import-Export Lite' ), 'Plugin metadata title in header' );
-check_tciel( false !== strpos( $header, 'Versión 0.1.4' ), 'Version follows main plugin header' );
+check_tciel( false !== strpos( $header, 'Versión 0.1.5' ), 'Version follows main plugin header' );
 check_tciel( false !== strpos( $header, 'Última actualización: 2026-11-25' ), 'Valid release date displayed' );
 check_tciel( false !== strpos( $header, 'Independent CSV import and export' ), 'Plugin metadata description displayed' );
 check_tciel( false !== strpos( $header, '<details class="tciel-hero__history">' ), 'Own changelog is collapsed by default' );
-check_tciel( false !== strpos( $header, '[0.1.4]' ), 'Latest changelog entry included' );
+check_tciel( false !== strpos( $header, '[0.1.5]' ), 'Latest changelog entry included' );
 check_tciel( false !== strpos( $header, 'Historial de versiones y mejoras' ), 'WordPress Spanish locale fallback' );
 check_tciel( false !== strpos( $header, 'github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/staging/taxocommerce-import-export-lite' ), 'Official source link from plugin URI' );
 echo "Import-Export Lite: autonomous admin header metadata, localized labels and bundled history OK\n";
 
+
+// Fixed blocks render their own file and download forms, without type, action or field-mapping selectors.
+function esc_attr( $value ) { return esc_html( $value ); }
+function esc_html__( $value, $domain = '' ) { return esc_html( $value ); }
+function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
+function wp_nonce_field( $action, $name = '_wpnonce', $referer = true, $display = true ) { echo '<input type="hidden" name="' . esc_attr( $name ) . '" value="' . esc_attr( $action ) . '">'; }
+function submit_button( $text, $type = 'primary', $name = 'submit', $wrap = true ) { echo '<input type="submit" value="' . esc_attr( $text ) . '">'; }
+$_GET = array();
+ob_start();
+\TaxoCommerce\ImportExportLite\Admin::render_import();
+$import_html = ob_get_clean();
+ob_start();
+\TaxoCommerce\ImportExportLite\Admin::render_export();
+$export_html = ob_get_clean();
+check_tciel( 7 === substr_count( $import_html, 'name="csv_file"' ), 'One import form per supported type' );
+check_tciel( 7 === substr_count( $export_html, 'value="tciel_export"' ), 'One export form per supported type' );
+check_tciel( false === strpos( $import_html . $export_html, '<select' ), 'No content or mapping selectors remain' );
+foreach ( CSV::types() as $kind => $title ) {
+	check_tciel( false !== strpos( $import_html, 'id="tciel-import-' . $kind . '"' ), 'Fixed import block for ' . $kind );
+	check_tciel( false !== strpos( $export_html, 'name="type" value="' . $kind . '"' ), 'Fixed export block for ' . $kind );
+}
+echo "Import-Export Lite: fixed content blocks and server-bound automatic mapping OK\n";
