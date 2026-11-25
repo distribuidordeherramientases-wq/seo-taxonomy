@@ -282,38 +282,89 @@ final class CSV {
 		return is_wp_error( $meta ) ? $meta : $id;
 	}
 
+	/**
+	 * Resolve an existing WooCommerce product without confusing an orphaned
+	 * SKU lookup or a trashed post with a product that can be updated.
+	 * Both preflight and import must use precisely the same identity rules.
+	 *
+	 * @return array|\WP_Error Product ID and object (null for an allowed new product).
+	 */
+	private static function resolve_product( $data, $mode ) {
+		$sku     = ! empty( $data['sku'] ) ? sanitize_text_field( $data['sku'] ) : '';
+		$slug    = ! empty( $data['slug'] ) ? sanitize_title( $data['slug'] ) : '';
+		$sku_id  = $sku ? (int) wc_get_product_id_by_sku( $sku ) : 0;
+		$by_slug = $slug ? get_page_by_path( $slug, OBJECT, 'product' ) : false;
+		$slug_id = $by_slug ? (int) $by_slug->ID : 0;
+		$found   = array();
+
+		foreach ( array( 'SKU' => $sku_id, 'slug' => $slug_id ) as $origin => $candidate_id ) {
+			if ( ! $candidate_id ) continue;
+			$status = get_post_status( $candidate_id );
+			if ( 'trash' === $status ) {
+				if ( 'update' === $mode ) {
+					return new \WP_Error( 'product_in_trash', sprintf(
+						/* translators: %d: WooCommerce product ID in the WordPress trash. */
+						__( 'El producto %d está en la papelera. Restáuralo antes de actualizarlo.', 'taxocommerce-import-export-lite' ),
+						$candidate_id
+					) );
+				}
+				continue; // Create mode never restores or updates a trashed product.
+			}
+			$product = wc_get_product( $candidate_id );
+			if ( ! $product ) {
+				if ( false === $status ) continue; // Orphaned lookup; no WordPress record exists.
+				return new \WP_Error( 'invalid_product_reference', sprintf(
+					/* translators: 1: SKU or slug; 2: matching WordPress post ID. */
+					__( 'El %1$s apunta al registro %2$d, pero WooCommerce no puede cargar ese producto. Revisa el registro antes de importar.', 'taxocommerce-import-export-lite' ),
+					$origin,
+					$candidate_id
+				) );
+			}
+			$found[ $origin ] = $product;
+		}
+		if ( isset( $found['SKU'], $found['slug'] ) && $found['SKU']->get_id() !== $found['slug']->get_id() ) {
+			return new \WP_Error( 'identity_conflict', __( 'SKU y slug apuntan a productos diferentes; no se modificará ninguno.', 'taxocommerce-import-export-lite' ) );
+		}
+		$product = isset( $found['SKU'] ) ? $found['SKU'] : ( isset( $found['slug'] ) ? $found['slug'] : null );
+		if ( $product && $sku && $product->get_sku() && $product->get_sku() !== $sku ) {
+			return new \WP_Error( 'sku_conflict', __( 'El slug pertenece a otro SKU; no se modificará ese producto.', 'taxocommerce-import-export-lite' ) );
+		}
+		$id = $product ? (int) $product->get_id() : 0;
+		if ( ! $id && ! $sku && ! $slug && ! empty( $data['id'] ) && 'product' === get_post_type( absint( $data['id'] ) ) ) {
+			$id      = absint( $data['id'] );
+			$product = wc_get_product( $id );
+			if ( ! $product ) {
+				return new \WP_Error( 'invalid_product_reference', __( 'El ID indicado no corresponde a un producto disponible de WooCommerce.', 'taxocommerce-import-export-lite' ) );
+			}
+		}
+		if ( ! $id && 'update' === $mode ) {
+			return new \WP_Error( 'not_found', __( 'Producto no encontrado. Usa Crear y actualizar para darlo de alta.', 'taxocommerce-import-export-lite' ) );
+		}
+		if ( ! $id && $sku && function_exists( 'wc_product_has_unique_sku' ) && ! wc_product_has_unique_sku( 0, $sku ) ) {
+			return new \WP_Error( 'sku_reserved', sprintf(
+				/* translators: %s: SKU which WooCommerce still marks as occupied. */
+				__( 'El SKU «%s» está reservado por WooCommerce, pero no se encuentra un producto editable. Revisa la papelera o el índice de SKU antes de importar.', 'taxocommerce-import-export-lite' ),
+				$sku
+			) );
+		}
+		return array( 'id' => $id, 'product' => $product );
+	}
+
 	private static function import_product( $data, $mode ) {
 		if ( ! function_exists( 'wc_get_product' ) || ! current_user_can( 'edit_products' ) ) {
 			return new \WP_Error( 'woocommerce', __( 'WooCommerce activo y permisos de productos requeridos.', 'taxocommerce-import-export-lite' ) );
 		}
 		$terms = self::mapped_terms( 'product', $data );
 		if ( is_wp_error( $terms ) ) return $terms;
-		$id = ! empty( $data['sku'] ) ? (int) wc_get_product_id_by_sku( sanitize_text_field( $data['sku'] ) ) : 0;
-		if ( ! $id && ! empty( $data['slug'] ) ) {
-			$found = get_page_by_path( sanitize_title( $data['slug'] ), OBJECT, 'product' );
-			$id = $found ? (int) $found->ID : 0;
-		}
-		if ( ! $id && empty( $data['sku'] ) && empty( $data['slug'] ) && ! empty( $data['id'] ) && 'product' === get_post_type( absint( $data['id'] ) ) ) $id = absint( $data['id'] );
-		// Never repurpose an existing SKU or slug to a different product.
-		if ( $id && ! empty( $data['sku'] ) ) {
-			$existing = wc_get_product( $id );
-			if ( $existing && $existing->get_sku() && $existing->get_sku() !== sanitize_text_field( $data['sku'] ) ) {
-				return new \WP_Error( 'sku_conflict', __( 'El slug coincide con otro producto que tiene un SKU diferente.', 'taxocommerce-import-export-lite' ) );
-			}
-		}
-		if ( $id && ! empty( $data['slug'] ) ) {
-			$by_slug = get_page_by_path( sanitize_title( $data['slug'] ), OBJECT, 'product' );
-			if ( $by_slug && (int) $by_slug->ID !== $id ) {
-				return new \WP_Error( 'slug_conflict', __( 'SKU y slug apuntan a productos distintos.', 'taxocommerce-import-export-lite' ) );
-			}
-		}
-		if ( ! $id && 'update' === $mode ) return new \WP_Error( 'not_found', __( 'Producto no encontrado. Usa Crear y actualizar para darlo de alta.', 'taxocommerce-import-export-lite' ) );
+		$lookup = self::resolve_product( $data, $mode );
+		if ( is_wp_error( $lookup ) ) return $lookup;
+		$id = $lookup['id'];
 		if ( ! $id && empty( $data['name'] ) ) return new \WP_Error( 'missing_name', __( 'Falta el nombre del producto.', 'taxocommerce-import-export-lite' ) );
 		if ( $id && ! current_user_can( 'edit_post', $id ) ) return new \WP_Error( 'forbidden', __( 'No puedes editar este producto.', 'taxocommerce-import-export-lite' ) );
 		$type = isset( $data['type'] ) ? strtolower( sanitize_key( $data['type'] ) ) : 'simple';
 		$classes = array( 'simple' => '\\WC_Product_Simple', 'variable' => '\\WC_Product_Variable', 'external' => '\\WC_Product_External', 'grouped' => '\\WC_Product_Grouped' );
 		if ( ! isset( $classes[ $type ] ) ) return new \WP_Error( 'product_type', __( 'Tipo de producto no compatible con esta importación Lite.', 'taxocommerce-import-export-lite' ) );
-		$product = $id ? wc_get_product( $id ) : new $classes[ $type ]();
+		$product = $id ? $lookup['product'] : new $classes[ $type ]();
 		if ( ! $product ) return new \WP_Error( 'bad_product', __( 'No se pudo cargar el producto.', 'taxocommerce-import-export-lite' ) );
 		if ( $id && isset( $data['type'] ) && $product->get_type() !== $type ) {
 			return new \WP_Error( 'type_mismatch', __( 'El tipo existente no coincide; no se transforma automáticamente.', 'taxocommerce-import-export-lite' ) );
@@ -484,16 +535,11 @@ final class CSV {
 			if ( ! function_exists( 'wc_get_product' ) || ! current_user_can( 'edit_products' ) ) return new \WP_Error( 'woocommerce_missing', __( 'WooCommerce no está disponible o faltan permisos.', 'taxocommerce-import-export-lite' ) );
 			if ( isset( $data['status'] ) && 'publish' === self::status( $data['status'] ) && ! current_user_can( 'publish_products' ) ) return new \WP_Error( 'publish_forbidden', __( 'Sin permiso para publicar productos.', 'taxocommerce-import-export-lite' ) );
 			if ( empty( $data['sku'] ) && empty( $data['slug'] ) && empty( $data['id'] ) ) return new \WP_Error( 'identity_missing', __( 'Asigna SKU o slug para crear y actualizar sin duplicar productos.', 'taxocommerce-import-export-lite' ) );
-			$id = ! empty( $data['sku'] ) ? (int) wc_get_product_id_by_sku( sanitize_text_field( $data['sku'] ) ) : 0;
-			$by_slug = ! empty( $data['slug'] ) ? get_page_by_path( sanitize_title( $data['slug'] ), OBJECT, 'product' ) : false;
-			if ( $by_slug && $id && $id !== (int) $by_slug->ID ) return new \WP_Error( 'identity_conflict', __( 'SKU y slug apuntan a productos diferentes.', 'taxocommerce-import-export-lite' ) );
-			if ( ! $id && $by_slug ) $id = (int) $by_slug->ID;
-			if ( ! $id && ! empty( $data['id'] ) && empty( $data['sku'] ) && empty( $data['slug'] ) && 'product' === get_post_type( absint( $data['id'] ) ) ) $id = absint( $data['id'] );
-			if ( ! $id && 'update' === $mode ) return new \WP_Error( 'product_missing', __( 'Producto no encontrado; cambia la acción a Crear y actualizar.', 'taxocommerce-import-export-lite' ) );
+			$lookup = self::resolve_product( $data, $mode );
+			if ( is_wp_error( $lookup ) ) return $lookup;
+			$id = $lookup['id'];
+			$product = $lookup['product'];
 			if ( ! $id && empty( $data['name'] ) ) return new \WP_Error( 'name_missing', __( 'Falta el nombre del producto.', 'taxocommerce-import-export-lite' ) );
-			$product = $id ? wc_get_product( $id ) : null;
-			if ( $id && ! $product ) return new \WP_Error( 'product_missing', __( 'El producto relacionado no existe.', 'taxocommerce-import-export-lite' ) );
-			if ( $product && ! empty( $data['sku'] ) && $product->get_sku() && $product->get_sku() !== sanitize_text_field( $data['sku'] ) ) return new \WP_Error( 'sku_conflict', __( 'El slug pertenece a otro SKU.', 'taxocommerce-import-export-lite' ) );
 			$type_value = isset( $data['type'] ) ? sanitize_key( $data['type'] ) : 'simple';
 			if ( ! in_array( $type_value, array( 'simple', 'variable', 'external', 'grouped' ), true ) ) return new \WP_Error( 'unsupported_type', __( 'Tipo de producto no compatible.', 'taxocommerce-import-export-lite' ) );
 			if ( $product && isset( $data['type'] ) && $product->get_type() !== $type_value ) return new \WP_Error( 'type_mismatch', __( 'El producto existente tiene otro tipo.', 'taxocommerce-import-export-lite' ) );
