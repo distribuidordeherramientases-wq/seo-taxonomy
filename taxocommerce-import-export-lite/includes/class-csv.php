@@ -22,7 +22,7 @@ final class CSV {
 	/** Expose native fields only; selecting no taxonomy field never requires a term. */
 	public static function fields( $type ) {
 		if ( 'product' === $type ) {
-			return array(
+			$fields = array(
 				'id' => 'ID', 'type' => __( 'Tipo (simple, variable, external, grouped)', 'taxocommerce-import-export-lite' ),
 				'sku' => 'SKU', 'name' => __( 'Nombre', 'taxocommerce-import-export-lite' ), 'slug' => 'Slug',
 				'status' => __( 'Estado (draft/publish)', 'taxocommerce-import-export-lite' ),
@@ -54,13 +54,14 @@ final class CSV {
 				'tax_class' => __( 'Clase fiscal', 'taxocommerce-import-export-lite' ),
 				'purchase_note' => __( 'Nota de compra', 'taxocommerce-import-export-lite' ),
 			);
+			return self::with_dynamic( $type, $fields );
 		}
 		if ( in_array( $type, array( 'product_cat', 'product_tag', 'category', 'post_tag' ), true ) ) {
 			$fields = array( 'id' => 'ID', 'name' => __( 'Nombre', 'taxocommerce-import-export-lite' ), 'slug' => 'Slug', 'description' => __( 'Descripción', 'taxocommerce-import-export-lite' ) );
 			if ( in_array( $type, array( 'category', 'product_cat' ), true ) ) {
 				$fields['parent_slug'] = __( 'Categoría padre existente (slug)', 'taxocommerce-import-export-lite' );
 			}
-			return $fields;
+			return self::with_dynamic( $type, $fields );
 		}
 		$fields = array(
 			'id' => 'ID', 'title' => __( 'Título', 'taxocommerce-import-export-lite' ), 'slug' => 'Slug',
@@ -73,7 +74,11 @@ final class CSV {
 			$fields['categories'] = __( 'Categorías existentes (opcional)', 'taxocommerce-import-export-lite' );
 			$fields['tags'] = __( 'Etiquetas existentes (opcional)', 'taxocommerce-import-export-lite' );
 		}
-		return $fields;
+		return self::with_dynamic( $type, $fields );
+	}
+
+	private static function with_dynamic( $type, $fields ) {
+		return array_merge( $fields, NativeFields::fields( $type ) );
 	}
 
 	public static function normalize_header( $value ) {
@@ -84,6 +89,10 @@ final class CSV {
 
 	/** Do not auto-map IDs or taxonomies from foreign CSV sources. */
 	public static function suggest( $type, $column ) {
+		$column = trim( (string) $column );
+		if ( ( 0 === strpos( $column, 'meta:' ) || 0 === strpos( $column, 'attr:' ) ) && isset( self::fields( $type )[ $column ] ) ) {
+			return $column;
+		}
 		$key = self::normalize_header( $column );
 		$aliases = array(
 			'product' => array( 'product_name' => 'name', 'nombre' => 'name', 'product_type' => 'type', 'published' => 'status', 'publicado' => 'status', 'precio' => 'regular_price', 'precio_normal' => 'regular_price', 'precio_rebajado' => 'sale_price', 'short_description' => 'short_description', 'descripcion' => 'description', 'descripcion_corta' => 'short_description', 'download_1_url' => 'download_1_url', 'download_1_name' => 'download_1_name', 'download_expiry_days' => 'download_expiry' ),
@@ -184,6 +193,10 @@ final class CSV {
 				return $data['status'];
 			}
 		}
+		$precheck = self::precheck( $type, $data, $mode );
+		if ( is_wp_error( $precheck ) ) {
+			return $precheck;
+		}
 		if ( in_array( $type, array( 'product_cat', 'product_tag', 'category', 'post_tag' ), true ) ) {
 			return self::import_term( $type, $data, $mode );
 		}
@@ -214,9 +227,14 @@ final class CSV {
 		}
 		if ( $term ) {
 			if ( isset( $data['name'] ) ) $args['name'] = sanitize_text_field( $data['name'] );
-			return $args ? wp_update_term( (int) $term->term_id, $type, $args ) : (int) $term->term_id;
+			$result = $args ? wp_update_term( (int) $term->term_id, $type, $args ) : (int) $term->term_id;
+		} else {
+			$result = wp_insert_term( sanitize_text_field( $data['name'] ), $type, $args );
 		}
-		return wp_insert_term( sanitize_text_field( $data['name'] ), $type, $args );
+		if ( is_wp_error( $result ) ) return $result;
+		$id = is_array( $result ) ? (int) $result['term_id'] : (int) $result;
+		$meta = NativeFields::save_meta( $type, $id, $data );
+		return is_wp_error( $meta ) ? $meta : $result;
 	}
 
 	private static function import_post( $type, $data, $mode ) {
@@ -260,7 +278,8 @@ final class CSV {
 			$result = wp_set_object_terms( $id, $ids, $taxonomy, false );
 			if ( is_wp_error( $result ) ) return $result;
 		}
-		return $id;
+		$meta = NativeFields::save_meta( $type, $id, $data );
+		return is_wp_error( $meta ) ? $meta : $id;
 	}
 
 	private static function import_product( $data, $mode ) {
@@ -370,6 +389,11 @@ final class CSV {
 				$product->set_downloads( $downloads );
 				$product->set_downloadable( true );
 			}
+			$attributes = NativeFields::prepare_attributes( $product, $data );
+			if ( is_wp_error( $attributes ) ) return $attributes;
+			if ( null !== $attributes ) $product->set_attributes( $attributes );
+			$meta = NativeFields::save_meta( 'product', $id, $data, $product );
+			if ( is_wp_error( $meta ) ) return $meta;
 			if ( null !== $image_id ) $product->set_image_id( $image_id );
 			$id = $product->save();
 		} catch ( \Exception $e ) {
@@ -388,6 +412,10 @@ final class CSV {
 	}
 
 	public static function export_value( $type, $id, $field ) {
+		if ( 0 === strpos( $field, 'meta:' ) || 0 === strpos( $field, 'attr:' ) ) {
+			$product = 'product' === $type ? wc_get_product( $id ) : null;
+			return NativeFields::export( $type, $id, $field, $product );
+		}
 		if ( 'product' === $type ) {
 			$p = wc_get_product( $id );
 			if ( ! $p ) return '';
@@ -421,6 +449,83 @@ final class CSV {
 		$map = array( 'id' => 'ID', 'title' => 'post_title', 'slug' => 'post_name', 'status' => 'post_status', 'content' => 'post_content', 'excerpt' => 'post_excerpt', 'date' => 'post_date', 'menu_order' => 'menu_order' );
 		$key = isset( $map[ $field ] ) ? $map[ $field ] : '';
 		return $key ? (string) ( $post->$key ?? '' ) : '';
+	}
+
+	/**
+	 * Read-only row validation, also used by the full CSV preflight.
+	 * No product, taxonomy, post or metadata mutation is allowed here.
+	 */
+	public static function precheck( $type, $data, $mode = 'upsert' ) {
+		if ( ! isset( self::types()[ $type ] ) || ! in_array( $mode, array( 'upsert', 'update' ), true ) ) {
+			return new \WP_Error( 'invalid_type', __( 'Tipo o modo CSV no válido.', 'taxocommerce-import-export-lite' ) );
+		}
+		$metadata = NativeFields::validate_meta( $type, $data );
+		if ( is_wp_error( $metadata ) ) return $metadata;
+		if ( ! empty( $data['featured_image'] ) ) {
+			$image = self::image( $data['featured_image'] );
+			if ( is_wp_error( $image ) ) return $image;
+		}
+		if ( isset( $data['status'] ) ) {
+			$status = self::status( $data['status'] );
+			if ( is_wp_error( $status ) ) return $status;
+		}
+		if ( in_array( $type, array( 'product_cat', 'product_tag', 'category', 'post_tag' ), true ) ) {
+			if ( ! current_user_can( in_array( $type, array( 'product_cat', 'product_tag' ), true ) ? 'manage_product_terms' : 'manage_categories' ) ) return new \WP_Error( 'forbidden', __( 'Sin permisos para gestionar términos.', 'taxocommerce-import-export-lite' ) );
+			$term = ! empty( $data['slug'] ) ? get_term_by( 'slug', sanitize_title( $data['slug'] ), $type ) : false;
+			if ( ! $term && empty( $data['slug'] ) && ! empty( $data['name'] ) ) $term = get_term_by( 'name', $data['name'], $type );
+			if ( ! $term && 'update' === $mode ) return new \WP_Error( 'not_found', __( 'La categoría o etiqueta todavía no existe.', 'taxocommerce-import-export-lite' ) );
+			if ( ! $term && empty( $data['name'] ) ) return new \WP_Error( 'name_missing', __( 'Falta el nombre de la categoría o etiqueta.', 'taxocommerce-import-export-lite' ) );
+			if ( ! empty( $data['parent_slug'] ) && ! get_term_by( 'slug', sanitize_title( $data['parent_slug'] ), $type ) ) return new \WP_Error( 'parent_missing', __( 'La categoría padre indicada no existe.', 'taxocommerce-import-export-lite' ) );
+			return true;
+		}
+		$terms = self::mapped_terms( $type, $data );
+		if ( is_wp_error( $terms ) ) return $terms;
+		if ( 'product' === $type ) {
+			if ( ! function_exists( 'wc_get_product' ) || ! current_user_can( 'edit_products' ) ) return new \WP_Error( 'woocommerce_missing', __( 'WooCommerce no está disponible o faltan permisos.', 'taxocommerce-import-export-lite' ) );
+			if ( isset( $data['status'] ) && 'publish' === self::status( $data['status'] ) && ! current_user_can( 'publish_products' ) ) return new \WP_Error( 'publish_forbidden', __( 'Sin permiso para publicar productos.', 'taxocommerce-import-export-lite' ) );
+			if ( empty( $data['sku'] ) && empty( $data['slug'] ) && empty( $data['id'] ) ) return new \WP_Error( 'identity_missing', __( 'Asigna SKU o slug para crear y actualizar sin duplicar productos.', 'taxocommerce-import-export-lite' ) );
+			$id = ! empty( $data['sku'] ) ? (int) wc_get_product_id_by_sku( sanitize_text_field( $data['sku'] ) ) : 0;
+			$by_slug = ! empty( $data['slug'] ) ? get_page_by_path( sanitize_title( $data['slug'] ), OBJECT, 'product' ) : false;
+			if ( $by_slug && $id && $id !== (int) $by_slug->ID ) return new \WP_Error( 'identity_conflict', __( 'SKU y slug apuntan a productos diferentes.', 'taxocommerce-import-export-lite' ) );
+			if ( ! $id && $by_slug ) $id = (int) $by_slug->ID;
+			if ( ! $id && ! empty( $data['id'] ) && empty( $data['sku'] ) && empty( $data['slug'] ) && 'product' === get_post_type( absint( $data['id'] ) ) ) $id = absint( $data['id'] );
+			if ( ! $id && 'update' === $mode ) return new \WP_Error( 'product_missing', __( 'Producto no encontrado; cambia la acción a Crear y actualizar.', 'taxocommerce-import-export-lite' ) );
+			if ( ! $id && empty( $data['name'] ) ) return new \WP_Error( 'name_missing', __( 'Falta el nombre del producto.', 'taxocommerce-import-export-lite' ) );
+			$product = $id ? wc_get_product( $id ) : null;
+			if ( $id && ! $product ) return new \WP_Error( 'product_missing', __( 'El producto relacionado no existe.', 'taxocommerce-import-export-lite' ) );
+			if ( $product && ! empty( $data['sku'] ) && $product->get_sku() && $product->get_sku() !== sanitize_text_field( $data['sku'] ) ) return new \WP_Error( 'sku_conflict', __( 'El slug pertenece a otro SKU.', 'taxocommerce-import-export-lite' ) );
+			$type_value = isset( $data['type'] ) ? sanitize_key( $data['type'] ) : 'simple';
+			if ( ! in_array( $type_value, array( 'simple', 'variable', 'external', 'grouped' ), true ) ) return new \WP_Error( 'unsupported_type', __( 'Tipo de producto no compatible.', 'taxocommerce-import-export-lite' ) );
+			if ( $product && isset( $data['type'] ) && $product->get_type() !== $type_value ) return new \WP_Error( 'type_mismatch', __( 'El producto existente tiene otro tipo.', 'taxocommerce-import-export-lite' ) );
+			foreach ( array( 'virtual', 'downloadable', 'manage_stock', 'featured', 'sold_individually' ) as $key ) {
+				if ( isset( $data[ $key ] ) && is_wp_error( self::boolean( $data[ $key ] ) ) ) return new \WP_Error( 'invalid_boolean', __( 'Campo sí/no inválido.', 'taxocommerce-import-export-lite' ) );
+			}
+			foreach ( array( 'regular_price', 'sale_price', 'weight', 'length', 'width', 'height' ) as $key ) {
+				if ( isset( $data[ $key ] ) ) {
+					$decimal = wc_format_decimal( $data[ $key ] );
+					if ( ! is_numeric( $decimal ) || (float) $decimal < 0 ) return new \WP_Error( 'invalid_decimal', __( 'Precio o dimensión inválidos.', 'taxocommerce-import-export-lite' ) );
+				}
+			}
+			foreach ( array( 'download_limit', 'download_expiry', 'stock_quantity' ) as $key ) {
+				if ( isset( $data[ $key ] ) && ( ! preg_match( '/^-?[0-9]+$/D', $data[ $key ] ) || ( 'stock_quantity' === $key && (int) $data[ $key ] < 0 ) ) ) return new \WP_Error( 'invalid_integer', __( 'Cantidad o límite inválido.', 'taxocommerce-import-export-lite' ) );
+			}
+			foreach ( array( 'download_1_url', 'download_2_url' ) as $key ) {
+				if ( isset( $data[ $key ] ) ) {
+					$url = esc_url_raw( $data[ $key ], array( 'http', 'https' ) );
+					if ( ! $url || ! wp_http_validate_url( $url ) ) return new \WP_Error( 'invalid_download', __( 'URL de descarga HTTP(S) inválida.', 'taxocommerce-import-export-lite' ) );
+				}
+			}
+			$attributes = NativeFields::prepare_attributes( $product, $data );
+			return is_wp_error( $attributes ) ? $attributes : true;
+		}
+		if ( ! current_user_can( 'page' === $type ? 'edit_pages' : 'edit_posts' ) ) return new \WP_Error( 'forbidden', __( 'No tienes permisos para importar este contenido.', 'taxocommerce-import-export-lite' ) );
+		if ( isset( $data['status'] ) && 'publish' === self::status( $data['status'] ) && ! current_user_can( 'publish_' . ( 'page' === $type ? 'pages' : 'posts' ) ) ) return new \WP_Error( 'publish_forbidden', __( 'Sin permiso para publicar.', 'taxocommerce-import-export-lite' ) );
+		$id = ! empty( $data['slug'] ) ? get_page_by_path( sanitize_title( $data['slug'] ), OBJECT, $type ) : false;
+		if ( ! $id && empty( $data['slug'] ) && empty( $data['id'] ) ) return new \WP_Error( 'identity_missing', __( 'Asigna slug para importar páginas o entradas sin duplicados.', 'taxocommerce-import-export-lite' ) );
+		if ( ! $id && ! empty( $data['id'] ) && $type === get_post_type( absint( $data['id'] ) ) ) $id = get_post( absint( $data['id'] ) );
+		if ( ! $id && 'update' === $mode ) return new \WP_Error( 'post_missing', __( 'Página o entrada no encontrada.', 'taxocommerce-import-export-lite' ) );
+		if ( ! $id && empty( $data['title'] ) ) return new \WP_Error( 'title_missing', __( 'Falta el título de la página o entrada.', 'taxocommerce-import-export-lite' ) );
+		return true;
 	}
 
 	/** Batch IDs from standard APIs; no SEO tables, custom taxonomies or direct SQL. */

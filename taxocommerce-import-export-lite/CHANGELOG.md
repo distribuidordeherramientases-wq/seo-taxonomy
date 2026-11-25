@@ -1,5 +1,14 @@
 # TaxoCommerce Import-Export Lite
 
+## [0.1.1] — 2026-11-25 — Campos de cada instalación y validación previa (#2958)
+
+- Descubre campos personalizados **escalares, públicos y nativos** de páginas, entradas, productos y términos desde el registro de metadatos y tablas estándar de WordPress; ignora metadatos internos protegidos y valores complejos.
+- Detecta atributos globales registrados en WooCommerce y atributos locales de productos existentes; los valores globales deben existir previamente en sus taxonomías y los locales usan texto estándar de WooCommerce.
+- Expone los campos adicionales en la selección de exportación y en el asignador de columnas de importación. Conserva los campos no seleccionados y no autoasigna categorías, etiquetas ni identidades ajenas.
+- Añade prechequeo de **todas las filas del CSV en modo de solo lectura** y confirmación expresa antes de guardar. Identifica tipos, identidad SKU/slug, categorías o atributos inexistentes, números y URLs inválidos, y registros repetidos dentro del archivo.
+- Pruebas CLI: detección de metadatos públicos, rechazo de internos, atributos Woo, reimportación sin duplicados y simulación completa de CSV de dos productos con error de atributo que no escribe hasta corregirlo.
+- No introduce dependencias de TaxoCommerce Core ni del antiguo Import-Export; no modifica datos ni código del plugin heredado. La versión Pro avanzada se desarrollará posteriormente sobre esta base limpia.
+
 ## [0.1.0] — 2026-11-25
 
 - Primera instalación autorizada exclusivamente en STAGING y Asociación Focazul mediante el despliegue selectivo de GitHub Actions (Issue #2952); no se instala en producción ni se altera el plugin Import-Export original.

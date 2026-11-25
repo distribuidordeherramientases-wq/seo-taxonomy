@@ -14,7 +14,7 @@ function is_wp_error( $value ) { return $value instanceof WP_Error; }
 function current_user_can( $cap, $id = 0 ) { return true; }
 function sanitize_text_field( $s ) { return trim( strip_tags( $s ) ); }
 function sanitize_textarea_field( $s ) { return trim( strip_tags( $s ) ); }
-function sanitize_title( $s ) { return strtolower( trim( preg_replace( '/[^a-z0-9]+/i', '-', $s ), '-' ) ); }
+function sanitize_title( $s ) { return strtolower( trim( preg_replace( '/[^a-z0-9_-]+/i', '-', $s ), '-' ) ); }
 function sanitize_key( $s ) { return strtolower( trim( preg_replace( '/[^a-z0-9_-]+/i', '', $s ) ) ); }
 function remove_accents( $s ) { return strtr( $s, array( 'í'=>'i','ó'=>'o','á'=>'a' ) ); }
 function absint( $v ) { return abs( (int) $v ); }
@@ -26,12 +26,68 @@ function wp_basename( $v ) { return basename( $v ); }
 function wp_parse_url( $v, $component ) { return parse_url( $v, $component ); }
 function attachment_url_to_postid( $url ) { return 0; }
 function wp_attachment_is_image( $id ) { return false; }
-function get_post_type( $id ) { return 'product'; }
-function get_term_by( $kind, $value, $tax ) { return false; }
+function get_post_type( $id ) { return isset( $GLOBALS['posts'][ $id ] ) ? $GLOBALS['posts'][ $id ]->post_type : 'product'; }
+function get_term_by( $kind, $value, $tax ) {
+	if ( 'pa_color' === $tax && in_array( strtolower( $value ), array( 'red', 'blue' ), true ) ) {
+		return (object) array( 'term_id' => 'red' === strtolower( $value ) ? 10 : 11, 'slug' => strtolower( $value ) );
+	}
+	foreach ( (array) ( $GLOBALS['terms'][ $tax ] ?? array() ) as $term ) {
+		if ( isset( $term->$kind ) && $term->$kind === $value ) return $term;
+	}
+	return false;
+}
+function wp_insert_term( $name, $tax, $args = array() ) {
+	$id = ++$GLOBALS['last_term_id'];
+	$GLOBALS['terms'][ $tax ][ $id ] = (object) array( 'term_id' => $id, 'name' => $name, 'slug' => $args['slug'] ?? sanitize_title( $name ), 'description' => $args['description'] ?? '', 'parent' => $args['parent'] ?? 0 );
+	return array( 'term_id' => $id, 'term_taxonomy_id' => $id );
+}
+function wp_update_term( $id, $tax, $args ) {
+	foreach ( $args as $key => $value ) $GLOBALS['terms'][ $tax ][ $id ]->$key = $value;
+	return array( 'term_id' => $id );
+}
+function get_term( $id, $tax ) { return $GLOBALS['terms'][ $tax ][ $id ] ?? false; }
+function wp_insert_post( $args, $return_error = true ) {
+	$id = isset( $args['ID'] ) ? (int) $args['ID'] : ++$GLOBALS['last_id'];
+	$defaults = array( 'ID' => $id, 'post_type' => 'post', 'post_title' => '', 'post_name' => '', 'post_status' => 'draft', 'post_content' => '', 'post_excerpt' => '', 'post_date' => '', 'menu_order' => 0 );
+	$old = isset( $GLOBALS['posts'][ $id ] ) ? (array) $GLOBALS['posts'][ $id ] : array();
+	$GLOBALS['posts'][ $id ] = (object) array_merge( $defaults, $old, $args );
+	return $id;
+}
+function get_post( $id ) { return $GLOBALS['posts'][ $id ] ?? false; }
+function set_post_thumbnail( $id, $image_id ) { return true; }
+function get_post_thumbnail_id( $id ) { return 0; }
+function wp_get_object_terms( $id, $tax, $args ) { return array(); }
+function get_registered_meta_keys( $object, $subtype = '' ) {
+	if ( 'post' === $object && 'product' === $subtype ) return array( 'custom_warranty' => array( 'type' => 'string', 'single' => true, 'label' => 'Warranty' ) );
+	if ( 'post' === $object && 'post' === $subtype ) return array( 'custom_reviewer' => array( 'type' => 'string', 'single' => true ) );
+	if ( 'term' === $object && 'product_cat' === $subtype ) return array( 'category_banner' => array( 'type' => 'string', 'single' => true ) );
+	return array();
+}
+function is_protected_meta( $key, $object ) { return '_' === substr( $key, 0, 1 ); }
+function wc_get_attribute_taxonomies() { return array( (object) array( 'attribute_name' => 'color', 'attribute_label' => 'Color', 'attribute_id' => 3 ) ); }
+function wc_attribute_taxonomy_name( $name ) { return 'pa_' . $name; }
+function taxonomy_exists( $name ) { return 'pa_color' === $name; }
+function wc_get_products( $query ) { return array_keys( $GLOBALS['products'] ); }
+function get_post_meta( $id, $key = '', $single = true ) { return $GLOBALS['postmeta'][ $id ][ $key ] ?? ''; }
+function update_post_meta( $id, $key, $value ) { $GLOBALS['postmeta'][ $id ][ $key ] = $value; return true; }
+function get_term_meta( $id, $key, $single = true ) { return $GLOBALS['termmeta'][ $id ][ $key ] ?? ''; }
+function update_term_meta( $id, $key, $value ) { $GLOBALS['termmeta'][ $id ][ $key ] = $value; return true; }
+class TC_Stub_DB {
+	public $postmeta = 'wp_postmeta'; public $posts = 'wp_posts';
+	public $termmeta = 'wp_termmeta'; public $term_taxonomy = 'wp_term_taxonomy';
+	public function prepare( $query, $value ) { return str_replace( '%s', "'" . $value . "'", $query ); }
+	public function get_col( $sql ) {
+		if ( false !== strpos( $sql, "'product'" ) ) return array( '_price', 'custom_warranty', 'supplier_reference' );
+		if ( false !== strpos( $sql, "'product_cat'" ) ) return array( 'category_banner' );
+		return array();
+	}
+}
+$GLOBALS['wpdb'] = new TC_Stub_DB();
 function get_page_by_path( $slug, $output = null, $type = '' ) {
 	foreach ( $GLOBALS['products'] as $p ) {
 		if ( 'product' === $type && $p->get_slug() === $slug ) return (object) array( 'ID' => $p->get_id() );
 	}
+	foreach ( $GLOBALS['posts'] as $p ) if ( $type === $p->post_type && $p->post_name === $slug ) return $p;
 	return null;
 }
 function wp_set_object_terms( $id, $terms, $tax, $append ) { return $terms; }
@@ -40,6 +96,25 @@ function wc_get_product_id_by_sku( $sku ) {
 	return 0;
 }
 function wc_get_product( $id ) { return $GLOBALS['products'][ $id ] ?? false; }
+class WC_Product_Attribute {
+	private $id = 0; private $name = ''; private $options = array();
+	private $visible = true; private $variation = false; private $position = 0;
+	public function set_id( $v ) { $this->id = $v; }
+	public function set_name( $v ) { $this->name = $v; }
+	public function set_options( $v ) { $this->options = $v; }
+	public function set_visible( $v ) { $this->visible = $v; }
+	public function set_variation( $v ) { $this->variation = $v; }
+	public function set_position( $v ) { $this->position = $v; }
+	public function get_name() { return $this->name; }
+	public function get_options() { return $this->options; }
+	public function get_visible() { return $this->visible; }
+	public function get_variation() { return $this->variation; }
+	public function get_position() { return $this->position; }
+	public function is_taxonomy() { return false !== strpos( $this->name, 'pa_' ) && 0 === strpos( $this->name, 'pa_' ); }
+	public function get_terms() {
+		return array_map( static function( $id ) { return (object) array( 'slug' => 10 === $id ? 'red' : 'blue' ); }, $this->options );
+	}
+}
 class WC_Product_Download {
 	private $name = '';
 	private $file = '';
@@ -50,7 +125,8 @@ class WC_Product_Download {
 }
 class WC_Product_Simple {
 	private $id = 0;
-	private $values = array( 'sku' => '', 'name' => '', 'slug' => '', 'status' => 'publish', 'downloadable' => false, 'virtual' => false, 'downloads' => array() );
+	private $values = array( 'sku' => '', 'name' => '', 'slug' => '', 'status' => 'publish', 'downloadable' => false, 'virtual' => false, 'downloads' => array(), 'attributes' => array() );
+	private $metadata = array();
 	public function __call( $name, $args ) {
 		if ( 0 === strpos( $name, 'set_' ) ) $this->values[ substr( $name, 4 ) ] = $args[0];
 		elseif ( 0 === strpos( $name, 'get_' ) ) return $this->values[ substr( $name, 4 ) ] ?? '';
@@ -60,6 +136,9 @@ class WC_Product_Simple {
 	public function get_sku() { return $this->values['sku']; }
 	public function get_slug() { return $this->values['slug']; }
 	public function get_downloads() { return $this->values['downloads']; }
+	public function get_attributes() { return $this->values['attributes']; }
+	public function update_meta_data( $key, $value ) { $this->metadata[ $key ] = $value; }
+	public function get_meta( $key, $single = true ) { return $this->metadata[ $key ] ?? ''; }
 	public function get_image_id() { return 0; }
 	public function save() {
 		if ( ! $this->id ) $this->id = ++$GLOBALS['last_id'];
@@ -75,6 +154,12 @@ function check_tciel( $value, $label ) {
 }
 $GLOBALS['products'] = array();
 $GLOBALS['last_id'] = 100;
+$GLOBALS['last_term_id'] = 900;
+$GLOBALS['posts'] = array();
+$GLOBALS['terms'] = array();
+$GLOBALS['postmeta'] = array();
+$GLOBALS['termmeta'] = array();
+require dirname( __DIR__ ) . '/includes/class-native-fields.php';
 require dirname( __DIR__ ) . '/includes/class-csv.php';
 use TaxoCommerce\ImportExportLite\CSV;
 check_tciel( 7 === count( CSV::types() ), 'Native types all available' );
@@ -109,7 +194,112 @@ check_tciel( 2 === count( $GLOBALS['products'] ), 'Second product exists' );
 $data['categories'] = 'nonexisting-taxonomy';
 check_tciel( is_wp_error( CSV::import( 'product', $data ) ), 'Explicit missing category rejected without silent creation' );
 check_tciel( 2 === count( $GLOBALS['products'] ), 'Rejected taxonomy does not create duplicate' );
+// Native fields appear even when a shop has never installed another TaxoCommerce module.
+$fields = CSV::fields( 'product' );
+check_tciel( isset( $fields['meta:custom_warranty'] ), 'Registered scalar product custom meta discovered' );
+check_tciel( isset( $fields['meta:supplier_reference'] ), 'Existing non-registered product custom meta discovered' );
+check_tciel( ! isset( $fields['meta:_price'] ), 'Protected WooCommerce data not exposed as custom meta' );
+check_tciel( isset( $fields['attr:pa_color'] ), 'Global WooCommerce attribute discovered' );
+check_tciel( isset( CSV::fields( 'product_cat' )['meta:category_banner'] ), 'Product category custom metadata discovered' );
+check_tciel( '' === CSV::suggest( 'product', 'random_supplier' ), 'No arbitrary foreign custom meta auto-map' );
+check_tciel( 'meta:custom_warranty' === CSV::suggest( 'product', 'meta:custom_warranty' ), 'Own exported meta header roundtrips' );
+check_tciel( ! is_wp_error( CSV::precheck( 'product', array( 'sku' => 'TC-CUSTOM', 'name' => 'Test custom' ) ) ), 'Precheck accepts a product without category' );
+check_tciel( 2 === count( $GLOBALS['products'] ), 'Read-only precheck does not create products' );
+check_tciel( is_wp_error( CSV::precheck( 'product', array( 'sku' => 'TC-CUSTOM', 'name' => 'Test custom', 'attr:pa_color' => 'green' ) ) ), 'Precheck detects unknown Woo attribute term before saving' );
+check_tciel( 2 === count( $GLOBALS['products'] ), 'Invalid attribute precheck is side-effect free' );
+$custom = array( 'sku' => 'TC-CUSTOM', 'slug' => 'test-custom', 'name' => 'Producto personalizado', 'meta:custom_warranty' => '24 meses', 'meta:supplier_reference' => 'CLIENTE-1', 'attr:pa_color' => 'red|blue' );
+$custom_id = CSV::import( 'product', $custom );
+check_tciel( is_int( $custom_id ) && $custom_id > 0, 'Product with native custom fields and attributes created' );
+check_tciel( '24 meses' === CSV::export_value( 'product', $custom_id, 'meta:custom_warranty' ), 'WooCommerce custom meta exported' );
+check_tciel( 'CLIENTE-1' === CSV::export_value( 'product', $custom_id, 'meta:supplier_reference' ), 'Nonregistered public meta exported' );
+check_tciel( 'red|blue' === CSV::export_value( 'product', $custom_id, 'attr:pa_color' ), 'Global attribute values exported' );
+check_tciel( $custom_id === CSV::import( 'product', $custom ), 'Custom product reimport uses same SKU' );
+check_tciel( 3 === count( $GLOBALS['products'] ), 'Custom product did not duplicate on reimport' );
 $bootstrap = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-import-export-lite.php' );
 check_tciel( false === strpos( $bootstrap, 'taxocommerce-import-export/includes/' ), 'No old plugin imports' );
 check_tciel( false === strpos( $bootstrap, 'taxocommerce_core_register_modules' ), 'No Core registration' );
-echo "Import-Export Lite: native CSV mapping, create/upsert, downloadable, optional terms, standalone bootstrap OK\n";
+
+// Pages, posts and categories use only native WordPress tables and preserve custom fields.
+$post_data = array( 'slug' => 'prueba-post', 'title' => 'Entrada de prueba', 'meta:custom_reviewer' => 'Marina' );
+check_tciel( ! is_wp_error( CSV::precheck( 'post', $post_data ) ), 'WordPress post preview succeeds' );
+$post_id = CSV::import( 'post', $post_data );
+check_tciel( is_int( $post_id ) && $post_id > 0, 'WordPress post created' );
+check_tciel( 'Marina' === CSV::export_value( 'post', $post_id, 'meta:custom_reviewer' ), 'WordPress post custom metadata exported' );
+check_tciel( $post_id === CSV::import( 'post', $post_data ), 'WordPress post reimport finds slug' );
+$page_data = array( 'slug' => 'prueba-pagina', 'title' => 'Página de prueba' );
+$page_id = CSV::import( 'page', $page_data );
+check_tciel( is_int( $page_id ) && $page_id > 0, 'WordPress page created without taxonomy' );
+check_tciel( $page_id === CSV::import( 'page', $page_data ), 'WordPress page import is idempotent' );
+$term_data = array( 'slug' => 'general', 'name' => 'General', 'meta:category_banner' => 'Oferta estándar' );
+check_tciel( ! is_wp_error( CSV::precheck( 'product_cat', $term_data ) ), 'WooCommerce product category precheck succeeds' );
+$term_result = CSV::import( 'product_cat', $term_data );
+check_tciel( is_array( $term_result ) && ! empty( $term_result['term_id'] ), 'Product category created' );
+check_tciel( 'Oferta estándar' === CSV::export_value( 'product_cat', $term_result['term_id'], 'meta:category_banner' ), 'Product category custom metadata exported' );
+$term_id = $term_result['term_id'];
+check_tciel( $term_id === CSV::import( 'product_cat', $term_data )['term_id'], 'Product category reimport by slug is idempotent' );
+// Existing local WooCommerce attribute discovered and imported independently.
+$local_attr = new WC_Product_Attribute();
+$local_attr->set_name( 'Material' );
+$local_attr->set_options( array( 'Acero' ) );
+$GLOBALS['products'][ $custom_id ]->set_attributes( array( 'pa_color' => $GLOBALS['products'][ $custom_id ]->get_attributes()['pa_color'], 'material' => $local_attr ) );
+$reflection = new ReflectionClass( \TaxoCommerce\ImportExportLite\NativeFields::class );
+foreach ( array( 'attributes_cache' => null, 'fields_cache' => array() ) as $key => $value ) {
+	$prop = $reflection->getProperty( $key );
+	$prop->setAccessible( true );
+	$prop->setValue( $value );
+}
+check_tciel( isset( CSV::fields( 'product' )['attr:material'] ), 'Local WooCommerce attribute is discoverable from products' );
+$local_data = array( 'sku' => 'TC-CUSTOM', 'attr:material' => 'Acero|Aluminio' );
+check_tciel( $custom_id === CSV::import( 'product', $local_data ), 'Selected local attribute updates existing product' );
+check_tciel( 'Acero|Aluminio' === CSV::export_value( 'product', $custom_id, 'attr:material' ), 'Local WooCommerce attribute exported without a custom table' );
+check_tciel( 'red|blue' === CSV::export_value( 'product', $custom_id, 'attr:pa_color' ), 'Other global attribute preserved on local import' );
+
+/** Test the real two-phase CSV AJAX handler with no WordPress installation. */
+define( 'HOUR_IN_SECONDS', 3600 );
+class TCIEL_JSON_Stop extends \Exception {
+	public $result;
+	public function __construct( $result ) { $this->result = $result; }
+}
+function wp_send_json_success( $data ) { throw new TCIEL_JSON_Stop( array( 'success' => true, 'data' => $data ) ); }
+function wp_send_json_error( $data ) { throw new TCIEL_JSON_Stop( array( 'success' => false, 'data' => $data ) ); }
+function check_ajax_referer( $a, $b ) { return true; }
+function get_current_user_id() { return 1; }
+function wp_unslash( $value ) { return $value; }
+function wp_json_encode( $value ) { return json_encode( $value ); }
+function get_transient( $key ) { return $GLOBALS['transients'][ $key ] ?? false; }
+function set_transient( $key, $value, $expiry ) { $GLOBALS['transients'][ $key ] = $value; }
+function wp_delete_file( $path ) { @unlink( $path ); }
+require dirname( __DIR__ ) . '/includes/class-admin.php';
+function tciel_ajax_test( $values ) {
+	$_POST = $values + array( 'action' => 'tciel_import_step', 'nonce' => 'fake', 'token' => 'testtoken' );
+	try { \TaxoCommerce\ImportExportLite\Admin::step(); }
+	catch ( TCIEL_JSON_Stop $result ) { return $result->result; }
+	return array( 'success' => false );
+}
+$tmp = tempnam( sys_get_temp_dir(), 'tciel-' );
+file_put_contents( $tmp, "sku,name,attr:pa_color\nTC-CSV-A,Producto A,red\nTC-CSV-B,Producto B,green\n" );
+$GLOBALS['transients']['tciel_1_testtoken'] = array(
+	'path' => $tmp, 'headers' => array( 'sku', 'name', 'attr:pa_color' ), 'delimiter' => ',',
+	'filename' => 'dos-productos.csv', 'sample' => array( 'TC-CSV-A', 'Producto A', 'red' ),
+	'offset' => 0, 'checked' => 0, 'processed' => 0, 'saved' => 0,
+	'errors' => 0, 'notices' => array(), 'phase' => 'uploaded', 'started' => false, 'done' => false,
+);
+$mapping = array( 0 => 'sku', 1 => 'name', 2 => 'attr:pa_color' );
+$input = array( 'type' => 'product', 'mode' => 'upsert', 'map' => $mapping );
+$preflight = tciel_ajax_test( $input );
+while ( $preflight['data']['phase'] === 'checking' ) $preflight = tciel_ajax_test( array() );
+check_tciel( $preflight['success'] && 'invalid' === $preflight['data']['phase'], 'Preview fails when a global attribute value is missing' );
+check_tciel( 0 === $preflight['data']['saved'] && 3 === count( $GLOBALS['products'] ), 'No product is saved during failed preflight' );
+file_put_contents( $tmp, "sku,name,attr:pa_color\nTC-CSV-A,Producto A,red\nTC-CSV-B,Producto B,blue\n" );
+$preflight = tciel_ajax_test( $input );
+while ( $preflight['data']['phase'] === 'checking' ) $preflight = tciel_ajax_test( array() );
+check_tciel( $preflight['success'] && 'ready' === $preflight['data']['phase'], 'Complete preflight requires explicit confirmation' );
+check_tciel( 0 === $preflight['data']['saved'] && 3 === count( $GLOBALS['products'] ), 'Preflight never saves data' );
+$imported = tciel_ajax_test( $input + array( 'confirmed' => '1' ) );
+while ( $imported['data']['phase'] === 'importing' ) $imported = tciel_ajax_test( array() );
+check_tciel( $imported['success'] && 'done' === $imported['data']['phase'], 'Second request executes confirmed import' );
+check_tciel( 2 === $imported['data']['saved'] && 0 === $imported['data']['errors'], 'Two Woo products saved from CSV' );
+check_tciel( 5 === count( $GLOBALS['products'] ), 'No unrelated products modified by CSV' );
+check_tciel( ! file_exists( $tmp ), 'Temporary CSV removed after completed import' );
+
+echo "Import-Export Lite: basic + custom metadata + Woo attributes + precheck + no duplication + standalone bootstrap OK\n";

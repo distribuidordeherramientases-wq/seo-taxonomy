@@ -28,8 +28,14 @@
         var allowed = fields[type.value] || {};
         maps.forEach(function (el) {
             var prior = el.value;
-            var key = normalize(el.dataset.column);
-            var suggestion = (aliases[type.value] || {})[key] || key;
+            var original = (el.dataset.column || '').trim();
+            var key = normalize(original);
+            var suggestion = ((aliases[type.value] || {})[key] || key);
+            // Only auto-map a dynamic field when its header is an exact exported
+            // field identifier. An unrelated shop's column is not enough.
+            if ((original.indexOf('meta:') === 0 || original.indexOf('attr:') === 0) && allowed[original]) {
+                suggestion = original;
+            }
             if (['id', 'categories', 'tags', 'parent_slug', 'featured_image'].indexOf(suggestion) >= 0) suggestion = '';
             el.replaceChildren();
             var none = document.createElement('option');
@@ -45,33 +51,65 @@
             el.value = allowed[prior] ? prior : (allowed[suggestion] ? suggestion : '');
         });
     }
-    type.addEventListener('change', updateMap);
-    updateMap();
     var progress = document.getElementById('tciel-progress');
     var errors = document.getElementById('tciel-errors');
-    var started = false;
+    var start = form.querySelector('input[type="submit"], button[type="submit"]');
+    var running = false;
+    var ready = false;
+    var completed = false;
+    function resetReady() {
+        if (!running && !completed) {
+            ready = false;
+            if (start) start.value = tcielWizard.messages.validate;
+        }
+    }
+    form.addEventListener('change', resetReady);
+    type.addEventListener('change', updateMap);
+    updateMap();
+    function enable() {
+        form.querySelectorAll('button,input,select').forEach(function (el) { el.disabled = false; });
+        running = false;
+    }
     function send(payload) {
         return fetch(tcielWizard.endpoint, { method: 'POST', credentials: 'same-origin', body: payload })
             .then(function (response) { return response.json(); })
             .then(function (response) {
                 if (!response.success) throw new Error(response.data && response.data.message || tcielWizard.messages.error);
                 var data = response.data;
-                progress.textContent = data.processed + ' filas · ' + data.saved + ' guardadas · ' + data.errors + ' errores' + (data.done ? ' · ' + tcielWizard.messages.done : '');
+                var phase = data.phase || '';
+                var count = phase === 'checking' || phase === 'invalid' || phase === 'ready' ? data.checked : data.processed;
+                var label = phase === 'checking' ? tcielWizard.messages.checking : (phase === 'ready' ? tcielWizard.messages.ready : (phase === 'invalid' ? tcielWizard.messages.invalid : tcielWizard.messages.running));
+                progress.textContent = label + ' ' + count + ' filas · ' + data.saved + ' guardadas · ' + data.errors + ' errores' + (data.done ? ' · ' + tcielWizard.messages.done : '');
                 errors.textContent = (data.notices || []).join('\n');
-                if (!data.done) {
+                if (phase === 'checking' || phase === 'importing') {
                     var next = new FormData();
                     next.append('action', 'tciel_import_step');
                     next.append('nonce', tcielWizard.nonce);
                     next.append('token', form.querySelector('[name="token"]').value);
                     return send(next);
                 }
-                started = false;
-                form.querySelectorAll('button,input,select').forEach(function (el) { el.disabled = false; });
+                if (phase === 'ready') {
+                    ready = true;
+                    enable();
+                    if (start) start.value = tcielWizard.messages.confirm;
+                    return;
+                }
+                if (phase === 'done') {
+                    completed = true;
+                    enable();
+                    if (start) start.disabled = true;
+                    return;
+                }
+                // Invalid rows are corrected in the CSV, or the mapping is changed
+                // and the user runs the read-only preflight again.
+                ready = false;
+                enable();
+                if (start) start.value = tcielWizard.messages.validate;
             });
     }
     form.addEventListener('submit', function (event) {
         event.preventDefault();
-        if (started) return;
+        if (running || completed) return;
         var assigned = maps.map(function (el) { return el.value; }).filter(Boolean);
         if (new Set(assigned).size !== assigned.length) {
             progress.textContent = tcielWizard.messages.duplicate;
@@ -80,13 +118,13 @@
         var payload = new FormData(form);
         payload.append('action', 'tciel_import_step');
         payload.append('nonce', tcielWizard.nonce);
-        started = true;
+        payload.append('confirmed', ready ? '1' : '0');
+        running = true;
         form.querySelectorAll('button,input,select').forEach(function (el) { el.disabled = true; });
-        progress.textContent = tcielWizard.messages.running;
+        progress.textContent = ready ? tcielWizard.messages.running : tcielWizard.messages.checking;
         send(payload).catch(function (err) {
-            started = false;
+            enable();
             progress.textContent = (err && err.message) || tcielWizard.messages.error;
-            form.querySelectorAll('button,input,select').forEach(function (el) { el.disabled = false; });
         });
     });
 })();
