@@ -9,13 +9,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class CSV {
 	public static function types() {
 		return array(
-			'product' => __( 'Productos WooCommerce', 'taxocommerce-import-export-lite' ),
-			'product_cat' => __( 'Categorías de producto', 'taxocommerce-import-export-lite' ),
-			'product_tag' => __( 'Etiquetas de producto', 'taxocommerce-import-export-lite' ),
 			'page' => __( 'Páginas', 'taxocommerce-import-export-lite' ),
-			'post' => __( 'Entradas', 'taxocommerce-import-export-lite' ),
+			'product' => __( 'Productos WooCommerce', 'taxocommerce-import-export-lite' ),
 			'category' => __( 'Categorías de entradas', 'taxocommerce-import-export-lite' ),
+			'post' => __( 'Entradas', 'taxocommerce-import-export-lite' ),
+			'product_cat' => __( 'Categorías de producto', 'taxocommerce-import-export-lite' ),
 			'post_tag' => __( 'Etiquetas de entradas', 'taxocommerce-import-export-lite' ),
+			'product_tag' => __( 'Etiquetas de producto', 'taxocommerce-import-export-lite' ),
 		);
 	}
 
@@ -96,9 +96,12 @@ final class CSV {
 		$key = self::normalize_header( $column );
 		$aliases = array(
 			'product' => array( 'product_name' => 'name', 'nombre' => 'name', 'product_type' => 'type', 'published' => 'status', 'publicado' => 'status', 'precio' => 'regular_price', 'precio_normal' => 'regular_price', 'precio_rebajado' => 'sale_price', 'short_description' => 'short_description', 'descripcion' => 'description', 'descripcion_corta' => 'short_description', 'download_1_url' => 'download_1_url', 'download_1_name' => 'download_1_name', 'download_expiry_days' => 'download_expiry' ),
-			'page' => array( 'post_title' => 'title', 'post_content' => 'content', 'titulo' => 'title' ),
-			'post' => array( 'post_title' => 'title', 'post_content' => 'content', 'titulo' => 'title' ),
+			'page' => array( 'post_title' => 'title', 'post_content' => 'content', 'post_name' => 'slug', 'post_status' => 'status', 'post_excerpt' => 'excerpt', 'post_date' => 'date', 'titulo' => 'title', 'contenido' => 'content', 'estado' => 'status', 'extracto' => 'excerpt' ),
+			'post' => array( 'post_title' => 'title', 'post_content' => 'content', 'post_name' => 'slug', 'post_status' => 'status', 'post_excerpt' => 'excerpt', 'post_date' => 'date', 'titulo' => 'title', 'contenido' => 'content', 'estado' => 'status', 'extracto' => 'excerpt' ),
 		);
+		if ( in_array( $type, array( 'category', 'product_cat', 'post_tag', 'product_tag' ), true ) ) {
+			$aliases[ $type ] = array( 'nombre' => 'name', 'descripcion' => 'description' );
+		}
 		$key = isset( $aliases[ $type ][ $key ] ) ? $aliases[ $type ][ $key ] : $key;
 		if ( in_array( $key, array( 'id', 'categories', 'tags', 'parent_slug', 'featured_image' ), true ) ) {
 			return '';
