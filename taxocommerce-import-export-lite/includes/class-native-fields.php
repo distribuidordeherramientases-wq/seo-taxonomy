@@ -57,11 +57,11 @@ final class NativeFields {
 		global $wpdb;
 		if ( isset( $wpdb ) && is_object( $wpdb ) && isset( $wpdb->postmeta, $wpdb->posts, $wpdb->termmeta, $wpdb->term_taxonomy ) ) {
 			if ( $term ) {
-				$sql = "SELECT DISTINCT m.meta_key FROM {$wpdb->termmeta} AS m INNER JOIN {$wpdb->term_taxonomy} AS t ON t.term_id = m.term_id WHERE t.taxonomy = %s ORDER BY m.meta_key LIMIT " . self::MAX_KEYS;
+				$sql = "SELECT DISTINCT m.meta_key FROM {$wpdb->termmeta} AS m INNER JOIN {$wpdb->term_taxonomy} AS t ON t.term_id = m.term_id WHERE t.taxonomy = %s AND LEFT(m.meta_key, 1) <> '_' ORDER BY m.meta_key LIMIT " . self::MAX_KEYS;
 			} else {
-				$sql = "SELECT DISTINCT m.meta_key FROM {$wpdb->postmeta} AS m INNER JOIN {$wpdb->posts} AS p ON p.ID = m.post_id WHERE p.post_type = %s ORDER BY m.meta_key LIMIT " . self::MAX_KEYS;
+				$sql = "SELECT DISTINCT m.meta_key FROM {$wpdb->postmeta} AS m INNER JOIN {$wpdb->posts} AS p ON p.ID = m.post_id WHERE p.post_type = %s AND LEFT(m.meta_key, 1) <> '_' ORDER BY m.meta_key LIMIT " . self::MAX_KEYS;
 			}
-			$stored = $wpdb->get_col( $wpdb->prepare( $sql, $type ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL table names are the built-in WPDB table properties and type is prepared.
+			$stored = $wpdb->get_col( $wpdb->prepare( $sql, $type ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared -- Only core metadata tables; read-only distinct field discovery cannot be expressed through the standard meta APIs. Prepared, bounded, object-cache backed.
 			foreach ( (array) $stored as $key ) {
 				if ( self::valid_meta_key( $key, $object ) && ! isset( $keys[ $key ] ) ) {
 					$keys[ $key ] = $key;

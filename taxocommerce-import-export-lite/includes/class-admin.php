@@ -224,7 +224,7 @@ final class Admin {
 			if ( 'product' === $type && ! array_intersect( array( 'sku', 'slug' ), $map ) ) wp_send_json_error( array( 'message' => __( 'Asigna SKU o slug para no duplicar productos.', 'taxocommerce-import-export-lite' ) ) );
 			if ( in_array( $type, array( 'page', 'post' ), true ) && ! array_intersect( array( 'slug', 'id' ), $map ) ) wp_send_json_error( array( 'message' => __( 'Asigna slug para no duplicar páginas o entradas.', 'taxocommerce-import-export-lite' ) ) );
 			$signature = hash( 'sha256', wp_json_encode( array( $type, $mode, $map ) ) );
-			$confirmed = isset( $_POST['confirmed'] ) && '1' === (string) $_POST['confirmed'];
+			$confirmed = isset( $_POST['confirmed'] ) && is_string( $_POST['confirmed'] ) && '1' === sanitize_key( wp_unslash( $_POST['confirmed'] ) );
 			if ( 'ready' === $phase && $confirmed ) {
 				if ( ! hash_equals( $state['signature'], $signature ) ) wp_send_json_error( array( 'message' => __( 'La asignación cambió. Ejecuta el prechequeo de nuevo.', 'taxocommerce-import-export-lite' ) ) );
 				$state['phase'] = 'importing';
