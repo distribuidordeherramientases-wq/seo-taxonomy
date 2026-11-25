@@ -32,6 +32,13 @@ $required_demand_translations = array(
     'de_DE' => array( 'Nachfrage × Katalog', 'Priorität nach Kategorie', 'Beobachtete Abdeckung', 'Markterkundung' ),
     'nl_NL' => array( 'Vraag × Catalogus', 'Prioriteit per categorie', 'Waargenomen dekking', 'Marktverkenning' ),
 );
+$required_trends_translations = array(
+    'es_ES' => array( 'Configuración del radar guardada.', 'Importación CSV · alternativa manual', 'Señales externas almacenadas', 'Región:', 'Análisis' ),
+    'en_US' => array( 'Radar settings saved.', 'CSV import · manual fallback', 'Stored external signals', 'Region:', 'Analysis' ),
+    'fr_FR' => array( 'Paramètres du radar enregistrés.', 'Importation CSV · solution manuelle de secours', 'Signaux externes enregistrés', 'Région :', 'Analyse' ),
+    'de_DE' => array( 'Radar-Einstellungen gespeichert.', 'CSV-Import · manuelle Alternative', 'Gespeicherte externe Signale', 'Region:', 'Analyse' ),
+    'nl_NL' => array( 'Radarinstellingen opgeslagen.', 'CSV-import · handmatig alternatief', 'Opgeslagen externe signalen', 'Regio:', 'Analyse' ),
+);
 foreach ($expected as $locale => $translation) {
     $po = file_get_contents($root . $locale . '.po');
     $bytes = file_get_contents($root . $locale . '.mo');
@@ -71,6 +78,13 @@ foreach ($expected as $locale => $translation) {
         }
         $previous_original = $original;
         $catalog[$original] = $translated;
+    }
+    $trends_keys = array( 'Configuración del radar guardada.', 'Importación CSV · respaldo manual', 'Señales externas almacenadas', 'Región:', 'Analysis' );
+    foreach ( $trends_keys as $i => $key ) {
+        if ( ( $catalog[$key] ?? null ) !== $required_trends_translations[$locale][$i] ) {
+            fwrite( STDERR, "FAIL Trends translation $locale: $key\n" );
+            exit( 1 );
+        }
     }
     $demand_keys = array( 'Demanda × Catalogo', 'Prioridad por categoria', 'Cobertura observada', 'Exploración de mercado' );
     foreach ( $demand_keys as $i => $key ) {
