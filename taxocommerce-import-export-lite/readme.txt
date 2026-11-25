@@ -5,28 +5,28 @@ Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.4
+Stable tag: 0.1.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Independent native WordPress and WooCommerce CSV import/export with column mapping. No other TaxoCommerce plugins needed.
+Independent native WordPress and WooCommerce CSV import/export with automatic header recognition. No other TaxoCommerce plugins needed.
 
 == Description ==
 
 TaxoCommerce Import-Export Lite imports and exports CSV files for pages, posts, WordPress categories and tags, WooCommerce products, product categories and product tags using only standard WordPress/WooCommerce APIs. This plugin is separate from the previous TaxoCommerce Import-Export and has no shared state or configuration.
 
 = Features =
-* Upload one CSV and map the columns to native fields.
-* Default create-or-update by SKU or slug, safe draft creation.
-* Export a selected subset of native fields in standard CSV.
+* Upload one CSV in its dedicated content block; headers are recognized automatically on the server.
+* Automatic create-or-update by SKU or slug, safe draft creation.
+* Download CSV directly from each content block; optional field selection remains available.
 * Include existing public, scalar WordPress/WooCommerce custom fields and product attributes from the current installation.
 * Validate the entire CSV without writing, review errors by row, then explicitly confirm import.
 * Product prices, stock, virtual/downloadable flags, two downloadable URLs, tax fields, and basic properties.
-* Categories/tags optional and never automatically assigned from a foreign CSV.
+* Categories/tags optional; exact canonical relationship headers request existing terms. Foreign IDs are ignored.
 * Browser-assisted 25-row import batches, read-only self-check, manuals.
 
 = Limits =
-The first Lite edition does not migrate child product variations, advanced attribute definitions, WooCommerce orders, customers, binary media files or third-party metadata. Product variations require a dedicated WooCommerce migration workflow. Remote download URLs are recorded as links, not copied. WordPress Media images must already exist for explicit image mapping. WooCommerce download security is configured in WooCommerce.
+The first Lite edition does not migrate child product variations, advanced attribute definitions, WooCommerce orders, customers, binary media files or third-party metadata. Product variations require a dedicated WooCommerce migration workflow. Remote download URLs are recorded as links, not copied. WordPress Media images must already exist for explicit image references. WooCommerce download security is configured in WooCommerce.
 
 == Installation ==
 
@@ -42,15 +42,19 @@ The first Lite edition does not migrate child product variations, advanced attri
 No. Only WordPress and WooCommerce are required.
 
 = Must categories exist in the target store? =
-No for products without a category field. Categories are only assigned when the administrator explicitly maps that CSV column to native taxonomy terms already in the target store.
+No for products without a category field. An exact categories or tags header requests native terms already present in the target store; omit those columns when they are not needed.
 
 = What happens when a product is not found? =
 The default mode creates a draft product; it does not fail with Product not found. Existing products are matched by SKU first, then slug.
 
 = Can I import downloadable products? =
-Yes. Map virtual, downloadable, download_1_name and download_1_url (optionally a second download) to WooCommerce product fields. The URL must be a valid HTTP(S) address.
+Yes. Include the headers virtual, downloadable, download_1_name and download_1_url (optionally a second download) to WooCommerce product fields. The URL must be a valid HTTP(S) address.
 
 == Changelog ==
+
+= 0.1.5 =
+* Separate import and export blocks for every supported content type; automatic create-or-update and server-side header recognition.
+* Remove type, action and manual field-mapping selectors; retain read-only preflight and explicit confirmation.
 
 = 0.1.4 =
 * Restrict slug lookup to the requested post type; media attachments no longer block new product imports.
