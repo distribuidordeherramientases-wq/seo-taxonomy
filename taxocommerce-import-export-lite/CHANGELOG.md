@@ -1,5 +1,11 @@
 # TaxoCommerce Import-Export Lite
 
+## [0.1.2] — 2026-11-25 — Resolución segura de productos inexistentes (#2962)
+
+- El modo Crear y actualizar ya no confunde una referencia huérfana de SKU/slug o un producto en la papelera con un producto actualizable. Evita el error genérico «El producto relacionado no existe» para nuevos productos; no restaura, sobrescribe ni borra registros antiguos.
+- Comprobación de identidad centralizada para el prechequeo de solo lectura y la importación real. Conflictos auténticos entre SKU/slug o índices reservados presentan un mensaje identificable y bloquean la importación sin modificar otros productos.
+- Regressiones para productos Mail Lite y Pro, reimportación, referencias huérfanas, papelera y SKU ocupados.
+
 ## [0.1.1] — 2026-11-25 — Campos de cada instalación y validación previa (#2958)
 
 - Descubre campos personalizados **escalares, públicos y nativos** de páginas, entradas, productos y términos desde el registro de metadatos y tablas estándar de WordPress; ignora metadatos internos protegidos y valores complejos.

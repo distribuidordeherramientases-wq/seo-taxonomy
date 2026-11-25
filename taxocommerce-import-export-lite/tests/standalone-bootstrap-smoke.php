@@ -27,6 +27,11 @@ function wp_parse_url( $v, $component ) { return parse_url( $v, $component ); }
 function attachment_url_to_postid( $url ) { return 0; }
 function wp_attachment_is_image( $id ) { return false; }
 function get_post_type( $id ) { return isset( $GLOBALS['posts'][ $id ] ) ? $GLOBALS['posts'][ $id ]->post_type : 'product'; }
+function get_post_status( $id ) {
+	if ( isset( $GLOBALS['lookup_post_status_override'][ $id ] ) ) return $GLOBALS['lookup_post_status_override'][ $id ];
+	if ( isset( $GLOBALS['products'][ $id ] ) ) return $GLOBALS['products'][ $id ]->get_status();
+	return isset( $GLOBALS['posts'][ $id ] ) ? $GLOBALS['posts'][ $id ]->post_status : false;
+}
 function get_term_by( $kind, $value, $tax ) {
 	if ( 'pa_color' === $tax && in_array( strtolower( $value ), array( 'red', 'blue' ), true ) ) {
 		return (object) array( 'term_id' => 'red' === strtolower( $value ) ? 10 : 11, 'slug' => strtolower( $value ) );
@@ -84,6 +89,7 @@ class TC_Stub_DB {
 }
 $GLOBALS['wpdb'] = new TC_Stub_DB();
 function get_page_by_path( $slug, $output = null, $type = '' ) {
+	if ( 'product' === $type && isset( $GLOBALS['lookup_slug_override'][ $slug ] ) ) return (object) array( 'ID' => $GLOBALS['lookup_slug_override'][ $slug ] );
 	foreach ( $GLOBALS['products'] as $p ) {
 		if ( 'product' === $type && $p->get_slug() === $slug ) return (object) array( 'ID' => $p->get_id() );
 	}
@@ -92,10 +98,12 @@ function get_page_by_path( $slug, $output = null, $type = '' ) {
 }
 function wp_set_object_terms( $id, $terms, $tax, $append ) { return $terms; }
 function wc_get_product_id_by_sku( $sku ) {
+	if ( isset( $GLOBALS['lookup_sku_override'][ $sku ] ) ) return $GLOBALS['lookup_sku_override'][ $sku ];
 	foreach ( $GLOBALS['products'] as $p ) if ( $sku === $p->get_sku() ) return $p->get_id();
 	return 0;
 }
 function wc_get_product( $id ) { return $GLOBALS['products'][ $id ] ?? false; }
+function wc_product_has_unique_sku( $id, $sku ) { return ! isset( $GLOBALS['reserved_skus'][ $sku ] ); }
 class WC_Product_Attribute {
 	private $id = 0; private $name = ''; private $options = array();
 	private $visible = true; private $variation = false; private $position = 0;
@@ -168,6 +176,30 @@ check_tciel( '' === CSV::suggest( 'product', 'ID' ), 'Foreign IDs not automatica
 check_tciel( 'name' === CSV::suggest( 'product', 'Product Name' ), 'WooCommerce name mapped' );
 check_tciel( 'download_1_url' === CSV::suggest( 'product', 'Download 1 URL' ), 'WooCommerce download URL mapped' );
 check_tciel( "'=HYPERLINK()" === CSV::csv_safe( '=HYPERLINK()' ), 'Formula injection escaped' );
+// A CSV for two new Mail products must pass without requiring existing records.
+$lite_row = array( 'sku' => 'TC-MAIL-LITE', 'slug' => 'mail-product-fresh-lite', 'name' => 'Mail Lite' );
+$pro_row  = array( 'sku' => 'TC-MAIL-PRO', 'slug' => 'mail-product-fresh-pro', 'name' => 'Mail Pro' );
+check_tciel( true === CSV::precheck( 'product', $lite_row ), 'New Mail Lite precheck accepts upsert mode' );
+check_tciel( true === CSV::precheck( 'product', $pro_row ), 'New Mail Pro precheck accepts upsert mode' );
+check_tciel( is_wp_error( CSV::precheck( 'product', $pro_row, 'update' ) ), 'Update-only still rejects missing products' );
+// WooCommerce SKU lookups can point to old records that no longer exist.
+$GLOBALS['lookup_sku_override']['TC-MAIL-PRO'] = 9988;
+check_tciel( true === CSV::precheck( 'product', $pro_row ), 'Orphaned SKU lookup is not a product' );
+$GLOBALS['lookup_slug_override']['mail-product-fresh-pro'] = 9989;
+check_tciel( true === CSV::precheck( 'product', $pro_row ), 'Orphaned slug lookup is not a product' );
+// A trash record must never be updated or restored implicitly.
+$GLOBALS['lookup_post_status_override'][9989] = 'trash';
+check_tciel( true === CSV::precheck( 'product', $pro_row ), 'Trashed product ignored for new upsert' );
+check_tciel( is_wp_error( CSV::precheck( 'product', $pro_row, 'update' ) ), 'Trashed product not updated' );
+// Real catalog integrity errors must be visible, not silently overwritten.
+$GLOBALS['reserved_skus']['TC-MAIL-PRO'] = true;
+check_tciel( is_wp_error( CSV::precheck( 'product', $pro_row ) ), 'Reserved SKU still rejected' );
+unset( $GLOBALS['reserved_skus']['TC-MAIL-PRO'], $GLOBALS['lookup_post_status_override'][9989] );
+$GLOBALS['lookup_post_status_override'][9988] = 'publish';
+check_tciel( is_wp_error( CSV::precheck( 'product', $pro_row ) ), 'Active broken product not overwritten' );
+unset( $GLOBALS['lookup_sku_override'], $GLOBALS['lookup_slug_override'], $GLOBALS['lookup_post_status_override'] );
+check_tciel( 0 === count( $GLOBALS['products'] ), 'No products saved during lookup precheck' );
+
 $map = array( 0 => 'sku', 1 => 'name', 2 => 'download_1_url', 3 => 'categories' );
 $data = CSV::map_row( array( 'TC-TEST-1', 'Plugin test', 'https://asociacionfocazul.com/wp-content/uploads/2026/11/taxocommerce-mail.zip', '' ), $map );
 check_tciel( ! isset( $data['categories'] ), 'Empty optional taxonomy absent' );
