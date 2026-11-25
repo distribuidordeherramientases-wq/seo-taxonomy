@@ -18,8 +18,9 @@ final class AutoCheck {
 		$rows[] = array( 'id' => 'woocommerce', 'ok' => function_exists( 'wc_get_products' ) && class_exists( '\\WC_Product_Simple' ), 'description' => __( 'API estándar de WooCommerce', 'taxocommerce-import-export-lite' ) );
 		$rows[] = array( 'id' => 'capability', 'ok' => current_user_can( 'manage_woocommerce' ) || current_user_can( 'manage_options' ), 'description' => __( 'Permisos administrativos', 'taxocommerce-import-export-lite' ) );
 		$rows[] = array( 'id' => 'native_fields', 'ok' => isset( CSV::fields( 'product' )['download_1_url'] ) && isset( CSV::fields( 'page' )['content'] ), 'description' => __( 'Mapeo nativo de páginas y productos descargables', 'taxocommerce-import-export-lite' ) );
+		$rows[] = array( 'id' => 'dynamic_fields', 'ok' => is_array( NativeFields::fields( 'product' ) ) && function_exists( 'get_registered_meta_keys' ), 'description' => __( 'Campos personalizados nativos y atributos disponibles', 'taxocommerce-import-export-lite' ) );
 		$rows[] = array( 'id' => 'basic_csv', 'ok' => function_exists( 'fgetcsv' ) && function_exists( 'fputcsv' ), 'description' => __( 'Soporte nativo CSV', 'taxocommerce-import-export-lite' ) );
-		$files = array( 'taxocommerce-import-export-lite.php', 'includes/class-csv.php', 'includes/class-admin.php', 'includes/class-autocheck.php', 'includes/class-manual.php', 'assets/admin.js', 'assets/admin.css' );
+		$files = array( 'taxocommerce-import-export-lite.php', 'includes/class-csv.php', 'includes/class-native-fields.php', 'includes/class-admin.php', 'includes/class-autocheck.php', 'includes/class-manual.php', 'assets/admin.js', 'assets/admin.css' );
 		foreach ( $files as $file ) {
 			$rows[] = array( 'id' => 'code_' . sanitize_key( str_replace( '/', '_', $file ) ), 'ok' => is_readable( dirname( __DIR__ ) . '/' . $file ), 'description' => sprintf( /* translators: %s: a local component path */ __( 'Componente legible: %s', 'taxocommerce-import-export-lite' ), $file ) );
 		}

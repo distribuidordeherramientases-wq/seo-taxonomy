@@ -5,7 +5,7 @@ Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,8 @@ TaxoCommerce Import-Export Lite imports and exports CSV files for pages, posts, 
 * Upload one CSV and map the columns to native fields.
 * Default create-or-update by SKU or slug, safe draft creation.
 * Export a selected subset of native fields in standard CSV.
+* Include existing public, scalar WordPress/WooCommerce custom fields and product attributes from the current installation.
+* Validate the entire CSV without writing, review errors by row, then explicitly confirm import.
 * Product prices, stock, virtual/downloadable flags, two downloadable URLs, tax fields, and basic properties.
 * Categories/tags optional and never automatically assigned from a foreign CSV.
 * Browser-assisted 25-row import batches, read-only self-check, manuals.
@@ -49,6 +51,11 @@ The default mode creates a draft product; it does not fail with Product not foun
 Yes. Map virtual, downloadable, download_1_name and download_1_url (optionally a second download) to WooCommerce product fields. The URL must be a valid HTTP(S) address.
 
 == Changelog ==
+
+= 0.1.1 =
+* Discover native public scalar custom metadata and global/local WooCommerce attributes.
+* Read-only full-CSV precheck and explicit confirmation before importing.
+* Independent from every other TaxoCommerce plugin; no custom TaxoCommerce tables.
 
 = 0.1.0 =
 * New independent Lite plugin. See CHANGELOG.md.
