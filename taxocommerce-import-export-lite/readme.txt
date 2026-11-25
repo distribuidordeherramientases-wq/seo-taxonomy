@@ -5,7 +5,7 @@ Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.2
+Stable tag: 0.1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,6 +51,9 @@ The default mode creates a draft product; it does not fail with Product not foun
 Yes. Map virtual, downloadable, download_1_name and download_1_url (optionally a second download) to WooCommerce product fields. The URL must be a valid HTTP(S) address.
 
 == Changelog ==
+
+= 0.1.3 =
+* Restrict slug lookup to the requested post type; media attachments no longer block new product imports.
 
 = 0.1.2 =
 * Fix WooCommerce SKU/slug lookups pointing to missing or trashed records: create safely in upsert mode; report real conflicts without modifying other products.
