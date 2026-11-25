@@ -106,6 +106,39 @@ final class CSV {
 		return array_key_exists( $key, self::fields( $type ) ) ? $key : '';
 	}
 
+	/**
+	 * Resolve CSV headers on the server. A canonical relationship header is an
+	 * explicit request to import that relationship; foreign IDs are never used.
+	 * Unknown columns are reported to the administrator, not guessed.
+	 *
+	 * @return array|\WP_Error
+	 */
+	public static function automatic_mapping( $type, $headers ) {
+		if ( ! isset( self::types()[ $type ] ) ) {
+			return new \WP_Error( 'invalid_type', __( 'Tipo de contenido no válido.', 'taxocommerce-import-export-lite' ) );
+		}
+		$allowed = self::fields( $type );
+		$map     = array();
+		$ignored = array();
+		foreach ( $headers as $index => $header ) {
+			$header = trim( (string) $header );
+			$field = in_array( $header, array( 'categories', 'tags', 'parent_slug', 'featured_image' ), true ) && isset( $allowed[ $header ] ) ? $header : self::suggest( $type, $header );
+			if ( '' === $field ) {
+				$ignored[] = $header;
+				continue;
+			}
+			if ( in_array( $field, $map, true ) ) {
+				return new \WP_Error( 'duplicate_header', sprintf( /* translators: %s: CSV field name. */ __( 'Dos columnas corresponden al campo «%s». Corrige las cabeceras del CSV.', 'taxocommerce-import-export-lite' ), $field ) );
+			}
+			$map[ $index ] = $field;
+		}
+		$identity = 'product' === $type ? array( 'sku', 'slug' ) : ( in_array( $type, array( 'page', 'post' ), true ) ? array( 'slug' ) : array( 'slug', 'name' ) );
+		if ( ! array_intersect( $identity, $map ) ) {
+			return new \WP_Error( 'identity_missing', sprintf( /* translators: %s: accepted CSV identity column names. */ __( 'El CSV debe incluir una de estas cabeceras de identificación: %s.', 'taxocommerce-import-export-lite' ), implode( ', ', $identity ) ) );
+		}
+		return array( 'map' => $map, 'ignored' => $ignored );
+	}
+
 	/** Map selected nonempty CSV cells only. Blank values never overwrite existing fields. */
 	public static function map_row( $row, $mapping ) {
 		$data = array();
@@ -535,7 +568,7 @@ final class CSV {
 		if ( 'product' === $type ) {
 			if ( ! function_exists( 'wc_get_product' ) || ! current_user_can( 'edit_products' ) ) return new \WP_Error( 'woocommerce_missing', __( 'WooCommerce no está disponible o faltan permisos.', 'taxocommerce-import-export-lite' ) );
 			if ( isset( $data['status'] ) && 'publish' === self::status( $data['status'] ) && ! current_user_can( 'publish_products' ) ) return new \WP_Error( 'publish_forbidden', __( 'Sin permiso para publicar productos.', 'taxocommerce-import-export-lite' ) );
-			if ( empty( $data['sku'] ) && empty( $data['slug'] ) && empty( $data['id'] ) ) return new \WP_Error( 'identity_missing', __( 'Asigna SKU o slug para crear y actualizar sin duplicar productos.', 'taxocommerce-import-export-lite' ) );
+			if ( empty( $data['sku'] ) && empty( $data['slug'] ) && empty( $data['id'] ) ) return new \WP_Error( 'identity_missing', __( 'Incluye SKU o slug para crear y actualizar sin duplicar productos.', 'taxocommerce-import-export-lite' ) );
 			$lookup = self::resolve_product( $data, $mode );
 			if ( is_wp_error( $lookup ) ) return $lookup;
 			$id = $lookup['id'];
@@ -568,7 +601,7 @@ final class CSV {
 		if ( ! current_user_can( 'page' === $type ? 'edit_pages' : 'edit_posts' ) ) return new \WP_Error( 'forbidden', __( 'No tienes permisos para importar este contenido.', 'taxocommerce-import-export-lite' ) );
 		if ( isset( $data['status'] ) && 'publish' === self::status( $data['status'] ) && ! current_user_can( 'publish_' . ( 'page' === $type ? 'pages' : 'posts' ) ) ) return new \WP_Error( 'publish_forbidden', __( 'Sin permiso para publicar.', 'taxocommerce-import-export-lite' ) );
 		$id = ! empty( $data['slug'] ) ? get_page_by_path( sanitize_title( $data['slug'] ), OBJECT, array( $type ) ) : false;
-		if ( ! $id && empty( $data['slug'] ) && empty( $data['id'] ) ) return new \WP_Error( 'identity_missing', __( 'Asigna slug para importar páginas o entradas sin duplicados.', 'taxocommerce-import-export-lite' ) );
+		if ( ! $id && empty( $data['slug'] ) && empty( $data['id'] ) ) return new \WP_Error( 'identity_missing', __( 'Incluye slug para importar páginas o entradas sin duplicados.', 'taxocommerce-import-export-lite' ) );
 		if ( ! $id && ! empty( $data['id'] ) && $type === get_post_type( absint( $data['id'] ) ) ) $id = get_post( absint( $data['id'] ) );
 		if ( ! $id && 'update' === $mode ) return new \WP_Error( 'post_missing', __( 'Página o entrada no encontrada.', 'taxocommerce-import-export-lite' ) );
 		if ( ! $id && empty( $data['title'] ) ) return new \WP_Error( 'title_missing', __( 'Falta el título de la página o entrada.', 'taxocommerce-import-export-lite' ) );
