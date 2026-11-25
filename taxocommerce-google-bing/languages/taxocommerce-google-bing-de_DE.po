@@ -863,7 +863,7 @@ msgstr "Letzte Synchronisierung"
 
 #: includes/analysis/analista-lazy.php:307
 msgid "Frescura operativa · Action Scheduler"
-msgstr ""
+msgstr "Operative Aktualität · Action Scheduler"
 
 #: includes/analysis/analista-lazy.php:307
 msgid ""
@@ -1153,7 +1153,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-connections-guide.php:110
 msgid "Illustrated click path (not a live screenshot)."
-msgstr ""
+msgstr "Illustrierter Navigationspfad (kein echter Screenshot)."
 
 #: includes/class-taxocommerce-connections-pinterest.php:147
 msgid "OpenSSL is not available."
@@ -1324,7 +1324,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-connections.php:218
 msgid "Google Analytics / Search Console · Cuenta de servicio"
-msgstr ""
+msgstr "Google Analytics / Search Console · Dienstkonto"
 
 #: includes/class-taxocommerce-google-bing-connections.php:218
 msgid ""
@@ -1365,7 +1365,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-connections.php:296
 msgid "Proveedores de Mercado · YouTube y SerpApi"
-msgstr ""
+msgstr "Marktdatenanbieter · YouTube und SerpApi"
 
 #: includes/class-taxocommerce-google-bing-connections.php:296
 msgid ""
@@ -1404,7 +1404,7 @@ msgstr ""
 #: includes/class-taxocommerce-google-bing-reports.php:230
 #: includes/class-taxocommerce-google-bing-trends.php:154
 msgid "Acceso no autorizado."
-msgstr ""
+msgstr "Unbefugter Zugriff."
 
 #: includes/class-taxocommerce-google-bing-merchant.php:310
 msgid ""
@@ -1810,7 +1810,7 @@ msgstr "Einschränkung der Datenquelle:"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:277
 msgid "Google facilita gráficos visuales, pero esta integración"
-msgstr ""
+msgstr "Google stellt visuelle Diagramme bereit, doch diese Integration"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:278
 msgid ""
@@ -1850,7 +1850,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:310
 msgid "no son una medición del porcentaje real de CPU del servidor."
-msgstr ""
+msgstr "sie messen nicht die tatsächliche CPU-Auslastung des Servers."
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:312
 msgid "Actualizar gráficos"
@@ -1943,11 +1943,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends.php:204
 msgid "Región:"
-msgstr ""
+msgstr "Region:"
 
 #: includes/class-taxocommerce-google-bing-trends.php:204
 msgid "España"
-msgstr ""
+msgstr "Spanien"
 
 #: includes/class-taxocommerce-google-bing-trends.php:207
 msgid "Period:"
@@ -1984,11 +1984,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends.php:236
 msgid "official API for downloadable series"
-msgstr ""
+msgstr "offizielle API für herunterladbare Zeitreihen"
 
 #: includes/class-taxocommerce-google-bing-trends.php:236
 msgid "remains in restricted alpha access."
-msgstr ""
+msgstr "befindet sich weiterhin in einer Alpha-Phase mit eingeschränktem Zugang."
 
 #: includes/class-taxocommerce-google-bing-trends.php:355
 msgid "You do not have permission to download reports."
@@ -2822,19 +2822,19 @@ msgstr ""
 #: includes/google/google-python-runner.php:226
 #: includes/google/google-search.php:317
 msgid "No tienes permisos para guardar esta conexion."
-msgstr ""
+msgstr "Sie sind nicht berechtigt, diese Verbindung zu speichern."
 
 #: includes/google/google-python-runner.php:429
 msgid "No tienes permisos para iniciar el scraper Python."
-msgstr ""
+msgstr "Sie sind nicht berechtigt, den Python-Scraper zu starten."
 
 #: includes/google/seo-google-demand-catalog.php:1486
 msgid "No se pudo calcular el periodo de analisis."
-msgstr ""
+msgstr "Der Analysezeitraum konnte nicht berechnet werden."
 
 #: includes/google/seo-google-demand-catalog.php:1529
 msgid "Demanda × Catalogo"
-msgstr ""
+msgstr "Nachfrage × Katalog"
 
 #: includes/google/seo-google-demand-catalog.php:1530
 msgid ""
@@ -2844,7 +2844,7 @@ msgstr ""
 
 #: includes/google/seo-google-demand-catalog.php:1530
 msgid "No mide todo el mercado"
-msgstr ""
+msgstr "Erfasst nicht den gesamten Markt"
 
 #: includes/google/seo-google-demand-catalog.php:1530
 msgid ""
@@ -2855,7 +2855,7 @@ msgstr ""
 
 #: includes/google/seo-google-demand-catalog.php:1552
 msgid "Como leerlo:"
-msgstr ""
+msgstr "So ist die Auswertung zu lesen:"
 
 #: includes/google/seo-google-demand-catalog.php:1552
 msgid ""
@@ -2865,7 +2865,7 @@ msgstr ""
 
 #: includes/google/seo-google-demand-catalog.php:1552
 msgid "no autoriza por si solo a reducir o eliminar catalogo"
-msgstr ""
+msgstr "rechtfertigt für sich allein weder eine Verkleinerung des Katalogs noch das Entfernen von Katalogeinträgen"
 
 #: includes/google/seo-google-demand-catalog.php:1552
 msgid ""
@@ -2877,7 +2877,7 @@ msgstr ""
 #: includes/google/seo-google-demand-catalog.php:1669
 #: includes/google/seo-google-demand-catalog.php:1724
 msgid "Decision"
-msgstr ""
+msgstr "Entscheidung"
 
 #: includes/google/seo-google-demand-catalog.php:1571
 msgid "Todas"
@@ -2885,27 +2885,27 @@ msgstr "Alle"
 
 #: includes/google/seo-google-demand-catalog.php:1586
 msgid "Diagnostico de datos almacenados:"
-msgstr ""
+msgstr "Diagnose gespeicherter Daten:"
 
 #: includes/google/seo-google-demand-catalog.php:1600
 msgid "Que potenciar y en que sentido"
-msgstr ""
+msgstr "Was in welcher Richtung gestärkt werden sollte"
 
 #: includes/google/seo-google-demand-catalog.php:1603
 msgid "No hay oportunidades suficientes con los filtros actuales."
-msgstr ""
+msgstr "Mit den aktuellen Filtern gibt es nicht genügend Chancen."
 
 #: includes/google/seo-google-demand-catalog.php:1606
 msgid "Que potenciar"
-msgstr ""
+msgstr "Was gestärkt werden sollte"
 
 #: includes/google/seo-google-demand-catalog.php:1606
 msgid "Estrategia"
-msgstr ""
+msgstr "Strategie"
 
 #: includes/google/seo-google-demand-catalog.php:1606
 msgid "Direccion detectada"
-msgstr ""
+msgstr "Erkannte Ausrichtung"
 
 #: includes/google/seo-google-demand-catalog.php:1606
 #: includes/google/seo-google-demand-catalog.php:1669
@@ -2918,14 +2918,14 @@ msgstr ""
 #: includes/google/seo-google-info.php:4285
 #: includes/google/seo-google-info.php:4550
 msgid "Imp."
-msgstr ""
+msgstr "Impr."
 
 #: includes/google/seo-google-demand-catalog.php:1606
 #: includes/google/seo-google-demand-catalog.php:1669
 #: includes/google/seo-google-demand-catalog.php:1724
 #: includes/google/seo-google-demand-catalog.php:1758
 msgid "Demanda util"
-msgstr ""
+msgstr "Nutzbare Nachfrage"
 
 #: includes/google/seo-google-demand-catalog.php:1606
 #: includes/google/seo-google-demand-catalog.php:1669
@@ -2938,7 +2938,7 @@ msgstr ""
 #: includes/google/seo-google-info.php:4285
 #: includes/google/seo-google-info.php:4550
 msgid "Pos."
-msgstr ""
+msgstr "Pos."
 
 #: includes/google/seo-google-demand-catalog.php:1606
 #: includes/google/seo-google-demand-catalog.php:1669
@@ -2946,71 +2946,71 @@ msgstr ""
 #: includes/google/seo-google-demand-catalog.php:1758
 #: includes/google/seo-google-opportunity-engine.php:1630
 msgid "Tendencia"
-msgstr ""
+msgstr "Trend"
 
 #: includes/google/seo-google-demand-catalog.php:1606
 msgid "Catalogo / pista"
-msgstr ""
+msgstr "Katalog / Hinweis"
 
 #: includes/google/seo-google-demand-catalog.php:1606
 msgid "Por que"
-msgstr ""
+msgstr "Warum"
 
 #: includes/google/seo-google-demand-catalog.php:1627
 msgid "Sin atributo concreto suficiente; revisar subintenciones."
-msgstr ""
+msgstr "Kein ausreichend konkretes Attribut; Teilintentionen prüfen."
 
 #: includes/google/seo-google-demand-catalog.php:1640
 msgid "Sin categoria clara"
-msgstr ""
+msgstr "Keine eindeutige Kategorie"
 
 #: includes/google/seo-google-demand-catalog.php:1645
 msgid "Apta para automatizacion:"
-msgstr ""
+msgstr "Für die Automatisierung geeignet:"
 
 #: includes/google/seo-google-demand-catalog.php:1645
 msgid "si, con validacion de cobertura."
-msgstr ""
+msgstr "ja, bei Prüfung der Abdeckung."
 
 #: includes/google/seo-google-demand-catalog.php:1647
 msgid "Consultas que lo justifican"
-msgstr ""
+msgstr "Begründende Suchanfragen"
 
 #: includes/google/seo-google-demand-catalog.php:1660
 msgid "Prioridad por categoria"
-msgstr ""
+msgstr "Priorität nach Kategorie"
 
 #: includes/google/seo-google-demand-catalog.php:1663
 msgid "No hay categorias que cumplan los filtros."
-msgstr ""
+msgstr "Keine Kategorien entsprechen den Filtern."
 
 #: includes/google/seo-google-demand-catalog.php:1669
 msgid "Categoria"
-msgstr ""
+msgstr "Kategorie"
 
 #: includes/google/seo-google-demand-catalog.php:1669
 #: includes/google/seo-google-demand-catalog.php:1724
 #: includes/google/seo-google-demand-catalog.php:1758
 msgid "Precision"
-msgstr ""
+msgstr "Präzision"
 
 #: includes/google/seo-google-demand-catalog.php:1669
 msgid "Consultas / landings"
-msgstr ""
+msgstr "Suchanfragen / Landingpages"
 
 #: includes/google/seo-google-demand-catalog.php:1669
 #: includes/google/seo-google-info.php:3366
 #: includes/google/seo-google-info.php:3399
 msgid "Evidencias"
-msgstr ""
+msgstr "Nachweise"
 
 #: includes/google/seo-google-demand-catalog.php:1697
 msgid "Ver consultas principales"
-msgstr ""
+msgstr "Wichtigste Suchanfragen anzeigen"
 
 #: includes/google/seo-google-demand-catalog.php:1717
 msgid "Intenciones sin representar claramente"
-msgstr ""
+msgstr "Nicht eindeutig abgebildete Intentionen"
 
 #: includes/google/seo-google-demand-catalog.php:1718
 msgid ""
@@ -3031,36 +3031,36 @@ msgstr ""
 
 #: includes/google/seo-google-demand-catalog.php:1721
 msgid "No hay intenciones no mapeadas con los filtros actuales."
-msgstr ""
+msgstr "Keine nicht zugeordneten Intentionen entsprechen den aktuellen Filtern."
 
 #: includes/google/seo-google-demand-catalog.php:1724
 msgid "Intencion"
-msgstr ""
+msgstr "Intention"
 
 #: includes/google/seo-google-demand-catalog.php:1724
 msgid "Posible categoria"
-msgstr ""
+msgstr "Mögliche Kategorie"
 
 #: includes/google/seo-google-demand-catalog.php:1750
 msgid "Ver consultas individuales sin mapear"
-msgstr ""
+msgstr "Einzelne nicht zugeordnete Suchanfragen anzeigen"
 
 #: includes/google/seo-google-demand-catalog.php:1752
 msgid "Detalle sin agrupar"
-msgstr ""
+msgstr "Nicht gruppierte Details"
 
 #: includes/google/seo-google-demand-catalog.php:1755
 msgid "No hay demanda sin mapear con los filtros actuales."
-msgstr ""
+msgstr "Keine nicht zugeordnete Nachfrage entspricht den aktuellen Filtern."
 
 #: includes/google/seo-google-demand-catalog.php:1758
 #: includes/google/seo-google-opportunity-engine.php:1694
 msgid "Landings"
-msgstr ""
+msgstr "Landingpages"
 
 #: includes/google/seo-google-demand-catalog.php:1790
 msgid "Limites de esta version"
-msgstr ""
+msgstr "Grenzen dieser Version"
 
 #: includes/google/seo-google-demand-catalog.php:1792
 msgid ""
@@ -3095,15 +3095,15 @@ msgstr ""
 
 #: includes/google/seo-google-growth-guidance.php:58
 msgid "Lista priorizada"
-msgstr ""
+msgstr "Priorisierte Liste"
 
 #: includes/google/seo-google-growth-guidance.php:58
 msgid "Nivel / área"
-msgstr ""
+msgstr "Ebene / Bereich"
 
 #: includes/google/seo-google-growth-guidance.php:58
 msgid "Qué hacer"
-msgstr ""
+msgstr "Was zu tun ist"
 
 #: includes/google/seo-google-growth-guidance.php:58
 msgid "Trends"
@@ -3111,11 +3111,11 @@ msgstr ""
 
 #: includes/google/seo-google-growth-guidance.php:58
 msgid "Catálogo"
-msgstr ""
+msgstr "Katalog"
 
 #: includes/google/seo-google-growth-guidance.php:58
 msgid "Dirección"
-msgstr ""
+msgstr "Ausrichtung"
 
 #: includes/google/seo-google-growth-guidance.php:58
 msgid "Confianza"
@@ -3123,11 +3123,11 @@ msgstr "Zuverlässigkeit"
 
 #: includes/google/seo-google-growth-guidance.php:59
 msgid "Sin señal importada"
-msgstr ""
+msgstr "Kein importiertes Signal"
 
 #: includes/google/seo-google-growth-guidance.php:61
 msgid "Regla de lectura"
-msgstr ""
+msgstr "Auswertungsregel"
 
 #: includes/google/seo-google-growth-guidance.php:61
 msgid ""
@@ -3141,27 +3141,27 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:239
 msgid "No tienes permisos para configurar Google Intelligence."
-msgstr ""
+msgstr "Sie sind nicht berechtigt, Google Intelligence zu konfigurieren."
 
 #: includes/google/seo-google-info.php:291
 msgid "No tienes permisos para conectar Google."
-msgstr ""
+msgstr "Sie sind nicht berechtigt, Google zu verbinden."
 
 #: includes/google/seo-google-info.php:353
 msgid "No tienes permisos para completar esta conexión."
-msgstr ""
+msgstr "Sie sind nicht berechtigt, diese Verbindung abzuschließen."
 
 #: includes/google/seo-google-info.php:609
 msgid "No tienes permisos para probar esta conexión."
-msgstr ""
+msgstr "Sie sind nicht berechtigt, diese Verbindung zu testen."
 
 #: includes/google/seo-google-info.php:645
 msgid "No tienes permisos para desconectar Google."
-msgstr ""
+msgstr "Sie sind nicht berechtigt, die Google-Verbindung zu trennen."
 
 #: includes/google/seo-google-info.php:937
 msgid "No tienes permisos para reparar las tablas."
-msgstr ""
+msgstr "Sie sind nicht berechtigt, die Tabellen zu reparieren."
 
 #: includes/google/seo-google-info.php:2026
 msgid "Google Intelligence"
@@ -3181,23 +3181,23 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2193
 msgid "Conexión con Google Search Console"
-msgstr ""
+msgstr "Verbindung mit Google Search Console"
 
 #: includes/google/seo-google-info.php:2204
 msgid "Identificador del cliente OAuth 2.0 de tipo “Aplicación web”."
-msgstr ""
+msgstr "OAuth-2.0-Client-ID vom Typ „Webanwendung“."
 
 #: includes/google/seo-google-info.php:2209
 msgid "Se guarda en WordPress y nunca se muestra completo de nuevo."
-msgstr ""
+msgstr "Er wird in WordPress gespeichert und danach nie wieder vollständig angezeigt."
 
 #: includes/google/seo-google-info.php:2212
 msgid "URI de redirección"
-msgstr ""
+msgstr "Weiterleitungs-URI"
 
 #: includes/google/seo-google-info.php:2214
 msgid "URI única del módulo."
-msgstr ""
+msgstr "Eindeutige URI des Moduls."
 
 #: includes/google/seo-google-info.php:2214
 msgid ""
@@ -3208,19 +3208,19 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2217
 msgid "Propiedad de Search Console"
-msgstr ""
+msgstr "Search-Console-Property"
 
 #: includes/google/seo-google-info.php:2224
 msgid "Selecciona una propiedad"
-msgstr ""
+msgstr "Property auswählen"
 
 #: includes/google/seo-google-info.php:2237
 msgid "La lista aparecerá automáticamente después de autorizar Google."
-msgstr ""
+msgstr "Die Liste wird nach der Google-Autorisierung automatisch angezeigt."
 
 #: includes/google/seo-google-info.php:2242
 msgid "Frecuencia"
-msgstr ""
+msgstr "Häufigkeit"
 
 #: includes/google/seo-google-info.php:2248
 msgid ""
@@ -3230,11 +3230,11 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2292
 msgid "Cómo obtener las credenciales"
-msgstr ""
+msgstr "So erhalten Sie die Zugangsdaten"
 
 #: includes/google/seo-google-info.php:2294
 msgid "Entra en Google Cloud Console y crea o selecciona un proyecto."
-msgstr ""
+msgstr "Öffnen Sie die Google Cloud Console und erstellen oder wählen Sie ein Projekt aus."
 
 #: includes/google/seo-google-info.php:2295
 msgid "Activa la"
@@ -3246,7 +3246,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2296
 msgid "Configura Google Auth Platform y la pantalla de consentimiento OAuth."
-msgstr ""
+msgstr "Konfigurieren Sie die Google Auth Platform und den OAuth-Zustimmungsbildschirm."
 
 #: includes/google/seo-google-info.php:2297
 msgid "Crea credenciales OAuth 2.0 de tipo"
@@ -3254,11 +3254,11 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2297
 msgid "Aplicación web"
-msgstr ""
+msgstr "Webanwendung"
 
 #: includes/google/seo-google-info.php:2298
 msgid "URIs de redireccionamiento autorizados"
-msgstr ""
+msgstr "Autorisierte Weiterleitungs-URIs"
 
 #: includes/google/seo-google-info.php:2298
 msgid ""
@@ -3268,7 +3268,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2299
 msgid "Copia aquí el Client ID y el Client Secret y guarda."
-msgstr ""
+msgstr "Kopieren Sie die Client-ID und den Clientschlüssel hierher und speichern Sie."
 
 #: includes/google/seo-google-info.php:2300
 msgid "Si la aplicación está en modo Pruebas, añade tu cuenta en"
@@ -3276,7 +3276,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2300
 msgid "Usuarios de prueba"
-msgstr ""
+msgstr "Testnutzer"
 
 #: includes/google/seo-google-info.php:2300
 msgid "; si está en producción, completa los requisitos que Google solicite."
@@ -3288,7 +3288,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2301
 msgid "Conectar con Google"
-msgstr ""
+msgstr "Mit Google verbinden"
 
 #: includes/google/seo-google-info.php:2301
 msgid "y acepta el permiso de lectura."
@@ -3302,7 +3302,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2306
 msgid "Problemas frecuentes y solución"
-msgstr ""
+msgstr "Häufige Probleme und Lösungen"
 
 #: includes/google/seo-google-info.php:2308
 msgid "Error 400: redirect_uri_mismatch"
@@ -3328,7 +3328,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2311
 msgid "Credenciales guardadas; falta autorizar Google"
-msgstr ""
+msgstr "Zugangsdaten gespeichert; Google-Autorisierung erforderlich"
 
 #: includes/google/seo-google-info.php:2311
 msgid ""
@@ -3337,7 +3337,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2317
 msgid "Permiso solicitado"
-msgstr ""
+msgstr "Angeforderte Berechtigung"
 
 #: includes/google/seo-google-info.php:2319
 msgid ""
@@ -3347,15 +3347,15 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2322
 msgid "Abrir credenciales de Google Cloud"
-msgstr ""
+msgstr "Google-Cloud-Zugangsdaten öffnen"
 
 #: includes/google/seo-google-info.php:2323
 msgid "Activar Search Console API"
-msgstr ""
+msgstr "Search-Console-API aktivieren"
 
 #: includes/google/seo-google-info.php:2340
 msgid "Sincronización"
-msgstr ""
+msgstr "Synchronisierung"
 
 #: includes/google/seo-google-info.php:2352
 msgid "No se consultará el historial hasta que todas las tablas indiquen"
@@ -3363,11 +3363,11 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2358
 msgid "Completa la conexión y selecciona una propiedad antes de sincronizar."
-msgstr ""
+msgstr "Stellen Sie die Verbindung fertig und wählen Sie vor der Synchronisierung eine Property aus."
 
 #: includes/google/seo-google-info.php:2372
 msgid "Primera sincronización o migración:"
-msgstr ""
+msgstr "Erste Synchronisierung oder Migration:"
 
 #: includes/google/seo-google-info.php:2372
 msgid ""
@@ -3376,7 +3376,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2373
 msgid "Sincronizaciones posteriores:"
-msgstr ""
+msgstr "Nachfolgende Synchronisierungen:"
 
 #: includes/google/seo-google-info.php:2373
 msgid ""
@@ -3386,7 +3386,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2376
 msgid "Sincronizar ahora"
-msgstr ""
+msgstr "Jetzt synchronisieren"
 
 #: includes/google/seo-google-info.php:2381
 msgid ""
@@ -3396,11 +3396,11 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2494
 msgid "Historial reciente"
-msgstr ""
+msgstr "Letzter Verlauf"
 
 #: includes/google/seo-google-info.php:2497
 msgid "No hay sincronizaciones registradas."
-msgstr ""
+msgstr "Keine Synchronisierungen aufgezeichnet."
 
 #: includes/google/seo-google-info.php:2500
 msgid "Inicio"
@@ -3409,11 +3409,11 @@ msgstr "Beginn"
 #: includes/google/seo-google-info.php:2500
 #: includes/google/seo-google-info.php:3346
 msgid "Período"
-msgstr ""
+msgstr "Zeitraum"
 
 #: includes/google/seo-google-info.php:2500
 msgid "Días"
-msgstr ""
+msgstr "Tage"
 
 #: includes/google/seo-google-info.php:2500
 msgid "Filas"
@@ -3431,19 +3431,19 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2645
 msgid "menos es mejor"
-msgstr ""
+msgstr "niedriger ist besser"
 
 #: includes/google/seo-google-info.php:2648
 msgid "Diario"
-msgstr ""
+msgstr "Täglich"
 
 #: includes/google/seo-google-info.php:2649
 msgid "Semanal"
-msgstr ""
+msgstr "Wöchentlich"
 
 #: includes/google/seo-google-info.php:2650
 msgid "Mensual"
-msgstr ""
+msgstr "Monatlich"
 
 #: includes/google/seo-google-info.php:2674
 msgid ""
@@ -3454,15 +3454,15 @@ msgstr ""
 #: includes/google/seo-google-info.php:2961
 #: includes/google/seo-google-info.php:3084
 msgid "Google Search Console todavía no está conectado completamente."
-msgstr ""
+msgstr "Google Search Console ist noch nicht vollständig verbunden."
 
 #: includes/google/seo-google-info.php:2969
 msgid "La conexión está preparada, pero aún no hay datos almacenados."
-msgstr ""
+msgstr "Die Verbindung ist bereit, aber es sind noch keine Daten gespeichert."
 
 #: includes/google/seo-google-info.php:2984
 msgid "Últimos 28 días disponibles"
-msgstr ""
+msgstr "Letzte 28 verfügbare Tage"
 
 #: includes/google/seo-google-info.php:2998
 msgid ""
@@ -3473,24 +3473,24 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:3022
 msgid "No hay datos para este período."
-msgstr ""
+msgstr "Keine Daten für diesen Zeitraum."
 
 #: includes/google/seo-google-info.php:3026
 #: includes/google/seo-google-info.php:3578
 msgid "Elemento"
-msgstr ""
+msgstr "Element"
 
 #: includes/google/seo-google-info.php:3090
 msgid "Primero debes ejecutar la sincronización."
-msgstr ""
+msgstr "Führen Sie zuerst die Synchronisierung aus."
 
 #: includes/google/seo-google-info.php:3320
 msgid "No se pudo calcular el período de análisis."
-msgstr ""
+msgstr "Der Analysezeitraum konnte nicht berechnet werden."
 
 #: includes/google/seo-google-info.php:3342
 msgid "Señales observadas por Google"
-msgstr ""
+msgstr "Von Google beobachtete Signale"
 
 #: includes/google/seo-google-info.php:3343
 msgid ""
@@ -3507,11 +3507,11 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:3362
 msgid "Consultas y páginas asociadas"
-msgstr ""
+msgstr "Suchanfragen und zugehörige Seiten"
 
 #: includes/google/seo-google-info.php:3364
 msgid "No hay consultas que cumplan los filtros."
-msgstr ""
+msgstr "Keine Suchanfragen entsprechen den Filtern."
 
 #: includes/google/seo-google-info.php:3366
 msgid "URLs"
@@ -3519,15 +3519,15 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:3377
 msgid "Ver URLs relacionadas"
-msgstr ""
+msgstr "Zugehörige URLs anzeigen"
 
 #: includes/google/seo-google-info.php:3395
 msgid "Páginas y consultas asociadas"
-msgstr ""
+msgstr "Seiten und zugehörige Suchanfragen"
 
 #: includes/google/seo-google-info.php:3397
 msgid "No hay páginas que cumplan los filtros."
-msgstr ""
+msgstr "Keine Seiten entsprechen den Filtern."
 
 #: includes/google/seo-google-info.php:3399
 #: includes/google/seo-google-info.php:4550
@@ -3536,15 +3536,15 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:3407
 msgid "Ver consultas"
-msgstr ""
+msgstr "Suchanfragen anzeigen"
 
 #: includes/google/seo-google-info.php:3524
 msgid "No se pudo calcular el período de comparación."
-msgstr ""
+msgstr "Der Vergleichszeitraum konnte nicht berechnet werden."
 
 #: includes/google/seo-google-info.php:3532
 msgid "Cambios entre períodos equivalentes"
-msgstr ""
+msgstr "Änderungen zwischen gleich langen Zeiträumen"
 
 #: includes/google/seo-google-info.php:3533
 msgid ""
@@ -3554,7 +3554,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:3536
 msgid "Duración de cada período"
-msgstr ""
+msgstr "Dauer jedes Zeitraums"
 
 #: includes/google/seo-google-info.php:3548
 msgid ""
@@ -3564,23 +3564,23 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:3575
 msgid "No hay elementos con los filtros actuales."
-msgstr ""
+msgstr "Keine Elemente entsprechen den aktuellen Filtern."
 
 #: includes/google/seo-google-info.php:3578
 msgid "Ahora"
-msgstr ""
+msgstr "Jetzt"
 
 #: includes/google/seo-google-info.php:3578
 msgid "Pos. antes"
-msgstr ""
+msgstr "Vorherige Pos."
 
 #: includes/google/seo-google-info.php:3578
 msgid "Pos. ahora"
-msgstr ""
+msgstr "Aktuelle Pos."
 
 #: includes/google/seo-google-info.php:4116
 msgid "Google vs. catálogo"
-msgstr ""
+msgstr "Google im Vergleich zum Katalog"
 
 #: includes/google/seo-google-info.php:4117
 msgid ""
@@ -3591,19 +3591,19 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:4126
 msgid "URL de Google / destino"
-msgstr ""
+msgstr "Google-URL / Ziel"
 
 #: includes/google/seo-google-info.php:4126
 msgid "Entidad local"
-msgstr ""
+msgstr "Lokales Objekt"
 
 #: includes/google/seo-google-info.php:4154
 msgid "Relacionada por redirección"
-msgstr ""
+msgstr "Über Weiterleitung zugeordnet"
 
 #: includes/google/seo-google-info.php:4275
 msgid "Cobertura observada"
-msgstr ""
+msgstr "Beobachtete Abdeckung"
 
 #: includes/google/seo-google-info.php:4276
 msgid ""
@@ -3619,36 +3619,36 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:4284
 msgid "Áreas URL"
-msgstr ""
+msgstr "URL-Bereiche"
 
 #: includes/google/seo-google-info.php:4292
 msgid "Páginas por rango de posición"
-msgstr ""
+msgstr "Seiten nach Positionsbereich"
 
 #: includes/google/seo-google-info.php:4293
 msgid "Rango"
-msgstr ""
+msgstr "Bereich"
 
 #: includes/google/seo-google-info.php:4297
 msgid "Cada página se sitúa según su posición media ponderada del período."
-msgstr ""
+msgstr "Jede Seite wird anhand ihrer gewichteten Durchschnittsposition im Zeitraum eingeordnet."
 
 #: includes/google/seo-google-info.php:4416
 #: includes/google/seo-google-info.php:4457
 msgid "No tienes permisos para exportar estos datos."
-msgstr ""
+msgstr "Sie sind nicht berechtigt, diese Daten zu exportieren."
 
 #: includes/google/seo-google-info.php:4422
 msgid "Google Search Console no está conectado."
-msgstr ""
+msgstr "Google Search Console ist nicht verbunden."
 
 #: includes/google/seo-google-info.php:4466
 msgid "El motor de decisiones de Google Intelligence no está disponible."
-msgstr ""
+msgstr "Die Entscheidungslogik von Google Intelligence ist nicht verfügbar."
 
 #: includes/google/seo-google-info.php:4502
 msgid "Laboratorio de datos"
-msgstr ""
+msgstr "Datenlabor"
 
 #: includes/google/seo-google-info.php:4503
 msgid ""
@@ -3658,19 +3658,19 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:4506
 msgid "Agrupar por"
-msgstr ""
+msgstr "Gruppieren nach"
 
 #: includes/google/seo-google-info.php:4516
 msgid "Orden"
-msgstr ""
+msgstr "Sortierreihenfolge"
 
 #: includes/google/seo-google-info.php:4521
 msgid "Límite"
-msgstr ""
+msgstr "Limit"
 
 #: includes/google/seo-google-info.php:4547
 msgid "No hay filas que cumplan los filtros."
-msgstr ""
+msgstr "Keine Zeilen entsprechen den Filtern."
 
 #: includes/google/seo-google-info.php:4550
 msgid "Fecha"
@@ -3678,11 +3678,11 @@ msgstr "Datum"
 
 #: includes/google/seo-google-opportunity-engine.php:1517
 msgid "Destino actual:"
-msgstr ""
+msgstr "Aktuelles Ziel:"
 
 #: includes/google/seo-google-opportunity-engine.php:1604
 msgid "Decisiones recomendadas"
-msgstr ""
+msgstr "Empfohlene Entscheidungen"
 
 #: includes/google/seo-google-opportunity-engine.php:1604
 msgid ""
@@ -3694,7 +3694,7 @@ msgstr ""
 #: includes/google/seo-google-opportunity-engine.php:1626
 #: includes/google/seo-google-trends.php:2597
 msgid "Radar emergente"
-msgstr ""
+msgstr "Radar für aufkommende Trends"
 
 #: includes/google/seo-google-opportunity-engine.php:1626
 msgid ""
@@ -3710,25 +3710,25 @@ msgstr ""
 
 #: includes/google/seo-google-opportunity-engine.php:1630
 msgid "Relevancia"
-msgstr ""
+msgstr "Relevanz"
 
 #: includes/google/seo-google-opportunity-engine.php:1630
 msgid "Volumen agrupado"
-msgstr ""
+msgstr "Gruppiertes Volumen"
 
 #: includes/google/seo-google-opportunity-engine.php:1630
 #: includes/google/seo-google-trends.php:2687
 msgid "Área relacionada"
-msgstr ""
+msgstr "Zugehöriger Bereich"
 
 #: includes/google/seo-google-opportunity-engine.php:1630
 #: includes/google/seo-google-trends.php:2687
 msgid "Observada"
-msgstr ""
+msgstr "Beobachtet"
 
 #: includes/google/seo-google-opportunity-engine.php:1638
 msgid "Exploración de mercado"
-msgstr ""
+msgstr "Markterkundung"
 
 #: includes/google/seo-google-opportunity-engine.php:1638
 msgid ""
@@ -3744,20 +3744,20 @@ msgstr ""
 
 #: includes/google/seo-google-opportunity-engine.php:1642
 msgid "Puntuación"
-msgstr ""
+msgstr "Bewertung"
 
 #: includes/google/seo-google-opportunity-engine.php:1642
 msgid "Semilla"
-msgstr ""
+msgstr "Ausgangsbegriff"
 
 #: includes/google/seo-google-opportunity-engine.php:1642
 #: includes/google/seo-google-trends.php:2687
 msgid "Fuente"
-msgstr ""
+msgstr "Quelle"
 
 #: includes/google/seo-google-opportunity-engine.php:1696
 msgid "No hay métricas disponibles para landings publicadas."
-msgstr ""
+msgstr "Keine Kennzahlen für veröffentlichte Landingpages verfügbar."
 
 #: includes/google/seo-google-opportunity-engine.php:1698
 msgid "Landing"
@@ -3774,15 +3774,15 @@ msgstr "Beiträge"
 
 #: includes/google/seo-google-opportunity-engine.php:1708
 msgid "No hay métricas disponibles para posts publicados."
-msgstr ""
+msgstr "Keine Kennzahlen für veröffentlichte Beiträge verfügbar."
 
 #: includes/google/seo-google-opportunity-engine.php:1710
 msgid "Post"
-msgstr ""
+msgstr "Beitrag"
 
 #: includes/google/seo-google-opportunity-engine.php:1739
 msgid "Informes técnicos conservados"
-msgstr ""
+msgstr "Beibehaltene technische Berichte"
 
 #: includes/google/seo-google-opportunity-engine.php:1739
 msgid ""
@@ -3792,27 +3792,27 @@ msgstr ""
 
 #: includes/google/seo-google-trends.php:178
 msgid "No tienes permisos para configurar Google Trends."
-msgstr ""
+msgstr "Sie sind nicht berechtigt, Google Trends zu konfigurieren."
 
 #: includes/google/seo-google-trends.php:1946
 msgid "No tienes permisos para actualizar Google Trends."
-msgstr ""
+msgstr "Sie sind nicht berechtigt, Google Trends zu aktualisieren."
 
 #: includes/google/seo-google-trends.php:2099
 msgid "No tienes permisos para importar Google Trends."
-msgstr ""
+msgstr "Sie sind nicht berechtigt, Google-Trends-Daten zu importieren."
 
 #: includes/google/seo-google-trends.php:2203
 msgid "No tienes permisos para borrar Google Trends."
-msgstr ""
+msgstr "Sie sind nicht berechtigt, Google-Trends-Daten zu löschen."
 
 #: includes/google/seo-google-trends.php:2571
 msgid "Mercado Google · Trends"
-msgstr ""
+msgstr "Google-Markt · Trends"
 
 #: includes/google/seo-google-trends.php:2572
 msgid "Objetivo:"
-msgstr ""
+msgstr "Ziel:"
 
 #: includes/google/seo-google-trends.php:2572
 msgid ""
@@ -3824,19 +3824,19 @@ msgstr ""
 
 #: includes/google/seo-google-trends.php:2584
 msgid "Se han eliminado las señales almacenadas de Trends."
-msgstr ""
+msgstr "Die gespeicherten Trends-Signale wurden gelöscht."
 
 #: includes/google/seo-google-trends.php:2586
 msgid "Configuración del radar guardada."
-msgstr ""
+msgstr "Radar-Einstellungen gespeichert."
 
 #: includes/google/seo-google-trends.php:2611
 msgid "Exploración de mercado · web pública"
-msgstr ""
+msgstr "Markterkundung · öffentliches Web"
 
 #: includes/google/seo-google-trends.php:2629
 msgid "Ultimo diagnostico tecnico:"
-msgstr ""
+msgstr "Letzte technische Diagnose:"
 
 #: includes/google/seo-google-trends.php:2643
 msgid ""
@@ -3846,7 +3846,7 @@ msgstr ""
 
 #: includes/google/seo-google-trends.php:2650
 msgid "Perímetro comercial del radar"
-msgstr ""
+msgstr "Geschäftsbereich des Radars"
 
 #: includes/google/seo-google-trends.php:2651
 msgid ""
@@ -3856,11 +3856,11 @@ msgstr ""
 
 #: includes/google/seo-google-trends.php:2651
 msgid "No se escanean landings ni posts para decidir qué busca el mercado."
-msgstr ""
+msgstr "Landingpages und Beiträge werden nicht untersucht, um die Nachfrage des Marktes zu ermitteln."
 
 #: includes/google/seo-google-trends.php:2671
 msgid "Importación CSV · respaldo manual"
-msgstr ""
+msgstr "CSV-Import · manuelle Alternative"
 
 #: includes/google/seo-google-trends.php:2672
 msgid ""
@@ -3872,25 +3872,25 @@ msgstr ""
 #: includes/google/seo-google-trends.php:2672
 #: includes/google/seo-google-trends.php:2676
 msgid "En aumento"
-msgstr ""
+msgstr "Zunehmend"
 
 #: includes/google/seo-google-trends.php:2672
 #: includes/google/seo-google-trends.php:2676
 msgid "Principales"
-msgstr ""
+msgstr "Top"
 
 #: includes/google/seo-google-trends.php:2672
 #: includes/google/seo-google-trends.php:2676
 msgid "Relacionadas"
-msgstr ""
+msgstr "Verwandt"
 
 #: includes/google/seo-google-trends.php:2672
 msgid "sin perder el motor de decisiones."
-msgstr ""
+msgstr "ohne auf die Entscheidungslogik verzichten zu müssen."
 
 #: includes/google/seo-google-trends.php:2675
 msgid "Semilla analizada"
-msgstr ""
+msgstr "Analysierter Ausgangsbegriff"
 
 #: includes/google/seo-google-trends.php:2679
 msgid "CSV"
@@ -3898,7 +3898,7 @@ msgstr "CSV"
 
 #: includes/google/seo-google-trends.php:2683
 msgid "Señales externas almacenadas"
-msgstr ""
+msgstr "Gespeicherte externe Signale"
 
 #: includes/google/seo-google-trends.php:2685
 msgid ""
@@ -3908,11 +3908,11 @@ msgstr ""
 
 #: includes/google/seo-google-trends.php:2687
 msgid "Señal"
-msgstr ""
+msgstr "Signal"
 
 #: includes/google/seo-google-trends.php:2687
 msgid "Indicador"
-msgstr ""
+msgstr "Indikator"
 
 #: taxocommerce-google-bing.php:102 taxocommerce-google-bing.php:112
 msgid "Insights"
@@ -3927,7 +3927,7 @@ msgstr ""
 
 #: taxocommerce-google-bing.php:255
 msgid "Analysis"
-msgstr ""
+msgstr "Analyse"
 
 #: taxocommerce-google-bing.php:256
 msgid ""

@@ -19,7 +19,7 @@ function esc_html_e( $message, $domain = '' ) { echo esc_html( $message ); }
 function apply_filters( $hook, $value ) {
     if ( 'taxocommerce_core_family_extensions' === $hook && $GLOBALS['tcc_tasks_hook'] ) {
         // Simulate the same filter used by an active Tasks installation.
-        $value['tasks'] = array_merge( $value['tasks'], array( 'name' => 'TaxoCommerce Tasks' ) );
+        $value['tasks'] = array_merge( $value['tasks'], array( 'name' => 'TaxoCommerce Tasks Pro' ) );
     }
     return $value;
 }
@@ -73,8 +73,8 @@ $render = static function () use ( $instance ) {
     $instance->render_extension_catalog();
     $html = ob_get_clean();
     tcc_check( 19 === substr_count( $html, '<article class="tcc-extension-card"' ), 'all 19 cards render' );
-    tcc_check( 1 === substr_count( $html, '<h3>TaxoCommerce Tasks</h3>' ), 'one Tasks card per catalog' );
-    preg_match( '/<article class="tcc-extension-card" aria-label="TaxoCommerce Tasks">.*?<\/article>/s', $html, $match );
+    tcc_check( 1 === substr_count( $html, '<h3>TaxoCommerce Tasks Pro</h3>' ), 'one Tasks card per catalog' );
+    preg_match( '/<article class="tcc-extension-card" aria-label="TaxoCommerce Tasks Pro">.*?<\/article>/s', $html, $match );
     tcc_check( ! empty( $match ), 'Tasks card exists in the HTML' );
     return array( $match[0], $html );
 };
@@ -87,8 +87,11 @@ tcc_check( false !== strpos( $all, '19 no instaladas' ), 'missing summary includ
 
 $GLOBALS['tcc_plugins'] = array(
     'taxocommerce-tasks/taxocommerce-tasks.php' => array( 'Version' => '0.1.4' ),
+    'taxocommerce-tasks-lite/taxocommerce-tasks-lite.php' => array( 'Name' => 'TaxoCommerce Tasks Lite', 'Version' => '0.1.0' ),
 );
 list( $tasks, $all ) = $render();
+tcc_check( 19 === substr_count( $all, '<article class="tcc-extension-card"' ), 'Lite does not enter the Core catalog' );
+tcc_check( false === strpos( $all, 'TaxoCommerce Tasks Lite' ), 'Lite remains standalone even when installed' );
 tcc_check( false !== strpos( $tasks, 'Instalada · inactiva' ), 'installed but inactive Tasks is distinguished from missing' );
 tcc_check( false !== strpos( $tasks, 'action=activate' ), 'inactive plugin has activation action' );
 tcc_check( false === strpos( $tasks, 'Instalar ZIP con WordPress' ), 'installed plugin is not offered a redundant install' );

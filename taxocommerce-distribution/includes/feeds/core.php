@@ -401,6 +401,8 @@ function tcdist_feed_record_history( array $state ) {
         'candidate_total' => absint( $state['candidate_total'] ?? 0 ),
         'processed'       => absint( $state['processed'] ?? 0 ),
         'written'         => absint( $state['written'] ?? 0 ),
+        'openai_written'  => absint( $state['openai_written'] ?? 0 ),
+        'openai_excluded' => absint( $state['openai_excluded'] ?? 0 ),
         'excluded'        => absint( $state['excluded'] ?? 0 ),
         'errors'          => array_slice( array_map( 'sanitize_text_field', (array) ( $state['errors'] ?? [] ) ), -5 ),
         'files'           => $files,
@@ -704,6 +706,10 @@ function tcdist_feed_start_build( $origin = 'manual' ) {
         'excluded_reasons'               => [],
         'errors'                         => [],
         'files'                          => $files,
+        'openai_context'                 => isset( $files['openai'] ) ? tcdist_feed_openai_context( $settings ) : [],
+        'openai_written'                 => 0,
+        'openai_excluded'                => 0,
+        'openai_excluded_reasons'        => [],
         'environment'                    => (string) ( $environment['effective'] ?? 'production' ),
         'host'                           => (string) ( $environment['host'] ?? '' ),
         'pending_refresh'                => '',
@@ -1142,7 +1148,23 @@ function tcdist_feed_run_manager_slice( $budget = 45, $source = 'process_manager
                 if ( empty( $file['temp'] ) ) {
                     continue;
                 }
-                $write = tcdist_feed_channel_append_record( $channel, (string) $file['temp'], $result );
+                $context = [];
+                if ( 'openai' === $channel ) {
+                    $context = (array) ( $state['openai_context'] ?? [] );
+                    $context['variant_dict'] = ! empty( $result['item_group_id'] ) ? tcdist_feed_openai_variant_dict( $product_id ) : '';
+                }
+                $write = tcdist_feed_channel_append_record( $channel, (string) $file['temp'], $result, $context );
+                if ( 'openai' === $channel ) {
+                    if ( is_wp_error( $write ) && in_array( $write->get_error_code(), [ 'missing_product_data', 'missing_brand', 'missing_merchant_data', 'invalid_public_url', 'invalid_price', 'invalid_availability' ], true ) ) {
+                        $reason = $write->get_error_code();
+                        $state['openai_excluded'] = 1 + absint( $state['openai_excluded'] ?? 0 );
+                        $state['openai_excluded_reasons'][ $reason ] = 1 + absint( $state['openai_excluded_reasons'][ $reason ] ?? 0 );
+                        continue;
+                    }
+                    if ( ! is_wp_error( $write ) ) {
+                        $state['openai_written'] = 1 + absint( $state['openai_written'] ?? 0 );
+                    }
+                }
                 if ( is_wp_error( $write ) ) {
                     $written_ok = false;
                     $state['errors'][] = $channel . ': ' . $write->get_error_message();

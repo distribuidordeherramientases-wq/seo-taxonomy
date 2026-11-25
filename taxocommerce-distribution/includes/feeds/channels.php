@@ -13,6 +13,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/openai.php';
+
 /**
  * Canales conocidos.
  *
@@ -40,6 +42,13 @@ function tcdist_feed_channels() {
             'format'      => 'pinterest_csv',
             'content_type'=> 'text/csv; charset=UTF-8',
             'description' => 'Feed CSV para catalogos de Pinterest.',
+        ],
+        'openai' => [
+            'label'       => 'OpenAI / ChatGPT',
+            'filename'    => 'openai-products.csv',
+            'format'      => 'openai_csv',
+            'content_type'=> 'text/csv; charset=UTF-8',
+            'description' => 'OpenAI product feed (organic search; registration and market approval required).',
         ],
         'universal' => [
             'label'       => 'Catalogo universal CSV',
@@ -71,6 +80,9 @@ function tcdist_feed_channels() {
  * @return string[]
  */
 function tcdist_feed_channel_columns( $channel ) {
+    if ( 'openai' === $channel ) {
+        return tcdist_feed_openai_columns();
+    }
     if ( 'microsoft' === $channel ) {
         return [
             'id', 'title', 'description', 'link', 'image_link', 'additional_image_link',
@@ -213,6 +225,11 @@ function tcdist_feed_channel_write_header( $channel, $path ) {
         tcdist_feed_stream_write( $handle, '  "generated_at": ' . wp_json_encode( $header['generated_at'] ) . ",\n" );
         tcdist_feed_stream_write( $handle, '  "source": ' . wp_json_encode( $header['source'], JSON_UNESCAPED_SLASHES ) . ",\n" );
         tcdist_feed_stream_write( $handle, "  \"products\": [\n" );
+    } elseif ( 'openai_csv' === $format ) {
+        if ( false === fputcsv( $handle, tcdist_feed_openai_columns(), ',', '"', '' ) ) {
+            tcdist_feed_stream_close( $handle );
+            return new WP_Error( 'tcdist_feed_open_failed', 'Unable to write OpenAI header.' );
+        }
     } else {
         $delimiter = 'microsoft_tsv' === $format ? "\t" : ',';
         fputcsv( $handle, tcdist_feed_channel_columns( $channel ), $delimiter, '"', '\\' );
@@ -225,13 +242,26 @@ function tcdist_feed_channel_write_header( $channel, $path ) {
 /**
  * Adds one product to a channel file.
  */
-function tcdist_feed_channel_append_record( $channel, $path, array $record ) {
+function tcdist_feed_channel_append_record( $channel, $path, array $record, array $context = [] ) {
     $channels = tcdist_feed_channels();
     if ( empty( $channels[ $channel ] ) ) {
         return new WP_Error( 'tcdist_feed_unknown_channel', 'Canal comercial no reconocido.' );
     }
 
     $format = (string) $channels[ $channel ]['format'];
+    if ( 'openai_csv' === $format ) {
+        $row = tcdist_feed_openai_row( $record, $context );
+        if ( is_wp_error( $row ) ) {
+            return $row;
+        }
+        $handle = tcdist_feed_stream_open( $path, 'ab' );
+        if ( ! $handle ) {
+            return new WP_Error( 'tcdist_feed_append_failed', 'Unable to append OpenAI feed.' );
+        }
+        $written = fputcsv( $handle, array_values( $row ), ',', '"', '' );
+        tcdist_feed_stream_close( $handle );
+        return false === $written ? new WP_Error( 'tcdist_feed_append_failed', 'Unable to write OpenAI feed.' ) : true;
+    }
     $handle = tcdist_feed_stream_open( $path, 'ab' );
     if ( ! $handle ) {
         return new WP_Error( 'tcdist_feed_append_failed', 'No se pudo escribir en el feed temporal.' );

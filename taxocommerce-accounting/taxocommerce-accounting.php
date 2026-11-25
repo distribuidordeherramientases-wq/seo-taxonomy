@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Accounting
  * Description: Independent WooCommerce fiscal register, purchase expenses, monthly VAT summaries and safe data exports.
- * Version: 0.1.33
+ * Version: 0.1.34
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCA_VERSION', '0.1.33' );
+define( 'TCA_VERSION', '0.1.34' );
 define( 'TCA_DB_VERSION', '10' );
 define( 'TCA_OPTION', 'tca_settings_v1' );
 // Prefer official WordPress language packs; load bundled MO only as a fallback.
@@ -356,13 +356,22 @@ function tca_on_billing_rectification_issued( $order_id, $document ) {
         'SELECT * FROM %i WHERE source = %s AND source_id = %d FOR UPDATE',
         tca_table(), 'woocommerce', absint( $order_id )
     ) );
+    $matches_original = $entry &&
+        abs( (float) $entry->amount_base - (float) $rect['old_base'] ) <= 0.02 &&
+        abs( (float) $entry->amount_tax - (float) $rect['old_tax'] ) <= 0.02 &&
+        abs( (float) $entry->amount_total - (float) $rect['old_total'] ) <= 0.02;
+    // A manually corrected draft can already match the newly issued RECT.
+    // In that case only its document reference and audit note need reconciling.
+    // Never trust edited figures that differ from both original and RECT.
+    $matches_corrected_draft = $entry && 'draft' === (string) $entry->status &&
+        abs( (float) $entry->amount_base - (float) $invoice['amount_base'] ) <= 0.02 &&
+        abs( (float) $entry->amount_tax - (float) $invoice['amount_tax'] ) <= 0.02 &&
+        abs( (float) $entry->amount_total - (float) $invoice['amount_total'] ) <= 0.02;
     if ( ! $entry || 'sale' !== (string) $entry->kind ||
         ! in_array( (string) $entry->status, array( 'draft', 'validated' ), true ) ||
         (string) $entry->document_no !== (string) $rect['original_number'] ||
         (string) $entry->currency !== (string) $invoice['currency'] ||
-        abs( (float) $entry->amount_base - (float) $rect['old_base'] ) > 0.02 ||
-        abs( (float) $entry->amount_tax - (float) $rect['old_tax'] ) > 0.02 ||
-        abs( (float) $entry->amount_total - (float) $rect['old_total'] ) > 0.02 ||
+        ( ! $matches_original && ! $matches_corrected_draft ) ||
         TCA_Settlements::sum( (int) $entry->id ) > (float) $invoice['amount_total'] + 0.001 ) {
         // Existing manual corrections or overpayments require human review.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- No changes committed on mismatch.
@@ -385,8 +394,13 @@ function tca_on_billing_rectification_issued( $order_id, $document ) {
         'updated_at' => current_time( 'mysql' ),
     ), array( 'id' => (int) $entry->id, 'updated_at' => (string) $entry->updated_at ),
         array( '%s', '%f', '%f', '%f', '%s', '%s', '%s' ), array( '%d', '%s' ) );
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Protect against partial accounting reconciliation.
-    $wpdb->query( 1 === $ok ? 'COMMIT' : 'ROLLBACK' );
+    if ( 1 === $ok ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic fiscal reconciliation.
+        $wpdb->query( 'COMMIT' );
+    } else {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reject partial accounting reconciliation.
+        $wpdb->query( 'ROLLBACK' );
+    }
 }
 add_action( 'taxocommerce_billing_rectification_issued', 'tca_on_billing_rectification_issued', 10, 2 );
 

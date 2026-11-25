@@ -1,3 +1,7 @@
+## [0.4.86] — 2026-11-24 — Restore native overdue notices (#2947)
+
+- Removed Core's overdue-action warning suppression. WordPress and Action Scheduler retain their native scheduling behavior; hosting configuration is not modified.
+
 ## [0.4.85] — 2026-11-14 — Descubrimiento automático de plugins de la familia (#2669)
 
 - El catálogo de Core integra automáticamente los plugins TaxoCommerce realmente instalados según `get_plugins()`, tanto activos como inactivos; no es necesario actualizar Core para nuevos plugins.

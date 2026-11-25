@@ -1,3 +1,10 @@
+## 0.1.34 — 2026-11-21 — Complete Accounting admin translation inventory (#2917)
+
+- Extract and translate 156 missing static gettext strings across invoice validation, WooCommerce synchronization, depreciation, supplier CSV, corrections, settlements, original documents, Hacienda and Treasury in es_ES, en_US, fr_FR, de_DE and nl_NL.
+- Remove two customer-specific bank account examples from Treasury help text in favour of generic instructions. No financial logic, database data, classifications or payment behavior changed.
+- Rebuild all five compiled MO catalogs; verify 467 unique entries per catalog with no missing/empty strings or printf placeholder mismatches.
+- Only authorized staging deployments; production is excluded.
+
 ## 0.1.33 — 2026-11-21 — Issued invoice amount rectification reconciliation (#2926)
 
 - Accept verified immutable rectification of gross and VAT via the optional WordPress filter, retaining third-party independence and the VAT-only path.

@@ -1,3 +1,8 @@
+## [0.1.22] - 2026-11-25 - OpenAI discovery preparation (#2954)
+
+- Add an optional OpenAI CSV channel to the existing bounded worker with separate exclusion counts and organic-only eligibility.
+- Provide sitemap and crawler guidance without changing robots rules or registering a remote feed. Merchant and market approval remain external.
+
 ## [0.1.21] — 2026-11-18 — Spanish administration navigation (#2783)
 
 - Correct the Overview tab label in es_ES to «Resumen» and rebuild the Spanish gettext MO catalog. Other locales remain unchanged.

@@ -1047,7 +1047,7 @@ final class TCA_Treasury {
 
         echo '<div class="tca-treasury-forms"><div>';
         echo '<h4>' . esc_html__( 'Create a new cash or bank account (not a receipt)', 'taxocommerce-accounting' ) . '</h4>';
-        echo '<p class="description">' . esc_html__( 'Use the account name ING or CAJA. Record donations, initial contributions and customer receipts as movements into an existing account.', 'taxocommerce-accounting' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Use a descriptive account name, such as Main bank or Cash register. Record donations, initial contributions and customer receipts as movements into an existing account.', 'taxocommerce-accounting' ) . '</p>';
         self::start_form( 'account' );
         echo '<p><label>' . esc_html__( 'Name', 'taxocommerce-accounting' ) . ' <input type="text" name="name" maxlength="191" required></label></p>';
         echo '<p><label>' . esc_html__( 'Type', 'taxocommerce-accounting' ) . ' <select name="kind"><option value="cash">' . esc_html__( 'Cash', 'taxocommerce-accounting' ) . '</option><option value="bank">' . esc_html__( 'Bank', 'taxocommerce-accounting' ) . '</option></select></label></p>';
@@ -1336,7 +1336,7 @@ final class TCA_Treasury {
         }
         echo '</div></div>';
         echo '<p class="description">' . esc_html__(
-            'Select opening balance when the sponsor already financed ING: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed.',
+            'Select opening balance when funds from the lender are already included in the bank opening balance: no second receipt is created. Select new receipt only when funds have newly arrived. This is a repayable loan, not a donation or VAT sale. Instalments remain forecasts until confirmed.',
             'taxocommerce-accounting'
         ) . '</p>';
         submit_button( __( 'Save loan', 'taxocommerce-accounting' ), 'secondary', 'submit', false );

@@ -107,6 +107,49 @@ class DeltaTests(unittest.TestCase):
         ftp.storbinary.assert_not_called()
 
 
+    def test_import_export_lite_initial_install_only_on_two_test_sites(self):
+        """Install the independent Lite module completely when absent on authorized sites."""
+        import hashlib
+        import os
+
+        slug = "taxocommerce-import-export-lite"
+        files = [slug + ".php", "includes/class-csv.php"]
+        with tempfile.TemporaryDirectory() as temporary:
+            original = os.getcwd()
+            os.chdir(temporary)
+            try:
+                local = Path(slug)
+                (local / "includes").mkdir(parents=True)
+                (local / (slug + ".php")).write_bytes(b"<?php // entry\n")
+                (local / "includes/class-csv.php").write_bytes(b"<?php // csv\n")
+                digest = {
+                    path.split("/")[-1]: hashlib.sha256((local / path).read_bytes()).hexdigest()
+                    for path in files
+                }
+                for target in ("staging", "focazul"):
+                    ftp = mock.Mock()
+                    ftp.pwd.return_value = "/site/wp-content/plugins/" + slug
+                    attempted = [0]
+                    def cwd(_path):
+                        attempted[0] += 1
+                        if attempted[0] == 1:
+                            raise module.ftplib.error_perm("550 absent")
+                    ftp.cwd.side_effect = cwd
+                    checks = {}
+                    def remote_hash(_ftp, filename):
+                        checks[filename] = checks.get(filename, 0) + 1
+                        return None if checks[filename] == 1 else digest[filename]
+                    with mock.patch.object(module, "plugin_source_files", return_value=files) as manifest:
+                        with mock.patch.object(module, "existing_file_hash", side_effect=remote_hash):
+                            module.upload_plugin(ftp, target, slug, ["CHANGELOG.md"], required=False)
+                    ftp.mkd.assert_called_once_with(slug)
+                    manifest.assert_called_once_with(slug)
+                    self.assertEqual(ftp.storbinary.call_count, len(files))
+                with self.assertRaises(ValueError):
+                    module.remote_plugin_dir("production", slug)
+            finally:
+                os.chdir(original)
+
     def test_customers_first_install_is_limited_to_staging_and_focazul_and_complete(self):
         import os
         with tempfile.TemporaryDirectory() as temp:

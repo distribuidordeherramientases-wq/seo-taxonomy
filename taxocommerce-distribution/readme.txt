@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.21
+Stable tag: 0.1.22
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -28,6 +28,7 @@ Distribution retains the proven production behavior of the previous TaxoCommerce
 * Google Merchant Center XML feed.
 * Microsoft Merchant Center / Bing Shopping feed.
 * Pinterest Catalogs CSV feed.
+* Opt-in OpenAI / ChatGPT product CSV preparation for organic discovery, with market approval required; no remote upload or ads.
 * Universal CSV and JSON catalogs.
 * Adaptive, cursor-based feed generation in bounded worker windows.
 * Atomic feed publication: partial files never replace the last valid feed.
@@ -68,6 +69,9 @@ English is the base source and UI language. Future localization should use stand
 6. Validate staging feeds before registering production URLs with Google, Microsoft or Pinterest.
 
 == Changelog ==
+
+= 0.1.22 =
+* Prepare OpenAI product feed, with channel-specific exclusions and crawler guidance. Issue #2954.
 
 = 0.1.16 =
 * Local Description and Plugin URI replace REST excerpt requests and caches in the header. Issue #2494.

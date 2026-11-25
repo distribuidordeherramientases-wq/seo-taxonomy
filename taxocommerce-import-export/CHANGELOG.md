@@ -1,3 +1,11 @@
+## [0.4.38] — 2026-11-24 — Independent basic WooCommerce import (#2950)
+
+- The Basic/Individual importer defaults to creating missing WordPress or WooCommerce records (with SKU/slug matching to update existing products); the explicit update-only mode is unchanged.
+- Native WooCommerce CSV fields are supported for simple, virtual and downloadable products: Type, Published, Downloadable, download 1 name/URL, download limit and expiry. Basic export now round-trips these fields.
+- Product categories and tags are strictly optional and no longer auto-mapped; users may select existing native WordPress/WooCommerce terms explicitly. No SEO, TaxoCommerce Core, supplier, category or family module dependency is introduced.
+- Added a standalone PHP regression smoke test for create/update, idempotence by SKU, absent categories, downloads, validation and export.
+- Existing advanced batch importer, formats, queues, Media, prices, data and PRO delivery workflow remain unchanged. Deployment limited to STAGING and Asociación Focazul.
+
 ## [0.4.37] — 2026-11-18 — Broader native WordPress and WooCommerce CSV fields (#2809)
 
 - Expanded selectable export and import mapping for WooCommerce products: category and tag slugs, existing Media featured image, stock controls, physical dimensions, catalog visibility and standard product flags.
