@@ -87,7 +87,7 @@ function tcdist_feed_openai_row( array $record, array $context ) {
     if ( '' === $brand || in_array( strtolower( $brand ), [ 'unknown', 'null', 'n/a' ], true ) ) {
         return new WP_Error( 'missing_brand', 'Missing real product brand.' );
     }
-    if ( '' === $seller || in_array( strtolower( $seller ), [ 'unknown', 'null', 'n/a' ], true ) || ! preg_match( '/^[A-Z]{2}$/D', $country ) ) {
+    if ( '' === tcdist_feed_openai_url( $context['seller_url'] ?? '' ) || ! preg_match( '/^[A-Z]{2}$/D', $store_country ) || '' === $seller || in_array( strtolower( $seller ), [ 'unknown', 'null', 'n/a' ], true ) || ! preg_match( '/^[A-Z]{2}$/D', $country ) ) {
         return new WP_Error( 'missing_merchant_data', 'Missing merchant or market data.' );
     }
     if ( '' === $url || '' === $image ) {
