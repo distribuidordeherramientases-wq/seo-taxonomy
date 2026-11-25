@@ -245,7 +245,7 @@ final class CSV {
 		if ( is_wp_error( $terms ) ) return $terms;
 		$id = 0;
 		if ( ! empty( $data['slug'] ) ) {
-			$post = get_page_by_path( sanitize_title( $data['slug'] ), OBJECT, $type );
+			$post = get_page_by_path( sanitize_title( $data['slug'] ), OBJECT, array( $type ) );
 			$id = $post ? (int) $post->ID : 0;
 		}
 		if ( ! $id && empty( $data['slug'] ) && ! empty( $data['id'] ) && $type === get_post_type( absint( $data['id'] ) ) ) {
@@ -293,7 +293,8 @@ final class CSV {
 		$sku     = ! empty( $data['sku'] ) ? sanitize_text_field( $data['sku'] ) : '';
 		$slug    = ! empty( $data['slug'] ) ? sanitize_title( $data['slug'] ) : '';
 		$sku_id  = $sku ? (int) wc_get_product_id_by_sku( $sku ) : 0;
-		$by_slug = $slug ? get_page_by_path( $slug, OBJECT, 'product' ) : false;
+		// A string post type also matches attachments in get_page_by_path().
+		$by_slug = $slug ? get_page_by_path( $slug, OBJECT, array( 'product' ) ) : false;
 		$slug_id = $by_slug ? (int) $by_slug->ID : 0;
 		$found   = array();
 
@@ -566,7 +567,7 @@ final class CSV {
 		}
 		if ( ! current_user_can( 'page' === $type ? 'edit_pages' : 'edit_posts' ) ) return new \WP_Error( 'forbidden', __( 'No tienes permisos para importar este contenido.', 'taxocommerce-import-export-lite' ) );
 		if ( isset( $data['status'] ) && 'publish' === self::status( $data['status'] ) && ! current_user_can( 'publish_' . ( 'page' === $type ? 'pages' : 'posts' ) ) ) return new \WP_Error( 'publish_forbidden', __( 'Sin permiso para publicar.', 'taxocommerce-import-export-lite' ) );
-		$id = ! empty( $data['slug'] ) ? get_page_by_path( sanitize_title( $data['slug'] ), OBJECT, $type ) : false;
+		$id = ! empty( $data['slug'] ) ? get_page_by_path( sanitize_title( $data['slug'] ), OBJECT, array( $type ) ) : false;
 		if ( ! $id && empty( $data['slug'] ) && empty( $data['id'] ) ) return new \WP_Error( 'identity_missing', __( 'Asigna slug para importar páginas o entradas sin duplicados.', 'taxocommerce-import-export-lite' ) );
 		if ( ! $id && ! empty( $data['id'] ) && $type === get_post_type( absint( $data['id'] ) ) ) $id = get_post( absint( $data['id'] ) );
 		if ( ! $id && 'update' === $mode ) return new \WP_Error( 'post_missing', __( 'Página o entrada no encontrada.', 'taxocommerce-import-export-lite' ) );

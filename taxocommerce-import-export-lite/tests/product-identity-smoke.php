@@ -15,7 +15,13 @@ function absint( $v ) { return abs( (int) $v ); }
 function get_post_type( $id ) { return isset( $GLOBALS['wp_posts'][ $id ] ) ? $GLOBALS['wp_posts'][ $id ]['type'] : false; }
 function get_post_status( $id ) { return isset( $GLOBALS['wp_posts'][ $id ] ) ? $GLOBALS['wp_posts'][ $id ]['status'] : false; }
 function wc_get_product_id_by_sku( $sku ) { return isset( $GLOBALS['sku_index'][ $sku ] ) ? $GLOBALS['sku_index'][ $sku ] : 0; }
-function get_page_by_path( $slug, $output, $type ) { return isset( $GLOBALS['slug_index'][ $slug ] ) ? (object) array( 'ID' => $GLOBALS['slug_index'][ $slug ] ) : false; }
+function get_page_by_path( $slug, $output, $type ) {
+    if ( ! isset( $GLOBALS['slug_index'][ $slug ] ) ) return false;
+    $id = $GLOBALS['slug_index'][ $slug ];
+    $post_type = get_post_type( $id );
+    $types = is_array( $type ) ? $type : array( $type, 'attachment' );
+    return ! $post_type || in_array( $post_type, $types, true ) ? (object) array( 'ID' => $id ) : false;
+}
 function wc_get_product( $id ) { return isset( $GLOBALS['wc_products'][ $id ] ) ? $GLOBALS['wc_products'][ $id ] : false; }
 function wc_product_has_unique_sku( $id, $sku ) { return ! isset( $GLOBALS['reserved'][ $sku ] ); }
 class MockWCProduct {
@@ -38,6 +44,13 @@ $pro = array( 'sku' => 'TC-MAIL-PRO', 'slug' => 'taxocommerce-mail-pro' );
 ck( 0 === run_lookup( $lite )['id'], 'Mail Lite new' );
 ck( 0 === run_lookup( $pro )['id'], 'Mail Pro new' );
 ck( is_wp_error( run_lookup( $pro, 'update' ) ), 'Update-only rejects genuinely new' );
+$GLOBALS['wp_posts'][20965] = array( 'type' => 'attachment', 'status' => 'inherit' );
+$GLOBALS['slug_index']['taxocommerce-mail-pro'] = 20965;
+ck( 20965 === get_page_by_path( $pro['slug'], OBJECT, 'product' )->ID, 'WordPress string lookup includes attachments' );
+ck( 0 === run_lookup( $pro )['id'], 'Attachment slug does not block new Mail Pro' );
+ck( is_wp_error( run_lookup( $pro, 'update' ) ), 'Attachment cannot be updated as product' );
+ck( 'attachment' === get_post_type( 20965 ), 'Attachment preserved' );
+unset( $GLOBALS['slug_index']['taxocommerce-mail-pro'] );
 $GLOBALS['sku_index']['TC-MAIL-PRO'] = 9991;
 ck( 0 === run_lookup( $pro )['id'], 'Stale SKU lookup does not block create' );
 $GLOBALS['slug_index']['taxocommerce-mail-pro'] = 9992;
