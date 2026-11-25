@@ -1,5 +1,10 @@
 # TaxoCommerce Import-Export Lite
 
+## [0.1.3] — 2026-11-25 — Slugs de archivos multimedia (#2962)
+
+- Restringe get_page_by_path al tipo de contenido solicitado; evita confundir ZIP, imágenes y otros adjuntos con productos, páginas o entradas.
+- Regresión de prechequeo e importación con slug multimedia coincidente. Conserva los conflictos reales y no modifica archivos adjuntos.
+
 ## [0.1.2] — 2026-11-25 — Resolución segura de productos inexistentes (#2962)
 
 - El modo Crear y actualizar ya no confunde una referencia huérfana de SKU/slug o un producto en la papelera con un producto actualizable. Evita el error genérico «El producto relacionado no existe» para nuevos productos; no restaura, sobrescribe ni borra registros antiguos.
