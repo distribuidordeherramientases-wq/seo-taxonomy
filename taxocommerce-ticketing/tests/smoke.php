@@ -41,7 +41,7 @@ foreach ( $expected as $locale => $values ) {
         throw new RuntimeException( 'Missing catalog: ' . $locale );
     }
     $h = unpack( 'Vmagic/Vrevision/Vcount/Vorig/Vtrans/Vhashsize/Vhash', substr( $mo, 0, 28 ) );
-    if ( 0x950412de !== $h['magic'] || 165 !== $h['count'] || $h['orig'] + $h['count'] * 8 > strlen( $mo ) || $h['trans'] + $h['count'] * 8 > strlen( $mo ) ) {
+    if ( 0x950412de !== $h['magic'] || 257 !== $h['count'] || $h['orig'] + $h['count'] * 8 > strlen( $mo ) || $h['trans'] + $h['count'] * 8 > strlen( $mo ) ) {
         throw new RuntimeException( 'Invalid catalog header: ' . $locale );
     }
     $catalog = array();
@@ -63,6 +63,11 @@ foreach ( $expected as $locale => $values ) {
     foreach ( array( 'Settings', 'In progress', 'Ticket inbox', 'Functionality Check' ) as $index => $key ) {
         if ( ( $catalog[$key] ?? null ) !== $values[$index] ) {
             throw new RuntimeException( 'Incorrect translation: ' . $locale . ' / ' . $key );
+        }
+    }
+    foreach ( array( 'Architecture and compatibility', 'Run Code Check', 'Warnings to review', 'Check SQL parameters and use $wpdb->prepare() for untrusted values.' ) as $required_key ) {
+        if ( empty( $catalog[$required_key] ) ) {
+            throw new RuntimeException( 'Missing technical translation: ' . $locale );
         }
     }
     if ( empty( $catalog['What Ticketing is for'] ) || empty( $catalog['Publish the customer form'] ) ) {
