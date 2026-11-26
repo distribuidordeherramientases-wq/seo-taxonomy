@@ -1,0 +1,134 @@
+name: Diagnostico 2973 - WP-Cron real (solo lectura)
+on:
+  push:
+    branches: [diagnostic/2973-live-cron-readonly]
+    paths:
+      - '.github/workflows/diagnose-wp-cron-2973.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    if: github.ref == 'refs/heads/diagnostic/2973-live-cron-readonly'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Inspect only known PRO root and cron markers
+        env:
+          SHARED_HOST: ${{ secrets.STAGING_FTP_SERVER }}
+          SHARED_USER: ${{ secrets.STAGING_FTP_USERNAME }}
+          SHARED_PASS: ${{ secrets.STAGING_FTP_PASSWORD }}
+          PRO_HOST: ${{ secrets.FTP_SERVER }}
+          PRO_USER: ${{ secrets.FTP_USERNAME }}
+          PRO_PASS: ${{ secrets.FTP_PASSWORD }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import ftplib, io, os, re, ssl, subprocess
+
+          # Read-only. No source, credentials, tokens, logs, environment variables
+          # or raw FTP responses are printed. Never invoke a WordPress HTTP URL.
+          LIMIT = 512 * 1024
+          def read(ftp, name):
+              buf = io.BytesIO()
+              def collect(chunk):
+                  if buf.tell() + len(chunk) > LIMIT:
+                      raise ValueError("limit")
+                  buf.write(chunk)
+              try:
+                  ftp.retrbinary("RETR " + name, collect)
+                  return buf.getvalue()
+              except (ftplib.error_perm, ValueError):
+                  return None
+
+          def version(data):
+              if data is None:
+                  return "unreadable"
+              m = re.search(rb"(?im)^\s*\*?\s*Version:\s*([0-9]+(?:\.[0-9]+){1,4})\b", data[:8192])
+              return m[1].decode("ascii") if m else "unknown"
+
+          # Tokenize only, never execute the remote PHP. Exclude comments and
+          # classify exact define() calls for the relevant constant.
+          PHP = r'''
+          $tokens = array_values(array_filter(token_get_all(stream_get_contents(STDIN)), function($x) {
+              return !is_array($x) || !in_array($x[0], [T_WHITESPACE,T_COMMENT,T_DOC_COMMENT], true);
+          }));
+          $counts = ["true"=>0,"false"=>0,"expression"=>0,"references"=>0];
+          $val = function($x) { return is_array($x) ? $x[1] : $x; };
+          for($i=0;$i<count($tokens);$i++) {
+              $t=$tokens[$i]; $s=$val($t);
+              if (is_array($t) && $t[0] === T_CONSTANT_ENCAPSED_STRING &&
+                  in_array($s,["'DISABLE_WP_CRON'",'"DISABLE_WP_CRON"'],true)) {
+                  $counts["references"]++;
+                  if ($i>=2 && $i+3<count($tokens) &&
+                      strtolower(ltrim($val($tokens[$i-2]),'\\'))==='define' &&
+                      $val($tokens[$i-1])==='(' && $val($tokens[$i+1])===',') {
+                      $v=strtolower($val($tokens[$i+2]));
+                      $key=$val($tokens[$i+3])===')' ?
+                          (in_array($v,['true','1'],true)?'true':(in_array($v,['false','0'],true)?'false':'expression')) : 'expression';
+                      $counts[$key]++;
+                  }
+              }
+          }
+          echo json_encode($counts);
+          '''
+          def inspect(ftp, path):
+              data=read(ftp,path)
+              if data is None:
+                  print(path + ": absent/inaccessible/too large",flush=True)
+                  return False
+              if path.endswith(".php"):
+                  p=subprocess.run(["php","-r",PHP],input=data,capture_output=True,timeout=10)
+                  import json
+                  try:
+                      c=json.loads(p.stdout)
+                      if p.returncode or set(c)!={"true","false","expression","references"} or not all(type(v) is int for v in c.values()):
+                          raise ValueError()
+                      print(path + ": " + " ".join(k+"="+str(c[k]) for k in ("true","false","expression","references")),flush=True)
+                  except (ValueError, TypeError):
+                      print(path + ": token classification unavailable",flush=True)
+                  markers=[x for x in (b"auto_prepend_file",b"cron_request",b"pre_http_request",b"remove_action",b"wp_cron") if x in data]
+                  if markers:
+                      print(path + ": marker(s) " + ", ".join(x.decode("ascii") for x in markers),flush=True)
+              else:
+                  print(path + ": readable; wp-cron marker=" + str(b"wp-cron" in data.lower()) +
+                        "; auto_prepend_file marker=" + str(b"auto_prepend_file" in data.lower()),flush=True)
+              return True
+
+          def run(prefix):
+              env=[os.environ.get(prefix+"_"+k,"") for k in ("HOST","USER","PASS")]
+              if not all(env):
+                  print(prefix + ": credentials unavailable",flush=True)
+                  return False
+              try:
+                  with ftplib.FTP_TLS(context=ssl.create_default_context(),timeout=20) as ftp:
+                      ftp.connect(env[0],21); ftp.login(env[1],env[2]); ftp.prot_p()
+                      # The repo identifies PRO as the shared account root
+                      # (not staging.distribuidordeherramientas.es or asociacionfocazul).
+                      core=version(read(ftp,"wp-content/plugins/taxocommerce-core/taxocommerce-core.php"))
+                      social=version(read(ftp,"wp-content/plugins/taxocommerce-social/taxocommerce-social.php"))
+                      woo=version(read(ftp,"wp-content/plugins/woocommerce/woocommerce.php"))
+                      if not all(re.fullmatch(r"[0-9]+(?:\.[0-9]+){1,4}",x) for x in (core,social,woo)) or read(ftp,"wp-load.php") is None:
+                          print(prefix + ": known WordPress PRO root not verified; no config inspected",flush=True)
+                          return False
+                      print(prefix + ": PRO root markers Core="+core+" Social="+social+" WooCommerce="+woo,flush=True)
+                      config=inspect(ftp,"wp-config.php")
+                      for name in ("wp-load.php","wp-settings.php","wp-cron.php",".user.ini","php.ini",".htaccess","wp-content/advanced-cache.php","wp-content/object-cache.php","wp-content/db.php","wp-content/sunrise.php"):
+                          inspect(ftp,name)
+                      try:
+                          items=list(ftp.mlsd("wp-content/mu-plugins"))
+                          names=sorted(n for n,f in items if f.get("type")=="file" and re.fullmatch(r"[A-Za-z0-9_.-]+\.php",n))
+                          print("MU plugin top-level files: "+str(len(names)),flush=True)
+                          for n in names[:40]:
+                              inspect(ftp,"wp-content/mu-plugins/"+n)
+                          print("MU subdirectories not recursively inspected",flush=True)
+                      except ftplib.all_errors:
+                          print("MU plugin directory absent or inaccessible",flush=True)
+                      return config
+              except Exception:
+                  print(prefix + ": FTPS inspection unavailable (no raw error output)",flush=True)
+                  return False
+          if not run("SHARED") and not run("PRO"):
+              raise SystemExit("No verified readable configuration in known PRO root")
+          print("Read-only inspection finished. Static source matches do not establish runtime state.",flush=True)
+          PY
