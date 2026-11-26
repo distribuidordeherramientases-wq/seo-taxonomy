@@ -282,7 +282,10 @@ function tcsocial_programador_run_job($schedule_id)
         array('%d')
     );
 
-    if (!function_exists('tcsocial_network_publish_content')) {
+    $scheduled_day = substr((string) $job->scheduled_at, 0, 10);
+    if ($scheduled_day !== wp_date('Y-m-d', time(), wp_timezone())) {
+        $result = new WP_Error('social_expired_day', __('La fecha programada ya no es la de hoy. No se ha enviado la publicación; reprograma la tarea.', 'taxocommerce-social'));
+    } elseif (!function_exists('tcsocial_network_publish_content')) {
         $result = new WP_Error('publisher_unavailable', 'El publicador social no esta disponible.');
     } else {
         $result = tcsocial_network_publish_content(

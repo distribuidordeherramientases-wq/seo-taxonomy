@@ -1,3 +1,7 @@
+## [0.4.87] — 2026-11-26 — Standalone Mail Lite (#2975)
+
+- Exclude the historical Mail Lite slug `taxocommerce-mail` from registered, installed and local ZIP family discovery, without renaming the plugin or removing its package. Mail Pro and other extensions remain discoverable.
+
 ## [0.4.86] — 2026-11-24 — Restore native overdue notices (#2947)
 
 - Removed Core's overdue-action warning suppression. WordPress and Action Scheduler retain their native scheduling behavior; hosting configuration is not modified.

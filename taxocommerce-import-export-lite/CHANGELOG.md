@@ -1,5 +1,28 @@
 # TaxoCommerce Import-Export Lite
 
+## [0.1.5] — 2026-11-25 — Importación y exportación por bloques (#2971)
+
+- Bloques independientes para páginas, productos, categorías de entradas, entradas, categorías de producto y ambos tipos de etiquetas. Sin selector de tipo, acción ni asignación manual.
+- Reconocimiento único de cabeceras en servidor, creación/actualización automática, campos omitidos visibles y relaciones mediante cabeceras canónicas. Los IDs externos no se utilizan.
+- Prechequeo y confirmación conservados. Exportación directa con campos opcionales plegados. Pruebas de esquema, interfaz y flujo AJAX.
+
+## [0.1.4] — 2026-11-25 — Slugs de archivos multimedia (#2962)
+
+- Restringe get_page_by_path al tipo de contenido solicitado; evita confundir ZIP, imágenes y otros adjuntos con productos, páginas o entradas.
+- Regresión de prechequeo e importación con slug multimedia coincidente. Conserva los conflictos reales y no modifica archivos adjuntos.
+
+## [0.1.3] — 2026-11-25 — Cabecera administrativa uniforme (#2966)
+
+- Cabecera autónoma de tres zonas en Import-Export Lite: identificación y descripción locales del plugin con enlace a la ficha de su código; historial de versiones desplegable desde el `CHANGELOG.md` incluido; versión y fecha del archivo principal.
+- Diseño adaptable a móvil y al idioma administrativo de WordPress (ES/EN/FR/DE/NL); el historial permanece plegado por defecto y sin consultas externas.
+- Se conservan sin cambios los formularios, importación/exportación CSV, prechequeos, datos, permisos, pestañas y funcionamiento autónomo sin Core.
+
+## [0.1.2] — 2026-11-25 — Resolución segura de productos inexistentes (#2962)
+
+- El modo Crear y actualizar ya no confunde una referencia huérfana de SKU/slug o un producto en la papelera con un producto actualizable. Evita el error genérico «El producto relacionado no existe» para nuevos productos; no restaura, sobrescribe ni borra registros antiguos.
+- Comprobación de identidad centralizada para el prechequeo de solo lectura y la importación real. Conflictos auténticos entre SKU/slug o índices reservados presentan un mensaje identificable y bloquean la importación sin modificar otros productos.
+- Regressiones para productos Mail Lite y Pro, reimportación, referencias huérfanas, papelera y SKU ocupados.
+
 ## [0.1.1] — 2026-11-25 — Campos de cada instalación y validación previa (#2958)
 
 - Descubre campos personalizados **escalares, públicos y nativos** de páginas, entradas, productos y términos desde el registro de metadatos y tablas estándar de WordPress; ignora metadatos internos protegidos y valores complejos.

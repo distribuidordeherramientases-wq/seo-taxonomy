@@ -1,3 +1,10 @@
+## [0.1.26] — 2026-11-26 — Protección contra publicaciones masivas (#2978)
+
+- Límite de un intento de publicación por red y día natural de WordPress, compartido por los ejecutores propios de Social y la publicación manual. Reserva atómica antes de contactar con la API; si falla la comprobación, no se envía. Un fallo o resultado incierto también consume el turno del día.
+- Las tareas de días anteriores no se recuperan de golpe al ejecutar WP-Cron: quedan pausadas con su fecha y contenido intactos; las del Programador independiente quedan pendientes de reprogramación como tareas fallidas, sin llamada remota.
+- Las pausas no se reactivan durante la reorganización de agenda. Se evita repetir publicaciones confirmadas de una misma programación o intentos pendientes sin confirmar.
+- Pruebas de regresión sin enviar publicaciones reales. No se modifica el calendario ni el historial existentes al actualizar el plugin; su revisión y reprogramación siguen siendo necesarias. Las campañas con ejecutor independiente no se modifican.
+
 ## Unreleased — WP-Cron schedule diagnostics (#2851)
 
 - The social scheduler now distinguishes overdue jobs and missing WordPress Cron events in its existing per-network queue, without triggering publication or automatic retries.

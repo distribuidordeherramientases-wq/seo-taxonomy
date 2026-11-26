@@ -4,7 +4,7 @@ Tags: email, imap, smtp, webmail, multiple-accounts
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.3
+Stable tag: 0.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,18 +23,18 @@ Lite is free and includes all existing mailbox configuration, inbox reading, rep
 * Access is restricted to WordPress administrators in this release.
 * Read-only IMAP operations do not mark emails as read, move or delete them.
 * Emails remain on the original mail server. No inbox copies, message bodies or attachments are stored in WordPress.
-* Independent of TaxoCommerce Core, Tasks and WooCommerce; optional Core module discovery.
+* Independent of TaxoCommerce Core, Tasks and WooCommerce; its own top-level WordPress menu.
 * No Gmail OAuth, external service, POP3, automatic syncing, remote-image fetching, bulk sending or attachment upload.
 
 == Installation ==
 
 1. Activate TaxoCommerce Mail Lite.
-2. Open WordPress > Mail > Accounts and add a mailbox. Use your provider's exact SSL settings.
+2. Open WordPress > Mail Lite > Accounts and add a mailbox. Use your provider's exact SSL settings.
 3. Enter the mailbox's complete email address (username), password and secure IMAP hostname (TLS port 993). The password field is masked and never prefilled.
 4. Optionally expand Advanced details to configure a separate SMTP host/port or display name; these are not required for reading mail.
 5. Test IMAP and open Inbox. SMTP sends remain available but should be tested separately.
 
-To install an inactive or missing plugin from the TaxoCommerce family, Core can discover a local verified Mail ZIP in the site's uploads/taxocommerce-core/plugins package directory. No other TaxoCommerce plugin is required for Mail to run.
+Install the Mail Lite ZIP using the native WordPress plugin installer. No other TaxoCommerce plugin is required.
 
 At Webempresa, obtain the correct hostnames under WePanel > Email > Email Clients or configuration details. The plugin cannot create server mailboxes.
 
@@ -57,6 +57,9 @@ No. SMTP configured for a mailbox in this plugin is used only by this plugin, no
 No. In this initial version, only administrators can access mail and manage accounts.
 
 == Changelog ==
+
+= 0.1.4 =
+* Always use a standalone WordPress menu; remove Core module registration and isolate the Lite header from Mail Pro. Existing mail settings and features are unchanged.
 
 = 0.1.3 =
 * Commercial name is TaxoCommerce Mail Lite; existing `taxocommerce-mail` directory, data, text domain and update paths are preserved.

@@ -3,7 +3,7 @@
  * Plugin Name: TaxoCommerce Insights
  * Plugin URI: https://asociacionfocazul.com/taxocommerce-google-bing/
  * Description: External connections, provider data downloads, and the restored legacy Analysis dashboard.
- * Version: 1.1.77
+ * Version: 1.1.78
  * Release Date: 2026-11-25
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -19,7 +19,7 @@ require_once __DIR__ . '/includes/admin-branding.php';
 require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
 \TaxoCommerce_Insights_Autotest_Code::boot();
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.77' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.78' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
@@ -50,6 +50,7 @@ require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-gsc.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-google-service.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-reports.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-insights-chatgpt-search.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-trends.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-trends-hierarchy.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-connections-status.php';
@@ -92,6 +93,7 @@ function taxocommerce_google_bing_boot() {
     TaxoCommerce_Connections_Admin::boot();
     TaxoCommerce_Connections_Status::register();
     TaxoCommerce_Google_Bing_Reports::register();
+    TaxoCommerce_Insights_ChatGPT_Search::register();
     TaxoCommerce_Google_Bing_Trends::register();
     TaxoCommerce_Google_Bing_User_Guide::register();
     TaxoCommerce_Google_Bing_Auto_Test::register();
@@ -168,7 +170,7 @@ function taxocommerce_google_bing_screen() {
     } elseif ( 'search' === $tab ) {
         $tab = 'google_search';
     }
-    if ( ! in_array( $tab, array( 'connections', 'analysis', 'google_search', 'google_analytics', 'bing', 'google_trends', 'head_tags', 'ecommerce', 'consent', 'user_guide', 'auto_test' ), true ) ) {
+    if ( ! in_array( $tab, array( 'connections', 'analysis', 'google_search', 'google_analytics', 'chatgpt_search', 'bing', 'google_trends', 'head_tags', 'ecommerce', 'consent', 'user_guide', 'auto_test' ), true ) ) {
         $tab = 'connections';
     }
 
@@ -181,6 +183,7 @@ function taxocommerce_google_bing_screen() {
             'analysis'         => 'Analysis',
             'google_search'    => 'Google Search',
             'google_analytics' => 'Google Analytics',
+            'chatgpt_search'  => __( 'ChatGPT Search', 'taxocommerce-google-bing' ),
             'bing'             => 'Bing',
             'google_trends'    => 'Google Trends',
             'head_tags'        => __( 'Etiquetas de cabecera', 'taxocommerce-google-bing' ),
@@ -218,6 +221,8 @@ function taxocommerce_google_bing_screen() {
         taxocommerce_google_bing_analysis_screen();
     } elseif ( 'google_trends' === $tab ) {
         TaxoCommerce_Google_Bing_Trends::render();
+    } elseif ( 'chatgpt_search' === $tab ) {
+        TaxoCommerce_Insights_ChatGPT_Search::render();
     } else {
         $source = 'google_search' === $tab ? 'search' : ( 'google_analytics' === $tab ? 'analytics' : 'bing' );
         TaxoCommerce_Google_Bing_Reports::render( $source );

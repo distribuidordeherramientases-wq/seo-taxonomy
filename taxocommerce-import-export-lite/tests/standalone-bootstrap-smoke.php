@@ -27,6 +27,11 @@ function wp_parse_url( $v, $component ) { return parse_url( $v, $component ); }
 function attachment_url_to_postid( $url ) { return 0; }
 function wp_attachment_is_image( $id ) { return false; }
 function get_post_type( $id ) { return isset( $GLOBALS['posts'][ $id ] ) ? $GLOBALS['posts'][ $id ]->post_type : 'product'; }
+function get_post_status( $id ) {
+	if ( isset( $GLOBALS['lookup_post_status_override'][ $id ] ) ) return $GLOBALS['lookup_post_status_override'][ $id ];
+	if ( isset( $GLOBALS['products'][ $id ] ) ) return $GLOBALS['products'][ $id ]->get_status();
+	return isset( $GLOBALS['posts'][ $id ] ) ? $GLOBALS['posts'][ $id ]->post_status : false;
+}
 function get_term_by( $kind, $value, $tax ) {
 	if ( 'pa_color' === $tax && in_array( strtolower( $value ), array( 'red', 'blue' ), true ) ) {
 		return (object) array( 'term_id' => 'red' === strtolower( $value ) ? 10 : 11, 'slug' => strtolower( $value ) );
@@ -84,6 +89,10 @@ class TC_Stub_DB {
 }
 $GLOBALS['wpdb'] = new TC_Stub_DB();
 function get_page_by_path( $slug, $output = null, $type = '' ) {
+	$types = is_array( $type ) ? $type : array( $type, 'attachment' );
+	if ( in_array( 'attachment', $types, true ) && isset( $GLOBALS['attachment_slug_index'][ $slug ] ) ) return (object) array( 'ID' => $GLOBALS['attachment_slug_index'][ $slug ] );
+	$type = is_array( $type ) ? reset( $type ) : $type;
+	if ( 'product' === $type && isset( $GLOBALS['lookup_slug_override'][ $slug ] ) ) return (object) array( 'ID' => $GLOBALS['lookup_slug_override'][ $slug ] );
 	foreach ( $GLOBALS['products'] as $p ) {
 		if ( 'product' === $type && $p->get_slug() === $slug ) return (object) array( 'ID' => $p->get_id() );
 	}
@@ -92,10 +101,12 @@ function get_page_by_path( $slug, $output = null, $type = '' ) {
 }
 function wp_set_object_terms( $id, $terms, $tax, $append ) { return $terms; }
 function wc_get_product_id_by_sku( $sku ) {
+	if ( isset( $GLOBALS['lookup_sku_override'][ $sku ] ) ) return $GLOBALS['lookup_sku_override'][ $sku ];
 	foreach ( $GLOBALS['products'] as $p ) if ( $sku === $p->get_sku() ) return $p->get_id();
 	return 0;
 }
 function wc_get_product( $id ) { return $GLOBALS['products'][ $id ] ?? false; }
+function wc_product_has_unique_sku( $id, $sku ) { return ! isset( $GLOBALS['reserved_skus'][ $sku ] ); }
 class WC_Product_Attribute {
 	private $id = 0; private $name = ''; private $options = array();
 	private $visible = true; private $variation = false; private $position = 0;
@@ -168,6 +179,35 @@ check_tciel( '' === CSV::suggest( 'product', 'ID' ), 'Foreign IDs not automatica
 check_tciel( 'name' === CSV::suggest( 'product', 'Product Name' ), 'WooCommerce name mapped' );
 check_tciel( 'download_1_url' === CSV::suggest( 'product', 'Download 1 URL' ), 'WooCommerce download URL mapped' );
 check_tciel( "'=HYPERLINK()" === CSV::csv_safe( '=HYPERLINK()' ), 'Formula injection escaped' );
+// A CSV for two new Mail products must pass without requiring existing records.
+$lite_row = array( 'sku' => 'TC-MAIL-LITE', 'slug' => 'mail-product-fresh-lite', 'name' => 'Mail Lite' );
+$pro_row  = array( 'sku' => 'TC-MAIL-PRO', 'slug' => 'mail-product-fresh-pro', 'name' => 'Mail Pro' );
+check_tciel( true === CSV::precheck( 'product', $lite_row ), 'New Mail Lite precheck accepts upsert mode' );
+check_tciel( true === CSV::precheck( 'product', $pro_row ), 'New Mail Pro precheck accepts upsert mode' );
+check_tciel( is_wp_error( CSV::precheck( 'product', $pro_row, 'update' ) ), 'Update-only still rejects missing products' );
+$GLOBALS['attachment_slug_index']['mail-product-fresh-pro'] = 20965;
+$GLOBALS['lookup_post_status_override'][20965] = 'inherit';
+check_tciel( true === CSV::precheck( 'product', $pro_row ), 'Attachment slug collision does not block precheck' );
+check_tciel( is_wp_error( CSV::precheck( 'product', $pro_row, 'update' ) ), 'Attachment is not an existing product' );
+unset( $GLOBALS['attachment_slug_index'], $GLOBALS['lookup_post_status_override'][20965] );
+// WooCommerce SKU lookups can point to old records that no longer exist.
+$GLOBALS['lookup_sku_override']['TC-MAIL-PRO'] = 9988;
+check_tciel( true === CSV::precheck( 'product', $pro_row ), 'Orphaned SKU lookup is not a product' );
+$GLOBALS['lookup_slug_override']['mail-product-fresh-pro'] = 9989;
+check_tciel( true === CSV::precheck( 'product', $pro_row ), 'Orphaned slug lookup is not a product' );
+// A trash record must never be updated or restored implicitly.
+$GLOBALS['lookup_post_status_override'][9989] = 'trash';
+check_tciel( true === CSV::precheck( 'product', $pro_row ), 'Trashed product ignored for new upsert' );
+check_tciel( is_wp_error( CSV::precheck( 'product', $pro_row, 'update' ) ), 'Trashed product not updated' );
+// Real catalog integrity errors must be visible, not silently overwritten.
+$GLOBALS['reserved_skus']['TC-MAIL-PRO'] = true;
+check_tciel( is_wp_error( CSV::precheck( 'product', $pro_row ) ), 'Reserved SKU still rejected' );
+unset( $GLOBALS['reserved_skus']['TC-MAIL-PRO'], $GLOBALS['lookup_post_status_override'][9989] );
+$GLOBALS['lookup_post_status_override'][9988] = 'publish';
+check_tciel( is_wp_error( CSV::precheck( 'product', $pro_row ) ), 'Active broken product not overwritten' );
+unset( $GLOBALS['lookup_sku_override'], $GLOBALS['lookup_slug_override'], $GLOBALS['lookup_post_status_override'] );
+check_tciel( 0 === count( $GLOBALS['products'] ), 'No products saved during lookup precheck' );
+
 $map = array( 0 => 'sku', 1 => 'name', 2 => 'download_1_url', 3 => 'categories' );
 $data = CSV::map_row( array( 'TC-TEST-1', 'Plugin test', 'https://asociacionfocazul.com/wp-content/uploads/2026/11/taxocommerce-mail.zip', '' ), $map );
 check_tciel( ! isset( $data['categories'] ), 'Empty optional taxonomy absent' );
@@ -189,7 +229,11 @@ check_tciel( 1 === count( $GLOBALS['products'] ), 'Re-import does not duplicate'
 $data['sku'] = 'TC-TEST-2';
 $data['slug'] = 'taxocommerce-mail-pro';
 check_tciel( is_wp_error( CSV::import( 'product', $data, 'update' ) ), 'Explicit update-only rejects unknown product' );
-check_tciel( is_int( CSV::import( 'product', $data ) ), 'Default mode creates second product' );
+$GLOBALS['attachment_slug_index']['taxocommerce-mail-pro'] = 20965;
+$GLOBALS['lookup_post_status_override'][20965] = 'inherit';
+check_tciel( is_int( CSV::import( 'product', $data ) ), 'Default mode creates second product despite attachment slug' );
+check_tciel( 20965 === $GLOBALS['attachment_slug_index']['taxocommerce-mail-pro'], 'Attachment remains unchanged' );
+unset( $GLOBALS['attachment_slug_index'], $GLOBALS['lookup_post_status_override'][20965] );
 check_tciel( 2 === count( $GLOBALS['products'] ), 'Second product exists' );
 $data['categories'] = 'nonexisting-taxonomy';
 check_tciel( is_wp_error( CSV::import( 'product', $data ) ), 'Explicit missing category rejected without silent creation' );
@@ -254,6 +298,23 @@ check_tciel( $custom_id === CSV::import( 'product', $local_data ), 'Selected loc
 check_tciel( 'Acero|Aluminio' === CSV::export_value( 'product', $custom_id, 'attr:material' ), 'Local WooCommerce attribute exported without a custom table' );
 check_tciel( 'red|blue' === CSV::export_value( 'product', $custom_id, 'attr:pa_color' ), 'Other global attribute preserved on local import' );
 
+// Every content block recognizes its own native export headers automatically.
+foreach ( CSV::types() as $kind => $title ) {
+	$headers = array_keys( CSV::fields( $kind ) );
+	$auto = CSV::automatic_mapping( $kind, $headers );
+	check_tciel( ! is_wp_error( $auto ), 'Canonical export headers recognized for ' . $kind );
+	check_tciel( ! in_array( 'id', $auto['map'], true ), 'Foreign ID is never imported for ' . $kind );
+	check_tciel( array( 'id' ) === $auto['ignored'], 'Only ID omitted from canonical export of ' . $kind );
+}
+$auto = CSV::automatic_mapping( 'product', array( 'SKU', 'Product Name', 'Slug', 'Download 1 URL', 'meta:custom_warranty', 'attr:pa_color', 'Categories', 'Unknown' ) );
+check_tciel( array( 'sku', 'name', 'slug', 'download_1_url', 'meta:custom_warranty', 'attr:pa_color' ) === array_values( $auto['map'] ), 'Native aliases and existing custom fields recognized' );
+check_tciel( array( 'Categories', 'Unknown' ) === $auto['ignored'], 'Foreign taxonomy and unknown header disclosed' );
+check_tciel( is_wp_error( CSV::automatic_mapping( 'product', array( 'sku', 'SKU', 'name' ) ) ), 'Duplicate aliases rejected' );
+check_tciel( is_wp_error( CSV::automatic_mapping( 'product', array( 'id', 'name' ) ) ), 'ID-only product identity rejected' );
+check_tciel( is_wp_error( CSV::automatic_mapping( 'page', array( 'id', 'title' ) ) ), 'Page requires slug rather than foreign ID' );
+check_tciel( 'slug' === CSV::automatic_mapping( 'page', array( 'post_name', 'post_title' ) )['map'][0], 'WordPress native slug alias recognized' );
+check_tciel( 'categories' === CSV::automatic_mapping( 'product', array( 'sku', 'categories' ) )['map'][1], 'Explicit canonical relationship header retained' );
+
 /** Test the real two-phase CSV AJAX handler with no WordPress installation. */
 define( 'HOUR_IN_SECONDS', 3600 );
 class TCIEL_JSON_Stop extends \Exception {
@@ -280,22 +341,23 @@ $tmp = tempnam( sys_get_temp_dir(), 'tciel-' );
 file_put_contents( $tmp, "sku,name,attr:pa_color\nTC-CSV-A,Producto A,red\nTC-CSV-B,Producto B,green\n" );
 $GLOBALS['transients']['tciel_1_testtoken'] = array(
 	'path' => $tmp, 'headers' => array( 'sku', 'name', 'attr:pa_color' ), 'delimiter' => ',',
+	'type' => 'product', 'map' => CSV::automatic_mapping( 'product', array( 'sku', 'name', 'attr:pa_color' ) )['map'], 'ignored' => array(),
 	'filename' => 'dos-productos.csv', 'sample' => array( 'TC-CSV-A', 'Producto A', 'red' ),
 	'offset' => 0, 'checked' => 0, 'processed' => 0, 'saved' => 0,
 	'errors' => 0, 'notices' => array(), 'phase' => 'uploaded', 'started' => false, 'done' => false,
 );
-$mapping = array( 0 => 'sku', 1 => 'name', 2 => 'attr:pa_color' );
-$input = array( 'type' => 'product', 'mode' => 'upsert', 'map' => $mapping );
+// AJAX accepts only the token and confirmation; client-supplied type/mode/map must never override the bound schema.
+$input = array();
 $preflight = tciel_ajax_test( $input );
 while ( $preflight['data']['phase'] === 'checking' ) $preflight = tciel_ajax_test( array() );
 check_tciel( $preflight['success'] && 'invalid' === $preflight['data']['phase'], 'Preview fails when a global attribute value is missing' );
 check_tciel( 0 === $preflight['data']['saved'] && 3 === count( $GLOBALS['products'] ), 'No product is saved during failed preflight' );
 file_put_contents( $tmp, "sku,name,attr:pa_color\nTC-CSV-A,Producto A,red\nTC-CSV-B,Producto B,blue\n" );
-$preflight = tciel_ajax_test( $input );
+$preflight = tciel_ajax_test( array( 'type' => 'page', 'mode' => 'update', 'map' => array( 0 => 'id' ) ) );
 while ( $preflight['data']['phase'] === 'checking' ) $preflight = tciel_ajax_test( array() );
 check_tciel( $preflight['success'] && 'ready' === $preflight['data']['phase'], 'Complete preflight requires explicit confirmation' );
 check_tciel( 0 === $preflight['data']['saved'] && 3 === count( $GLOBALS['products'] ), 'Preflight never saves data' );
-$imported = tciel_ajax_test( $input + array( 'confirmed' => '1' ) );
+$imported = tciel_ajax_test( array( 'confirmed' => '1', 'type' => 'page', 'mode' => 'update', 'map' => array( 0 => 'id' ) ) );
 while ( $imported['data']['phase'] === 'importing' ) $imported = tciel_ajax_test( array() );
 check_tciel( $imported['success'] && 'done' === $imported['data']['phase'], 'Second request executes confirmed import' );
 check_tciel( 2 === $imported['data']['saved'] && 0 === $imported['data']['errors'], 'Two Woo products saved from CSV' );
@@ -303,3 +365,56 @@ check_tciel( 5 === count( $GLOBALS['products'] ), 'No unrelated products modifie
 check_tciel( ! file_exists( $tmp ), 'Temporary CSV removed after completed import' );
 
 echo "Import-Export Lite: basic + custom metadata + Woo attributes + precheck + no duplication + standalone bootstrap OK\n";
+
+// Header regression: entirely self-contained, using local plugin metadata and
+// bundled changelog, no Core, remote services or administrator settings.
+function get_file_data( $file, $fields, $context = '' ) {
+	$source = file_get_contents( $file );
+	$info   = array();
+	foreach ( $fields as $key => $header ) {
+		$found = preg_match( '/^[ \t]*\*[ \t]*' . preg_quote( $header, '/' ) . ':[ \t]*(.+)$/mi', $source, $match );
+		$info[ $key ] = $found ? trim( $match[1] ) : '';
+	}
+	return $info;
+}
+function wp_strip_all_tags( $value ) { return strip_tags( $value ); }
+function determine_locale() { return 'es_ES'; }
+function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
+function esc_url( $value ) { return (string) $value; }
+require dirname( __DIR__ ) . '/includes/class-header.php';
+ob_start();
+\TaxoCommerce\ImportExportLite\Header::render();
+$header = ob_get_clean();
+check_tciel( 1 === substr_count( $header, '<h1>' ), 'One header title; no duplicate H1' );
+check_tciel( false !== strpos( $header, 'TaxoCommerce Import-Export Lite' ), 'Plugin metadata title in header' );
+check_tciel( false !== strpos( $header, 'Versión 0.1.5' ), 'Version follows main plugin header' );
+check_tciel( false !== strpos( $header, 'Última actualización: 2026-11-25' ), 'Valid release date displayed' );
+check_tciel( false !== strpos( $header, 'Independent CSV import and export' ), 'Plugin metadata description displayed' );
+check_tciel( false !== strpos( $header, '<details class="tciel-hero__history">' ), 'Own changelog is collapsed by default' );
+check_tciel( false !== strpos( $header, '[0.1.5]' ), 'Latest changelog entry included' );
+check_tciel( false !== strpos( $header, 'Historial de versiones y mejoras' ), 'WordPress Spanish locale fallback' );
+check_tciel( false !== strpos( $header, 'github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/staging/taxocommerce-import-export-lite' ), 'Official source link from plugin URI' );
+echo "Import-Export Lite: autonomous admin header metadata, localized labels and bundled history OK\n";
+
+
+// Fixed blocks render their own file and download forms, without type, action or field-mapping selectors.
+function esc_attr( $value ) { return esc_html( $value ); }
+function esc_html__( $value, $domain = '' ) { return esc_html( $value ); }
+function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
+function wp_nonce_field( $action, $name = '_wpnonce', $referer = true, $display = true ) { echo '<input type="hidden" name="' . esc_attr( $name ) . '" value="' . esc_attr( $action ) . '">'; }
+function submit_button( $text, $type = 'primary', $name = 'submit', $wrap = true ) { echo '<input type="submit" value="' . esc_attr( $text ) . '">'; }
+$_GET = array();
+ob_start();
+\TaxoCommerce\ImportExportLite\Admin::render_import();
+$import_html = ob_get_clean();
+ob_start();
+\TaxoCommerce\ImportExportLite\Admin::render_export();
+$export_html = ob_get_clean();
+check_tciel( 7 === substr_count( $import_html, 'name="csv_file"' ), 'One import form per supported type' );
+check_tciel( 7 === substr_count( $export_html, 'value="tciel_export"' ), 'One export form per supported type' );
+check_tciel( false === strpos( $import_html . $export_html, '<select' ), 'No content or mapping selectors remain' );
+foreach ( CSV::types() as $kind => $title ) {
+	check_tciel( false !== strpos( $import_html, 'id="tciel-import-' . $kind . '"' ), 'Fixed import block for ' . $kind );
+	check_tciel( false !== strpos( $export_html, 'name="type" value="' . $kind . '"' ), 'Fixed export block for ' . $kind );
+}
+echo "Import-Export Lite: fixed content blocks and server-bound automatic mapping OK\n";
