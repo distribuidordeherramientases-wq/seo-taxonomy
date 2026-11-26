@@ -28,7 +28,7 @@ final class TaxoCommerce_Import_Export_Pro_Autotest_Code {
         $page = isset( $_GET['page'] ) && is_string( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation selector.
         $tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
-        if ( 'taxocommerce-import-export-pro' === $page && 'code' === $tab && current_user_can( 'manage_options' ) ) {
+        if ( 'taxocommerce-ie-pro' === $page && 'code' === $tab && current_user_can( 'manage_options' ) ) {
             wp_enqueue_script(
                 'taxocommerce-import-export-pro-autotest-code',
                 plugins_url( 'assets/autotest-code.js', dirname( __DIR__ ) . '/taxocommerce-import-export-pro.php' ),
@@ -40,7 +40,7 @@ final class TaxoCommerce_Import_Export_Pro_Autotest_Code {
             'taxocommerce-import-export-pro-autotest-code',
             plugins_url( 'assets/autotest-code.css', dirname( __DIR__ ) . '/taxocommerce-import-export-pro.php' ),
             array(),
-            '0.4.32'
+            '0.1.0'
         );
         }
     }
