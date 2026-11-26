@@ -185,8 +185,8 @@ final class Batch {
 			return self::error( 'forbidden', __( 'Acceso no autorizado.', 'taxocommerce-import-export-pro' ) );
 		}
 		$old = self::state( $owner, $kind, $type );
-		if ( $old && self::active( $old ) ) {
-			return self::error( 'active_job', __( 'Finaliza o descarta el trabajo anterior de este bloque.', 'taxocommerce-import-export-pro' ) );
+		if ( $old ) {
+			return self::error( 'active_job', __( 'Archiva y limpia el trabajo anterior de este bloque.', 'taxocommerce-import-export-pro' ) );
 		}
 		$token = str_replace( '-', '', wp_generate_uuid4() );
 		if ( ! self::directory( $token, true ) ) {
@@ -201,10 +201,6 @@ final class Batch {
 	}
 
 	private static function activate( $state ) {
-		$old = self::state( $state['owner'], $state['kind'], $state['type'] );
-		if ( $old ) {
-			self::archive( $old );
-		}
 		$state = self::save( $state );
 		self::schedule( $state );
 		return $state;
@@ -365,7 +361,11 @@ final class Batch {
 		$file =& $state['files'][ $i ];
 		$checking = 'checking' === $state['phase'];
 		$file['phase'] = $checking ? 'checking' : 'importing';
-		$path = self::directory( $state['token'] ) . '/input-' . $i . '.csv';
+		$dir = self::directory( $state['token'] );
+		if ( ! $dir ) {
+			throw new \RuntimeException( 'Private input directory unavailable.' );
+		}
+		$path = $dir . '/input-' . $i . '.csv';
 		$handle = ! is_link( $path ) && is_file( $path ) ? fopen( $path, 'rb' ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Private job CSV, no user-supplied path.
 		if ( ! $handle ) {
 			throw new \RuntimeException( 'Missing input file.' );
@@ -418,6 +418,9 @@ final class Batch {
 					++$file['saved'];
 				}
 			}
+			if ( false === ( $row ?? null ) && ! feof( $handle ) ) {
+				throw new \RuntimeException( 'CSV read failed before end of file.' );
+			}
 			if ( 'failed' !== $state['phase'] && ( feof( $handle ) || 'invalid' === $file['phase'] ) ) {
 				$file['phase'] = $file['errors'] ? 'invalid' : ( $checking ? 'checked' : 'imported' );
 				$state['seen'] = array();
@@ -435,7 +438,12 @@ final class Batch {
 
 	private static function export_chunk( &$state, $window ) {
 		$out =& $state['export'];
-		$path = self::directory( $state['token'] ) . '/export.csv';
+		$dir = self::directory( $state['token'] );
+		if ( ! $dir ) {
+			throw new \RuntimeException( 'Private export directory unavailable.' );
+		}
+		$path = $dir . '/export.csv';
+		clearstatcache( true, $path );
 		$handle = ! is_link( $path ) && is_file( $path ) ? fopen( $path, 'r+b' ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Reopen private export for checkpointed append.
 		if ( ! $handle ) {
 			throw new \RuntimeException( 'Missing export file.' );
@@ -561,11 +569,14 @@ final class Batch {
 					unset( $file );
 					break;
 				case 'pause':
+					if ( ! self::active( $state ) ) {
+						return self::error( 'finished', __( 'El trabajo ya ha terminado.', 'taxocommerce-import-export-pro' ) );
+					}
 					$state['paused'] = true;
 					break;
 				case 'resume':
-					if ( ! self::active( $state ) ) {
-						return self::error( 'finished', __( 'El trabajo ya ha terminado.', 'taxocommerce-import-export-pro' ) );
+					if ( ! self::active( $state ) || ! $state['paused'] ) {
+						return self::error( 'not_paused', __( 'El trabajo no está pausado.', 'taxocommerce-import-export-pro' ) );
 					}
 					$state['paused'] = false;
 					$state['inflight'] = false;
@@ -636,6 +647,9 @@ final class Batch {
 		}
 		$dir = self::directory( $state['token'] );
 		$path = $dir ? $dir . '/export.csv' : false;
+		if ( $path ) {
+			clearstatcache( true, $path );
+		}
 		return $path && ! is_link( $path ) && is_file( $path ) && filesize( $path ) === $state['export']['offset'] ? $path : false;
 	}
 }
