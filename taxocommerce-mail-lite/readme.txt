@@ -4,7 +4,7 @@ Tags: email, imap, smtp, webmail, multiple-accounts
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.4
+Stable tag: 0.1.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,7 +34,9 @@ Lite is free and includes all existing mailbox configuration, inbox reading, rep
 4. Optionally expand Advanced details to configure a separate SMTP host/port or display name; these are not required for reading mail.
 5. Test IMAP and open Inbox. SMTP sends remain available but should be tested separately.
 
-Install the Mail Lite ZIP using the native WordPress plugin installer. No other TaxoCommerce plugin is required.
+Install the `taxocommerce-mail-lite` ZIP using the native WordPress plugin installer. No other TaxoCommerce plugin is required.
+
+When upgrading from the old `taxocommerce-mail` directory, deactivate the old installation before activating the renamed edition. Existing mailbox settings and encrypted passwords are retained. Verify the new edition before deleting the inactive old installation.
 
 At Webempresa, obtain the correct hostnames under WePanel > Email > Email Clients or configuration details. The plugin cannot create server mailboxes.
 
@@ -57,6 +59,9 @@ No. SMTP configured for a mailbox in this plugin is used only by this plugin, no
 No. In this initial version, only administrators can access mail and manage accounts.
 
 == Changelog ==
+
+= 0.1.5 =
+* Rename the package and text domain to taxocommerce-mail-lite; preserve existing configuration and the administration route. Prevent simultaneous activation of the legacy installation.
 
 = 0.1.4 =
 * Always use a standalone WordPress menu; remove Core module registration and isolate the Lite header from Mail Pro. Existing mail settings and features are unchanged.

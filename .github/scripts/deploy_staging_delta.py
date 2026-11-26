@@ -71,6 +71,10 @@ def changed_files(base, head, selected_slug=None):
             # Retired bridge has no deployable files, even for a deletion commit.
             continue
         if status.startswith("D"):
+            # #2984: preserve the previous installation for native WP cutover.
+            if (slug == "taxocommerce-mail" and not Path(slug).exists()
+                    and Path("taxocommerce-mail-lite/taxocommerce-mail-lite.php").is_file()):
+                continue
             changes.setdefault(slug, set())
             if selected_slug == slug:
                 raise ValueError(f"Deletion requires a separately reviewed migration: {path}")
@@ -280,7 +284,18 @@ def upload_plugin(ftp, target, slug, files, required):
     except ftplib.error_perm as exc:
         if not str(exc).startswith("550"):
             raise
-        if (slug in ("taxocommerce-tasks", "taxocommerce-customers", "taxocommerce-ticketing", "taxocommerce-mail", "taxocommerce-mail-pro", "taxocommerce-import-export-lite") and target in ("staging", "focazul")) or (
+        if slug == "taxocommerce-mail-lite":
+            # Stage a replacement only where the previous edition exists.
+            parent = remote_plugin_dir(target, slug).rsplit(slug + "/", 1)[0]
+            ftp.cwd(parent)
+            if existing_file_hash(ftp, "taxocommerce-mail/taxocommerce-mail.php") is None:
+                print(f"SKIP {target}/{slug}: previous Mail installation absent")
+                return
+            ftp.mkd(slug)
+            ftp.cwd(slug)
+            new_plugin_install = True
+            print(f"STAGE {target}/{slug}: #2984 replacement; legacy preserved")
+        elif (slug in ("taxocommerce-tasks", "taxocommerce-customers", "taxocommerce-ticketing", "taxocommerce-mail", "taxocommerce-mail-pro", "taxocommerce-import-export-lite") and target in ("staging", "focazul")) or (
             slug == "taxocommerce-accounting" and target == "staging"
         ):
             plugin_parent = remote_plugin_dir(target, slug).rsplit(slug + "/", 1)[0]
@@ -304,10 +319,15 @@ def upload_plugin(ftp, target, slug, files, required):
             raise RuntimeError(f"{slug}: first-install entrypoint missing from tracked sources")
     # Preexisting plugins must have the entrypoint; never repair unknown installs.
     if not new_plugin_install and existing_file_hash(ftp, slug + ".php") is None:
-        if not required:
+        if slug == "taxocommerce-mail-lite":
+            if existing_file_hash(ftp, "../taxocommerce-mail/taxocommerce-mail.php") is None:
+                raise RuntimeError(f"{slug}: incomplete replacement without previous Mail installation")
+            files = plugin_source_files(slug)
+        elif not required:
             print(f"SKIP {slug}: plugin entrypoint absent on this WordPress")
             return
-        raise RuntimeError(f"{slug}: expected installed plugin entrypoint is missing")
+        else:
+            raise RuntimeError(f"{slug}: expected installed plugin entrypoint is missing")
     for relative in files:
         source = Path(slug) / relative
         data_hash = hashlib.sha256(source.read_bytes()).hexdigest()

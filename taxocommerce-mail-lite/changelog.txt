@@ -1,3 +1,6 @@
+= 0.1.5 (2026-11-26) =
+* Canonical Lite directory, entrypoint, ZIP and translations. Preserve accounts and prevent simultaneous activation of the legacy edition. Issue #2984.
+
 = 0.1.4 (2026-11-26) =
 * Independent top-level WordPress menu; no Core module registration. Isolate Lite header from Mail Pro, preserve accounts and functionality. Issue #2975.
 

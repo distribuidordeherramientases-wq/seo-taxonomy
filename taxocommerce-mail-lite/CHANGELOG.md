@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.5 — 2026-11-26 — Canonical Lite plugin identity (#2984)
+- Rename the installable directory, entrypoint, ZIP and translation domain to `taxocommerce-mail-lite`; keep the existing admin route, encrypted accounts, user options and mail behavior.
+- Prevent simultaneous activation of the old and renamed installations. Preserve the previous installation until the native WordPress cutover is verified.
+
 ## 0.1.4 — 2026-11-26 — Standalone Lite navigation (#2975)
 - Always register Mail Lite as a top-level WordPress menu and remove optional Core module registration. Preserve the existing plugin basename, accounts, permissions, routes and mail features.
 - Restrict the Lite header to its own screen, preventing overlap with Mail Pro. Preserve the corporate style and local changelog.

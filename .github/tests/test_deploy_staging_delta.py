@@ -289,6 +289,34 @@ class DeltaTests(unittest.TestCase):
             finally:
                 os.chdir(old)
 
+    def test_mail_lite_replacement_requires_existing_mail(self):
+        import hashlib
+        import os
+        with tempfile.TemporaryDirectory() as root:
+            old_cwd = os.getcwd()
+            os.chdir(root)
+            try:
+                folder = Path("taxocommerce-mail-lite")
+                folder.mkdir()
+                (folder / "taxocommerce-mail-lite.php").write_bytes(b"<?php")
+                expected = hashlib.sha256(b"<?php").hexdigest()
+                for target in ("staging", "focazul"):
+                    for legacy in (False, True):
+                        ftp = mock.Mock()
+                        ftp.cwd.side_effect = [module.ftplib.error_perm("550 absent"), None, None, None]
+                        ftp.pwd.return_value = "/authorized/wp-content/plugins/taxocommerce-mail-lite"
+                        hashes = [expected if legacy else None, None, expected]
+                        with mock.patch.object(module, "plugin_source_files", return_value=["taxocommerce-mail-lite.php"]):
+                            with mock.patch.object(module, "existing_file_hash", side_effect=hashes):
+                                module.upload_plugin(ftp, target, "taxocommerce-mail-lite", [], required=False)
+                        self.assertEqual(ftp.mkd.call_count, int(legacy))
+                        self.assertEqual(ftp.storbinary.call_count, int(legacy))
+                        ftp.rmd.assert_not_called()
+                with self.assertRaises(ValueError):
+                    module.remote_plugin_dir("production", "taxocommerce-mail-lite")
+            finally:
+                os.chdir(old_cwd)
+
     def test_mail_first_install_only_on_two_authorized_sites(self):
         import hashlib
         import os
