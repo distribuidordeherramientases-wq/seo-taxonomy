@@ -684,6 +684,66 @@ function tcsocial_network_create_pending_publication($content_id, $provider, $te
 }
 
 /**
+ * A network may attempt at most one delivery per WordPress calendar day.
+ * The history check covers attempts made before upgrading; the unique option
+ * name is an atomic, non-autoloaded reservation shared by concurrent workers.
+ * Do not release a reservation after a failed or uncertain remote request.
+ *
+ * @param string $provider Network key.
+ * @return true|WP_Error
+ */
+function tcsocial_network_reserve_daily_delivery($provider)
+{
+    global $wpdb;
+    $provider = sanitize_key($provider);
+    $day = wp_date('Y-m-d', time(), wp_timezone());
+    $start = $day . ' 00:00:00';
+    $end = (new DateTimeImmutable($start, wp_timezone()))->modify('+1 day')->format('Y-m-d H:i:s');
+    $table = tcsocial_network_publications_table();
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- An uncached history read is required before a remote delivery.
+    $previous = $wpdb->get_var($wpdb->prepare(
+        'SELECT id FROM %i WHERE provider = %s AND ((created_at >= %s AND created_at < %s) OR (published_at >= %s AND published_at < %s)) LIMIT 1',
+        $table, $provider, $start, $end, $start, $end
+    ));
+    if (!empty($wpdb->last_error)) {
+        return new WP_Error('social_daily_guard_failed', __('No se puede comprobar el límite diario; no se ha enviado ninguna publicación.', 'taxocommerce-social'));
+    }
+    if ($previous) {
+        return new WP_Error('social_daily_limit', __('Esta red ya tiene un intento de publicación hoy. No se enviará otro hasta el día siguiente.', 'taxocommerce-social'));
+    }
+
+    $key = 'tcsocial_daily_delivery_' . $provider . '_' . $day;
+    // WordPress options have a unique option_name index. INSERT IGNORE is an
+    // atomic reservation even if two cron requests run at the same instant.
+    // No cached reads or writes of these private reservation keys are used.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic unique-key reservation; the Options API cannot distinguish all simultaneous inserts reliably.
+    $reserved = $wpdb->query($wpdb->prepare(
+        'INSERT IGNORE INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s)',
+        $wpdb->options, $key, '1', 'no'
+    ));
+    if (1 !== $reserved) {
+        if (false === $reserved || !empty($wpdb->last_error)) {
+            return new WP_Error('social_daily_guard_failed', __('No se pudo reservar el turno diario; no se ha enviado ninguna publicación.', 'taxocommerce-social'));
+        }
+        return new WP_Error('social_daily_limit', __('Esta red ya tiene reservado el turno de hoy. No se enviará otra publicación.', 'taxocommerce-social'));
+    }
+    return true;
+}
+
+/**
+ * Expired calendar days are not a queue to be drained on cron recovery.
+ * Uses the WordPress timezone, not the server's default PHP timezone.
+ *
+ * @param int $timestamp Scheduled Unix timestamp.
+ * @return bool
+ */
+function tcsocial_network_is_current_delivery_day($timestamp)
+{
+    return $timestamp > 0 && wp_date('Y-m-d', $timestamp, wp_timezone()) === wp_date('Y-m-d', time(), wp_timezone());
+}
+
+/**
  * Ejecuta una publicacion en el proveedor y conserva el resultado.
  *
  * @param int    $content_id
@@ -722,6 +782,11 @@ function tcsocial_network_publish_content($content_id, $provider, $template_over
     $template = trim((string) $template_override);
     if ($template === '') {
         $template = tcsocial_network_get_template_for_content($post, $provider);
+    }
+
+    $reservation = tcsocial_network_reserve_daily_delivery($provider);
+    if (is_wp_error($reservation)) {
+        return $reservation;
     }
 
     $publication_id = tcsocial_network_create_pending_publication($content_id, $provider, $template);
@@ -939,17 +1004,9 @@ add_action('init', 'tcsocial_network_register_auto_publish_hook', 40);
  */
 function tcsocial_network_publish_scheduled($content_id, $provider)
 {
-    $latest = tcsocial_network_get_latest_publication($content_id, $provider);
-    if ($latest && in_array($latest->status, array('pending', 'published'), true)) {
-        return;
-    }
-
-    $result = tcsocial_network_publish_content($content_id, $provider);
-    if (is_wp_error($result)) {
-        if (function_exists('seo_system_private_log')) {
-            seo_system_private_log('error', '[SEO Social] Auto-publicacion fallida: ' . $result->get_error_message());
-        }
-    }
+    // Legacy direct cron events lack their original date. Only an intact
+    // agenda entry can authorize a scheduled delivery.
+    tcsocial_network_publish_manual_scheduled($content_id, $provider);
 }
 add_action('tcsocial_network_publish_scheduled', 'tcsocial_network_publish_scheduled', 10, 2);
 
@@ -1385,7 +1442,7 @@ function tcsocial_network_schedule_editorial_publication($content_id, $provider,
 
     foreach ((array) $rows as $row) {
         $row_id = absint($row->post_id);
-        if (!$row_id || $row_id === $content_id) {
+        if (!$row_id || $row_id === $content_id || 'pausada' === tcsocial_network_get_schedule_state($row_id, $provider)) {
             continue;
         }
 
@@ -1550,7 +1607,7 @@ function tcsocial_network_schedule_news_publication($content_id, $provider, $req
 
     foreach ((array) $rows as $row) {
         $row_id = absint($row->post_id);
-        if (!$row_id || $row_id === $content_id) {
+        if (!$row_id || $row_id === $content_id || 'pausada' === tcsocial_network_get_schedule_state($row_id, $provider)) {
             continue;
         }
 
@@ -1645,8 +1702,6 @@ function tcsocial_network_publish_manual_scheduled($content_id, $provider)
     $provider = sanitize_key($provider);
     $scheduled_at = tcsocial_network_get_scheduled_timestamp($content_id, $provider);
 
-    // Never send an orphaned, cancelled, rescheduled or paused event. A
-    // past-due job can still execute normally when its schedule is intact.
     if (!$scheduled_at || $scheduled_at > time() + 30) {
         return;
     }
@@ -1654,10 +1709,26 @@ function tcsocial_network_publish_manual_scheduled($content_id, $provider)
         return;
     }
 
+    // Never replay a previous day's backlog. Keep its date and content in
+    // the calendar, but require deliberate replanning before any delivery.
+    if (!tcsocial_network_is_current_delivery_day($scheduled_at)) {
+        tcsocial_network_pause_scheduled_publication($content_id, $provider, $scheduled_at);
+        return;
+    }
+
+    $latest = tcsocial_network_get_latest_publication($content_id, $provider);
+    $scheduled_local = wp_date('Y-m-d H:i:s', $scheduled_at, wp_timezone());
+    if ($latest && ('pending' === $latest->status
+        || ('published' === $latest->status && !empty($latest->published_at) && $latest->published_at >= $scheduled_local))) {
+        tcsocial_network_pause_scheduled_publication($content_id, $provider, $scheduled_at);
+        return;
+    }
+
     $result = tcsocial_network_publish_content($content_id, $provider);
     if (is_wp_error($result)) {
-        // Conservar la fecha vencida para que Autocheck pueda denunciar el
-        // fallo; no reintentar automáticamente por posible envío remoto incierto.
+        if (in_array($result->get_error_code(), array('social_daily_limit', 'social_daily_guard_failed'), true)) {
+            tcsocial_network_pause_scheduled_publication($content_id, $provider, $scheduled_at);
+        }
         if (function_exists('seo_system_private_log')) {
             seo_system_private_log('error', '[SEO Social] Publicacion programada fallida: ' . $result->get_error_message());
         }
