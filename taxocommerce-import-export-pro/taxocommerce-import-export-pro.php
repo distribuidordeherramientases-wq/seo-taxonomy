@@ -23,6 +23,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 const VERSION = '0.1.0';
 const SLUG = 'taxocommerce-import-export-pro';
+// Distinct admin route also avoids prefix matching by older Import-Export releases.
+const ADMIN_SLUG = 'taxocommerce-ie-pro';
 const DOMAIN = 'taxocommerce-import-export-pro';
 const RELEASE_DATE = '2026-11-26';
 
@@ -42,3 +44,7 @@ add_action( 'plugins_loaded', static function () {
 	Batch::register();
 	\TaxoCommerce_Import_Export_Pro_Autotest_Code::boot();
 }, 30 );
+
+register_deactivation_hook( __FILE__, static function () {
+	wp_unschedule_hook( Batch::HOOK );
+} );
