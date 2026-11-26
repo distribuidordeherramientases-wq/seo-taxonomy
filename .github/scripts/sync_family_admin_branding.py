@@ -73,6 +73,8 @@ def main():
             if old_route not in result:
                 raise SystemExit("Canonical branding screen selector changed; review the FAQs route")
             result = result.replace(old_route, extra_route, 1)
+        if slug == "mail":
+            result = result.replace("return $page === $tc_brand_slug || 0 === strpos( $page, $tc_brand_slug . '-' );", "return $page === $tc_brand_slug;", 1)
         info_path = ROOT / ("taxocommerce-" + slug) / "includes/official-excerpt.php"
         info_result = official_template.replace("__TC_DOMAIN__", "taxocommerce-" + slug)
         if args.check:

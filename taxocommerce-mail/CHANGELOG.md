@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4 — 2026-11-26 — Standalone Lite navigation (#2975)
+- Always register Mail Lite as a top-level WordPress menu and remove optional Core module registration. Preserve the existing plugin basename, accounts, permissions, routes and mail features.
+- Restrict the Lite header to its own screen, preventing overlap with Mail Pro. Preserve the corporate style and local changelog.
+
 ## 0.1.3 — 2026-11-23 — Mail Lite edition and Tasks presentation (#2940)
 - Identify this standalone free plugin as **TaxoCommerce Mail Lite** in the WordPress plugin header, family catalog and shared three-zone admin header, and remove the duplicated admin title.
 - Preserve directory and plugin basename `taxocommerce-mail`, text domain, configured accounts, encrypted credentials, IMAP and SMTP behavior, and previous account options.
