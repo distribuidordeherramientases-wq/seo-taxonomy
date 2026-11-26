@@ -1,5 +1,11 @@
 # TaxoCommerce Import-Export Lite
 
+## [0.1.5] — 2026-11-25 — Importación y exportación por bloques (#2971)
+
+- Bloques independientes para páginas, productos, categorías de entradas, entradas, categorías de producto y ambos tipos de etiquetas. Sin selector de tipo, acción ni asignación manual.
+- Reconocimiento único de cabeceras en servidor, creación/actualización automática, campos omitidos visibles y relaciones mediante cabeceras canónicas. Los IDs externos no se utilizan.
+- Prechequeo y confirmación conservados. Exportación directa con campos opcionales plegados. Pruebas de esquema, interfaz y flujo AJAX.
+
 ## [0.1.4] — 2026-11-25 — Slugs de archivos multimedia (#2962)
 
 - Restringe get_page_by_path al tipo de contenido solicitado; evita confundir ZIP, imágenes y otros adjuntos con productos, páginas o entradas.
