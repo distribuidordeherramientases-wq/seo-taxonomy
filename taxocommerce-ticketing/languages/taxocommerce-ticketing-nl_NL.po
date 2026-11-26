@@ -18,19 +18,19 @@ msgstr "Bestaande tickets in deze WordPress-database: %d."
 
 #: includes/class-tctk-manuals.php:43
 msgid "A customer can reply from their unique tracking link without signing in. A closed ticket is read-only for the customer."
-msgstr ""
+msgstr "Een klant kan via de unieke opvolglink antwoorden zonder in te loggen. Een gesloten ticket is voor de klant alleen-lezen."
 
 #: includes/class-tctk-manuals.php:42
 msgid "A public reply is emailed to the customer. Select Internal note to add a private message without notifying the customer. Customers cannot read internal notes."
-msgstr ""
+msgstr "Een openbare reactie wordt per e-mail naar de klant verstuurd. Selecteer Interne notitie om een privébericht toe te voegen zonder de klant te informeren. Klanten kunnen interne notities niet lezen."
 
 #: includes/class-tctk-manuals.php:33
 msgid "A successful submission creates a ticket ID and stores the first message. If the form rejects a submission, it must not claim the ticket was registered."
-msgstr ""
+msgstr "Een geslaagde verzending maakt een ticket-ID aan en slaat het eerste bericht op. Als het formulier de inzending afwijst, mag het niet melden dat het ticket is geregistreerd."
 
 #: includes/class-tctk-manuals.php:31
 msgid "A visitor enters their name, email address, subject and message. Order number and product reference are optional when enabled."
-msgstr ""
+msgstr "De bezoeker voert naam, e-mailadres, onderwerp en bericht in. Bestelnummer en productreferentie zijn optioneel wanneer ze zijn ingeschakeld."
 
 #: includes/class-tctk-autotest-code.php:562
 msgid "AJAX handler may be missing nonce verification."
@@ -146,11 +146,11 @@ msgstr "Controleert plugintabellen, de shortcode en openbare handlers. Daarna wo
 
 #: includes/class-tctk-manuals.php:49
 msgid "Choose New ticket in the administration area. Internal tickets are visible only to staff who have ticket-management permission."
-msgstr ""
+msgstr "Kies Nieuw ticket in het beheergebied. Interne tickets zijn alleen zichtbaar voor medewerkers met rechten om tickets te beheren."
 
 #: includes/class-tctk-manuals.php:41
 msgid "Choose Open, In progress, Waiting for customer, Resolved or Closed. Assign a priority and permitted staff member, then save the ticket."
-msgstr ""
+msgstr "Kies Open, In behandeling, Wacht op klant, Opgelost of Gesloten. Wijs een prioriteit en een bevoegde medewerker toe en sla het ticket op."
 
 #: includes/class-tctk-ticketing.php:803
 msgid "Choose a form logo"
@@ -200,7 +200,7 @@ msgstr "Maak een intern ticket of namens iemand een klantticket aan. Interne tic
 
 #: includes/class-tctk-manuals.php:23
 msgid "Create an ordinary WordPress page, add [taxocommerce_ticket_form] and publish it. This is the customer request form, not the plugin product-information page."
-msgstr ""
+msgstr "Maak een gewone WordPress-pagina, voeg [taxocommerce_ticket_form] toe en publiceer deze. Dit is het aanvraagformulier voor klanten, niet de productinformatiepagina van de plugin."
 
 #: includes/class-tctk-ticketing.php:706
 #: includes/class-tctk-ticketing.php:717
@@ -221,7 +221,7 @@ msgstr "Zichtbaar voor de klant"
 
 #: includes/class-tctk-manuals.php:17
 msgid "Customers do not need a WordPress login to use a published ticket form. All tickets remain private; an external ticket is not a public listing."
-msgstr ""
+msgstr "Klanten hoeven niet in te loggen bij WordPress om een gepubliceerd ticketformulier te gebruiken. Alle tickets blijven privé; een extern ticket is geen openbare vermelding."
 
 #: includes/class-tctk-manuals.php:76
 msgid "Data model and storage"
@@ -249,7 +249,7 @@ msgstr "Details"
 
 #: includes/class-tctk-manuals.php:55
 msgid "Diagnose missing tickets"
-msgstr ""
+msgstr "Ontbrekende tickets onderzoeken"
 
 #: includes/class-tctk-autotest-code.php:563
 msgid "Direct-file access protection needs review."
@@ -301,7 +301,7 @@ msgstr ""
 
 #: includes/class-tctk-manuals.php:25
 msgid "Enter the URL of the published form page in Public form page URL. This is required when creating an external ticket from the staff administration interface; the public shortcode can be used independently."
-msgstr ""
+msgstr "Voer de URL van de gepubliceerde pagina in het veld voor de openbare formulierpagina in. Dit is vereist bij het aanmaken van een extern ticket vanuit de beheerinterface; de openbare shortcode kan onafhankelijk worden gebruikt."
 
 #: includes/class-tctk-autotest-code.php:768
 msgid "Errors detected"
@@ -321,7 +321,7 @@ msgstr "Gebeurtenis"
 
 #: includes/class-tctk-manuals.php:51
 msgid "External means customer-accessible by a private unguessable link, not accessible by searching for a ticket number."
-msgstr ""
+msgstr "Extern betekent dat de klant toegang heeft via een privélink die praktisch niet te raden is, niet door op ticketnummer te zoeken."
 
 #: includes/class-tctk-autotest-code.php:814
 msgid "File"
@@ -354,7 +354,7 @@ msgstr ""
 
 #: includes/class-tctk-manuals.php:50
 msgid "For customer-facing external tickets, provide a valid email and configure the form page URL first. The recipient receives their tracking link."
-msgstr ""
+msgstr "Geef voor externe klanttickets een geldig e-mailadres op en configureer eerst de URL van de formulierpagina. De ontvanger ontvangt de opvolglink."
 
 #: includes/class-tctk-ticketing.php:784
 msgid "Form heading"
@@ -392,7 +392,7 @@ msgstr "Hoe kunnen we je helpen?"
 
 #: includes/class-tctk-manuals.php:60
 msgid "If the event log shows ticket_created, search that ticket ID in the inbox. If it shows a rejection or insertion error, the request may not have been stored. Check the email service separately."
-msgstr ""
+msgstr "Als het logboek ticket_created toont, zoek dat ticket-ID dan op in de ticketinbox. Bij een afwijzing of invoegfout is het verzoek mogelijk niet opgeslagen. Controleer de maildienst afzonderlijk."
 
 #: includes/class-tctk-ticketing.php:171
 msgid "In progress"
@@ -420,7 +420,7 @@ msgstr "Intern"
 
 #: includes/class-tctk-manuals.php:47
 msgid "Internal and external tickets"
-msgstr ""
+msgstr "Interne en externe tickets"
 
 #: includes/class-tctk-ticketing.php:494
 msgid "Internal note"
@@ -466,7 +466,7 @@ msgstr "Ticket beheren en beantwoorden"
 
 #: includes/class-tctk-manuals.php:38
 msgid "Manage tickets and customer replies"
-msgstr ""
+msgstr "Tickets en klantreacties beheren"
 
 #: includes/class-tctk-ticketing.php:715
 msgid "Message"
@@ -547,7 +547,7 @@ msgstr ""
 
 #: includes/class-tctk-manuals.php:32
 msgid "One PDF, JPG, PNG or TXT attachment of up to 2 MB can be sent with each message when attachments are enabled."
-msgstr ""
+msgstr "Wanneer bijlagen zijn ingeschakeld, kan elk bericht één PDF-, JPG-, PNG- of TXT-bestand van maximaal 2 MB bevatten."
 
 #: includes/class-tctk-ticketing.php:170
 msgid "Open"
@@ -555,15 +555,15 @@ msgstr "Open"
 
 #: includes/class-tctk-manuals.php:57
 msgid "Open Tickets > Activity log to review recent successful creations, spam rejections, validation failures, database failures and mail failures. The log records ticket IDs and event codes, never message bodies or customer email addresses."
-msgstr ""
+msgstr "Open Tickets > Activiteitenlogboek om recente geslaagde aanmaakacties, spamafwijzingen en validatie-, database- en mailfouten te bekijken. Het logboek bevat ticket-ID's en gebeurteniscodes, nooit berichtinhoud of e-mailadressen van klanten."
 
 #: includes/class-tctk-manuals.php:58
 msgid "Open Tickets > Autocheck > Functionality Check. This creates, reads and removes a synthetic private ticket, message and attachment; no emails are sent and no customer records are intentionally changed."
-msgstr ""
+msgstr "Open Tickets > Zelfcontrole > Functiecontrole. Hiermee worden een privéticket voor de test, een bericht en een bijlage aangemaakt, gelezen en verwijderd; er worden geen e-mails verstuurd en geen klantgegevens opzettelijk gewijzigd."
 
 #: includes/class-tctk-manuals.php:40
 msgid "Open Tickets > Ticket inbox in WordPress or the corresponding Core extension entry. The list shows the newest activity first; select the subject to open a ticket."
-msgstr ""
+msgstr "Open Tickets > Ticketinbox in WordPress of de bijbehorende Core-uitbreiding. De lijst toont de nieuwste activiteit eerst; selecteer het onderwerp om een ticket te openen."
 
 #: includes/class-tctk-manuals.php:109
 msgid "Operational verification"
@@ -652,7 +652,7 @@ msgstr "URL van de openbare pagina met de ticketshortcode"
 
 #: includes/class-tctk-manuals.php:21
 msgid "Publish the customer form"
-msgstr ""
+msgstr "Het klantformulier publiceren"
 
 #: includes/class-tctk-autotest-code.php:633
 msgid "Recommended action:"
@@ -757,7 +757,7 @@ msgstr ""
 
 #: includes/class-tctk-manuals.php:29
 msgid "Send a request without an account"
-msgstr ""
+msgstr "Een verzoek zonder account versturen"
 
 #: includes/class-tctk-ticketing.php:533
 msgid "Send reply"
@@ -843,7 +843,7 @@ msgstr ""
 
 #: includes/class-tctk-manuals.php:59
 msgid "The Code Check tab scans this plugin in bounded batches and groups PHP, WordPress and security observations. It does not replace the official WordPress Plugin Check."
-msgstr ""
+msgstr "Het tabblad Codecontrole scant deze plugin in begrensde batches en groepeert bevindingen over PHP, WordPress en beveiliging. Het vervangt de officiële WordPress Plugin Check niet."
 
 #: includes/class-tctk-autotest-code.php:513
 msgid "The check failed but returned no source location."
@@ -879,7 +879,7 @@ msgstr ""
 
 #: includes/class-tctk-manuals.php:34
 msgid "The visitor receives a private tracking link by email. The site mail service must be configured and independently verified; a successful wp_mail() call is not proof of delivery."
-msgstr ""
+msgstr "De bezoeker ontvangt per e-mail een privélink voor opvolging. De maildienst van de site moet zijn geconfigureerd en afzonderlijk worden gecontroleerd; een geslaagde aanroep van wp_mail() bewijst geen aflevering."
 
 #: includes/class-tctk-ticketing.php:230
 msgid "This private ticket link is invalid or expired."
@@ -928,7 +928,7 @@ msgstr "Ticketnummer"
 
 #: includes/class-tctk-manuals.php:16
 msgid "Ticketing accepts product questions, shipping incidents, technical requests and internal follow-up tasks. It is independent of WooCommerce, TaxoCommerce Core and Tasks."
-msgstr ""
+msgstr "Ticketing verwerkt productvragen, verzendproblemen, technische verzoeken en interne opvolgtaken. Het is onafhankelijk van WooCommerce, TaxoCommerce Core en Tasks."
 
 #: includes/class-tctk-ticketing.php:915
 msgid "Ticketing administration tabs"
@@ -986,7 +986,7 @@ msgstr ""
 
 #: includes/class-tctk-manuals.php:24
 msgid "Under Tickets > Form settings, configure the heading, form descriptions, request categories, notification email, logo and blue/green/brown theme. Save changes."
-msgstr ""
+msgstr "Configureer onder Tickets > Formulierinstellingen de titel, formulierbeschrijvingen, verzoekcategorieën, het meldingsadres, logo en het blauwe, groene of bruine thema. Sla de wijzigingen op."
 
 #: includes/class-tctk-ticketing.php:874
 msgid "Updated"
@@ -1051,7 +1051,7 @@ msgstr "Waarschuwingen:"
 
 #: includes/class-tctk-manuals.php:14
 msgid "What Ticketing is for"
-msgstr ""
+msgstr "Waarvoor Ticketing dient"
 
 #: includes/class-tctk-ticketing.php:266
 msgid "Your details will only be used to manage this request. Do not attach passwords or payment card information."

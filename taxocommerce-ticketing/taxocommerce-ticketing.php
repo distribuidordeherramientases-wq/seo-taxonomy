@@ -29,9 +29,22 @@ TCTK_Autocheck::boot();
 TCTK_Autotest_Code::boot();
 TCTK_Event_Log::boot();
 
-// Register bundled catalogs for standalone ZIP installations before normal init handlers.
+// Prefer official WordPress language packs; fall back to bundled MO catalogs for standalone installations.
 add_action( 'init', static function () {
-    load_plugin_textdomain( 'taxocommerce-ticketing', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+    if ( is_textdomain_loaded( 'taxocommerce-ticketing' ) ) {
+        return;
+    }
+    $locale = sanitize_file_name( determine_locale() );
+    $official = WP_LANG_DIR . '/plugins/taxocommerce-ticketing-' . $locale;
+    if ( is_readable( $official . '.mo' ) || is_readable( $official . '.l10n.php' ) ) {
+        return;
+    }
+    $fallbacks = array( 'es' => 'es_ES', 'en' => 'en_US', 'fr' => 'fr_FR', 'de' => 'de_DE', 'nl' => 'nl_NL' );
+    $language = substr( strtolower( $locale ), 0, 2 );
+    $catalog = TCTK_PATH . 'languages/taxocommerce-ticketing-' . ( $fallbacks[ $language ] ?? $locale ) . '.mo';
+    if ( is_readable( $catalog ) ) {
+        load_textdomain( 'taxocommerce-ticketing', $catalog, $locale );
+    }
 }, 0 );
 
 register_activation_hook( __FILE__, array( 'TCTK_Ticketing', 'activate' ) );

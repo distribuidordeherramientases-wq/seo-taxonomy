@@ -55,7 +55,7 @@ The email includes a private reply link. This first version does not ingest inbo
 == Changelog ==
 
 = 0.1.3 =
-* Add a native gettext template with 256 static interface keys and five bundled PO/MO catalogs (es_ES, en_US, fr_FR, de_DE, nl_NL). First batch: 138 translated keys per locale (690 entries) covering ticket inbox, statuses, priorities, form defaults, fixed notifications, form settings, functional-check labels and activity-log controls. Leave 118 manual/code-check strings for later review. Register the local text domain on init; keep configured labels, ticket content, stored categories, access controls, notifications and database behavior unchanged. No production deployment.
+* Add a native gettext template with 256 static interface keys and five bundled PO/MO catalogs (es_ES, en_US, fr_FR, de_DE, nl_NL). First batch: 164 translated keys per locale (820 entries) covering ticket inbox, statuses, priorities, form defaults, fixed notifications, form settings, functional-check labels and activity-log controls. Include the user manual; leave 92 technical manual/code-check strings for later review. Prefer official language packs with bundled regional fallback on init; keep configured labels, ticket content, stored categories, access controls, notifications and database behavior unchanged. No production deployment.
 
 = 0.1.2 =
 * Fix false success when anti-spam rejects a request and preserve new message ID before timestamp updates.

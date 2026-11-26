@@ -18,19 +18,19 @@ msgstr "Tickets existentes en esta base de datos de WordPress: %d."
 
 #: includes/class-tctk-manuals.php:43
 msgid "A customer can reply from their unique tracking link without signing in. A closed ticket is read-only for the customer."
-msgstr ""
+msgstr "El cliente puede responder desde su enlace único de seguimiento sin iniciar sesión. Un ticket cerrado es de solo lectura para el cliente."
 
 #: includes/class-tctk-manuals.php:42
 msgid "A public reply is emailed to the customer. Select Internal note to add a private message without notifying the customer. Customers cannot read internal notes."
-msgstr ""
+msgstr "La respuesta pública se envía por correo al cliente. Selecciona Nota interna para añadir un mensaje privado sin notificar al cliente. Los clientes no pueden leer las notas internas."
 
 #: includes/class-tctk-manuals.php:33
 msgid "A successful submission creates a ticket ID and stores the first message. If the form rejects a submission, it must not claim the ticket was registered."
-msgstr ""
+msgstr "Un envío correcto genera un ID de ticket y guarda el primer mensaje. Si el formulario rechaza el envío, no debe indicar que se ha registrado el ticket."
 
 #: includes/class-tctk-manuals.php:31
 msgid "A visitor enters their name, email address, subject and message. Order number and product reference are optional when enabled."
-msgstr ""
+msgstr "El visitante introduce su nombre, correo electrónico, asunto y mensaje. El número de pedido y la referencia del producto son opcionales cuando están habilitados."
 
 #: includes/class-tctk-autotest-code.php:562
 msgid "AJAX handler may be missing nonce verification."
@@ -146,11 +146,11 @@ msgstr "Comprueba las tablas, el shortcode y los controladores públicos del plu
 
 #: includes/class-tctk-manuals.php:49
 msgid "Choose New ticket in the administration area. Internal tickets are visible only to staff who have ticket-management permission."
-msgstr ""
+msgstr "Selecciona Nuevo ticket en el área de administración. Los tickets internos solo son visibles para el personal con permiso para gestionar tickets."
 
 #: includes/class-tctk-manuals.php:41
 msgid "Choose Open, In progress, Waiting for customer, Resolved or Closed. Assign a priority and permitted staff member, then save the ticket."
-msgstr ""
+msgstr "Elige Abierto, En curso, A la espera del cliente, Resuelto o Cerrado. Asigna una prioridad y un miembro del personal autorizado; después guarda el ticket."
 
 #: includes/class-tctk-ticketing.php:803
 msgid "Choose a form logo"
@@ -200,7 +200,7 @@ msgstr "Crea un ticket interno o un ticket de cliente en nombre de otra persona.
 
 #: includes/class-tctk-manuals.php:23
 msgid "Create an ordinary WordPress page, add [taxocommerce_ticket_form] and publish it. This is the customer request form, not the plugin product-information page."
-msgstr ""
+msgstr "Crea una página normal de WordPress, añade [taxocommerce_ticket_form] y publícala. Es el formulario de solicitudes del cliente, no la página de información comercial del plugin."
 
 #: includes/class-tctk-ticketing.php:706
 #: includes/class-tctk-ticketing.php:717
@@ -221,7 +221,7 @@ msgstr "Para el cliente"
 
 #: includes/class-tctk-manuals.php:17
 msgid "Customers do not need a WordPress login to use a published ticket form. All tickets remain private; an external ticket is not a public listing."
-msgstr ""
+msgstr "Los clientes no necesitan iniciar sesión en WordPress para utilizar un formulario de tickets publicado. Todos los tickets son privados; un ticket externo no es una publicación pública."
 
 #: includes/class-tctk-manuals.php:76
 msgid "Data model and storage"
@@ -249,7 +249,7 @@ msgstr "Detalles"
 
 #: includes/class-tctk-manuals.php:55
 msgid "Diagnose missing tickets"
-msgstr ""
+msgstr "Diagnosticar tickets que no aparecen"
 
 #: includes/class-tctk-autotest-code.php:563
 msgid "Direct-file access protection needs review."
@@ -301,7 +301,7 @@ msgstr ""
 
 #: includes/class-tctk-manuals.php:25
 msgid "Enter the URL of the published form page in Public form page URL. This is required when creating an external ticket from the staff administration interface; the public shortcode can be used independently."
-msgstr ""
+msgstr "Introduce la URL de la página publicada en el campo de URL de la página pública del formulario. Es necesaria para crear un ticket externo desde la interfaz de administración del personal; el shortcode público se puede utilizar de forma independiente."
 
 #: includes/class-tctk-autotest-code.php:768
 msgid "Errors detected"
@@ -321,7 +321,7 @@ msgstr "Evento"
 
 #: includes/class-tctk-manuals.php:51
 msgid "External means customer-accessible by a private unguessable link, not accessible by searching for a ticket number."
-msgstr ""
+msgstr "Externo significa que el cliente puede acceder mediante un enlace privado imposible de adivinar de forma práctica, no mediante una búsqueda por número de ticket."
 
 #: includes/class-tctk-autotest-code.php:814
 msgid "File"
@@ -354,7 +354,7 @@ msgstr ""
 
 #: includes/class-tctk-manuals.php:50
 msgid "For customer-facing external tickets, provide a valid email and configure the form page URL first. The recipient receives their tracking link."
-msgstr ""
+msgstr "Para los tickets externos destinados al cliente, proporciona un correo válido y configura primero la URL de la página del formulario. El destinatario recibe su enlace de seguimiento."
 
 #: includes/class-tctk-ticketing.php:784
 msgid "Form heading"
@@ -392,7 +392,7 @@ msgstr "¿En qué podemos ayudarte?"
 
 #: includes/class-tctk-manuals.php:60
 msgid "If the event log shows ticket_created, search that ticket ID in the inbox. If it shows a rejection or insertion error, the request may not have been stored. Check the email service separately."
-msgstr ""
+msgstr "Si el registro muestra ticket_created, busca ese ID en la bandeja de tickets. Si muestra un rechazo o un error de inserción, puede que no se haya guardado la solicitud. Comprueba el servicio de correo por separado."
 
 #: includes/class-tctk-ticketing.php:171
 msgid "In progress"
@@ -420,7 +420,7 @@ msgstr "Interno"
 
 #: includes/class-tctk-manuals.php:47
 msgid "Internal and external tickets"
-msgstr ""
+msgstr "Tickets internos y externos"
 
 #: includes/class-tctk-ticketing.php:494
 msgid "Internal note"
@@ -466,7 +466,7 @@ msgstr "Gestionar ticket y responder"
 
 #: includes/class-tctk-manuals.php:38
 msgid "Manage tickets and customer replies"
-msgstr ""
+msgstr "Gestionar tickets y respuestas de clientes"
 
 #: includes/class-tctk-ticketing.php:715
 msgid "Message"
@@ -547,7 +547,7 @@ msgstr ""
 
 #: includes/class-tctk-manuals.php:32
 msgid "One PDF, JPG, PNG or TXT attachment of up to 2 MB can be sent with each message when attachments are enabled."
-msgstr ""
+msgstr "Cuando los adjuntos están habilitados, cada mensaje puede incluir un archivo PDF, JPG, PNG o TXT de hasta 2 MB."
 
 #: includes/class-tctk-ticketing.php:170
 msgid "Open"
@@ -555,15 +555,15 @@ msgstr "Abierto"
 
 #: includes/class-tctk-manuals.php:57
 msgid "Open Tickets > Activity log to review recent successful creations, spam rejections, validation failures, database failures and mail failures. The log records ticket IDs and event codes, never message bodies or customer email addresses."
-msgstr ""
+msgstr "Abre Tickets > Registro de actividad para revisar las creaciones correctas recientes, los rechazos por spam y los errores de validación, base de datos o correo. El registro contiene IDs de tickets y códigos de eventos, nunca el cuerpo de los mensajes ni correos de clientes."
 
 #: includes/class-tctk-manuals.php:58
 msgid "Open Tickets > Autocheck > Functionality Check. This creates, reads and removes a synthetic private ticket, message and attachment; no emails are sent and no customer records are intentionally changed."
-msgstr ""
+msgstr "Abre Tickets > Autochequeo > Chequeo de funcionalidades. Se crea, lee y elimina un ticket privado de prueba, un mensaje y un adjunto; no se envían correos ni se modifican intencionadamente registros de clientes."
 
 #: includes/class-tctk-manuals.php:40
 msgid "Open Tickets > Ticket inbox in WordPress or the corresponding Core extension entry. The list shows the newest activity first; select the subject to open a ticket."
-msgstr ""
+msgstr "Abre Tickets > Bandeja de tickets en WordPress o la entrada correspondiente de la extensión de Core. La lista muestra primero la actividad más reciente; selecciona el asunto para abrir un ticket."
 
 #: includes/class-tctk-manuals.php:109
 msgid "Operational verification"
@@ -652,7 +652,7 @@ msgstr "URL de la página pública que contiene el shortcode de tickets"
 
 #: includes/class-tctk-manuals.php:21
 msgid "Publish the customer form"
-msgstr ""
+msgstr "Publicar el formulario de atención al cliente"
 
 #: includes/class-tctk-autotest-code.php:633
 msgid "Recommended action:"
@@ -757,7 +757,7 @@ msgstr ""
 
 #: includes/class-tctk-manuals.php:29
 msgid "Send a request without an account"
-msgstr ""
+msgstr "Enviar una solicitud sin cuenta"
 
 #: includes/class-tctk-ticketing.php:533
 msgid "Send reply"
@@ -843,7 +843,7 @@ msgstr ""
 
 #: includes/class-tctk-manuals.php:59
 msgid "The Code Check tab scans this plugin in bounded batches and groups PHP, WordPress and security observations. It does not replace the official WordPress Plugin Check."
-msgstr ""
+msgstr "La pestaña Chequeo de código analiza este plugin en lotes limitados y agrupa las observaciones de PHP, WordPress y seguridad. No sustituye a la herramienta oficial WordPress Plugin Check."
 
 #: includes/class-tctk-autotest-code.php:513
 msgid "The check failed but returned no source location."
@@ -879,7 +879,7 @@ msgstr ""
 
 #: includes/class-tctk-manuals.php:34
 msgid "The visitor receives a private tracking link by email. The site mail service must be configured and independently verified; a successful wp_mail() call is not proof of delivery."
-msgstr ""
+msgstr "El visitante recibe por correo un enlace privado de seguimiento. El servicio de correo del sitio debe estar configurado y verificarse de forma independiente; una llamada correcta a wp_mail() no demuestra la entrega."
 
 #: includes/class-tctk-ticketing.php:230
 msgid "This private ticket link is invalid or expired."
@@ -928,7 +928,7 @@ msgstr "Número de ticket"
 
 #: includes/class-tctk-manuals.php:16
 msgid "Ticketing accepts product questions, shipping incidents, technical requests and internal follow-up tasks. It is independent of WooCommerce, TaxoCommerce Core and Tasks."
-msgstr ""
+msgstr "Ticketing permite gestionar consultas sobre productos, incidencias de envío, solicitudes técnicas y tareas de seguimiento interno. Es independiente de WooCommerce, TaxoCommerce Core y Tasks."
 
 #: includes/class-tctk-ticketing.php:915
 msgid "Ticketing administration tabs"
@@ -986,7 +986,7 @@ msgstr ""
 
 #: includes/class-tctk-manuals.php:24
 msgid "Under Tickets > Form settings, configure the heading, form descriptions, request categories, notification email, logo and blue/green/brown theme. Save changes."
-msgstr ""
+msgstr "En Tickets > Ajustes del formulario, configura el título, las descripciones del formulario, las categorías de solicitudes, el correo de notificaciones, el logotipo y el tema azul, verde o marrón. Guarda los cambios."
 
 #: includes/class-tctk-ticketing.php:874
 msgid "Updated"
@@ -1051,7 +1051,7 @@ msgstr "Avisos:"
 
 #: includes/class-tctk-manuals.php:14
 msgid "What Ticketing is for"
-msgstr ""
+msgstr "Para qué sirve Ticketing"
 
 #: includes/class-tctk-ticketing.php:266
 msgid "Your details will only be used to manage this request. Do not attach passwords or payment card information."

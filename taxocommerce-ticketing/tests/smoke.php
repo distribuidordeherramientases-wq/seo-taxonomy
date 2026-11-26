@@ -41,7 +41,7 @@ foreach ( $expected as $locale => $values ) {
         throw new RuntimeException( 'Missing catalog: ' . $locale );
     }
     $h = unpack( 'Vmagic/Vrevision/Vcount/Vorig/Vtrans/Vhashsize/Vhash', substr( $mo, 0, 28 ) );
-    if ( 0x950412de !== $h['magic'] || 139 !== $h['count'] || $h['orig'] + $h['count'] * 8 > strlen( $mo ) || $h['trans'] + $h['count'] * 8 > strlen( $mo ) ) {
+    if ( 0x950412de !== $h['magic'] || 165 !== $h['count'] || $h['orig'] + $h['count'] * 8 > strlen( $mo ) || $h['trans'] + $h['count'] * 8 > strlen( $mo ) ) {
         throw new RuntimeException( 'Invalid catalog header: ' . $locale );
     }
     $catalog = array();
@@ -64,6 +64,9 @@ foreach ( $expected as $locale => $values ) {
         if ( ( $catalog[$key] ?? null ) !== $values[$index] ) {
             throw new RuntimeException( 'Incorrect translation: ' . $locale . ' / ' . $key );
         }
+    }
+    if ( empty( $catalog['What Ticketing is for'] ) || empty( $catalog['Publish the customer form'] ) ) {
+        throw new RuntimeException( 'Missing user manual: ' . $locale );
     }
     if ( false === strpos( $catalog['Ticket #%1$d received: %2$s'] ?? '', '%1$d' ) || false === strpos( $catalog['Ticket #%1$d received: %2$s'] ?? '', '%2$s' ) ) {
         throw new RuntimeException( 'Missing format placeholders: ' . $locale );
