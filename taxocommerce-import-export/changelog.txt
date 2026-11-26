@@ -1,3 +1,6 @@
+= 0.4.39 (2026-11-26) =
+* Restrict administration branding to the full plugin's exact screen so Lite displays only its own header. Issue #2985.
+
 = 0.4.35 (2026-11-18) =
 * Accept an append-only page CSV with record_type,id,slug,content_append; validate existing page identity and add sanitized HTML without replacing other fields. Reimports avoid duplicate ZIP links. Issue #2804.
 

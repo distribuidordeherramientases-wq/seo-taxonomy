@@ -1,3 +1,9 @@
+## [0.4.39] — 2026-11-26 — Independent administration header (#2985)
+
+- Restrict the full Import-Export header and its branding hooks to its own exact registered admin route. Independent Lite screens no longer display the full plugin header.
+- Preserve the full plugin header on its own screen and all existing CSV, Media and queue functionality. Lite remains unchanged.
+- Keep the canonical header generator consistent and test route isolation.
+
 ## [0.4.38] — 2026-11-24 — Independent basic WooCommerce import (#2950)
 
 - The Basic/Individual importer defaults to creating missing WordPress or WooCommerce records (with SKU/slug matching to update existing products); the explicit update-only mode is unchanged.
