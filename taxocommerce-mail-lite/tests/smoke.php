@@ -2,7 +2,7 @@
 /**
  * Offline smoke: account encryption, validation and non-executing MIME parsing.
  *
- * Run: php taxocommerce-mail/tests/smoke.php
+ * Run: php taxocommerce-mail-lite/tests/smoke.php
  */
 define( 'ABSPATH', __DIR__ . '/' );
 $GLOBALS['tcmail_options'] = array();

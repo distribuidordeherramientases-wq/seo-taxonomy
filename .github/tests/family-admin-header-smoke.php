@@ -94,7 +94,7 @@ $slugs = array(
     'auditor', 'redirects', 'faqs', 'images', 'social', 'database',
     'campaigns', 'suppliers', 'scrappers', 'logistica', 'vocabulary',
     'facturacion', 'dependiente', 'google-bing', 'distribution',
-    'import-export', 'system-check', 'templates', 'tasks', 'customers', 'ticketing', 'mail',
+    'import-export', 'system-check', 'templates', 'tasks', 'customers', 'ticketing', 'mail-lite',
 );
 $root = dirname( __DIR__, 2 );
 foreach ( $slugs as $slug ) {
@@ -105,7 +105,7 @@ foreach ( $slugs as $slug ) {
 tc_test_assert( count( $tc_test_actions['admin_notices'] ?? array() ) === count( $slugs ), 'One header registration per standalone plugin.' );
 tc_test_assert( count( $tc_test_actions['admin_enqueue_scripts'] ?? array() ) === count( $slugs ), 'One style registration per standalone plugin.' );
 foreach ( $slugs as $slug ) {
-    $_GET['page'] = 'taxocommerce-' . $slug;
+    $_GET['page'] = 'mail-lite' === $slug ? 'taxocommerce-mail' : 'taxocommerce-' . $slug;
     ob_start();
     foreach ( $tc_test_actions['admin_notices'] as $callback ) {
         $callback();
