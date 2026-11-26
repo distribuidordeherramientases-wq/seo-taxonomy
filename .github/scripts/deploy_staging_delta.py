@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Deploy changed files of already installed TaxoCommerce plugins to both permitted WordPress sites.
 
-Baseline: last successful staging workflow, so a failed run cannot lose its changes.
+Baseline: last successful direct staging push, so cancelled runs and PR-only checks cannot lose changes.
 Deletion of runtime files is blocked until a separately reviewed migration.
 """
 import argparse
@@ -93,7 +93,7 @@ def changed_files(base, head, selected_slug=None):
 def last_successful_base(repo, head, token):
     if not token:
         raise ValueError("GITHUB_TOKEN is required to find a verified baseline")
-    url = f"https://api.github.com/repos/{repo}/actions/workflows/deploy-staging.yml/runs?branch=staging&status=success&per_page=100"
+    url = f"https://api.github.com/repos/{repo}/actions/workflows/deploy-staging.yml/runs?branch=staging&event=push&status=success&per_page=100"
     request = urllib.request.Request(url, headers={
         "Authorization": "Bearer " + token,
         "Accept": "application/vnd.github+json",
@@ -102,6 +102,10 @@ def last_successful_base(repo, head, token):
     with urllib.request.urlopen(request, timeout=25) as response:
         payload = json.load(response)
     for run in payload.get("workflow_runs", []):
+        # A green pull-request run validates code but skips all FTPS jobs.
+        # Only a successful direct staging push can advance the delivery baseline.
+        if run.get("event") != "push" or run.get("head_branch") != "staging" or run.get("status") != "completed" or run.get("conclusion") != "success":
+            continue
         candidate = run.get("head_sha", "")
         if SHA.fullmatch(candidate) and subprocess.run(
             ["git", "merge-base", "--is-ancestor", candidate, head], check=False
