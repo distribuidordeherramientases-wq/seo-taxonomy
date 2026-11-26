@@ -25,11 +25,11 @@ final class Admin {
 	}
 
 	public static function url( $args = array() ) {
-		return add_query_arg( array_merge( array( 'page' => SLUG ), $args ), admin_url( 'admin.php' ) );
+		return add_query_arg( array_merge( array( 'page' => ADMIN_SLUG ), $args ), admin_url( 'admin.php' ) );
 	}
 
 	public static function menu() {
-		add_menu_page( __( 'Import-Export Pro', 'taxocommerce-import-export-pro' ), __( 'Import-Export Pro', 'taxocommerce-import-export-pro' ), 'manage_woocommerce', SLUG, array( __CLASS__, 'render' ), 'dashicons-database-import', 58 );
+		add_menu_page( __( 'Import-Export Pro', 'taxocommerce-import-export-pro' ), __( 'Import-Export Pro', 'taxocommerce-import-export-pro' ), 'manage_woocommerce', ADMIN_SLUG, array( __CLASS__, 'render' ), 'dashicons-database-import', 58 );
 	}
 
 	public static function labels() {
@@ -72,7 +72,7 @@ final class Admin {
 	public static function assets() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin screen selector.
 		$page = isset( $_GET['page'] ) && is_string( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-		if ( SLUG !== $page ) {
+		if ( ADMIN_SLUG !== $page ) {
 			return;
 		}
 		wp_enqueue_style( SLUG, plugins_url( '../assets/admin.css', __FILE__ ), array(), VERSION );
