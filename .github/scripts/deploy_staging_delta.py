@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Deploy changed files of already installed TaxoCommerce plugins to both permitted WordPress sites.
 
-Baseline: last successful staging workflow, so a failed run cannot lose its changes.
+Baseline: last successful direct staging push, so cancelled runs and PR-only checks cannot lose changes.
 Deletion of runtime files is blocked until a separately reviewed migration.
 """
 import argparse
@@ -71,6 +71,10 @@ def changed_files(base, head, selected_slug=None):
             # Retired bridge has no deployable files, even for a deletion commit.
             continue
         if status.startswith("D"):
+            # #2984: preserve the previous installation for native WP cutover.
+            if (slug == "taxocommerce-mail" and not Path(slug).exists()
+                    and Path("taxocommerce-mail-lite/taxocommerce-mail-lite.php").is_file()):
+                continue
             changes.setdefault(slug, set())
             if selected_slug == slug:
                 raise ValueError(f"Deletion requires a separately reviewed migration: {path}")
@@ -93,7 +97,7 @@ def changed_files(base, head, selected_slug=None):
 def last_successful_base(repo, head, token):
     if not token:
         raise ValueError("GITHUB_TOKEN is required to find a verified baseline")
-    url = f"https://api.github.com/repos/{repo}/actions/workflows/deploy-staging.yml/runs?branch=staging&status=success&per_page=100"
+    url = f"https://api.github.com/repos/{repo}/actions/workflows/deploy-staging.yml/runs?branch=staging&event=push&status=success&per_page=100"
     request = urllib.request.Request(url, headers={
         "Authorization": "Bearer " + token,
         "Accept": "application/vnd.github+json",
@@ -102,6 +106,10 @@ def last_successful_base(repo, head, token):
     with urllib.request.urlopen(request, timeout=25) as response:
         payload = json.load(response)
     for run in payload.get("workflow_runs", []):
+        # A green pull-request run validates code but skips all FTPS jobs.
+        # Only a successful direct staging push can advance the delivery baseline.
+        if run.get("event") != "push" or run.get("head_branch") != "staging" or run.get("status") != "completed" or run.get("conclusion") != "success":
+            continue
         candidate = run.get("head_sha", "")
         if SHA.fullmatch(candidate) and subprocess.run(
             ["git", "merge-base", "--is-ancestor", candidate, head], check=False
@@ -276,7 +284,18 @@ def upload_plugin(ftp, target, slug, files, required):
     except ftplib.error_perm as exc:
         if not str(exc).startswith("550"):
             raise
-        if (slug in ("taxocommerce-tasks", "taxocommerce-customers", "taxocommerce-ticketing", "taxocommerce-mail", "taxocommerce-mail-pro", "taxocommerce-import-export-lite") and target in ("staging", "focazul")) or (
+        if slug == "taxocommerce-mail-lite":
+            # Stage a replacement only where the previous edition exists.
+            parent = remote_plugin_dir(target, slug).rsplit(slug + "/", 1)[0]
+            ftp.cwd(parent)
+            if existing_file_hash(ftp, "taxocommerce-mail/taxocommerce-mail.php") is None:
+                print(f"SKIP {target}/{slug}: previous Mail installation absent")
+                return
+            ftp.mkd(slug)
+            ftp.cwd(slug)
+            new_plugin_install = True
+            print(f"STAGE {target}/{slug}: #2984 replacement; legacy preserved")
+        elif (slug in ("taxocommerce-tasks", "taxocommerce-customers", "taxocommerce-ticketing", "taxocommerce-mail", "taxocommerce-mail-pro", "taxocommerce-import-export-lite") and target in ("staging", "focazul")) or (
             slug == "taxocommerce-accounting" and target == "staging"
         ):
             plugin_parent = remote_plugin_dir(target, slug).rsplit(slug + "/", 1)[0]
@@ -300,10 +319,15 @@ def upload_plugin(ftp, target, slug, files, required):
             raise RuntimeError(f"{slug}: first-install entrypoint missing from tracked sources")
     # Preexisting plugins must have the entrypoint; never repair unknown installs.
     if not new_plugin_install and existing_file_hash(ftp, slug + ".php") is None:
-        if not required:
+        if slug == "taxocommerce-mail-lite":
+            if existing_file_hash(ftp, "../taxocommerce-mail/taxocommerce-mail.php") is None:
+                raise RuntimeError(f"{slug}: incomplete replacement without previous Mail installation")
+            files = plugin_source_files(slug)
+        elif not required:
             print(f"SKIP {slug}: plugin entrypoint absent on this WordPress")
             return
-        raise RuntimeError(f"{slug}: expected installed plugin entrypoint is missing")
+        else:
+            raise RuntimeError(f"{slug}: expected installed plugin entrypoint is missing")
     for relative in files:
         source = Path(slug) / relative
         data_hash = hashlib.sha256(source.read_bytes()).hexdigest()

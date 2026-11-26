@@ -20,7 +20,7 @@ class MailPackageTests(unittest.TestCase):
             pack.SITES,
             ("staging.distribuidordeherramientas.es", "asociacionfocazul"),
         )
-        self.assertEqual(pack.SLUG, "taxocommerce-mail")
+        self.assertEqual(pack.SLUG, "taxocommerce-mail-lite")
 
     def test_only_installable_mail_files_in_zip(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -32,26 +32,31 @@ class MailPackageTests(unittest.TestCase):
                 "<?php\n/**\n * Plugin Name: TaxoCommerce Mail\n * Version: 0.1.1\n * Requires PHP: 7.4\n */",
                 encoding="utf-8",
             )
+            (plugin / "CHANGELOG.md").write_text("# Changelog", encoding="utf-8")
             (plugin / "includes" / "file.php").write_text("<?php\n", encoding="utf-8")
             (plugin / "tests" / "not-distributed.php").write_text("<?php\n", encoding="utf-8")
             data, info = pack.package_mail(root)
             self.assertEqual(info["version"], "0.1.1")
             with zipfile.ZipFile(io.BytesIO(data)) as bundle:
                 paths = bundle.namelist()
-            self.assertIn("taxocommerce-mail/taxocommerce-mail.php", paths)
-            self.assertIn("taxocommerce-mail/includes/file.php", paths)
+            self.assertIn("taxocommerce-mail-lite/taxocommerce-mail-lite.php", paths)
+            self.assertIn("taxocommerce-mail-lite/includes/file.php", paths)
+            self.assertIn("taxocommerce-mail-lite/CHANGELOG.md", paths)
             self.assertFalse(any("/tests/" in path for path in paths))
 
     def test_lite_branding_and_stable_identity(self):
         root = Path(__file__).resolve().parents[2]
-        entry = (root / "taxocommerce-mail/taxocommerce-mail.php").read_text(encoding="utf-8")
-        admin = (root / "taxocommerce-mail/includes/class-tcmail-admin.php").read_text(encoding="utf-8")
-        readme = (root / "taxocommerce-mail/readme.txt").read_text(encoding="utf-8")
+        entry = (root / "taxocommerce-mail-lite/taxocommerce-mail-lite.php").read_text(encoding="utf-8")
+        admin = (root / "taxocommerce-mail-lite/includes/class-tcmail-admin.php").read_text(encoding="utf-8")
+        readme = (root / "taxocommerce-mail-lite/readme.txt").read_text(encoding="utf-8")
         self.assertIn("Plugin Name: TaxoCommerce Mail Lite", entry)
-        self.assertIn("Version: 0.1.4", entry)
-        self.assertIn("Stable tag: 0.1.4", readme)
-        self.assertIn("Text Domain: taxocommerce-mail", entry)
+        self.assertIn("Version: 0.1.5", entry)
+        self.assertIn("Stable tag: 0.1.5", readme)
+        self.assertIn("Text Domain: taxocommerce-mail-lite", entry)
         self.assertIn("includes/class-tcmail-accounts.php", entry)
+        self.assertIn("taxocommerce-mail/taxocommerce-mail.php", entry)
+        self.assertIn("tcmail_accounts", (root / "taxocommerce-mail-lite/includes/class-tcmail-accounts.php").read_text(encoding="utf-8"))
+        self.assertFalse((root / "taxocommerce-mail").exists())
         self.assertNotIn("taxocommerce_core_family_extensions", entry)
         self.assertNotIn("taxocommerce_core_register_modules", entry)
         self.assertNotIn("add_submenu_page(", admin)
@@ -62,7 +67,7 @@ class MailPackageTests(unittest.TestCase):
         self.assertNotIn("'<div class=\"wrap\"><h1>'", admin)
 
     def test_translated_lite_and_pro_catalogs(self):
-        root = Path(__file__).resolve().parents[2] / "taxocommerce-mail/languages"
+        root = Path(__file__).resolve().parents[2] / "taxocommerce-mail-lite/languages"
         source = (
             "The Pro edition is planned as an optional separate add-on. "
             "Lite is free and fully functional as described in its manuals; "
@@ -70,7 +75,7 @@ class MailPackageTests(unittest.TestCase):
         )
         for locale in ("es_ES", "en_US", "fr_FR", "de_DE", "nl_NL"):
             with self.subTest(locale=locale):
-                with (root / ("taxocommerce-mail-" + locale + ".mo")).open("rb") as handle:
+                with (root / ("taxocommerce-mail-lite-" + locale + ".mo")).open("rb") as handle:
                     catalog = gettext.GNUTranslations(handle)
                 value = catalog.gettext(source)
                 self.assertTrue(value)
@@ -90,7 +95,7 @@ class MailPackageTests(unittest.TestCase):
             "version": "0.1.1", "sha256": "mail-only", "size": 123
         }))
         self.assertEqual(existing["plugins"]["taxocommerce-ticketing"], updated["plugins"]["taxocommerce-ticketing"])
-        self.assertEqual("mail-only", updated["plugins"]["taxocommerce-mail"]["sha256"])
+        self.assertEqual("mail-only", updated["plugins"]["taxocommerce-mail-lite"]["sha256"])
         with self.assertRaises(ValueError):
             pack.updated_manifest(b"{}", {})
 

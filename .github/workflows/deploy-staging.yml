@@ -93,7 +93,7 @@ jobs:
             if [ "$slug" = "taxocommerce-ticketing" ]; then
               php "$slug/tests/smoke.php"
             fi
-            if [ "$slug" = "taxocommerce-mail" ]; then
+            if [ "$slug" = "taxocommerce-mail-lite" ]; then
               php "$slug/tests/smoke.php"
             fi
             if [ "$slug" = "taxocommerce-mail-pro" ]; then
@@ -685,7 +685,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --name-only HEAD^ HEAD | grep -Eq '^(taxocommerce-mail/|\.github/scripts/publish_mail_package\.py)'; then
+          if git diff --name-only HEAD^ HEAD | grep -Eq '^(taxocommerce-mail(-lite)?/|\.github/scripts/publish_mail_package\.py)'; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
