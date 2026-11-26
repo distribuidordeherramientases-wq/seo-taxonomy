@@ -13,7 +13,7 @@ $tc_brand_info = require __DIR__ . '/official-excerpt.php';
 $tc_brand_on_screen = static function () use ( $tc_brand_slug ) {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only WordPress admin route.
     $page = isset( $_GET['page'] ) && is_string( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-    return $page === $tc_brand_slug;
+    return 'taxocommerce-mail' === $page; // Preserve the existing administration route.
 };
 
 add_filter( 'admin_body_class', static function ( $classes ) use ( $tc_brand_on_screen ) {
@@ -67,8 +67,8 @@ add_action( 'admin_notices', static function () use ( $tc_brand_on_screen, $tc_b
     $released = (string) ( $plugin['released'] ?? '' );
     // Prefer native plugin gettext catalogs, with predictable fallbacks for
     // the five supported base languages until new catalogs are compiled.
-    $tc_version_label = __( 'Version', 'taxocommerce-mail' );
-    $tc_updated_label = __( 'Last updated', 'taxocommerce-mail' );
+    $tc_version_label = __( 'Version', 'taxocommerce-mail-lite' );
+    $tc_updated_label = __( 'Last updated', 'taxocommerce-mail-lite' );
     $tc_languages = array(
         'es' => array( 'Versión', 'Última actualización' ),
         'en' => array( 'Version', 'Last updated' ),
@@ -101,7 +101,7 @@ add_action( 'admin_notices', static function () use ( $tc_brand_on_screen, $tc_b
         'de' => 'Versionsverlauf und Verbesserungen',
         'nl' => 'Versiegeschiedenis en verbeteringen',
     );
-    $tc_history_label = __( 'Version history and improvements', 'taxocommerce-mail' );
+    $tc_history_label = __( 'Version history and improvements', 'taxocommerce-mail-lite' );
     if ( 'Version history and improvements' === $tc_history_label && isset( $tc_history_labels[ $tc_language ] ) ) {
         $tc_history_label = $tc_history_labels[ $tc_language ];
     }

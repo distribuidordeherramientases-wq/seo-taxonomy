@@ -1,3 +1,6 @@
+= 0.1.4 =
+* Complete all 256 existing gettext keys in five locales (460 additional entries): technical manual, code-check controls and diagnostic guidance. Rebuild and validate five MO catalogs against the POT and preserve prior translations, identifiers, configured content and behavior. Coverage refers to extracted gettext keys only; review hardcoded interface strings separately. No production deployment.
+
 = 0.1.3 =
 * Add a native gettext template with 256 static interface keys and five bundled PO/MO catalogs (es_ES, en_US, fr_FR, de_DE, nl_NL). First batch: 164 translated keys per locale (820 entries) covering ticket inbox, statuses, priorities, form defaults, fixed notifications, form settings, functional-check labels and activity-log controls. Include the user manual; leave 92 technical manual/code-check strings for later review. Prefer official language packs with bundled regional fallback on init; keep configured labels, ticket content, stored categories, access controls, notifications and database behavior unchanged. No production deployment.
 

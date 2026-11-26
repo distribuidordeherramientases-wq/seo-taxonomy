@@ -32,7 +32,7 @@ PLUGINS = {
     "tasks": ("dashicons-clipboard", "Private task management, calendar and indicators."),
     "customers": ("dashicons-groups", "Private customer directory and contact management."),
     "ticketing": ("dashicons-tickets-alt", "Customer and internal support ticket management."),
-    "mail": ("dashicons-email-alt", "Private multi-account email client for secure hosting inboxes and SMTP."),
+    "mail-lite": ("dashicons-email-alt", "Private multi-account email client for secure hosting inboxes and SMTP."),
 }
 
 def main():
@@ -73,7 +73,9 @@ def main():
             if old_route not in result:
                 raise SystemExit("Canonical branding screen selector changed; review the FAQs route")
             result = result.replace(old_route, extra_route, 1)
-        if slug in ("mail", "import-export"):
+        if slug == "mail-lite":
+            result = result.replace("return $page === $tc_brand_slug || 0 === strpos( $page, $tc_brand_slug . '-' );", "return 'taxocommerce-mail' === $page; // Preserve the existing administration route.", 1)
+        if slug == "import-export":
             result = result.replace("return $page === $tc_brand_slug || 0 === strpos( $page, $tc_brand_slug . '-' );", "return $page === $tc_brand_slug;", 1)
         info_path = ROOT / ("taxocommerce-" + slug) / "includes/official-excerpt.php"
         info_result = official_template.replace("__TC_DOMAIN__", "taxocommerce-" + slug)

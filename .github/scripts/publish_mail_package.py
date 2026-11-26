@@ -19,7 +19,7 @@ from package_staging_plugins_for_focazul import (
     ftp_root, read_file, verify_zip, write_atomic,
 )
 
-SLUG = "taxocommerce-mail"
+SLUG = "taxocommerce-mail-lite"
 SITES = ("staging.distribuidordeherramientas.es", "asociacionfocazul")
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -32,7 +32,7 @@ def package_mail(root=ROOT):
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, mode="w", compression=zipfile.ZIP_DEFLATED) as bundle:
         for path in sorted(folder.rglob("*")):
-            if include(path, folder):
+            if include(path, folder) or (path == folder / "CHANGELOG.md" and path.is_file() and not path.is_symlink()):
                 bundle.write(path, (Path(SLUG) / path.relative_to(folder)).as_posix())
     data = stream.getvalue()
     info = verify_zip(SLUG, data)

@@ -17,7 +17,7 @@ return new class() {
      * @return string
      */
     private function label( $locale ) {
-        $label = __( 'Official plugin page', 'taxocommerce-mail' );
+        $label = __( 'Official plugin page', 'taxocommerce-mail-lite' );
         if ( 'Official plugin page' !== $label ) {
             return $label;
         }

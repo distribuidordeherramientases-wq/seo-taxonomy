@@ -1,7 +1,7 @@
 # TaxoCommerce Ticketing gettext catalog.
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Ticketing 0.1.3\n"
+"Project-Id-Version: TaxoCommerce Ticketing 0.1.4\n"
 "Report-Msgid-Bugs-To: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/issues\n"
 "POT-Creation-Date: 2026-11-26 00:00+0000\n"
 "PO-Revision-Date: 2026-11-26 00:00+0000\n"
@@ -34,7 +34,7 @@ msgstr "Besucher geben ihren Namen, ihre E-Mail-Adresse, den Betreff und die Nac
 
 #: includes/class-tctk-autotest-code.php:562
 msgid "AJAX handler may be missing nonce verification."
-msgstr ""
+msgstr "Im AJAX-Handler fehlt möglicherweise die Nonce-Prüfung."
 
 #: includes/class-tctk-ticketing.php:613
 #: includes/class-tctk-ticketing.php:648
@@ -54,11 +54,11 @@ msgstr "Aktivitätsprotokoll"
 
 #: includes/class-tctk-manuals.php:71
 msgid "Administration is limited to the custom manage_tctk_tickets capability granted to administrators and shop managers on activation."
-msgstr ""
+msgstr "Die Verwaltung ist auf die benutzerdefinierte Berechtigung manage_tctk_tickets beschränkt, die Administratoren und Shop-Managern bei der Aktivierung erteilt wird."
 
 #: includes/class-tctk-manuals.php:95
 msgid "After storage, the plugin attempts to email the customer and staff. A mail failure is recorded separately from a successful database insert."
-msgstr ""
+msgstr "Nach dem Speichern versucht das Plugin, E-Mails an Kunden und Mitarbeitende zu senden. Ein E-Mail-Fehler wird getrennt von einem erfolgreichen Datenbankeintrag erfasst."
 
 #: includes/class-tctk-ticketing.php:870
 msgid "All"
@@ -66,11 +66,11 @@ msgstr "Alle"
 
 #: includes/class-tctk-autotest-code.php:610
 msgid "All inventoried files have been checked."
-msgstr ""
+msgstr "Alle inventarisierten Dateien wurden geprüft."
 
 #: includes/class-tctk-autotest-code.php:784
 msgid "All rules with findings"
-msgstr ""
+msgstr "Alle Regeln mit Befunden"
 
 #: includes/class-tctk-ticketing.php:805
 msgid "Allow attachments"
@@ -78,11 +78,11 @@ msgstr "Anhänge erlauben"
 
 #: includes/class-tctk-autotest-code.php:559
 msgid "An early exit may bypass output buffer closure."
-msgstr ""
+msgstr "Ein vorzeitiger Abbruch kann das Schließen des Ausgabepuffers umgehen."
 
 #: includes/class-tctk-manuals.php:67
 msgid "Architecture and compatibility"
-msgstr ""
+msgstr "Architektur und Kompatibilität"
 
 #: includes/class-tctk-ticketing.php:835
 msgid "Assigned to"
@@ -102,7 +102,7 @@ msgstr "Arten der Selbstprüfung"
 
 #: includes/class-tctk-autotest-code.php:725
 msgid "Autotest sections"
-msgstr ""
+msgstr "Abschnitte der Selbstprüfung"
 
 #: includes/class-tctk-ticketing.php:797
 msgid "Blue"
@@ -110,7 +110,7 @@ msgstr "Blau"
 
 #: includes/class-tctk-manuals.php:105
 msgid "Both reports include execution time and explicit passed/warning/error or classified findings; never interpret an unchecked test as successful."
-msgstr ""
+msgstr "Beide Berichte enthalten die Ausführungszeit und ausdrückliche Ergebnisse wie bestanden, Warnung oder Fehler bzw. klassifizierte Befunde. Eine nicht ausgeführte Prüfung darf nie als bestanden gelten."
 
 #: includes/class-tctk-ticketing.php:797
 msgid "Brown"
@@ -118,7 +118,7 @@ msgstr "Braun"
 
 #: includes/class-tctk-autotest-code.php:755
 msgid "CPU usage"
-msgstr ""
+msgstr "CPU-Auslastung"
 
 #: includes/class-tctk-ticketing.php:795
 msgid "Categories (one per line)"
@@ -134,11 +134,11 @@ msgstr "Prüfung"
 
 #: includes/class-tctk-autotest-code.php:581
 msgid "Check SQL parameters and use $wpdb->prepare() for untrusted values."
-msgstr ""
+msgstr "Prüfen Sie die SQL-Parameter und verwenden Sie $wpdb->prepare() für nicht vertrauenswürdige Werte."
 
 #: includes/class-tctk-manuals.php:112
 msgid "Check the received tracking URL, customer replies, internal note privacy and file downloads. Confirm outbound email delivery independently of wp_mail() return values."
-msgstr ""
+msgstr "Prüfen Sie die empfangene Nachverfolgungs-URL, Kundenantworten, die Vertraulichkeit interner Notizen und Dateidownloads. Bestätigen Sie die Zustellung ausgehender E-Mails unabhängig von den Rückgabewerten von wp_mail()."
 
 #: includes/class-tctk-autocheck.php:216
 msgid "Checks plugin tables, shortcode and public handlers, then inserts, reads and deletes a private synthetic ticket, message and attachment. No real tickets are modified and no emails are sent. A separate browser/email test is still required."
@@ -176,7 +176,7 @@ msgstr "Farbpalette"
 
 #: includes/class-tctk-autotest-code.php:572
 msgid "Confirm an explicit administrator action and WordPress permissions; otherwise use native WordPress plugin management."
-msgstr ""
+msgstr "Bestätigen Sie eine ausdrückliche Administratoraktion und die WordPress-Berechtigungen. Andernfalls verwenden Sie die native WordPress-Plugin-Verwaltung."
 
 #: includes/class-tctk-ticketing.php:27
 msgid "Contact us"
@@ -184,15 +184,15 @@ msgstr "Kontaktieren Sie uns"
 
 #: includes/class-tctk-autotest-code.php:802
 msgid "Continue batch"
-msgstr ""
+msgstr "Stapel fortsetzen"
 
 #: includes/class-tctk-manuals.php:72
 msgid "Core can discover and activate the plugin using WordPress native plugin APIs. The optional tctk_ticket_admin_actions hook lets third parties offer actions without direct database coupling."
-msgstr ""
+msgstr "Core kann das Plugin über die nativen WordPress-Plugin-APIs erkennen und aktivieren. Der optionale Hook tctk_ticket_admin_actions ermöglicht Drittanbietern Aktionen ohne direkte Datenbankkopplung."
 
 #: includes/class-tctk-autotest-code.php:593
 msgid "Correct the PHP syntax and rerun the check."
-msgstr ""
+msgstr "Korrigieren Sie die PHP-Syntax und führen Sie die Prüfung erneut aus."
 
 #: includes/class-tctk-ticketing.php:707
 msgid "Create an internal ticket, or create a customer ticket on behalf of someone. Internal tickets stay visible only to staff."
@@ -209,7 +209,7 @@ msgstr "Ticket erstellen"
 
 #: includes/class-tctk-autotest-code.php:557
 msgid "Custom WordPress hook is missing the plugin-specific prefix."
-msgstr ""
+msgstr "Dem benutzerdefinierten WordPress-Hook fehlt das Plugin-spezifische Präfix."
 
 #: includes/class-tctk-ticketing.php:713
 msgid "Customer email (required for external tickets)"
@@ -225,7 +225,7 @@ msgstr "Kunden benötigen keine WordPress-Anmeldung, um ein veröffentlichtes Ti
 
 #: includes/class-tctk-manuals.php:76
 msgid "Data model and storage"
-msgstr ""
+msgstr "Datenmodell und Speicherung"
 
 #: includes/class-tctk-event-log.php:96
 msgid "Date (UTC)"
@@ -237,11 +237,11 @@ msgstr "Ausführungsdatum (UTC)"
 
 #: includes/class-tctk-manuals.php:80
 msgid "Deactivating the plugin does not delete tickets. Back up the database as part of routine privacy and retention processes."
-msgstr ""
+msgstr "Das Deaktivieren des Plugins löscht keine Tickets. Sichern Sie die Datenbank im Rahmen der üblichen Datenschutz- und Aufbewahrungsverfahren."
 
 #: includes/class-tctk-autotest-code.php:808
 msgid "Detailed results by file (technical view)"
-msgstr ""
+msgstr "Detaillierte Ergebnisse je Datei (technische Ansicht)"
 
 #: includes/class-tctk-autocheck.php:226
 msgid "Details"
@@ -253,15 +253,15 @@ msgstr "Fehlende Tickets diagnostizieren"
 
 #: includes/class-tctk-autotest-code.php:563
 msgid "Direct-file access protection needs review."
-msgstr ""
+msgstr "Der Schutz vor direktem Dateizugriff muss überprüft werden."
 
 #: includes/class-tctk-autotest-code.php:779
 msgid "Distinct rules:"
-msgstr ""
+msgstr "Unterschiedliche Regeln:"
 
 #: includes/class-tctk-manuals.php:88
 msgid "Do not forward private tracking links or include them in diagnostic logs. These links act as bearer credentials for the individual ticket."
-msgstr ""
+msgstr "Leiten Sie private Nachverfolgungslinks nicht weiter und nehmen Sie sie nicht in Diagnoseprotokolle auf. Diese Links dienen ihrem Inhaber als Zugangsberechtigung für das jeweilige Ticket."
 
 #: includes/class-tctk-autocheck.php:233
 msgid "Download Functionality JSON"
@@ -269,7 +269,7 @@ msgstr "Funktionsprüfungs-JSON herunterladen"
 
 #: includes/class-tctk-autotest-code.php:812
 msgid "Download JSON"
-msgstr ""
+msgstr "JSON herunterladen"
 
 #: includes/class-tctk-event-log.php:106
 msgid "Download event log JSON"
@@ -277,11 +277,11 @@ msgstr "Aktivitätsprotokoll als JSON herunterladen"
 
 #: includes/class-tctk-autotest-code.php:555
 msgid "Dynamic CSS needs context-specific validation."
-msgstr ""
+msgstr "Dynamisches CSS erfordert eine kontextspezifische Validierung."
 
 #: includes/class-tctk-autotest-code.php:560
 msgid "Dynamic SQL query requires validation of identifiers and parameters."
-msgstr ""
+msgstr "Eine dynamische SQL-Abfrage erfordert die Validierung von Bezeichnern und Parametern."
 
 #: includes/class-tctk-ticketing.php:30
 msgid "Email address"
@@ -297,7 +297,7 @@ msgstr "Aktiviert"
 
 #: includes/class-tctk-autotest-code.php:590
 msgid "Ensure every ob_start() closes in the same logical flow, including error paths."
-msgstr ""
+msgstr "Stellen Sie sicher, dass jeder Aufruf von ob_start() im selben logischen Ablauf geschlossen wird, auch in Fehlerpfaden."
 
 #: includes/class-tctk-manuals.php:25
 msgid "Enter the URL of the published form page in Public form page URL. This is required when creating an external ticket from the staff administration interface; the public shortcode can be used independently."
@@ -305,11 +305,11 @@ msgstr "Geben Sie die URL der veröffentlichten Seite im Feld für die öffentli
 
 #: includes/class-tctk-autotest-code.php:768
 msgid "Errors detected"
-msgstr ""
+msgstr "Fehler erkannt"
 
 #: includes/class-tctk-autotest-code.php:607
 msgid "Errors to fix"
-msgstr ""
+msgstr "Zu behebende Fehler"
 
 #: includes/class-tctk-autocheck.php:225
 msgid "Errors:"
@@ -325,7 +325,7 @@ msgstr "Extern bedeutet, dass Kunden über einen praktisch nicht erratbaren priv
 
 #: includes/class-tctk-autotest-code.php:814
 msgid "File"
-msgstr ""
+msgstr "Datei"
 
 #: includes/class-tctk-ticketing.php:589
 #: includes/class-tctk-ticketing.php:595
@@ -338,19 +338,19 @@ msgstr "Datei nicht gefunden."
 
 #: includes/class-tctk-autotest-code.php:553
 msgid "File upload requires validation and safe handling."
-msgstr ""
+msgstr "Dateiuploads erfordern Validierung und sichere Verarbeitung."
 
 #: includes/class-tctk-autotest-code.php:776
 msgid "Files analysed:"
-msgstr ""
+msgstr "Analysierte Dateien:"
 
 #: includes/class-tctk-autotest-code.php:609
 msgid "Files without findings"
-msgstr ""
+msgstr "Dateien ohne Befunde"
 
 #: includes/class-tctk-autotest-code.php:778
 msgid "Findings:"
-msgstr ""
+msgstr "Befunde:"
 
 #: includes/class-tctk-manuals.php:50
 msgid "For customer-facing external tickets, provide a valid email and configure the form page URL first. The recipient receives their tracking link."
@@ -376,7 +376,7 @@ msgstr "Funktionsprüfung"
 
 #: includes/class-tctk-manuals.php:100
 msgid "Functionality and Code Check"
-msgstr ""
+msgstr "Funktions- und Codeprüfung"
 
 #: includes/class-tctk-ticketing.php:797
 msgid "Green"
@@ -400,19 +400,19 @@ msgstr "In Bearbeitung"
 
 #: includes/class-tctk-autotest-code.php:773
 msgid "Incomplete: not all files were checked"
-msgstr ""
+msgstr "Unvollständig: Nicht alle Dateien wurden geprüft"
 
 #: includes/class-tctk-autotest-code.php:584
 msgid "Inspect the execution context and escape output at the point of rendering."
-msgstr ""
+msgstr "Prüfen Sie den Ausführungskontext und maskieren Sie die Ausgabe an der Ausgabestelle."
 
 #: includes/class-tctk-autotest-code.php:595
 msgid "Inspect the source line and validate whether this warning requires a code change."
-msgstr ""
+msgstr "Prüfen Sie die Quellcodezeile und stellen Sie fest, ob diese Warnung eine Codeänderung erfordert."
 
 #: includes/class-tctk-autotest-code.php:514
 msgid "Inspect this check and rerun the analysis."
-msgstr ""
+msgstr "Prüfen Sie diese Kontrolle und führen Sie die Analyse erneut aus."
 
 #: includes/class-tctk-ticketing.php:711
 msgid "Internal"
@@ -446,7 +446,7 @@ msgstr "Ungültige Ticketdaten."
 
 #: includes/class-tctk-autotest-code.php:624
 msgid "Inventory"
-msgstr ""
+msgstr "Inventar"
 
 #: includes/admin-branding.php:71
 msgid "Last updated"
@@ -454,7 +454,7 @@ msgstr "Zuletzt aktualisiert"
 
 #: includes/class-tctk-autotest-code.php:626
 msgid "Line"
-msgstr ""
+msgstr "Zeile"
 
 #: includes/class-tctk-ticketing.php:179
 msgid "Low"
@@ -482,7 +482,7 @@ msgstr "Beschriftung des Namensfeldes"
 
 #: includes/class-tctk-autotest-code.php:790
 msgid "Native static indicators only. Official Plugin Check, live security and older PHP versions have not been executed here."
-msgstr ""
+msgstr "Nur eigene statische Indikatoren. Offizieller Plugin Check, Sicherheitstests im laufenden Betrieb und Tests mit älteren PHP-Versionen wurden hier nicht durchgeführt."
 
 #: includes/class-tctk-ticketing.php:471
 #, php-format
@@ -499,11 +499,11 @@ msgstr "Weiter"
 
 #: includes/class-tctk-manuals.php:103
 msgid "No actual public form browser session, email delivery, external payment system, WooCommerce order or customer account is tested by the synthetic probe."
-msgstr ""
+msgstr "Die synthetische Prüfung testet weder eine echte Browsersitzung des öffentlichen Formulars noch E-Mail-Zustellung, externe Zahlungssysteme, WooCommerce-Bestellungen oder Kundenkonten."
 
 #: includes/class-tctk-autotest-code.php:607
 msgid "No confirmed errors in the implemented checks."
-msgstr ""
+msgstr "Keine bestätigten Fehler in den implementierten Prüfungen."
 
 #: includes/class-tctk-event-log.php:101
 msgid "No events recorded yet."
@@ -511,15 +511,15 @@ msgstr "Noch keine Ereignisse erfasst."
 
 #: includes/class-tctk-autotest-code.php:772
 msgid "No findings in implemented checks (not a WordPress.org certification)"
-msgstr ""
+msgstr "Keine Befunde in den implementierten Prüfungen (keine WordPress.org-Zertifizierung)"
 
 #: includes/class-tctk-autotest-code.php:523
 msgid "No findings in the checks implemented for this file."
-msgstr ""
+msgstr "Keine Befunde in den für diese Datei implementierten Prüfungen."
 
 #: includes/class-tctk-autotest-code.php:609
 msgid "No fully checked clean files yet."
-msgstr ""
+msgstr "Noch keine vollständig geprüften Dateien ohne Befunde."
 
 #: includes/class-tctk-ticketing.php:882
 msgid "No tickets found."
@@ -527,7 +527,7 @@ msgstr "Keine Tickets gefunden."
 
 #: includes/class-tctk-autotest-code.php:608
 msgid "No warnings detected."
-msgstr ""
+msgstr "Keine Warnungen erkannt."
 
 #: includes/class-tctk-ticketing.php:179
 msgid "Normal"
@@ -535,7 +535,7 @@ msgstr "Normal"
 
 #: includes/class-tctk-autotest-code.php:631
 msgid "Not checked."
-msgstr ""
+msgstr "Nicht geprüft."
 
 #: includes/official-excerpt.php:20
 msgid "Official plugin page"
@@ -543,7 +543,7 @@ msgstr "Offizielle Pluginseite"
 
 #: includes/class-tctk-manuals.php:87
 msgid "On ticket creation, a random private token is sent only in the customer follow-up link. The stored hash is checked when reading messages, replying or downloading private attachments."
-msgstr ""
+msgstr "Beim Erstellen eines Tickets wird ein zufälliges privates Token ausschließlich im Nachverfolgungslink des Kunden übermittelt. Der gespeicherte Hash wird beim Lesen von Nachrichten, Antworten oder Herunterladen privater Anhänge geprüft."
 
 #: includes/class-tctk-manuals.php:32
 msgid "One PDF, JPG, PNG or TXT attachment of up to 2 MB can be sent with each message when attachments are enabled."
@@ -567,7 +567,7 @@ msgstr "Öffnen Sie Tickets > Ticket-Eingang in WordPress oder den entsprechende
 
 #: includes/class-tctk-manuals.php:109
 msgid "Operational verification"
-msgstr ""
+msgstr "Betriebliche Überprüfung"
 
 #: includes/class-tctk-ticketing.php:787
 msgid "Order field label"
@@ -583,19 +583,19 @@ msgstr "Bestellung:"
 
 #: includes/class-tctk-autotest-code.php:558
 msgid "Output buffer may not be closed in the same execution flow."
-msgstr ""
+msgstr "Der Ausgabepuffer wird möglicherweise nicht im selben Ausführungsablauf geschlossen."
 
 #: includes/class-tctk-autotest-code.php:556
 msgid "Output variable needs context-appropriate escaping."
-msgstr ""
+msgstr "Die Ausgabevariable muss kontextgerecht maskiert werden."
 
 #: includes/class-tctk-autotest-code.php:564
 msgid "PHP syntax error."
-msgstr ""
+msgstr "PHP-Syntaxfehler."
 
 #: includes/class-tctk-autotest-code.php:751
 msgid "PHP syntax, WordPress structure and security indicators for this plugin only. No other checker is required. Findings do not replace official Plugin Check or a security audit."
-msgstr ""
+msgstr "PHP-Syntax, WordPress-Struktur und Sicherheitsindikatoren ausschließlich für dieses Plugin. Für diese Analyse ist kein anderes Prüfwerkzeug erforderlich. Die Befunde ersetzen weder den offiziellen Plugin Check noch ein Sicherheitsaudit."
 
 #: includes/class-tctk-autocheck.php:225
 msgid "Passed:"
@@ -607,15 +607,15 @@ msgstr "Fügen Sie [taxocommerce_ticket_form] auf einer beliebigen WordPress-Sei
 
 #: includes/class-tctk-autotest-code.php:548
 msgid "Plugin activation must require an explicit user action."
-msgstr ""
+msgstr "Die Plugin-Aktivierung muss eine ausdrückliche Benutzeraktion erfordern."
 
 #: includes/class-tctk-autotest-code.php:549
 msgid "Plugin deactivation must require an explicit user action."
-msgstr ""
+msgstr "Die Plugin-Deaktivierung muss eine ausdrückliche Benutzeraktion erfordern."
 
 #: includes/class-tctk-autotest-code.php:547
 msgid "Plugin installation or upgrade operation needs review."
-msgstr ""
+msgstr "Die Installation oder Aktualisierung des Plugins muss überprüft werden."
 
 #: includes/class-tctk-ticketing.php:886
 msgid "Previous"
@@ -640,7 +640,7 @@ msgstr "Produkt:"
 
 #: includes/class-tctk-autotest-code.php:791
 msgid "Progress"
-msgstr ""
+msgstr "Fortschritt"
 
 #: includes/class-tctk-ticketing.php:779
 msgid "Public form designer"
@@ -656,7 +656,7 @@ msgstr "Kundenformular veröffentlichen"
 
 #: includes/class-tctk-autotest-code.php:633
 msgid "Recommended action:"
-msgstr ""
+msgstr "Empfohlene Maßnahme:"
 
 #: includes/class-tctk-ticketing.php:804
 msgid "Remove image"
@@ -673,15 +673,15 @@ msgstr "Antwort auf Ticket #%1$d: %2$s"
 
 #: includes/class-tctk-autotest-code.php:551
 msgid "Request handler needs an appropriate user permission check."
-msgstr ""
+msgstr "Der Request-Handler muss die erforderlichen Benutzerberechtigungen prüfen."
 
 #: includes/class-tctk-autotest-code.php:550
 msgid "Request input needs a verified nonce in its execution path."
-msgstr ""
+msgstr "Eingabedaten einer Anfrage erfordern eine Nonce-Prüfung im Ausführungspfad."
 
 #: includes/class-tctk-autotest-code.php:552
 msgid "Request input needs contextual sanitization and validation."
-msgstr ""
+msgstr "Eingabedaten einer Anfrage erfordern kontextgerechte Bereinigung und Validierung."
 
 #: includes/class-tctk-ticketing.php:202
 msgid "Request saved, but email notification could not be confirmed. Please contact the site administrator."
@@ -689,7 +689,7 @@ msgstr "Anfrage gespeichert, aber der E-Mail-Versand konnte nicht bestätigt wer
 
 #: includes/class-tctk-manuals.php:84
 msgid "Request validation and private access"
-msgstr ""
+msgstr "Anfragevalidierung und privater Zugriff"
 
 #: includes/class-tctk-ticketing.php:874
 msgid "Requester"
@@ -701,7 +701,7 @@ msgstr "Name der anfragenden Person"
 
 #: includes/class-tctk-manuals.php:69
 msgid "Requires WordPress 6.7 or later and PHP 7.4 or later. Core, Tasks and WooCommerce are optional and must not be activated as dependencies."
-msgstr ""
+msgstr "Erfordert WordPress 6.7 oder höher und PHP 7.4 oder höher. Core, Tasks und WooCommerce sind optional und dürfen nicht als Abhängigkeiten aktiviert werden."
 
 #: includes/class-tctk-ticketing.php:173
 msgid "Resolved"
@@ -709,23 +709,23 @@ msgstr "Gelöst"
 
 #: includes/class-tctk-autotest-code.php:804
 msgid "Resume"
-msgstr ""
+msgstr "Fortsetzen"
 
 #: includes/class-tctk-autotest-code.php:770
 msgid "Review required: warnings found"
-msgstr ""
+msgstr "Überprüfung erforderlich: Warnungen gefunden"
 
 #: includes/class-tctk-autotest-code.php:566
 msgid "Review the flagged code for compliance with WordPress requirements."
-msgstr ""
+msgstr "Prüfen Sie den markierten Code auf Einhaltung der WordPress-Anforderungen."
 
 #: includes/class-tctk-autotest-code.php:763
 msgid "Run Code Check"
-msgstr ""
+msgstr "Codeprüfung ausführen"
 
 #: includes/class-tctk-autotest-code.php:697
 msgid "Run Code Check first."
-msgstr ""
+msgstr "Führen Sie zuerst die Codeprüfung aus."
 
 #: includes/class-tctk-autocheck.php:219
 msgid "Run Functionality Check"
@@ -737,7 +737,7 @@ msgstr "Führen Sie vor dem Export die Funktionsprüfung aus."
 
 #: includes/class-tctk-autotest-code.php:561
 msgid "SQL construction and prepared statements need review."
-msgstr ""
+msgstr "Die SQL-Konstruktion und vorbereitete Anweisungen müssen überprüft werden."
 
 #: includes/class-tctk-ticketing.php:809
 msgid "Save form settings"
@@ -749,11 +749,11 @@ msgstr "Ticket speichern / Antwort senden"
 
 #: includes/class-tctk-autotest-code.php:815
 msgid "Security"
-msgstr ""
+msgstr "Sicherheit"
 
 #: includes/class-tctk-autotest-code.php:782
 msgid "Security:"
-msgstr ""
+msgstr "Sicherheit:"
 
 #: includes/class-tctk-manuals.php:29
 msgid "Send a request without an account"
@@ -804,7 +804,7 @@ msgstr "Status"
 
 #: includes/class-tctk-autotest-code.php:795
 msgid "Stop"
-msgstr ""
+msgstr "Stoppen"
 
 #: includes/class-tctk-ticketing.php:31
 #: includes/class-tctk-ticketing.php:714
@@ -818,11 +818,11 @@ msgstr "Beschriftung des Betrefffeldes"
 
 #: includes/class-tctk-manuals.php:94
 msgid "Submission creates a ticket, inserts its initial message and captures the generated message ID before the ticket timestamp is updated. If message insertion fails, the new ticket is deleted and the form reports an error."
-msgstr ""
+msgstr "Die Übermittlung erstellt ein Ticket, fügt die erste Nachricht ein und erfasst die erzeugte Nachrichten-ID vor der Aktualisierung des Ticket-Zeitstempels. Schlägt das Einfügen der Nachricht fehl, wird das neue Ticket gelöscht und das Formular meldet einen Fehler."
 
 #: includes/class-tctk-manuals.php:92
 msgid "Submission sequence and events"
-msgstr ""
+msgstr "Übermittlungsablauf und Ereignisse"
 
 #: includes/class-tctk-ticketing.php:788
 msgid "Submit button text"
@@ -839,7 +839,7 @@ msgstr "Technisches Handbuch"
 
 #: includes/class-tctk-manuals.php:111
 msgid "Test a real submission using a controlled email account, check that the event log records ticket_created and that the assigned ID appears in the staff inbox."
-msgstr ""
+msgstr "Testen Sie eine echte Übermittlung mit einem kontrollierten E-Mail-Konto und prüfen Sie, ob das Ereignisprotokoll ticket_created erfasst und die zugewiesene ID im Ticket-Eingang der Mitarbeitenden erscheint."
 
 #: includes/class-tctk-manuals.php:59
 msgid "The Code Check tab scans this plugin in bounded batches and groups PHP, WordPress and security observations. It does not replace the official WordPress Plugin Check."
@@ -847,35 +847,35 @@ msgstr "Die Registerkarte Codeprüfung untersucht dieses Plugin in begrenzten St
 
 #: includes/class-tctk-autotest-code.php:513
 msgid "The check failed but returned no source location."
-msgstr ""
+msgstr "Die Prüfung ist fehlgeschlagen, hat aber keine Quellcodeposition zurückgegeben."
 
 #: includes/class-tctk-manuals.php:113
 msgid "The deployed version and official WordPress Plugin Check must be confirmed separately from the in-plugin static Code Check. Production deployment requires explicit approval."
-msgstr ""
+msgstr "Die bereitgestellte Version und der offizielle WordPress Plugin Check müssen getrennt von der integrierten statischen Codeprüfung bestätigt werden. Eine Bereitstellung in der Produktion erfordert eine ausdrückliche Genehmigung."
 
 #: includes/class-tctk-manuals.php:102
 msgid "The functionality check validates three database tables, configured notification address, public shortcode and guest handlers. A controlled synthetic ticket/message/file insert-read-delete probe checks real persistence and cleanup."
-msgstr ""
+msgstr "Die Funktionsprüfung validiert drei Datenbanktabellen, die konfigurierte Benachrichtigungsadresse, den öffentlichen Shortcode und die Gast-Handler. Ein kontrollierter synthetischer Test zum Einfügen, Lesen und Löschen von Ticket, Nachricht und Datei prüft die tatsächliche Speicherung und Bereinigung."
 
 #: includes/class-tctk-manuals.php:104
 msgid "The independent Code Check scans bounded PHP sources of this plugin for static PHP, WordPress and security indicators using five configurable CPU speeds. It offers an annotated JSON report and does not run PHP shell execution."
-msgstr ""
+msgstr "Die unabhängige Codeprüfung untersucht die PHP-Quellen dieses Plugins in begrenztem Umfang auf statische PHP-, WordPress- und Sicherheitsindikatoren mit fünf konfigurierbaren CPU-Geschwindigkeiten. Sie bietet einen kommentierten JSON-Bericht und führt PHP nicht über eine Shell aus."
 
 #: includes/class-tctk-manuals.php:70
 msgid "The plugin registers [taxocommerce_ticket_form] and [taxocommerce_tickets] and WordPress admin-post handlers. Public submission and reply handlers use admin_post_nopriv_ hooks."
-msgstr ""
+msgstr "Das Plugin registriert [taxocommerce_ticket_form] und [taxocommerce_tickets] sowie WordPress-admin-post-Handler. Öffentliche Übermittlungs- und Antwort-Handler verwenden admin_post_nopriv_-Hooks."
 
 #: includes/class-tctk-manuals.php:78
 msgid "The prefix-adjusted tables are {prefix}tctk_tickets, {prefix}tctk_messages and {prefix}tctk_files. All information is stored in the current WordPress database, not shared between sites."
-msgstr ""
+msgstr "Die Tabellen mit angepasstem Präfix sind {prefix}tctk_tickets, {prefix}tctk_messages und {prefix}tctk_files. Alle Informationen werden in der aktuellen WordPress-Datenbank gespeichert und nicht zwischen Websites geteilt."
 
 #: includes/class-tctk-manuals.php:86
 msgid "The public form requires a WordPress nonce, validates form fields, checks permitted attachment MIME types and limits submissions through an IP-derived transient key. A filled honeypot rejects the form without a success notice."
-msgstr ""
+msgstr "Das öffentliche Formular erfordert eine WordPress-Nonce, validiert Formularfelder, prüft zulässige MIME-Typen von Anhängen und begrenzt Übermittlungen mit einem aus der IP abgeleiteten Transient-Schlüssel. Ein ausgefülltes Honeypot-Feld führt zur Ablehnung ohne Erfolgsmeldung."
 
 #: includes/class-tctk-manuals.php:96
 msgid "The tctk_event_log WordPress option stores the newest 150 diagnostic events without customer names, addresses, message text, IP addresses or tokens. This is not a full audit trail or delivery guarantee."
-msgstr ""
+msgstr "Die WordPress-Option tctk_event_log speichert die neuesten 150 Diagnoseereignisse ohne Kundennamen, Adressen, Nachrichtentexte, IP-Adressen oder Token. Dies ist weder ein vollständiger Auditpfad noch eine Zustellgarantie."
 
 #: includes/class-tctk-manuals.php:34
 msgid "The visitor receives a private tracking link by email. The site mail service must be configured and independently verified; a successful wp_mail() call is not proof of delivery."
@@ -944,7 +944,7 @@ msgstr "Tickets"
 
 #: includes/class-tctk-manuals.php:79
 msgid "Tickets contain a status, priority, type (internal/external), assigned user and timestamps; messages contain staff/private flags. Attachment bytes are stored as private database BLOBs."
-msgstr ""
+msgstr "Tickets enthalten Status, Priorität, Typ (intern/extern), zugewiesenen Benutzer und Zeitstempel; Nachrichten enthalten Kennzeichen für Mitarbeitende und Privatheit. Anhangsdaten werden als private BLOBs in der Datenbank gespeichert."
 
 #: includes/class-tctk-ticketing.php:203
 msgid "Too many requests. Please try again later."
@@ -982,7 +982,7 @@ msgstr "Nicht zugewiesen"
 
 #: includes/class-tctk-autotest-code.php:610
 msgid "Unchecked or incomplete"
-msgstr ""
+msgstr "Nicht geprüft oder unvollständig"
 
 #: includes/class-tctk-manuals.php:24
 msgid "Under Tickets > Form settings, configure the heading, form descriptions, request categories, notification email, logo and blue/green/brown theme. Save changes."
@@ -994,7 +994,7 @@ msgstr "Aktualisiert"
 
 #: includes/class-tctk-autotest-code.php:554
 msgid "Uploaded temporary file path needs secure validation."
-msgstr ""
+msgstr "Der temporäre Pfad einer hochgeladenen Datei muss sicher validiert werden."
 
 #: includes/class-tctk-ticketing.php:179
 msgid "Urgent"
@@ -1002,7 +1002,7 @@ msgstr "Dringend"
 
 #: includes/class-tctk-autotest-code.php:587
 msgid "Use a unique plugin-specific prefix; preserve compatibility through reviewed migration."
-msgstr ""
+msgstr "Verwenden Sie ein eindeutiges Plugin-spezifisches Präfix und erhalten Sie die Kompatibilität durch eine geprüfte Migration."
 
 #: includes/class-tctk-ticketing.php:762
 msgid "Use the private ticket link from your original confirmation email to reply."
@@ -1019,11 +1019,11 @@ msgstr "Benutzerhandbuch"
 
 #: includes/class-tctk-autotest-code.php:578
 msgid "Validate the input type, sanitize values and check uploads with WordPress APIs."
-msgstr ""
+msgstr "Validieren Sie den Eingabetyp, bereinigen Sie Werte und prüfen Sie Uploads mit den WordPress-APIs."
 
 #: includes/class-tctk-autotest-code.php:575
 msgid "Verify the nonce and capability along the actual input-handling path."
-msgstr ""
+msgstr "Prüfen Sie Nonce und Benutzerberechtigung im tatsächlichen Pfad der Eingabeverarbeitung."
 
 #: includes/admin-branding.php:70
 msgid "Version"
@@ -1043,7 +1043,7 @@ msgstr "Warten auf Kundenantwort"
 
 #: includes/class-tctk-autotest-code.php:608
 msgid "Warnings to review"
-msgstr ""
+msgstr "Zu prüfende Warnungen"
 
 #: includes/class-tctk-autocheck.php:225
 msgid "Warnings:"
