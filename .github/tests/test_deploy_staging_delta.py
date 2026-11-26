@@ -12,6 +12,53 @@ spec.loader.exec_module(module)
 
 
 class DeltaTests(unittest.TestCase):
+    def test_delivery_baseline_ignores_pr_validation_and_cancelled_push(self):
+        import io
+        import json
+
+        def run(sha, event="push", status="completed", conclusion="success", branch="staging"):
+            return {
+                "head_sha": sha,
+                "event": event,
+                "head_branch": branch,
+                "status": status,
+                "conclusion": conclusion,
+            }
+
+        valid = "a" * 40
+        pr_only = "b" * 40
+        nonancestor = "c" * 40
+        cancelled = "d" * 40
+        head = "e" * 40
+        data = {"workflow_runs": [
+            run(pr_only, event="pull_request"),
+            run(cancelled, conclusion="cancelled"),
+            run("f" * 40, branch="feature/test"),
+            run(nonancestor),
+            run(valid),
+        ]}
+        with mock.patch.object(module.urllib.request, "urlopen", return_value=io.BytesIO(json.dumps(data).encode())) as request:
+            with mock.patch.object(module.subprocess, "run", side_effect=[
+                mock.Mock(returncode=1), mock.Mock(returncode=0),
+            ]) as ancestry:
+                self.assertEqual(module.last_successful_base("owner/repo", head, "token"), valid)
+                self.assertIn("event=push", request.call_args.args[0].full_url)
+                self.assertEqual([call.args[0][-2] for call in ancestry.call_args_list], [nonancestor, valid])
+
+    def test_delivery_baseline_rejects_pr_only_success(self):
+        import io
+        import json
+
+        data = {"workflow_runs": [{
+            "head_sha": "a" * 40, "event": "pull_request", "head_branch": "staging",
+            "status": "completed", "conclusion": "success",
+        }]}
+        with mock.patch.object(module.urllib.request, "urlopen", return_value=io.BytesIO(json.dumps(data).encode())):
+            with mock.patch.object(module.subprocess, "run") as ancestry:
+                with self.assertRaises(ValueError):
+                    module.last_successful_base("owner/repo", "b" * 40, "token")
+                ancestry.assert_not_called()
+
     def test_distributable_whitelist(self):
         self.assertEqual(module.distributable("taxocommerce-core/includes/example.php"), ("taxocommerce-core", "includes/example.php"))
         self.assertEqual(
