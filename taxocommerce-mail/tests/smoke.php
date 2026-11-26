@@ -61,3 +61,27 @@ $parsed = TCMAIL_IMAP::parse_message( $multipart );
 assert_mail( 'Preferred plain part' === $parsed['body'], 'Multipart alternative should use text/plain.' );
 assert_mail( TCMAIL_Accounts::remove( $id ) && 0 === count( TCMAIL_Accounts::public_list() ), 'Disconnecting mailbox failed.' );
 echo "PASS: encrypted account storage, mailbox validation and basic MIME reading.\n";
+
+// The same menu registration is used before and after Core activation.
+function __( $text, $domain = '' ) { return $text; }
+function add_menu_page( ...$args ) { $GLOBALS['tcmail_menus'][] = $args; }
+function add_submenu_page( ...$args ) { throw new RuntimeException( 'Lite must not register a submenu.' ); }
+require_once dirname( __DIR__ ) . '/includes/class-tcmail-admin.php';
+TCMAIL_Admin::menu();
+define( 'TAXOCOMMERCE_CORE_VERSION', 'test' );
+TCMAIL_Admin::menu();
+assert_mail( 2 === count( $GLOBALS['tcmail_menus'] ), 'Menu must be registered in both configurations.' );
+foreach ( $GLOBALS['tcmail_menus'] as $menu ) {
+    assert_mail( 'taxocommerce-mail' === $menu[3] && 'manage_options' === $menu[2], 'Menu route or permission changed.' );
+}
+function add_action( ...$args ) {}
+function add_filter( $hook, $callback ) { $GLOBALS['tcmail_filters'][$hook] = $callback; }
+function wp_unslash( $value ) { return $value; }
+function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_-]/', '', strtolower( $value ) ); }
+require_once dirname( __DIR__ ) . '/includes/admin-branding.php';
+$_GET['page'] = 'taxocommerce-mail';
+assert_mail( ' tc-family-screen' === $GLOBALS['tcmail_filters']['admin_body_class']( '' ), 'Lite branding must be visible on its own route.' );
+$_GET['page'] = 'taxocommerce-mail-pro';
+assert_mail( '' === $GLOBALS['tcmail_filters']['admin_body_class']( '' ), 'Lite branding must not appear on Pro.' );
+unset( $_GET['page'] );
+echo "PASS: independent Lite menu with and without Core, isolated branding.\n";

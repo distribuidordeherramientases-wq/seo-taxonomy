@@ -8,7 +8,7 @@ function __( $text, $domain = '' ) { return $text; }
 function admin_url( $path = '' ) { return 'https://example.test/wp-admin/' . $path; }
 function sanitize_key( $key ) { return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $key ) ); }
 function trailingslashit( $path ) { return rtrim( $path, '/' ) . '/'; }
-function apply_filters( $hook, $value ) { return $value; }
+function apply_filters( $hook, $value ) { return 'taxocommerce_core_family_extensions' === $hook ? array_merge( $value, $GLOBALS['tcc_test_filtered'] ?? array() ) : $value; }
 function wp_upload_dir() { return array( 'basedir' => $GLOBALS['tcc_test_uploads'], 'error' => false ); }
 function get_plugins() { return $GLOBALS['tcc_test_plugins']; }
 function tcc_assert( $condition, $message ) {
@@ -18,6 +18,9 @@ function tcc_assert( $condition, $message ) {
     }
 }
 $GLOBALS['tcc_test_plugins'] = array(
+    'taxocommerce-mail/taxocommerce-mail.php' => array( 'Name' => 'TaxoCommerce Mail Lite' ),
+    'taxocommerce-mail-pro/taxocommerce-mail-pro.php' => array( 'Name' => 'TaxoCommerce Mail Pro' ),
+    'taxocommerce-import-export-lite/taxocommerce-import-export-lite.php' => array( 'Name' => 'TaxoCommerce Import-Export Lite' ),
     'taxocommerce-core/taxocommerce-core.php' => array(
         'Name' => 'TaxoCommerce Core', 'Version' => '0.4.85', 'Description' => 'Core',
     ),
@@ -42,6 +45,8 @@ $package_dir = $GLOBALS['tcc_test_uploads'] . '/taxocommerce-core/plugins';
 if ( ! is_dir( $package_dir ) && ! mkdir( $package_dir, 0700, true ) ) exit( 1 );
 file_put_contents( $package_dir . '/taxocommerce-brand-new.zip', 'ZIP-fixture' );
 file_put_contents( $package_dir . '/other-company.zip', 'ZIP-fixture' );
+file_put_contents( $package_dir . '/taxocommerce-mail.zip', 'ZIP-fixture' );
+file_put_contents( $package_dir . '/taxocommerce-tasks-lite.zip', 'ZIP-fixture' );
 file_put_contents( $package_dir . '/taxocommerce-suppliers.zip', 'ZIP-fixture' );
 
 require_once dirname( __DIR__ ) . '/includes/class-taxocommerce-core.php';
@@ -49,6 +54,12 @@ $reflection = new ReflectionClass( 'TaxoCommerce_Core' );
 $core = $reflection->newInstanceWithoutConstructor();
 $catalog = $reflection->getMethod( 'family_extensions' );
 $result = $catalog->invoke( $core );
+tcc_assert( ! isset( $result['mail'] ) && isset( $result['mail_pro'] ), 'Mail Lite excluded and Mail Pro retained' );
+tcc_assert( ! isset( $result['import_export_lite'] ) && ! isset( $result['tasks_lite'] ), 'Lite suffix remains excluded' );
+unset( $GLOBALS['tcc_test_plugins']['taxocommerce-mail/taxocommerce-mail.php'] );
+tcc_assert( ! isset( $catalog->invoke( $core )['mail'] ), 'Legacy Mail ZIP alone cannot add a family card' );
+$GLOBALS['tcc_test_filtered'] = array( 'mail' => array( 'org_slug' => 'taxocommerce-mail', 'plugin_file' => 'taxocommerce-mail/taxocommerce-mail.php' ) );
+tcc_assert( ! isset( $catalog->invoke( $core )['mail'] ), 'Legacy Mail filter cannot add a family card' );
 tcc_assert( isset( $result['customers'] ), 'Inactive Customers must be listed automatically' );
 tcc_assert( isset( $result['accounting'] ), 'Inactive Accounting must be listed automatically' );
 tcc_assert( 'taxocommerce-customers/taxocommerce-customers.php' === $result['customers']['plugin_file'], 'Customers basename must match WordPress' );

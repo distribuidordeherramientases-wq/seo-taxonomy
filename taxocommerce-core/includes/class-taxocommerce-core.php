@@ -579,12 +579,22 @@ final class TaxoCommerce_Core {
 		foreach ( $extensions as $id => $entry ) {
 			$entry_data = (array) $entry;
 			$entry_slug = sanitize_key( (string) ( $entry_data['org_slug'] ?? '' ) );
-			if ( preg_match( '/-lite$/', $entry_slug ) ) {
+			if ( $this->is_standalone_lite_slug( $entry_slug ) ) {
 				unset( $extensions[ $id ] );
 			}
 		}
 
 		return $this->discover_family_extensions( $extensions );
+	}
+
+	/**
+	 * Identify standalone Lite editions, including the historical Mail basename.
+	 *
+	 * @param string $slug Plugin directory slug.
+	 * @return bool
+	 */
+	private function is_standalone_lite_slug( $slug ) {
+		return 'taxocommerce-mail' === $slug || 1 === preg_match( '/-lite$/', $slug );
 	}
 
 	/**
@@ -622,7 +632,7 @@ final class TaxoCommerce_Core {
 				continue;
 			}
 			$slug = $matches[1];
-			if ( preg_match( '/-lite$/', $slug ) ) {
+			if ( $this->is_standalone_lite_slug( $slug ) ) {
 				continue;
 			}
 			$name = trim( (string) ( $plugin_data['Name'] ?? '' ) );
@@ -665,7 +675,7 @@ final class TaxoCommerce_Core {
 				continue;
 			}
 			$slug = $matches[1];
-			if ( preg_match( '/-lite$/', $slug ) ) {
+			if ( $this->is_standalone_lite_slug( $slug ) ) {
 				continue;
 			}
 			if ( 'taxocommerce-core' === $slug || isset( $known_slugs[ $slug ] )
