@@ -1,2 +1,5 @@
+= 0.1.1 (2026-11-27) =
+* Fixed full-field exports without selectors, private HTTP multi-file uploads and diagnostics. Retain independent content queues and workload control. Issue #2989.
+
 = 0.1.0 (2026-11-26) =
 * Independent Pro edition derived from Lite 0.1.5, with per-content multi-file import queues, resumable CSV export, five workload profiles, bounded history, code checks and technical manual. Issue #2989.

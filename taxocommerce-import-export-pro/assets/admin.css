@@ -43,8 +43,6 @@
 .tciep-panel { padding: 18px 22px; margin: 16px 0; border: 1px solid #dcdcde; background: #fff; border-radius: 4px; }
 .tciep-panel h2 { margin-top: 0; }
 .tciep-panel p { max-width: 95ch; }
-.tciep-field-group { margin: 16px 0; padding: 12px; border: 1px solid #dcdcde; }
-.tciep-field-group label { display: inline-block; margin: 7px 14px 7px 0; }
 .tciep-errors { max-height: 250px; overflow: auto; white-space: pre-wrap; }
 .tciep-check-pass { color: #008a20; }
 .tciep-check-fail { color: #b32d2e; }

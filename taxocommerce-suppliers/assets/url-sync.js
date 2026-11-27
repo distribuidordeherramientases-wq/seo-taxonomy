@@ -19,9 +19,11 @@
         let count = 0;
         const provider = document.getElementById('tcsup-sync-provider').value;
         const row = document.getElementById('tcsup-sync-id').value;
+        const value = id => document.getElementById('tcsup-sync-' + id)?.value || '';
+        const filters = {object_id:value('object'),sku:value('sku'),cluster:value('cluster'),primary:value('primary'),secondary:value('secondary'),category:value('category')};
         try {
             while (!stopped) {
-                const data = new URLSearchParams({action:'tcsup_url_check', _ajax_nonce:start.dataset.nonce, provider, row_id:row, cursor:String(cursor)});
+                const data = new URLSearchParams({action:'tcsup_url_check', _ajax_nonce:start.dataset.nonce, provider, row_id:row, cursor:String(cursor), ...filters});
                 const response = await fetch(window.ajaxurl, {method:'POST', credentials:'same-origin', body:data});
                 if (!response.ok) throw new Error('HTTP');
                 const payload = await response.json();

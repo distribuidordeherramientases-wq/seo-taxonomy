@@ -1,3 +1,9 @@
+## [0.1.1] — 2026-11-27 — Flujo limpio por contenido y recepción privada (#2989)
+
+- Cada bloque exporta automáticamente su esquema completo de campos compatibles, sin selección de columnas. El tipo de importación depende únicamente del bloque elegido; solo se reconocen las columnas del CSV dentro de ese esquema.
+- Recepción de lotes con la protección de Lite 0.1.6: origen HTTP verificado, copia privada sin Media ni filtros MIME, integridad y permisos, error identificado por archivo, alternativa de almacenamiento privado. Se conserva el bloqueo único del sitio.
+- Mantiene los siete bloques, prechequeo, confirmación, colas, cinco perfiles de carga, exportación reanudable, histórico, manual técnico y chequeo de código. Lite y el original quedan intactos.
+
 ## [0.1.0] — 2026-11-26 — Primera edición independiente Pro (#2989)
 
 - Base: TaxoCommerce Import-Export Lite 0.1.5, copiada con namespace, dominio, rutas, acciones, opciones y archivos propios.

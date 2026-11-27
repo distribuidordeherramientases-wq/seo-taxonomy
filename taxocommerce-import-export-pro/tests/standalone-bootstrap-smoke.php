@@ -328,6 +328,10 @@ function get_userdata( $id ) { return $id > 0 ? (object) array( 'ID' => $id ) : 
 function wp_set_current_user( $id ) { $GLOBALS['tciep_user'] = $id; }
 function wp_salt( $scheme = '' ) { return $GLOBALS['tciep_salt']; }
 function wp_unslash( $value ) { return $value; }
+function get_temp_dir() { return sys_get_temp_dir(); }
+function wp_is_writable( $dir ) { return is_writable( $dir ); }
+function wp_normalize_path( $path ) { return str_replace( '\\', '/', $path ); }
+function trailingslashit( $path ) { return rtrim( $path, '/\\' ) . '/'; }
 function wp_mkdir_p( $dir ) { return is_dir( $dir ) || mkdir( $dir, 0700, true ); }
 function wp_generate_uuid4() { return bin2hex( random_bytes( 16 ) ); }
 function wp_delete_file( $path ) { if ( is_file( $path ) ) unlink( $path ); }
@@ -454,8 +458,9 @@ command_job( $bad, 'clear' );
 for ( $i = 0; $i < 115; ++$i ) {
     check_tciep( is_int( CSV::import( 'product', array( 'sku' => 'EXPORT-' . $i, 'name' => 'Export ' . $i, 'slug' => 'export-' . $i ) ) ), 'Create export fixture' );
 }
-$e = Batch::create_export( 'product', 1, array( 'sku', 'name', 'unknown' ) );
-check_tciep( is_array( $e ) && array( 'sku', 'name' ) === $e['export']['fields'], 'Export field allowlist enforced' );
+$expected_fields = array_keys( CSV::fields( 'product' ) );
+$e = Batch::create_export( 'product', 1 );
+check_tciep( is_array( $e ) && $expected_fields === $e['export']['fields'], 'Complete compatible export schema fixed by content type' );
 check_tciep( false === Batch::download_path( $e ), 'Partial export is not downloadable' );
 $e = command_job( $e, 'step' );
 check_tciep( 'exporting' === $e['phase'] && $e['export']['rows'] > 0, 'Export proceeds by bounded chunks' );
@@ -466,8 +471,8 @@ check_tciep( 'done' === $e['phase'], 'Export reaches completion over fixed pages
 $path = Batch::download_path( $e );
 check_tciep( is_string( $path ), 'Authorized completed file exists' );
 $csv = array_map( 'str_getcsv', file( $path, FILE_IGNORE_NEW_LINES ) );
-check_tciep( array( 'sku', 'name' ) === array_shift( $csv ), 'Native CSV header preserved' );
-check_tciep( count( $GLOBALS['products'] ) === count( $csv ) && count( $csv ) === count( array_unique( array_column( $csv, 0 ) ) ), 'All records exported once across multiple pages and crash bytes removed' );
+check_tciep( $expected_fields === array_shift( $csv ), 'Native CSV header preserved' );
+check_tciep( count( $GLOBALS['products'] ) === count( $csv ) && count( $csv ) === count( array_unique( array_column( $csv, array_search( 'sku', $expected_fields, true ) ) ) ), 'All records exported once across multiple pages and crash bytes removed' );
 $GLOBALS['denied_caps']['read_private_products'] = true;
 check_tciep( ! Batch::allowed( 'export', 'product' ), 'Private export needs capabilities' );
 check_tciep( is_wp_error( command_job( $e, 'clear' ) ), 'Revoked permission blocks controls' );
@@ -479,7 +484,7 @@ check_tciep( ! isset( $GLOBALS['tciep_events'][ serialize( array( 1, 'export', '
 ob_start();
 \TaxoCommerce\ImportExportPro\Header::render();
 $header = ob_get_clean();
-check_tciep( 1 === substr_count( $header, '<header class="tciep-hero">' ) && false !== strpos( $header, '<h1>TaxoCommerce Import-Export Pro</h1>' ) && false !== strpos( $header, '0.1.0' ), 'One independent Pro header' );
+check_tciep( 1 === substr_count( $header, '<header class="tciep-hero">' ) && false !== strpos( $header, '<h1>TaxoCommerce Import-Export Pro</h1>' ) && false !== strpos( $header, '0.1.1' ), 'One independent Pro header' );
 ob_start();
 Admin::blocks( 'import' );
 $import = ob_get_clean();
@@ -489,7 +494,12 @@ $export = ob_get_clean();
 check_tciep( 7 === substr_count( $import, 'name="csv_files[]"' ) && 7 === substr_count( $import, 'multiple required' ), 'Seven separate multi-file import forms' );
 check_tciep( 7 === substr_count( $export, 'value="tciep_create_export"' ), 'Seven separate export forms' );
 check_tciep( false === strpos( $import, 'name="map' ) && false === strpos( $import, 'name="mode' ), 'No mapping or action selector' );
+check_tciep( false === strpos( $export, 'name="fields' ) && false === strpos( $export, 'type="checkbox"' ), 'No export field selectors' );
+check_tciep( false === strpos( $import . $export, '<select name="type"' ), 'No type selection' );
 check_tciep( class_exists( 'TaxoCommerce_Import_Export_Pro_Autotest_Code' ) && 5 === count( TaxoCommerce_Import_Export_Pro_Autotest_Code::speeds() ), 'Independent code check is available' );
 unlink( $root . '/worker.lock' );
 rmdir( $root );
 echo "Import-Export Pro: native CSV, seven blocks, multi-file preflight/confirm, independent queues, pause/resume, lock, history, adaptive export and code check OK\n";
+
+// Run the actual multipart regression in the existing plugin CI entrypoint.
+require __DIR__ . '/upload-storage-smoke.php';

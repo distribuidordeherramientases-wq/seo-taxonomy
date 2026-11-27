@@ -3,8 +3,8 @@
  * Plugin Name: TaxoCommerce Import-Export Pro
  * Plugin URI: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/staging/taxocommerce-import-export-pro
  * Description: Independent multi-file CSV imports and resumable exports for WordPress and WooCommerce, with workload regulation, history and code checks.
- * Version: 0.1.0
- * Release Date: 2026-11-26
+ * Version: 0.1.1
+ * Release Date: 2026-11-27
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -21,12 +21,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 const SLUG = 'taxocommerce-import-export-pro';
 // Distinct admin route also avoids prefix matching by older Import-Export releases.
 const ADMIN_SLUG = 'taxocommerce-ie-pro';
 const DOMAIN = 'taxocommerce-import-export-pro';
-const RELEASE_DATE = '2026-11-26';
+const RELEASE_DATE = '2026-11-27';
 
 require_once __DIR__ . '/includes/class-header.php';
 require_once __DIR__ . '/includes/class-native-fields.php';
