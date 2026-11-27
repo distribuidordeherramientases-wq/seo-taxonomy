@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.7 — 2026-11-27 (#3014)
+- Expand the voluntary Pro information tab with benefits, a Lite/Pro feature comparison, compatibility requirements and a documentation link. Explain the current test-release status; do not advertise unreleased features or impose any purchase requirement.
+- Update the user manual, readme and translation catalogs. Mail functionality, independent menu and functional check are unchanged.
+
+## 0.1.6 — 2026-11-27 (#3012)
+- Align Lite with Tasks Lite: keep the user manual and functional check, including JSON export. Remove the technical manual and code-check implementation; legacy routes resolve to the user manual or functional check. Mail functions and developer-side quality checks remain unchanged.
+
 ## 0.1.5 — 2026-11-26 — Canonical Lite plugin identity (#2984)
 - Rename the installable directory, entrypoint, ZIP and translation domain to `taxocommerce-mail-lite`; keep the existing admin route, encrypted accounts, user options and mail behavior.
 - Prevent simultaneous activation of the old and renamed installations. Preserve the previous installation until the native WordPress cutover is verified.

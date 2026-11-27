@@ -12,46 +12,20 @@ final class TCMAIL_Autocheck {
         add_action( 'admin_post_tcmail_autocheck_export', array( __CLASS__, 'export' ) );
     }
 
-    private static function report( $mode ) {
+    private static function report() {
         $rows = array();
         $add = static function ( $name, $ok, $detail ) use ( &$rows ) {
             $rows[] = array( 'check' => $name, 'status' => $ok ? 'ok' : 'error', 'details' => $detail );
         };
-        if ( 'code' === $mode ) {
-            $iterator = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( TCMAIL_PATH, FilesystemIterator::SKIP_DOTS ) );
-            foreach ( $iterator as $file ) {
-                if ( ! $file->isFile() || $file->isLink() || 'php' !== strtolower( $file->getExtension() ) ) {
-                    continue;
-                }
-                $path = $file->getRealPath();
-                if ( ! $path || 0 !== strpos( $path, realpath( TCMAIL_PATH ) . DIRECTORY_SEPARATOR ) || $file->getSize() > 524288 ) {
-                    $add( 'file_scope', false, 'Unexpected plugin file.' );
-                    continue;
-                }
-                try {
-                    // Token parsing is read-only, no PHP source is evaluated or executed.
-                    token_get_all( file_get_contents( $path ), TOKEN_PARSE );
-                    $add( 'php:' . basename( $path ), true, 'PHP token syntax parsed.' );
-                } catch ( ParseError $parse_error ) {
-                    $add( 'php:' . basename( $path ), false, 'PHP parsing failed.' );
-                }
-            }
-            $rows[] = array(
-                'check' => 'official_plugin_check',
-                'status' => 'warning',
-                'details' => 'This is an internal static syntax scan, not an official WordPress Plugin Check or security audit.',
-            );
-        } else {
-            $add( 'encrypted_credentials', TCMAIL_Accounts::ready(), 'AES-256-GCM available for account secrets.' );
-            $add( 'imap_transport', TCMAIL_IMAP::available(), 'PHP OpenSSL and secure socket functions available.' );
-            $add( 'account_configuration', count( TCMAIL_Accounts::public_list() ) > 0, 'At least one mailbox is configured.' );
-            $add( 'wp_mail_transport_isolated', class_exists( 'TCMAIL_SMTP' ), 'Plugin SMTP uses a new PHPMailer instance; does not modify wp_mail().' );
-            $rows[] = array(
-                'check' => 'live_imap_and_smtp',
-                'status' => 'warning',
-                'details' => 'No remote connections or emails were sent by Autocheck. Use Test IMAP per mailbox and send one controlled SMTP email.',
-            );
-        }
+        $add( 'encrypted_credentials', TCMAIL_Accounts::ready(), 'AES-256-GCM available for account secrets.' );
+        $add( 'imap_transport', TCMAIL_IMAP::available(), 'PHP OpenSSL and secure socket functions available.' );
+        $add( 'account_configuration', count( TCMAIL_Accounts::public_list() ) > 0, 'At least one mailbox is configured.' );
+        $add( 'wp_mail_transport_isolated', class_exists( 'TCMAIL_SMTP' ), 'Plugin SMTP uses a new PHPMailer instance; does not modify wp_mail().' );
+        $rows[] = array(
+            'check' => 'live_imap_and_smtp',
+            'status' => 'warning',
+            'details' => 'No remote connections or emails were sent by Autocheck. Use Test IMAP per mailbox and send one controlled SMTP email.',
+        );
         $totals = array( 'ok' => 0, 'warning' => 0, 'error' => 0 );
         foreach ( $rows as $item ) {
             $totals[ $item['status'] ]++;
@@ -59,7 +33,7 @@ final class TCMAIL_Autocheck {
         return array(
             'plugin' => 'taxocommerce-mail',
             'version' => TCMAIL_VERSION,
-            'type' => $mode,
+            'type' => 'functionality',
             'executed_at' => gmdate( 'c' ),
             'rows' => $rows,
             'totals' => $totals,
@@ -73,9 +47,8 @@ final class TCMAIL_Autocheck {
             wp_die( esc_html__( 'Permission denied.', 'taxocommerce-mail-lite' ), '', array( 'response' => 403 ) );
         }
         check_admin_referer( 'tcmail_autocheck' );
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce checked above.
-        $mode = isset( $_POST['check_mode'] ) && 'code' === sanitize_key( wp_unslash( $_POST['check_mode'] ) ) ? 'code' : 'functionality';
-        update_user_meta( get_current_user_id(), '_tcmail_check_' . $mode, self::report( $mode ) );
+        $mode = 'functionality';
+        update_user_meta( get_current_user_id(), '_tcmail_check_' . $mode, self::report() );
         wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-mail', 'tab' => 'autocheck', 'check_mode' => $mode ), admin_url( 'admin.php' ) ) );
         exit;
     }
@@ -85,8 +58,7 @@ final class TCMAIL_Autocheck {
             wp_die( esc_html__( 'Permission denied.', 'taxocommerce-mail-lite' ), '', array( 'response' => 403 ) );
         }
         check_admin_referer( 'tcmail_autocheck_export' );
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce checked above.
-        $mode = isset( $_POST['check_mode'] ) && 'code' === sanitize_key( wp_unslash( $_POST['check_mode'] ) ) ? 'code' : 'functionality';
+        $mode = 'functionality';
         $report = get_user_meta( get_current_user_id(), '_tcmail_check_' . $mode, true );
         if ( ! is_array( $report ) ) {
             wp_die( esc_html__( 'Run the check before exporting.', 'taxocommerce-mail-lite' ), '', array( 'response' => 400 ) );
@@ -107,15 +79,12 @@ final class TCMAIL_Autocheck {
         if ( ! current_user_can( 'manage_options' ) ) {
             return;
         }
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only check selector.
-        $mode = isset( $_GET['check_mode'] ) && 'code' === sanitize_key( wp_unslash( $_GET['check_mode'] ) ) ? 'code' : 'functionality';
+        $mode = 'functionality';
         echo '<h2>' . esc_html__( 'Autocheck', 'taxocommerce-mail-lite' ) . '</h2>';
-        echo '<p><a class="button" href="' . esc_url( add_query_arg( array( 'page' => 'taxocommerce-mail', 'tab' => 'autocheck', 'check_mode' => 'functionality' ), admin_url( 'admin.php' ) ) ) . '">' . esc_html__( 'Functionality Check', 'taxocommerce-mail-lite' ) . '</a> ';
-        echo '<a class="button" href="' . esc_url( add_query_arg( array( 'page' => 'taxocommerce-mail', 'tab' => 'autocheck', 'check_mode' => 'code' ), admin_url( 'admin.php' ) ) ) . '">' . esc_html__( 'Code Check', 'taxocommerce-mail-lite' ) . '</a></p>';
         echo '<p>' . esc_html__( 'Checks do not access your inbox or send messages. Each connection must be tested separately.', 'taxocommerce-mail-lite' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tcmail_autocheck"><input type="hidden" name="check_mode" value="' . esc_attr( $mode ) . '">';
         wp_nonce_field( 'tcmail_autocheck' );
-        submit_button( 'code' === $mode ? __( 'Run Code Check', 'taxocommerce-mail-lite' ) : __( 'Run Functionality Check', 'taxocommerce-mail-lite' ) );
+        submit_button( __( 'Run Functionality Check', 'taxocommerce-mail-lite' ) );
         echo '</form>';
         $report = get_user_meta( get_current_user_id(), '_tcmail_check_' . $mode, true );
         if ( ! is_array( $report ) ) {
@@ -134,25 +103,18 @@ final class TCMAIL_Autocheck {
         echo '</form>';
     }
 
-    public static function manual( $technical ) {
+    public static function manual() {
         if ( ! current_user_can( 'manage_options' ) ) {
             return;
         }
-        echo '<div style="max-width:920px"><h2>' . esc_html( $technical ? __( 'Technical manual', 'taxocommerce-mail-lite' ) : __( 'User manual', 'taxocommerce-mail-lite' ) ) . '</h2>';
-        $sections = $technical ? array(
-            array( __( 'Architecture', 'taxocommerce-mail-lite' ), __( 'Accounts and encrypted credentials are kept as a non-autoloaded WordPress option; no message copies or mail attachments are saved. Only manage_options can access mail.', 'taxocommerce-mail-lite' ) ),
-            array( __( 'Security', 'taxocommerce-mail-lite' ), __( 'Credential encryption uses AES-256-GCM and keys derived from WordPress authentication salts. Changing salts invalidates stored passwords. IMAP uses port 993 with TLS peer verification. SMTP uses only 465/587 and authenticates directly with the selected account.', 'taxocommerce-mail-lite' ) ),
-            array( __( 'Supported protocol', 'taxocommerce-mail-lite' ), __( 'Uses read-only IMAP LOGIN, EXAMINE, UID SEARCH and BODY.PEEK; does not mark mail as read. Message size is limited to 2 MB for on-demand viewing. Supports basic plain-text and HTML MIME; complex encrypted/signed messages may not display.', 'taxocommerce-mail-lite' ) ),
-            array( __( 'SMTP', 'taxocommerce-mail-lite' ), __( 'Uses a new WordPress-bundled PHPMailer instance, never changes wp_mail(), WooCommerce notifications or global mail filters. SMTP accepted does not guarantee delivery.', 'taxocommerce-mail-lite' ) ),
-            array( __( 'Diagnostics', 'taxocommerce-mail-lite' ), __( 'Autocheck functionality checks local capabilities and configuration. Code Check parses plugin PHP files only. Live IMAP authentication and SMTP delivery are explicit administrator actions and are not falsely claimed by Autocheck.', 'taxocommerce-mail-lite' ) ),
-            array( __( 'Optional extensions', 'taxocommerce-mail-lite' ), __( 'The Pro page is informational only. Lite includes no premium feature gates, licensing checks, external Pro code or mandatory connections to TaxoCommerce Core. The plugin basename, text domain and saved options remain unchanged.', 'taxocommerce-mail-lite' ) ),
-        ) : array(
+        echo '<div style="max-width:920px"><h2>' . esc_html( __( 'User manual', 'taxocommerce-mail-lite' ) ) . '</h2>';
+        $sections = array(
             array( __( 'Add accounts', 'taxocommerce-mail-lite' ), __( 'Create the email address at your hosting provider, then open Mail > Accounts in WordPress. Enter only the complete email address as username, masked password and secure IMAP hostname. Additional accounts can be configured separately. SMTP name, host and encrypted port are optional advanced settings for sending.', 'taxocommerce-mail-lite' ) ),
             array( __( 'Hosting provider settings', 'taxocommerce-mail-lite' ), __( 'In your hosting control panel, find email client connection details. Use the exact SSL/TLS host and ports provided: IMAP 993, SMTP 465 or STARTTLS 587.', 'taxocommerce-mail-lite' ) ),
             array( __( 'Read mail', 'taxocommerce-mail-lite' ), __( 'Select Mail > Inbox, choose a configured account and open a message. The plugin reads up to 12 recent messages from INBOX without marking them read. Messages remain on the mail server.', 'taxocommerce-mail-lite' ) ),
             array( __( 'Send and reply', 'taxocommerce-mail-lite' ), __( 'Use Compose to send plain-text mail from the selected account. Reply prefills the sender and subject. One recipient per message; no attachments in this initial version.', 'taxocommerce-mail-lite' ) ),
             array( __( 'Check accounts', 'taxocommerce-mail-lite' ), __( 'Use Test IMAP per account to verify inbound access. Send a test SMTP message to an address you control and verify it arrived. Autocheck alone cannot confirm external delivery.', 'taxocommerce-mail-lite' ) ),
-            array( __( 'Lite and Pro editions', 'taxocommerce-mail-lite' ), __( 'Mail Lite is the free standalone edition. It can configure multiple accounts, read the 12 newest inbox messages, compose and reply; it does not provide folders, a Sent view or message deletion. Pro is a future separate add-on, not required to use Lite.', 'taxocommerce-mail-lite' ) ),
+            array( __( 'Lite and Pro editions', 'taxocommerce-mail-lite' ), __( 'Mail Lite is the free standalone edition. It can configure multiple accounts, read the 12 newest inbox messages, compose and reply. Mail Pro is a separate optional plugin with advanced mailbox tools; Lite does not require it.', 'taxocommerce-mail-lite' ) ),
         );
         foreach ( $sections as $section ) {
             echo '<section class="card" style="max-width:880px;margin:14px 0;padding:15px"><h3>' . esc_html( $section[0] ) . '</h3><p>' . esc_html( $section[1] ) . '</p></section>';
