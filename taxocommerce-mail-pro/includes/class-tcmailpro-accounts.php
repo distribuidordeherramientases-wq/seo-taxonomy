@@ -164,6 +164,7 @@ final class TCMAILPRO_Accounts {
             $list[ $position ] = $data;
         }
         update_option( self::OPTION, array_values( $list ), false );
+        TCMAILPRO_Diagnostics::clear( $data['id'] );
         return true;
     }
 
@@ -179,6 +180,7 @@ final class TCMAILPRO_Accounts {
             return false;
         }
         update_option( self::OPTION, $filtered, false );
+        TCMAILPRO_Diagnostics::clear( $id );
         return true;
     }
 }

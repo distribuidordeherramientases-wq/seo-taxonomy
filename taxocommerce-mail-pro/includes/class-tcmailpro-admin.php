@@ -79,20 +79,8 @@ final class TCMAILPRO_Admin {
         self::require_admin( 'tcmailpro_test' );
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified above.
         $id = isset( $_POST['id'] ) && is_string( $_POST['id'] ) ? sanitize_text_field( wp_unslash( $_POST['id'] ) ) : '';
-        $account = TCMAILPRO_Accounts::credentials( $id );
-        if ( ! $account ) {
-            self::location( 'accounts', 'invalid' );
-        }
-        $imap = new TCMAILPRO_IMAP();
-        try {
-            $imap->connect( $account );
-            $notice = 'connected';
-        } catch ( RuntimeException $error ) {
-            $notice = 'connection_failed';
-        } finally {
-            $imap->disconnect();
-        }
-        self::location( 'accounts', $notice );
+        $result = TCMAILPRO_Diagnostics::test( $id );
+        self::location( 'accounts', 'diag_' . $result['code'] );
     }
 
     public static function send() {
@@ -273,7 +261,10 @@ final class TCMAILPRO_Admin {
             'folder_created' => __( 'Folder created on the mail server.', 'taxocommerce-mail-pro' ),
             'folder_renamed' => __( 'Folder renamed on the mail server.', 'taxocommerce-mail-pro' ),
         );
-        if ( isset( $notices[ $notice ] ) ) {
+        if ( 0 === strpos( $notice, 'diag_' ) && TCMAILPRO_Diagnostics::known( substr( $notice, 5 ) ) ) {
+            $code = substr( $notice, 5 );
+            echo '<div class="notice notice-' . ( 'imap_ok' === $code ? 'success' : 'error' ) . '"><p>' . esc_html( TCMAILPRO_Diagnostics::message( $code ) ) . ' (' . esc_html( $code ) . ')</p></div>';
+        } elseif ( isset( $notices[ $notice ] ) ) {
             echo '<div class="notice notice-' . ( in_array( $notice, array( 'saved', 'removed', 'connected', 'sent', 'moved', 'folder_created', 'folder_renamed' ), true ) ? 'success' : 'error' ) . '"><p>' . esc_html( $notices[ $notice ] ) . '</p></div>';
         }
         if ( 'accounts' === $tab ) {

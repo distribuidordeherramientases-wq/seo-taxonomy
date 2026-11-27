@@ -22,7 +22,7 @@ class ProPackageTests(unittest.TestCase):
 
     def test_zip_is_standalone_and_excludes_tests(self):
         data, info = pack.package_mail_pro(ROOT)
-        self.assertEqual(info["version"], "0.1.0")
+        self.assertEqual(info["version"], "0.1.1")
         with zipfile.ZipFile(io.BytesIO(data)) as z:
             names = set(z.namelist())
         self.assertIn("taxocommerce-mail-pro/taxocommerce-mail-pro.php", names)

@@ -1,7 +1,7 @@
 <?php
 /**
- * Read-only functionality and code checks. Does not connect to mail
- * servers or change messages unless administrator separately selects Test IMAP.
+ * Functionality and syntax checks. Explicit IMAP tests authenticate and examine
+ * INBOX without fetching messages, altering flags or sending mail.
  *
  * @package TaxoCommerceMailPro
  */
@@ -10,10 +10,13 @@ final class TCMAILPRO_Autocheck {
     public static function boot() {
         add_action( 'admin_post_tcmailpro_autocheck', array( __CLASS__, 'run' ) );
         add_action( 'admin_post_tcmailpro_autocheck_export', array( __CLASS__, 'export' ) );
+        add_action( 'wp_ajax_tcmailpro_imap_check', array( __CLASS__, 'ajax_check' ) );
+        add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
     }
 
     private static function report( $mode ) {
         $rows = array();
+        $connection_tested = false;
         $add = static function ( $name, $ok, $detail ) use ( &$rows ) {
             $rows[] = array( 'check' => $name, 'status' => $ok ? 'ok' : 'error', 'details' => $detail );
         };
@@ -44,12 +47,36 @@ final class TCMAILPRO_Autocheck {
         } else {
             $add( 'encrypted_credentials', TCMAILPRO_Accounts::ready(), 'AES-256-GCM available for account secrets.' );
             $add( 'imap_transport', TCMAILPRO_IMAP::available(), 'PHP OpenSSL and secure socket functions available.' );
-            $add( 'account_configuration', count( TCMAILPRO_Accounts::public_list() ) > 0, 'At least one mailbox is configured.' );
+            $accounts = TCMAILPRO_Accounts::public_list();
+            $add( 'account_configuration', count( $accounts ) > 0, TCMAILPRO_Diagnostics::message( $accounts ? 'accounts_present' : 'no_accounts' ) );
+            foreach ( $accounts as $account ) {
+                $code = TCMAILPRO_Diagnostics::local_code( $account );
+                $rows[] = array(
+                    'check' => $account['email'] . ' / ' . __( 'Configuration', 'taxocommerce-mail-pro' ),
+                    'status' => 'configuration_ok' === $code ? 'ok' : 'error',
+                    'details' => TCMAILPRO_Diagnostics::message( $code ),
+                    'code' => $code,
+                );
+                $last = TCMAILPRO_Diagnostics::last( $account['id'] );
+                if ( 'configuration_ok' !== $code ) {
+                    continue;
+                }
+                $result_code = $last ? $last['code'] : 'imap_not_tested';
+                $rows[] = array(
+                    'check' => $account['email'] . ' / IMAP',
+                    'status' => $last ? $last['status'] : 'warning',
+                    'details' => TCMAILPRO_Diagnostics::message( $result_code ) . ( $last ? ' [' . $last['stage'] . '] ' . $last['tested_at'] : '' ),
+                    'code' => $result_code,
+                    'stage' => $last ? $last['stage'] : 'not_tested',
+                    'tested_at' => $last ? $last['tested_at'] : null,
+                );
+                $connection_tested = $connection_tested || ( $last && $last['attempted'] );
+            }
             $add( 'wp_mail_transport_isolated', class_exists( 'TCMAILPRO_SMTP' ), 'Plugin SMTP uses a new PHPMailer instance; does not modify wp_mail().' );
             $rows[] = array(
-                'check' => 'live_imap_and_smtp',
+                'check' => 'live_smtp',
                 'status' => 'warning',
-                'details' => 'No remote connections or emails were sent by Autocheck. Use Test IMAP per mailbox and send one controlled SMTP email.',
+                'details' => TCMAILPRO_Diagnostics::message( 'smtp_not_tested' ),
             );
         }
         $totals = array( 'ok' => 0, 'warning' => 0, 'error' => 0 );
@@ -63,7 +90,8 @@ final class TCMAILPRO_Autocheck {
             'executed_at' => gmdate( 'c' ),
             'rows' => $rows,
             'totals' => $totals,
-            'remote_connections_tested' => false,
+            'remote_connections_tested' => $connection_tested,
+            'connection_results_are_last_recorded_tests' => true,
             'outbound_messages_sent' => false,
         );
     }
@@ -75,9 +103,44 @@ final class TCMAILPRO_Autocheck {
         check_admin_referer( 'tcmailpro_autocheck' );
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce checked above.
         $mode = isset( $_POST['check_mode'] ) && 'code' === sanitize_key( wp_unslash( $_POST['check_mode'] ) ) ? 'code' : 'functionality';
+        if ( 'functionality' === $mode ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified above.
+            $id = isset( $_POST['test_account'] ) && is_string( $_POST['test_account'] ) ? sanitize_text_field( wp_unslash( $_POST['test_account'] ) ) : '';
+            if ( $id ) {
+                TCMAILPRO_Diagnostics::test( $id );
+            }
+        }
         update_user_meta( get_current_user_id(), '_tcmailpro_check_' . $mode, self::report( $mode ) );
         wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-mail-pro', 'tab' => 'autocheck', 'check_mode' => $mode ), admin_url( 'admin.php' ) ) );
         exit;
+    }
+
+    public static function ajax_check() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( null, 403 );
+        }
+        check_ajax_referer( 'tcmailpro_autocheck' );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified above.
+        $id = isset( $_POST['account'] ) && is_string( $_POST['account'] ) ? sanitize_text_field( wp_unslash( $_POST['account'] ) ) : '';
+        $result = TCMAILPRO_Diagnostics::test( $id );
+        wp_send_json_success( array( 'code' => $result['code'], 'status' => $result['status'] ) );
+    }
+
+    public static function enqueue() {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only admin route.
+        $page = isset( $_GET['page'] ) && is_string( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+        $tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+        if ( 'taxocommerce-mail-pro' !== $page || 'autocheck' !== $tab || ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+        wp_enqueue_script( 'tcmailpro-account-check', TCMAILPRO_URL . 'assets/account-check.js', array(), TCMAILPRO_VERSION, true );
+        wp_localize_script( 'tcmailpro-account-check', 'tcmailproAccountCheck', array(
+            'url' => admin_url( 'admin-ajax.php' ),
+            'accounts' => array_values( wp_list_pluck( TCMAILPRO_Accounts::public_list(), 'id' ) ),
+            'progress' => __( 'Checking IMAP accounts:', 'taxocommerce-mail-pro' ),
+            'failed' => __( 'The check was interrupted. Check accounts individually; completed results were retained.', 'taxocommerce-mail-pro' ),
+        ) );
     }
 
     public static function export() {
@@ -112,10 +175,16 @@ final class TCMAILPRO_Autocheck {
         echo '<h2>' . esc_html__( 'Autocheck', 'taxocommerce-mail-pro' ) . '</h2>';
         echo '<p><a class="button" href="' . esc_url( add_query_arg( array( 'page' => 'taxocommerce-mail-pro', 'tab' => 'autocheck', 'check_mode' => 'functionality' ), admin_url( 'admin.php' ) ) ) . '">' . esc_html__( 'Functionality Check', 'taxocommerce-mail-pro' ) . '</a> ';
         echo '<a class="button" href="' . esc_url( add_query_arg( array( 'page' => 'taxocommerce-mail-pro', 'tab' => 'autocheck', 'check_mode' => 'code' ), admin_url( 'admin.php' ) ) ) . '">' . esc_html__( 'Code Check', 'taxocommerce-mail-pro' ) . '</a></p>';
-        echo '<p>' . esc_html__( 'Checks do not access your inbox or send messages. Each connection must be tested separately.', 'taxocommerce-mail-pro' ) . '</p>';
-        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tcmailpro_autocheck"><input type="hidden" name="check_mode" value="' . esc_attr( $mode ) . '">';
+        echo '<p>' . esc_html__( 'IMAP checks authenticate and verify access to INBOX without reading messages or sending mail. SMTP delivery is not tested.', 'taxocommerce-mail-pro' ) . '</p>';
+        echo '<form id="tcmailpro-check-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tcmailpro_autocheck"><input type="hidden" name="check_mode" value="' . esc_attr( $mode ) . '">';
         wp_nonce_field( 'tcmailpro_autocheck' );
         submit_button( 'code' === $mode ? __( 'Run Code Check', 'taxocommerce-mail-pro' ) : __( 'Run Functionality Check', 'taxocommerce-mail-pro' ) );
+        if ( 'functionality' === $mode ) {
+            echo '<p id="tcmailpro-check-progress" role="status" aria-live="polite"></p><noscript><p>' . esc_html__( 'Without JavaScript, use the individual account test buttons.', 'taxocommerce-mail-pro' ) . '</p></noscript>';
+            foreach ( TCMAILPRO_Accounts::public_list() as $account ) {
+                echo '<p><button type="submit" name="test_account" value="' . esc_attr( $account['id'] ) . '" class="button">' . esc_html__( 'Test IMAP', 'taxocommerce-mail-pro' ) . ' — ' . esc_html( $account['email'] ) . '</button></p>';
+            }
+        }
         echo '</form>';
         $report = get_user_meta( get_current_user_id(), '_tcmailpro_check_' . $mode, true );
         if ( ! is_array( $report ) ) {
@@ -144,7 +213,7 @@ final class TCMAILPRO_Autocheck {
             array( __( 'Security', 'taxocommerce-mail-pro' ), __( 'Credential encryption uses AES-256-GCM and keys derived from WordPress authentication salts. Changing salts invalidates stored passwords. IMAP uses port 993 with TLS peer verification. SMTP uses only 465/587 and authenticates directly with the selected account.', 'taxocommerce-mail-pro' ) ),
             array( __( 'Supported protocol', 'taxocommerce-mail-pro' ), __( 'Read operations use IMAP LOGIN, EXAMINE, UID SEARCH and BODY.PEEK without marking mail as read. Explicit administrator actions use SELECT, UID MOVE (RFC 6851), CREATE, RENAME and APPEND; there is no EXPUNGE or permanent deletion. Message viewing is bounded to 2 MB and complex encrypted/signed messages may not display.', 'taxocommerce-mail-pro' ) ),
             array( __( 'SMTP', 'taxocommerce-mail-pro' ), __( 'Uses a new WordPress-bundled PHPMailer instance, never changes wp_mail(), WooCommerce notifications or global mail filters. SMTP accepted does not guarantee delivery.', 'taxocommerce-mail-pro' ) ),
-            array( __( 'Diagnostics', 'taxocommerce-mail-pro' ), __( 'Functionality Check verifies local encryption, IMAP and SMTP prerequisites and configuration. Code Check only checks PHP parsing and is not a security audit. Neither test performs remote mailbox changes; explicit IMAP connection and SMTP test are required.', 'taxocommerce-mail-pro' ) ),
+            array( __( 'Diagnostics', 'taxocommerce-mail-pro' ), __( 'Functionality Check validates every account and explicitly tests IMAP authentication and read-only INBOX access. Code Check only checks PHP parsing. No emails are read or sent; SMTP delivery is not tested.', 'taxocommerce-mail-pro' ) ),
             array( __( 'Optional extensions', 'taxocommerce-mail-pro' ), __( 'Mail Pro keeps independent account options, encrypted credentials and distinct PHP classes, admin URLs and text domain. It does not need Lite, Core or WooCommerce to operate, and it never alters their stored settings.', 'taxocommerce-mail-pro' ) ),
         ) : array(
             array( __( 'Add accounts', 'taxocommerce-mail-pro' ), __( 'Create the email address at your hosting provider, then open Mail Pro > Accounts. Enter the full mailbox address, hidden password and secure IMAP host. Additional accounts have separate settings; SMTP host, port and sender details are optional advanced fields.', 'taxocommerce-mail-pro' ) ),

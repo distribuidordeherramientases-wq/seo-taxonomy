@@ -17,6 +17,8 @@ function is_email( $value ) { return (bool) filter_var( $value, FILTER_VALIDATE_
 function wp_strip_all_tags( $value ) { return strip_tags( $value ); }
 function sanitize_text_field( $value ) { return preg_replace( '/[\x00-\x1f\x7f]/', '', strip_tags( (string) $value ) ); }
 require_once dirname( __DIR__ ) . '/includes/class-tcmailpro-accounts.php';
+require_once dirname( __DIR__ ) . '/includes/class-tcmailpro-diagnostics.php';
+function __($text, $domain = '') { return $text; }
 require_once dirname( __DIR__ ) . '/includes/class-tcmailpro-imap.php';
 function assert_mail( $value, $message ) {
     if ( ! $value ) {
@@ -67,3 +69,12 @@ assert_mail( ! TCMAILPRO_IMAP::valid_folder_name( 'INBOX' ), 'System folder must
 assert_mail( ! TCMAILPRO_IMAP::valid_folder_name( '../tmp' ), 'Unsafe folder name accepted.' );
 assert_mail( 'Sent' === TCMAILPRO_IMAP::special_folder( array( 'Sent' => array( 'sent' => true ) ), 'sent' ), 'Sent folder detection failed.' );
 echo "PASS: Pro independent encrypted accounts, MIME, safe UIDs, safe folders and mailbox operation guards.\n";
+
+assert_mail( 'imap_auth_rejected' === TCMAILPRO_IMAP::command_rejection( 'T00001 NO Authentication failed', 'T00001', 'authentication' ), 'LOGIN NO classification' );
+assert_mail( 'imap_protocol_rejected' === TCMAILPRO_IMAP::command_rejection( 'T00001 BAD Invalid command', 'T00001', 'authentication' ), 'LOGIN BAD classification' );
+assert_mail( 'imap_inbox_rejected' === TCMAILPRO_IMAP::command_rejection( 'T00002 NO Mailbox unavailable', 'T00002', 'inbox' ), 'INBOX rejection classification' );
+assert_mail( 'imap_dns_failed' === TCMAILPRO_IMAP::socket_failure( 0, 'getaddrinfo failed' ), 'DNS classification' );
+assert_mail( 'imap_tcp_failed' === TCMAILPRO_IMAP::socket_failure( 111, 'Connection refused' ), 'TCP classification' );
+assert_mail( 'imap_timeout' === TCMAILPRO_IMAP::socket_failure( 110, 'Timed out' ), 'Timeout classification' );
+assert_mail( ! TCMAILPRO_Diagnostics::known( 'raw secret' ), 'Unknown diagnostics rejected' );
+echo "PASS: diagnostic classification.\n";

@@ -178,6 +178,14 @@ final class Admin {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 		}
 
+		// The uploaded PHP temporary file is local to this worker, not an FTP
+		// installation path. Use WordPress' direct filesystem implementation.
+		if ( ! class_exists( '\WP_Filesystem_Direct', false ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-base.php';
+			require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-direct.php';
+		}
+		$filesystem = new \WP_Filesystem_Direct( null );
+
 		$directories = array_unique( array( get_temp_dir(), dirname( $tmp ) ) );
 		$has_private = false;
 		$has_reservation = false;
@@ -193,19 +201,20 @@ final class Admin {
 				continue;
 			}
 			$has_reservation = true;
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod,WordPress.PHP.NoSilencedErrors.Discouraged -- Local private temporary file; fail closed on permission errors.
-			if ( ! @chmod( $path, 0600 ) ) {
+			if ( ! $filesystem->chmod( $path, 0600 ) ) {
 				wp_delete_file( $path );
 				continue;
 			}
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_move_uploaded_file,WordPress.PHP.NoSilencedErrors.Discouraged -- PHP verifies HTTP upload provenance; no Media or remote filesystem transfer.
-			if ( ! @move_uploaded_file( $tmp, $path ) ) {
+			// PHP has already verified this source with is_uploaded_file(). A
+			// local copy preserves the reservation; PHP cleans its upload at
+			// request shutdown. No arbitrary files or Media uploads are copied.
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Keep private server paths out of upload error responses.
+			if ( ! @$filesystem->copy( $tmp, $path, true, 0600 ) ) {
 				wp_delete_file( $path );
 				continue;
 			}
 			clearstatcache( true, $path );
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod,WordPress.PHP.NoSilencedErrors.Discouraged -- Reapply private permissions after the uploaded inode replaces the reservation.
-			if ( ! @chmod( $path, 0600 ) || ! is_readable( $path ) || $size !== wp_filesize( $path ) ) {
+			if ( ! $filesystem->chmod( $path, 0600 ) || ! is_readable( $path ) || $size !== wp_filesize( $path ) ) {
 				wp_delete_file( $path );
 				return new \WP_Error( 'upload_integrity', __( 'El CSV temporal no es legible o no coincide con el tamaño recibido. No se ha importado ningún dato.', 'taxocommerce-import-export-lite' ) );
 			}
@@ -218,7 +227,7 @@ final class Admin {
 		if ( ! $has_reservation ) {
 			return new \WP_Error( 'upload_reserve', __( 'No se pudo crear un archivo temporal privado. Comprueba los permisos y el espacio disponible.', 'taxocommerce-import-export-lite' ) );
 		}
-		return new \WP_Error( 'upload_move', __( 'El servidor no pudo mover el CSV recibido al archivo temporal privado. Comprueba las restricciones de PHP y los permisos.', 'taxocommerce-import-export-lite' ) );
+		return new \WP_Error( 'upload_move', __( 'El servidor no pudo copiar el CSV recibido al archivo temporal privado. Comprueba las restricciones de PHP y los permisos.', 'taxocommerce-import-export-lite' ) );
 	}
 
 	public static function upload() {

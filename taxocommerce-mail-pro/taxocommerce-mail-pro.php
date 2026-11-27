@@ -3,8 +3,8 @@
  * Plugin Name: TaxoCommerce Mail Pro
  * Plugin URI: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/staging/taxocommerce-mail-pro
  * Description: Standalone Pro client for hosting mailboxes, folders, sent messages, search and secure bulk IMAP operations.
- * Version: 0.1.0
- * Release Date: 2026-11-23
+ * Version: 0.1.1
+ * Release Date: 2026-11-27
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: David Perez
@@ -14,10 +14,11 @@
  * Domain Path: /languages
  */
 defined( 'ABSPATH' ) || exit;
-define( 'TCMAILPRO_VERSION', '0.1.0' );
+define( 'TCMAILPRO_VERSION', '0.1.1' );
 define( 'TCMAILPRO_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TCMAILPRO_URL', plugin_dir_url( __FILE__ ) );
 require_once TCMAILPRO_PATH . 'includes/class-tcmailpro-accounts.php';
+require_once TCMAILPRO_PATH . 'includes/class-tcmailpro-diagnostics.php';
 require_once TCMAILPRO_PATH . 'includes/class-tcmailpro-imap.php';
 require_once TCMAILPRO_PATH . 'includes/class-tcmailpro-smtp.php';
 require_once TCMAILPRO_PATH . 'includes/class-tcmailpro-admin.php';

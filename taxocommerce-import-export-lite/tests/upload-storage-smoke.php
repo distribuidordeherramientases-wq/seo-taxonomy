@@ -21,6 +21,18 @@ if ( 'cli-server' === PHP_SAPI ) {
 	function wp_generate_uuid4() { return bin2hex( random_bytes( 16 ) ); }
 	function wp_delete_file( $path ) { unlink( $path ); }
 	function wp_filesize( $path ) { return filesize( $path ); }
+	// Match the native WP_Filesystem_Direct copy/chmod API. PHP still performs
+	// the actual HTTP upload and is_uploaded_file() provenance check.
+	class WP_Filesystem_Direct {
+		public function __construct( $arg ) {}
+		public function chmod( $path, $mode ) { return chmod( $path, $mode ); }
+		public function copy( $source, $target, $overwrite = false, $mode = false ) {
+			if ( ! $overwrite && file_exists( $target ) ) return false;
+			$result = copy( $source, $target );
+			if ( $result && $mode ) $this->chmod( $target, $mode );
+			return $result;
+		}
+	}
 	require dirname( __DIR__ ) . '/includes/class-admin.php';
 	$file = $_FILES['csv_file'] ?? array();
 	if ( isset( $_GET['public_only'] ) ) {

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1 — 2026-11-27 (#2994)
+- Explicit per-account IMAP diagnostic with sequential checks, separate TCP/DNS, TLS, authentication and INBOX results; no messages fetched or sent.
+- Validate stored settings and encrypted credentials, invalidate previous results when accounts change, retain only bounded diagnostic codes and dates. SMTP delivery remains untested.
+
 ## 0.1.0 — 2026-11-23
 - Initial independent TaxoCommerce Mail Pro plugin. Separate account option `tcmailpro_accounts`, classes `TCMAILPRO_*`, and menu page `taxocommerce-mail-pro`.
 - Uses the same bounded TLS IMAP/isolated PHPMailer approach as the free Mail Lite source, augmented with server folders, pages, IMAP text search, nonce-guarded actions, safe RFC 6851 UID MOVE, Trash, restoring to Inbox, and read-only message viewing.
