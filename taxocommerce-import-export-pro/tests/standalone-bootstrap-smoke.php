@@ -263,7 +263,7 @@ check_tciep( $custom_id === CSV::import( 'product', $custom ), 'Custom product r
 check_tciep( 3 === count( $GLOBALS['products'] ), 'Custom product did not duplicate on reimport' );
 $bootstrap = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-import-export-pro.php' );
 check_tciep( false === strpos( $bootstrap, 'taxocommerce-import-export/includes/' ), 'No old plugin imports' );
-check_tciep( false === strpos( $bootstrap, 'taxocommerce_core_register_modules' ), 'No Core registration' );
+check_tciep( 1 === preg_match( '/^\s*\* Requires Plugins: woocommerce\s*$/m', $bootstrap ), 'WooCommerce is the only required plugin; Core registration is optional' );
 
 // Pages, posts and categories use only native WordPress tables and preserve custom fields.
 $post_data = array( 'slug' => 'prueba-post', 'title' => 'Entrada de prueba', 'meta:custom_reviewer' => 'Marina' );
@@ -375,6 +375,7 @@ use TaxoCommerce\ImportExportPro\Load;
 use TaxoCommerce\ImportExportPro\Admin;
 check_tciep( isset( $GLOBALS['tciep_hooks']['wp_ajax_tciep_command'], $GLOBALS['tciep_hooks'][Batch::HOOK], $GLOBALS['tciep_hooks']['admin_post_taxocommerce_import_export_pro_code_check'] ), 'Independent hooks registered' );
 check_tciep( ! isset( $GLOBALS['tciep_hooks']['wp_ajax_tciel_import_step'] ), 'No Lite hooks registered' );
+check_tciep( true === array_column( \TaxoCommerce\ImportExportPro\AutoCheck::report()['checks'], 'ok', 'id' )['no_core_required'], 'Autocheck recognizes optional Core hooks without requiring Core' );
 check_tciep( 5 === count( Load::profiles() ), 'Five CPU profiles' );
 check_tciep( 10 === Load::adjust( 20, 100, 20, 2, 8, 80, 30 ), 'Memory pressure reduces batch' );
 check_tciep( 40 === Load::adjust( 20, 100, 20, 1, 8, 20, 30 ), 'Headroom increases batch' );
