@@ -121,6 +121,14 @@ if (did_action('wp_head')) {
                 </div>
             </div>
         <?php endforeach; ?>
+        <?php if (function_exists('WC') && WC()->countries && 'ES' === WC()->countries->get_base_country()) : ?>
+            <details class="dht-campaign-transparency">
+                <summary><?php esc_html_e('Transparencia en nuestras ofertas', 'taxocommerce-templates'); ?></summary>
+                <p><?php esc_html_e('Nuestro compromiso es ofrecer descuentos reales y respetar la normativa vigente. La legislación española exige, con carácter general, tomar como referencia el precio más bajo aplicado durante los 30 días anteriores a la oferta.', 'taxocommerce-templates'); ?>
+                    <a href="<?php echo esc_url('https://www.boe.es/buscar/act.php?id=BOE-A-1996-1072#a20'); ?>"><?php esc_html_e('Consultar la normativa (artículo 20 de la Ley 7/1996)', 'taxocommerce-templates'); ?></a>
+                </p>
+            </details>
+        <?php endif; ?>
     </div>
 </section>
 
