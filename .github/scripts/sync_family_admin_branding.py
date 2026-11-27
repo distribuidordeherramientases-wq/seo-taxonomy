@@ -75,6 +75,8 @@ def main():
             result = result.replace(old_route, extra_route, 1)
         if slug == "mail-lite":
             result = result.replace("return $page === $tc_brand_slug || 0 === strpos( $page, $tc_brand_slug . '-' );", "return 'taxocommerce-mail' === $page; // Preserve the existing administration route.", 1)
+        if slug == "import-export":
+            result = result.replace("return $page === $tc_brand_slug || 0 === strpos( $page, $tc_brand_slug . '-' );", "return $page === $tc_brand_slug;", 1)
         info_path = ROOT / ("taxocommerce-" + slug) / "includes/official-excerpt.php"
         info_result = official_template.replace("__TC_DOMAIN__", "taxocommerce-" + slug)
         if args.check:

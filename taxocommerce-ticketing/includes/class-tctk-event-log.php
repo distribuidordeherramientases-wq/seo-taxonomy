@@ -86,6 +86,30 @@ final class TCTK_Event_Log {
         exit;
     }
 
+    private static function event_labels() {
+        return array(
+            'honeypot_rejected' => __( 'Spam trap rejection', 'taxocommerce-ticketing' ),
+            'rate_limited' => __( 'Request limit reached', 'taxocommerce-ticketing' ),
+            'validation_rejected' => __( 'Validation rejected', 'taxocommerce-ticketing' ),
+            'ticket_insert_failed' => __( 'Ticket insertion failed', 'taxocommerce-ticketing' ),
+            'message_insert_failed' => __( 'Message insertion failed', 'taxocommerce-ticketing' ),
+            'ticket_created' => __( 'Ticket created', 'taxocommerce-ticketing' ),
+            'customer_reply_saved' => __( 'Customer reply saved', 'taxocommerce-ticketing' ),
+            'customer_reply_failed' => __( 'Customer reply failed', 'taxocommerce-ticketing' ),
+            'staff_ticket_created' => __( 'Staff ticket created', 'taxocommerce-ticketing' ),
+            'staff_ticket_failed' => __( 'Staff ticket creation failed', 'taxocommerce-ticketing' ),
+            'staff_action_saved' => __( 'Staff action saved', 'taxocommerce-ticketing' ),
+            'staff_message_failed' => __( 'Staff message failed', 'taxocommerce-ticketing' ),
+            'staff_update_failed' => __( 'Staff update failed', 'taxocommerce-ticketing' ),
+            'ticket_update_failed' => __( 'Ticket update failed', 'taxocommerce-ticketing' ),
+            'mail_customer_failed' => __( 'Customer email failed', 'taxocommerce-ticketing' ),
+            'mail_staff_failed' => __( 'Staff email failed', 'taxocommerce-ticketing' ),
+            'attachment_rejected' => __( 'Attachment rejected', 'taxocommerce-ticketing' ),
+            'attachment_save_failed' => __( 'Attachment save failed', 'taxocommerce-ticketing' ),
+            'functional_probe_failed' => __( 'Functionality probe failed', 'taxocommerce-ticketing' ),
+        );
+    }
+
     public static function render() {
         if ( ! current_user_can( TCTK_Ticketing::CAP ) ) {
             return;
@@ -94,8 +118,15 @@ final class TCTK_Event_Log {
         echo '<p>' . esc_html__( 'Shows the latest 150 diagnostic events only. No names, email addresses, message text, attachment content, IPs or private access links are stored. It is not a record of all historical tickets.', 'taxocommerce-ticketing' ) . '</p>';
         $events = self::recent();
         echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Date (UTC)', 'taxocommerce-ticketing' ) . '</th><th>' . esc_html__( 'Event', 'taxocommerce-ticketing' ) . '</th><th>' . esc_html__( 'Ticket number', 'taxocommerce-ticketing' ) . '</th></tr></thead><tbody>';
+        // Display a translated description alongside the unchanged event identifier.
+        $labels = self::event_labels();
         foreach ( $events as $row ) {
-            echo '<tr><td>' . esc_html( isset( $row['at'] ) ? $row['at'] : '' ) . '</td><td><code>' . esc_html( isset( $row['event'] ) ? $row['event'] : '' ) . '</code></td><td>' . esc_html( isset( $row['ticket_id'] ) ? (string) absint( $row['ticket_id'] ) : '0' ) . '</td></tr>';
+            $event = isset( $row['event'] ) ? (string) $row['event'] : '';
+            echo '<tr><td>' . esc_html( isset( $row['at'] ) ? $row['at'] : '' ) . '</td><td>';
+            if ( isset( $labels[ $event ] ) ) {
+                echo esc_html( $labels[ $event ] ) . '<br />';
+            }
+            echo '<code>' . esc_html( $event ) . '</code></td><td>' . esc_html( isset( $row['ticket_id'] ) ? (string) absint( $row['ticket_id'] ) : '0' ) . '</td></tr>';
         }
         if ( ! $events ) {
             echo '<tr><td colspan="3">' . esc_html__( 'No events recorded yet.', 'taxocommerce-ticketing' ) . '</td></tr>';

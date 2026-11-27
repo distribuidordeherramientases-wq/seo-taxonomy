@@ -150,3 +150,60 @@ $source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-
 assert_basic( strpos( $source, '<option value="create">' ) < strpos( $source, '<option value="update">' ), 'Create/update is the default action' );
 assert_basic( false !== strpos( $source, "suggested==='categories'||suggested==='tags'" ), 'Categories and tags are not mapped automatically' );
 echo "Basic WooCommerce CSV: create, update, no mandatory terms, downloads and export OK\n";
+
+// Regression #2985: the standalone full plugin must never brand Lite's route.
+$GLOBALS['tc_ie_header_actions'] = array();
+$GLOBALS['tc_ie_header_filters'] = array();
+$GLOBALS['tc_ie_header_styles'] = array();
+function add_action( $hook, $callback, $priority = 10 ) { $GLOBALS['tc_ie_header_actions'][ $hook ][] = $callback; }
+function add_filter( $hook, $callback, $priority = 10 ) { $GLOBALS['tc_ie_header_filters'][ $hook ][] = $callback; }
+function wp_unslash( $value ) { return $value; }
+function wp_strip_all_tags( $value ) { return strip_tags( $value ); }
+function determine_locale() { return 'es_ES'; }
+function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' ); }
+function esc_url( $value ) { return esc_html( $value ); }
+function get_file_data( $file, $fields, $context = '' ) {
+    $source = file_get_contents( $file );
+    $result = array();
+    foreach ( $fields as $key => $label ) {
+        $result[ $key ] = preg_match( '/^\\s*\\*\\s*' . preg_quote( $label, '/' ) . ':\\s*(.+)$/m', $source, $match ) ? trim( $match[1] ) : '';
+    }
+    return $result;
+}
+function wp_register_style( $handle, $source, $deps, $version ) { $GLOBALS['tc_ie_header_styles'][] = $handle; }
+function wp_enqueue_style( $handle ) {}
+function wp_add_inline_style( $handle, $css ) {}
+require dirname( __DIR__ ) . '/includes/admin-branding.php';
+
+foreach ( array( 'taxocommerce-import-export-lite', 'taxocommerce-import-export-lite-pro', 'taxocommerce-import-export-other', 'unrelated' ) as $route ) {
+    $_GET = array( 'page' => $route, 'tab' => 'import' );
+    ob_start();
+    foreach ( $GLOBALS['tc_ie_header_actions']['admin_notices'] as $callback ) {
+        $callback();
+    }
+    assert_basic( '' === ob_get_clean(), 'Full plugin cannot render a header on ' . $route );
+    foreach ( $GLOBALS['tc_ie_header_actions']['admin_enqueue_scripts'] as $callback ) {
+        $callback();
+    }
+    assert_basic( array() === $GLOBALS['tc_ie_header_styles'], 'No full branding CSS on ' . $route );
+    foreach ( $GLOBALS['tc_ie_header_filters']['admin_body_class'] as $callback ) {
+        assert_basic( 'wp-admin' === $callback( 'wp-admin' ), 'No full branding body class on ' . $route );
+    }
+}
+
+$_GET = array( 'page' => 'taxocommerce-import-export', 'tc_ie_tab' => 'export' );
+ob_start();
+foreach ( $GLOBALS['tc_ie_header_actions']['admin_notices'] as $callback ) {
+    $callback();
+}
+$markup = ob_get_clean();
+assert_basic( 1 === substr_count( $markup, '<header class="tc-family-hero">' ), 'Full plugin still renders exactly one header on its own screen' );
+assert_basic( false !== strpos( $markup, '<h1>TaxoCommerce Import-Export</h1>' ), 'Full plugin retains its own title' );
+foreach ( $GLOBALS['tc_ie_header_actions']['admin_enqueue_scripts'] as $callback ) {
+    $callback();
+}
+assert_basic( array( 'taxocommerce-import-export-family-header' ) === $GLOBALS['tc_ie_header_styles'], 'Full plugin retains own stylesheet' );
+foreach ( $GLOBALS['tc_ie_header_filters']['admin_body_class'] as $callback ) {
+    assert_basic( 'wp-admin tc-family-screen' === $callback( 'wp-admin' ), 'Full plugin retains own body class' );
+}
+echo "Import-Export admin header: exact own route, no Lite header collision OK\n";

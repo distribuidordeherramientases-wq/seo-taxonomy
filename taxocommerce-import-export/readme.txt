@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.38
+Stable tag: 0.4.39
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -58,6 +58,9 @@ The package transports original image files plus title, ALT, caption, descriptio
 3. Open the plugin administration, select a supported CSV import or export, and review the job settings before starting it.
 
 == Changelog ==
+
+= 0.4.39 =
+* Restrict the full plugin header to its own screen; no duplicate branding on Lite.
 
 = 0.4.26 =
 * Local Description and Plugin URI replace REST excerpt requests and caches in the header. Issue #2494.

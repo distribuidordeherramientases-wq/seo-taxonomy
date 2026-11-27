@@ -4,7 +4,7 @@ Tags: tickets, support, helpdesk, customer-service, contact
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.4
+Stable tag: 0.1.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -53,6 +53,9 @@ Yes. Its title, text labels, request types, logo attachment ID and blue/green/br
 The email includes a private reply link. This first version does not ingest inbound email replies.
 
 == Changelog ==
+
+= 0.1.5 =
+* Localize 55 additional fixed administrative labels and diagnostic messages in five locales (275 entries). Display translated functionality-check details, check and status labels, and activity-event descriptions alongside unchanged event identifiers. Preserve stored diagnostics, JSON exports, customer data and all check behavior. Rebuild and verify five MO catalogs, now 311 entries per locale. No production deployment.
 
 = 0.1.4 =
 * Complete all 256 existing gettext keys in five locales (460 additional entries): technical manual, code-check controls and diagnostic guidance. Rebuild and validate five MO catalogs against the POT and preserve prior translations, identifiers, configured content and behavior. Coverage refers to extracted gettext keys only; review hardcoded interface strings separately. No production deployment.
