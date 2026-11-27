@@ -4,7 +4,7 @@ Tags: woocommerce, suppliers, csv, inventory, prices
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.29
+Stable tag: 0.2.30
 License: GPLv2 or later
 
 Supplier catalogue management and a private directory with manual supplier records, even without imported products.
@@ -20,7 +20,8 @@ TaxoCommerce Suppliers owns the supplier intake and intermediate supplier catalo
 
 * Supplier management with manually created and imported supplier names, including providers with zero catalogue products, private business/contact/address/lead-time records and free-form notes.
 * Bulk CSV import/export of private supplier contact profiles for imported and manually created suppliers, including providers with zero products, with CPU-batched processing and error reporting. Unknown CSV supplier names are not created automatically; deleting a private profile never removes catalogue products.
-* CSV-only supplier imports.
+* CSV supplier imports and explicit manual product-source registration.
+* User-initiated URL observations using public structured product data, without automatic commercial updates.
 * Reusable CSV mapping templates.
 * Generic canonical CSV import format and price-only update format; no provider templates preinstalled.
 * Compatibility with existing regional CSV feed parsing without preloading third-party supplier presets.
@@ -36,11 +37,10 @@ TaxoCommerce Suppliers owns the supplier intake and intermediate supplier catalo
 * Read-only, manually triggered Autotest of services, administration hooks, WooCommerce, settings and schema.
 
 Explicitly excluded:
-* Scraping.
-* Crawlers.
+* Unattended crawling and unstructured website extraction.
 * GitHub Actions runners.
 * Cloud Run jobs.
-* Automatic supplier website extraction.
+* Automatic supplier price and stock application.
 
 == Installation ==
 
@@ -50,6 +50,9 @@ Explicitly excluded:
 4. The plugin installs its own supplier price history table automatically; history starts at the first captured observation.
 
 == Changelog ==
+
+= 0.2.30 =
+* Add URL observation and explicit manual linking to the existing supplier catalogue. No automatic price or stock changes.
 
 = 0.2.28 =
 * Add supplier records manually before importing any catalogue products. Show imported and manual suppliers together with accurate product counts, and include both in private contact CSV import/export. Preserve catalogue, product, price and order data.
