@@ -16,26 +16,62 @@ final class TCMAILPRO_IMAP {
     private $counter = 0;
     private $selected = 'INBOX';
     private $readonly = true;
+    private $connection_stage = 'configuration';
 
     public static function available() {
         return function_exists( 'stream_socket_client' ) && extension_loaded( 'openssl' );
     }
 
     private static function quote( $value ) {
-        if ( ! is_string( $value ) || strlen( $value ) > 300 || preg_match( '/[\x00-\x1F\x7F]/', $value ) ) {
+        if ( ! is_string( $value ) || strlen( $value ) > 1024 || preg_match( '/[\x00-\x1F\x7F]/', $value ) ) {
             throw new RuntimeException( 'invalid_credentials' );
         }
         return '"' . addcslashes( $value, "\\\"" ) . '"';
     }
 
+    /** Last connection phase; never contains remote response text or credentials. */
+    public function connection_stage() {
+        return $this->connection_stage;
+    }
+
+    public static function socket_failure( $errno, $error ) {
+        if ( preg_match( '/getaddrinfo|php_network_getaddresses|name or service not known|temporary failure in name resolution|no address associated|nodename nor servname/i', $error ) ) {
+            return 'imap_dns_failed';
+        }
+        return in_array( (int) $errno, array( 60, 110, 10060 ), true ) ? 'imap_timeout' : 'imap_tcp_failed';
+    }
+
+    public static function command_rejection( $line, $tag, $phase ) {
+        if ( 'authentication' === $phase ) {
+            if ( preg_match( '/^' . preg_quote( $tag, '/' ) . ' NO\b/i', $line ) ) {
+                if ( preg_match( '/\[(?:UNAVAILABLE|PRIVACYREQUIRED|CONTACTADMIN|AUTHORIZATIONFAILED)\]/i', $line ) ) {
+                    return 'imap_auth_policy';
+                }
+                return 'imap_auth_rejected';
+            }
+            return 'imap_protocol_rejected';
+        }
+        if ( 'inbox' === $phase ) {
+            return preg_match( '/^' . preg_quote( $tag, '/' ) . ' NO\b/i', $line ) ? 'imap_inbox_rejected' : 'imap_protocol_rejected';
+        }
+        return 'imap_command_rejected';
+    }
+
     public function connect( $account ) {
-        if ( ! self::available() || ! isset( $account['imap_host'], $account['username'], $account['password'] ) ) {
+        $this->disconnect();
+        $this->connection_stage = 'configuration';
+        if ( ! self::available() ) {
             throw new RuntimeException( 'imap_unavailable' );
+        }
+        if ( ! isset( $account['imap_host'], $account['username'], $account['password'] ) ) {
+            throw new RuntimeException( 'invalid_credentials' );
         }
         $host = (string) $account['imap_host'];
         if ( '' === $host || strlen( $host ) > 253 || ! filter_var( $host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME ) ) {
             throw new RuntimeException( 'invalid_host' );
         }
+        // Validate the quoted login before opening any connection.
+        $login = 'LOGIN ' . self::quote( $account['username'] ) . ' ' . self::quote( $account['password'] );
         $context = stream_context_create( array(
             'ssl' => array(
                 'verify_peer' => true,
@@ -47,35 +83,54 @@ final class TCMAILPRO_IMAP {
         ) );
         $errno = 0;
         $error = '';
-        // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Network TLS errors are intentionally converted to a generic admin notice.
-        $stream = @stream_socket_client( 'ssl://' . $host . ':993', $errno, $error, 10, STREAM_CLIENT_CONNECT, $context );
+        $this->connection_stage = 'tcp';
+        // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Never expose raw socket errors; map them to bounded diagnostic codes.
+        $stream = @stream_socket_client( 'tcp://' . $host . ':993', $errno, $error, 8, STREAM_CLIENT_CONNECT, $context );
         if ( false === $stream ) {
-            throw new RuntimeException( 'tls_connection_failed' );
+            throw new RuntimeException( self::socket_failure( $errno, $error ) );
         }
         $this->stream = $stream;
-        stream_set_timeout( $stream, 12 );
-        $greeting = fgets( $stream, 16384 );
-        if ( false === $greeting || 0 !== strpos( $greeting, '* OK' ) ) {
-            $this->disconnect();
-            throw new RuntimeException( 'imap_greeting_failed' );
-        }
+        stream_set_timeout( $stream, 8 );
         try {
-            $this->command( 'LOGIN ' . self::quote( $account['username'] ) . ' ' . self::quote( $account['password'] ), 65536 );
-            $this->command( 'EXAMINE "INBOX"', 65536 );
-        } catch ( RuntimeException $failure ) {
+            $this->connection_stage = 'tls';
+            // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- TLS certificate or handshake failure is reported without raw warnings.
+            $secure = @stream_socket_enable_crypto( $stream, true, STREAM_CRYPTO_METHOD_TLS_CLIENT );
+            if ( true !== $secure ) {
+                $status = stream_get_meta_data( $stream );
+                throw new RuntimeException( empty( $status['timed_out'] ) ? 'tls_connection_failed' : 'imap_timeout' );
+            }
+            $this->connection_stage = 'greeting';
+            $greeting = fgets( $stream, 16384 );
+            if ( false === $greeting ) {
+                $status = stream_get_meta_data( $stream );
+                throw new RuntimeException( empty( $status['timed_out'] ) ? 'imap_greeting_failed' : 'imap_timeout' );
+            }
+            if ( ! preg_match( '/^\* OK(?:\s|$)/i', $greeting ) ) {
+                throw new RuntimeException( 'imap_greeting_failed' );
+            }
+            $this->connection_stage = 'authentication';
+            $this->command( $login, 65536, 'authentication' );
+            $this->connection_stage = 'inbox';
+            $this->command( 'EXAMINE "INBOX"', 65536, 'inbox' );
+            $this->selected = 'INBOX';
+            $this->readonly = true;
+            $this->connection_stage = 'complete';
+            stream_set_timeout( $stream, 12 );
+        } catch ( Throwable $failure ) {
             $this->disconnect();
             throw $failure;
         }
     }
 
-    private function command( $command, $limit = self::MAX_RESPONSE ) {
+    private function command( $command, $limit = self::MAX_RESPONSE, $phase = '' ) {
         if ( ! is_resource( $this->stream ) ) {
             throw new RuntimeException( 'imap_disconnected' );
         }
         $tag = 'T' . str_pad( (string) ++$this->counter, 5, '0', STR_PAD_LEFT );
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- IMAP TLS socket, not a WordPress filesystem path.
-        $sent = fwrite( $this->stream, $tag . ' ' . $command . "\r\n" );
-        if ( false === $sent ) {
+        $wire = $tag . ' ' . $command . "\r\n";
+        $sent = fwrite( $this->stream, $wire );
+        if ( strlen( $wire ) !== $sent ) {
             throw new RuntimeException( 'imap_write_failed' );
         }
         $output = '';
@@ -84,7 +139,8 @@ final class TCMAILPRO_IMAP {
         for ( $iteration = 0; $iteration < 100000; ++$iteration ) {
             $line = fgets( $this->stream, min( 262144, $limit + 1 ) );
             if ( false === $line ) {
-                throw new RuntimeException( 'imap_read_failed' );
+                $status = stream_get_meta_data( $this->stream );
+                throw new RuntimeException( empty( $status['timed_out'] ) ? 'imap_read_failed' : 'imap_timeout' );
             }
             $bytes += strlen( $line );
             if ( $bytes > $limit ) {
@@ -110,7 +166,7 @@ final class TCMAILPRO_IMAP {
             }
             if ( 0 === strpos( $line, $tag . ' ' ) ) {
                 if ( ! preg_match( '/^' . preg_quote( $tag, '/' ) . ' OK(?:\s|\r|\n)/i', $line ) ) {
-                    throw new RuntimeException( 'imap_command_rejected' );
+                    throw new RuntimeException( self::command_rejection( $line, $tag, $phase ) );
                 }
                 return array( 'response' => $output, 'literals' => $literals );
             }
