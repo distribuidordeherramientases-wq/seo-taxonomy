@@ -50,8 +50,8 @@ class MailPackageTests(unittest.TestCase):
         admin = (root / "taxocommerce-mail-lite/includes/class-tcmail-admin.php").read_text(encoding="utf-8")
         readme = (root / "taxocommerce-mail-lite/readme.txt").read_text(encoding="utf-8")
         self.assertIn("Plugin Name: TaxoCommerce Mail Lite", entry)
-        self.assertIn("Version: 0.1.6", entry)
-        self.assertIn("Stable tag: 0.1.6", readme)
+        self.assertIn("Version: 0.1.7", entry)
+        self.assertIn("Stable tag: 0.1.7", readme)
         self.assertIn("Text Domain: taxocommerce-mail-lite", entry)
         self.assertIn("includes/class-tcmail-accounts.php", entry)
         self.assertIn("taxocommerce-mail/taxocommerce-mail.php", entry)
@@ -64,6 +64,12 @@ class MailPackageTests(unittest.TestCase):
         self.assertIn("TaxoCommerce Mail Lite", entry)
         self.assertIn("TaxoCommerce Mail Pro", admin)
         self.assertIn("self::pro_information();", admin)
+        self.assertIn("tcmail-edition-comparison", admin)
+        self.assertIn("Create and rename personal folders", admin)
+        self.assertIn("Move up to 20 selected messages, trash and restore", admin)
+        self.assertIn("Explore Mail Pro documentation", admin)
+        self.assertNotIn("Pro roadmap:", admin)
+        self.assertNotIn("The Pro edition is planned", admin)
         autocheck = (root / "taxocommerce-mail-lite/includes/class-tcmail-autocheck.php").read_text(encoding="utf-8")
         self.assertNotIn("'technical' =>", admin)
         self.assertNotIn("Technical manual", autocheck)
@@ -77,9 +83,7 @@ class MailPackageTests(unittest.TestCase):
     def test_translated_lite_and_pro_catalogs(self):
         root = Path(__file__).resolve().parents[2] / "taxocommerce-mail-lite/languages"
         source = (
-            "The Pro edition is planned as an optional separate add-on. "
-            "Lite is free and fully functional as described in its manuals; "
-            "no purchase or activation is required."
+            "Manage your professional email without leaving WordPress."
         )
         for locale in ("es_ES", "en_US", "fr_FR", "de_DE", "nl_NL"):
             with self.subTest(locale=locale):
@@ -87,6 +91,10 @@ class MailPackageTests(unittest.TestCase):
                     catalog = gettext.GNUTranslations(handle)
                 value = catalog.gettext(source)
                 self.assertTrue(value)
+                for label in ("Compare editions", "Search messages on the mail server", "Explore Mail Pro documentation"):
+                    self.assertTrue(catalog.gettext(label))
+                    if locale != "en_US":
+                        self.assertNotEqual(label, catalog.gettext(label))
                 if locale != "en_US":
                     self.assertNotEqual(source, value)
                 self.assertEqual(

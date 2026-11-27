@@ -330,3 +330,72 @@ msgstr "Mailserver-Einstellungen des Hosters"
 
 msgid "In your hosting control panel, find email client connection details. Use the exact SSL/TLS host and ports provided: IMAP 993, SMTP 465 or STARTTLS 587."
 msgstr "Die Verbindungsdaten finden Sie in der E-Mail-Konfiguration Ihres Hosters. Verwenden Sie genau den angegebenen SSL/TLS-Server und die Ports: IMAP 993, SMTP 465 oder STARTTLS 587."
+
+msgid "Manage your professional email without leaving WordPress."
+msgstr "Verwalten Sie Ihre geschäftlichen E-Mails direkt in WordPress."
+
+msgid "Find conversations, organize messages by project or customer, and keep track of sent email. Mail Pro adds advanced tools to the basic mail client."
+msgstr "Finden Sie Unterhaltungen, organisieren Sie Nachrichten nach Projekt oder Kunde und behalten Sie gesendete E-Mails im Blick. Mail Pro ergänzt den einfachen Mailclient um erweiterte Werkzeuge."
+
+msgid "Compare editions"
+msgstr "Editionen vergleichen"
+
+msgid "Feature"
+msgstr "Funktion"
+
+msgid "Included"
+msgstr "Enthalten"
+
+msgid "Not included"
+msgstr "Nicht enthalten"
+
+msgid "Up to 20 mailboxes, secure reading, sending and replies"
+msgstr "Bis zu 20 Postfächer, sicheres Lesen, Senden und Antworten"
+
+msgid "Inbox navigation"
+msgstr "Navigation im Posteingang"
+
+msgid "12 newest messages"
+msgstr "12 neueste Nachrichten"
+
+msgid "20 messages per page"
+msgstr "20 Nachrichten pro Seite"
+
+msgid "Sent messages and server-side folders"
+msgstr "Gesendete Nachrichten und Serverordner"
+
+msgid "Search messages on the mail server"
+msgstr "Nachrichten auf dem Mailserver suchen"
+
+msgid "Create and rename personal folders"
+msgstr "Persönliche Ordner erstellen und umbenennen"
+
+msgid "Move up to 20 selected messages, trash and restore"
+msgstr "Bis zu 20 ausgewählte Nachrichten verschieben, in den Papierkorb legen und wiederherstellen"
+
+msgid "User manual and functionality check with JSON report"
+msgstr "Benutzerhandbuch und Funktionsprüfung mit JSON-Bericht"
+
+msgid "Technical manual and code check"
+msgstr "Technisches Handbuch und Codeprüfung"
+
+msgid "Optional integration into the TaxoCommerce Core menu"
+msgstr "Optionale Integration in das TaxoCommerce-Core-Menü"
+
+msgid "Installation and compatibility"
+msgstr "Installation und Kompatibilität"
+
+msgid "Pro is a separate plugin and does not require Lite, Core or WooCommerce. Configure its mailboxes separately. WordPress 6.7 or later and PHP 7.4 or later are required."
+msgstr "Pro ist ein eigenständiges Plugin und benötigt weder Lite noch Core oder WooCommerce. Richten Sie die Postfächer separat ein. WordPress ab 6.7 und PHP ab 7.4 sind erforderlich."
+
+msgid "Messages remain on the mail server. Moving messages requires IMAP MOVE support; saving sent copies requires an available Sent folder. Validate your mailbox before regular use. No permanent deletion or background synchronization is provided."
+msgstr "Nachrichten bleiben auf dem Mailserver. Zum Verschieben ist IMAP MOVE erforderlich; gesendete Kopien benötigen einen verfügbaren Gesendet-Ordner. Prüfen Sie Ihr Postfach vor dem regelmäßigen Einsatz. Keine endgültige Löschung oder Hintergrundsynchronisierung."
+
+msgid "Lite remains free and fully functional. No purchase or upgrade is required. Pro is currently a test release; live mailbox validation and commercial availability are not yet confirmed."
+msgstr "Lite bleibt kostenlos und voll funktionsfähig. Ein Kauf oder Upgrade ist nicht erforderlich. Pro ist derzeit eine Testversion; die Prüfung mit echten Postfächern und die kommerzielle Verfügbarkeit sind noch nicht bestätigt."
+
+msgid "Explore Mail Pro documentation"
+msgstr "Mail-Pro-Dokumentation ansehen"
+
+msgid "Mail Lite is the free standalone edition. It can configure multiple accounts, read the 12 newest inbox messages, compose and reply. Mail Pro is a separate optional plugin with advanced mailbox tools; Lite does not require it."
+msgstr "Mail Lite ist die kostenlose eigenständige Edition. Sie ermöglicht mehrere Konten, das Lesen der 12 neuesten Nachrichten sowie das Verfassen und Beantworten. Mail Pro ist ein separates optionales Plugin mit erweiterten Mailfunktionen; Lite benötigt es nicht."
