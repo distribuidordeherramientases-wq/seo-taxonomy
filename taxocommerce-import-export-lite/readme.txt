@@ -5,7 +5,7 @@ Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.7
+Stable tag: 0.1.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,8 +52,11 @@ Yes. Include the headers virtual, downloadable, download_1_name and download_1_u
 
 == Changelog ==
 
+= 0.1.8 =
+* Simplify Lite administration to import, export, functional check and user manual; remove the technical manual screen. Retain all five bundled language catalogs and CSV operations.
+
 = 0.1.7 =
-* Simplify Lite administration to import, export, functional check and user manual; remove the technical manual screen. No change to CSV operations.
+* Add standalone gettext catalogs for five locales: 116 of 204 keys per locale (580 entries), including administrative controls, CSV field labels, upload errors and progress counters. Localize JavaScript progress and check results. Preserve canonical CSV keys, accepted values, data and import behavior. Remaining validation and manual strings will be translated separately.
 
 = 0.1.6 =
 * Receive CSV uploads into private temporary files independently of Media; validate upload origin, size and storage, with safe fallback and actionable errors.

@@ -387,11 +387,11 @@ ob_start();
 $header = ob_get_clean();
 check_tciel( 1 === substr_count( $header, '<h1>' ), 'One header title; no duplicate H1' );
 check_tciel( false !== strpos( $header, 'TaxoCommerce Import-Export Lite' ), 'Plugin metadata title in header' );
-check_tciel( false !== strpos( $header, 'Versión 0.1.7' ), 'Version follows main plugin header' );
+check_tciel( false !== strpos( $header, 'Versión 0.1.8' ), 'Version follows main plugin header' );
 check_tciel( false !== strpos( $header, 'Última actualización: 2026-11-27' ), 'Valid release date displayed' );
 check_tciel( false !== strpos( $header, 'Independent CSV import and export' ), 'Plugin metadata description displayed' );
 check_tciel( false !== strpos( $header, '<details class="tciel-hero__history">' ), 'Own changelog is collapsed by default' );
-check_tciel( false !== strpos( $header, '[0.1.7]' ), 'Latest changelog entry included' );
+check_tciel( false !== strpos( $header, '[0.1.8]' ), 'Latest changelog entry included' );
 check_tciel( false !== strpos( $header, 'Historial de versiones y mejoras' ), 'WordPress Spanish locale fallback' );
 check_tciel( false !== strpos( $header, 'github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/staging/taxocommerce-import-export-lite' ), 'Official source link from plugin URI' );
 echo "Import-Export Lite: autonomous admin header metadata, localized labels and bundled history OK\n";
@@ -448,3 +448,11 @@ foreach ( array( 'import', 'export', 'check', 'manual', 'technical', 'code' ) as
 }
 check_tciel( ! method_exists( \TaxoCommerce\ImportExportLite\Manual::class, 'technical' ), 'No unused technical manual renderer in Lite' );
 echo "Import-Export Lite: four tabs, user manual and functional check retained, professional routes excluded OK\n";
+
+// Validate bundled MO catalog headers and entry count.
+foreach ( array( 'es_ES', 'en_US', 'fr_FR', 'de_DE', 'nl_NL' ) as $locale ) {
+    $mo = file_get_contents( dirname( __DIR__ ) . '/languages/taxocommerce-import-export-lite-' . $locale . '.mo' );
+    if ( ! $mo || strlen( $mo ) < 28 ) throw new RuntimeException( 'Missing catalog: ' . $locale );
+    $h = unpack( 'Vmagic/Vrevision/Vcount/Vorig/Vtrans', substr( $mo, 0, 20 ) );
+    if ( 0x950412de !== $h['magic'] || 117 !== $h['count'] ) throw new RuntimeException( 'Invalid catalog: ' . $locale );
+}
