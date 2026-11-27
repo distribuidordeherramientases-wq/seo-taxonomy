@@ -387,11 +387,11 @@ ob_start();
 $header = ob_get_clean();
 check_tciel( 1 === substr_count( $header, '<h1>' ), 'One header title; no duplicate H1' );
 check_tciel( false !== strpos( $header, 'TaxoCommerce Import-Export Lite' ), 'Plugin metadata title in header' );
-check_tciel( false !== strpos( $header, 'Versión 0.1.6' ), 'Version follows main plugin header' );
+check_tciel( false !== strpos( $header, 'Versión 0.1.7' ), 'Version follows main plugin header' );
 check_tciel( false !== strpos( $header, 'Última actualización: 2026-11-27' ), 'Valid release date displayed' );
 check_tciel( false !== strpos( $header, 'Independent CSV import and export' ), 'Plugin metadata description displayed' );
 check_tciel( false !== strpos( $header, '<details class="tciel-hero__history">' ), 'Own changelog is collapsed by default' );
-check_tciel( false !== strpos( $header, '[0.1.6]' ), 'Latest changelog entry included' );
+check_tciel( false !== strpos( $header, '[0.1.7]' ), 'Latest changelog entry included' );
 check_tciel( false !== strpos( $header, 'Historial de versiones y mejoras' ), 'WordPress Spanish locale fallback' );
 check_tciel( false !== strpos( $header, 'github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/staging/taxocommerce-import-export-lite' ), 'Official source link from plugin URI' );
 echo "Import-Export Lite: autonomous admin header metadata, localized labels and bundled history OK\n";
@@ -423,3 +423,28 @@ echo "Import-Export Lite: fixed content blocks and server-bound automatic mappin
 $upload_exit = 1;
 passthru( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/upload-storage-smoke.php' ), $upload_exit );
 check_tciel( 0 === $upload_exit, 'Private HTTP CSV storage regression' );
+
+// The Lite navigation exposes four sections only; old technical bookmarks fall back safely.
+define( 'TaxoCommerce\\ImportExportLite\\SLUG', 'taxocommerce-import-export-lite' );
+function esc_attr__( $value, $domain = '' ) { return esc_attr( $value ); }
+function add_query_arg( $args, $url ) { return $url . '?' . http_build_query( $args ); }
+function get_option( $key, $default = false ) { return $default; }
+require dirname( __DIR__ ) . '/includes/class-manual.php';
+require dirname( __DIR__ ) . '/includes/class-autocheck.php';
+foreach ( array( 'import', 'export', 'check', 'manual', 'technical', 'code' ) as $requested ) {
+    $_GET = array( 'tab' => $requested );
+    ob_start();
+    \TaxoCommerce\ImportExportLite\Admin::render();
+    $screen = ob_get_clean();
+    preg_match( '~<nav class="nav-tab-wrapper".*?</nav>~s', $screen, $nav );
+    check_tciel( isset( $nav[0] ) && 4 === substr_count( $nav[0], '<a class="nav-tab' ), 'Exactly four Lite tabs: ' . $requested );
+    foreach ( array( 'import', 'export', 'check', 'manual' ) as $visible ) {
+        check_tciel( false !== strpos( $nav[0], 'tab=' . $visible ), 'Retained Lite tab: ' . $visible );
+    }
+    check_tciel( false === strpos( $nav[0], 'tab=technical' ) && false === strpos( $nav[0], 'tab=code' ), 'No professional tabs in Lite' );
+    if ( in_array( $requested, array( 'technical', 'code' ), true ) ) {
+        check_tciel( false !== strpos( $screen, 'id="tciel-import-page"' ), 'Old professional route falls back to import' );
+    }
+}
+check_tciel( ! method_exists( \TaxoCommerce\ImportExportLite\Manual::class, 'technical' ), 'No unused technical manual renderer in Lite' );
+echo "Import-Export Lite: four tabs, user manual and functional check retained, professional routes excluded OK\n";

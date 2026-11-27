@@ -1,5 +1,10 @@
 # TaxoCommerce Import-Export Lite
 
+## [0.1.7] — 2026-11-27 — Manual de usuario en Lite (#3017)
+
+- Cuatro pestañas de administración: importar, exportar, chequeo funcional y manual de usuario. Retira el manual técnico de la interfaz y su ruta; conserva las notas de mantenimiento en la documentación del repositorio.
+- Sin cambios en los bloques CSV, almacenamiento, validación ni chequeo funcional. Pro conserva su manual técnico y chequeo profesional de código.
+
 ## [0.1.6] — 2026-11-27 — Recepción privada de CSV (#2999)
 
 - Recibe CSV de páginas, productos y demás bloques mediante archivos temporales privados con nombre único, sin pasar por Media ni depender del MIME enviado por el navegador.
