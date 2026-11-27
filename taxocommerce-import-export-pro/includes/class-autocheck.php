@@ -25,7 +25,8 @@ final class AutoCheck {
 		foreach ( $files as $file ) {
 			$rows[] = array( 'id' => 'code_' . sanitize_key( str_replace( '/', '_', $file ) ), 'ok' => is_readable( dirname( __DIR__ ) . '/' . $file ), 'description' => sprintf( /* translators: %s: a local component path */ __( 'Componente legible: %s', 'taxocommerce-import-export-pro' ), $file ) );
 		}
-		$rows[] = array( 'id' => 'no_core_required', 'ok' => false === strpos( (string) file_get_contents( dirname( __DIR__ ) . '/taxocommerce-import-export-pro.php' ), 'taxocommerce_core_register_modules' ), 'description' => __( 'Arranque sin dependencia de Core', 'taxocommerce-import-export-pro' ) );
+		$metadata = get_file_data( dirname( __DIR__ ) . '/taxocommerce-import-export-pro.php', array( 'requires' => 'Requires Plugins' ) );
+		$rows[] = array( 'id' => 'no_core_required', 'ok' => 'woocommerce' === trim( $metadata['requires'] ) && class_exists( __NAMESPACE__ . '\\Admin' ) && class_exists( __NAMESPACE__ . '\\CSV' ), 'description' => __( 'WooCommerce como única dependencia de plugin; integración opcional de Core', 'taxocommerce-import-export-pro' ) );
 		$passes = count( array_filter( $rows, static function ( $row ) { return $row['ok']; } ) );
 		return array( 'plugin' => SLUG, 'version' => VERSION, 'timestamp' => gmdate( 'c' ), 'checks' => $rows, 'passed' => $passes, 'failed' => count( $rows ) - $passes );
 	}

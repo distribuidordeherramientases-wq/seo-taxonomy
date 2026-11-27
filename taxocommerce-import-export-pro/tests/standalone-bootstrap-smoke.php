@@ -263,7 +263,7 @@ check_tciep( $custom_id === CSV::import( 'product', $custom ), 'Custom product r
 check_tciep( 3 === count( $GLOBALS['products'] ), 'Custom product did not duplicate on reimport' );
 $bootstrap = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-import-export-pro.php' );
 check_tciep( false === strpos( $bootstrap, 'taxocommerce-import-export/includes/' ), 'No old plugin imports' );
-check_tciep( false === strpos( $bootstrap, 'taxocommerce_core_register_modules' ), 'No Core registration' );
+check_tciep( 1 === preg_match( '/^\s*\* Requires Plugins: woocommerce\s*$/m', $bootstrap ), 'WooCommerce is the only required plugin; Core registration is optional' );
 
 // Pages, posts and categories use only native WordPress tables and preserve custom fields.
 $post_data = array( 'slug' => 'prueba-post', 'title' => 'Entrada de prueba', 'meta:custom_reviewer' => 'Marina' );
@@ -343,7 +343,7 @@ function wp_schedule_single_event( $at, $hook, $args ) { $GLOBALS['tciep_events'
 function wp_clear_scheduled_hook( $hook, $args ) { unset( $GLOBALS['tciep_events'][ serialize( $args ) ] ); }
 function wp_unschedule_hook( $hook ) { $GLOBALS['tciep_events'] = array(); }
 function add_action( $hook, $callback, $priority = 10, $accepted_args = 1 ) { $GLOBALS['tciep_hooks'][ $hook ][] = $callback; }
-function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) {}
+function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) { $GLOBALS['tciep_filters'][ $hook ][] = $callback; }
 function register_deactivation_hook( $file, $callback ) { $GLOBALS['tciep_deactivate'] = $callback; }
 function wp_strip_all_tags( $text ) { return strip_tags( $text ); }
 function determine_locale() { return 'es_ES'; }
@@ -361,6 +361,9 @@ function esc_url( $value ) { return esc_html( $value ); }
 function esc_html__( $value, $domain = '' ) { return esc_html( $value ); }
 function esc_attr__( $value, $domain = '' ) { return esc_attr( $value ); }
 function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
+function add_query_arg( $args, $url ) { return $url . '?' . http_build_query( $args ); }
+function add_menu_page( ...$args ) { $GLOBALS['tciep_menus'][] = array( 'top', $args ); }
+function add_submenu_page( ...$args ) { $GLOBALS['tciep_menus'][] = array( 'sub', $args ); }
 function selected( $a, $b, $echo = true ) { return $a == $b ? ' selected="selected"' : ''; }
 function wp_nonce_field( $action ) { echo '<input type="hidden" name="_wpnonce" value="' . esc_attr( $action ) . '">'; }
 function submit_button( $label, $class = 'primary', $name = 'submit', $wrap = true ) { echo '<button type="submit">' . esc_html( $label ) . '</button>'; }
@@ -372,6 +375,7 @@ use TaxoCommerce\ImportExportPro\Load;
 use TaxoCommerce\ImportExportPro\Admin;
 check_tciep( isset( $GLOBALS['tciep_hooks']['wp_ajax_tciep_command'], $GLOBALS['tciep_hooks'][Batch::HOOK], $GLOBALS['tciep_hooks']['admin_post_taxocommerce_import_export_pro_code_check'] ), 'Independent hooks registered' );
 check_tciep( ! isset( $GLOBALS['tciep_hooks']['wp_ajax_tciel_import_step'] ), 'No Lite hooks registered' );
+check_tciep( true === array_column( \TaxoCommerce\ImportExportPro\AutoCheck::report()['checks'], 'ok', 'id' )['no_core_required'], 'Autocheck recognizes optional Core hooks without requiring Core' );
 check_tciep( 5 === count( Load::profiles() ), 'Five CPU profiles' );
 check_tciep( 10 === Load::adjust( 20, 100, 20, 2, 8, 80, 30 ), 'Memory pressure reduces batch' );
 check_tciep( 40 === Load::adjust( 20, 100, 20, 1, 8, 20, 30 ), 'Headroom increases batch' );
@@ -484,7 +488,7 @@ check_tciep( ! isset( $GLOBALS['tciep_events'][ serialize( array( 1, 'export', '
 ob_start();
 \TaxoCommerce\ImportExportPro\Header::render();
 $header = ob_get_clean();
-check_tciep( 1 === substr_count( $header, '<header class="tciep-hero">' ) && false !== strpos( $header, '<h1>TaxoCommerce Import-Export Pro</h1>' ) && false !== strpos( $header, '0.1.1' ), 'One independent Pro header' );
+check_tciep( 1 === substr_count( $header, '<header class="tciep-hero">' ) && false !== strpos( $header, '<h1>TaxoCommerce Import-Export Pro</h1>' ) && false !== strpos( $header, '0.1.2' ), 'One independent Pro header' );
 ob_start();
 Admin::blocks( 'import' );
 $import = ob_get_clean();
@@ -492,11 +496,31 @@ ob_start();
 Admin::blocks( 'export' );
 $export = ob_get_clean();
 check_tciep( 7 === substr_count( $import, 'name="csv_files[]"' ) && 7 === substr_count( $import, 'multiple required' ), 'Seven separate multi-file import forms' );
+check_tciep( 7 === substr_count( $import, 'Seleccionar archivos CSV del lote' ) && 7 === substr_count( $import, 'Cargar lote y comprobar CSV' ) && 7 === substr_count( $import, 'class="tciep-selection"' ), 'Explicit batch upload and file selection summary in each block' );
 check_tciep( 7 === substr_count( $export, 'value="tciep_create_export"' ), 'Seven separate export forms' );
 check_tciep( false === strpos( $import, 'name="map' ) && false === strpos( $import, 'name="mode' ), 'No mapping or action selector' );
 check_tciep( false === strpos( $export, 'name="fields' ) && false === strpos( $export, 'type="checkbox"' ), 'No export field selectors' );
 check_tciep( false === strpos( $import . $export, '<select name="type"' ), 'No type selection' );
 check_tciep( class_exists( 'TaxoCommerce_Import_Export_Pro_Autotest_Code' ) && 5 === count( TaxoCommerce_Import_Export_Pro_Autotest_Code::speeds() ), 'Independent code check is available' );
+// Optional integration registers only one route, with or without Core.
+$GLOBALS['tciep_menus'] = array();
+Admin::menu();
+check_tciep( 1 === count( $GLOBALS['tciep_menus'] ) && 'top' === $GLOBALS['tciep_menus'][0][0] && \TaxoCommerce\ImportExportPro\ADMIN_SLUG === $GLOBALS['tciep_menus'][0][1][3], 'Standalone top-level menu without Core' );
+$GLOBALS['tciep_menus'] = array();
+define( 'TAXOCOMMERCE_CORE_VERSION', 'test' );
+Admin::menu();
+check_tciep( 1 === count( $GLOBALS['tciep_menus'] ) && 'sub' === $GLOBALS['tciep_menus'][0][0] && 'taxocommerce-core' === $GLOBALS['tciep_menus'][0][1][0] && \TaxoCommerce\ImportExportPro\ADMIN_SLUG === $GLOBALS['tciep_menus'][0][1][4], 'Only the Core submenu when Core is active' );
+$catalog = array( 'import_export' => array( 'name' => 'Original' ), 'other' => array( 'name' => 'Other' ) );
+foreach ( $GLOBALS['tciep_filters']['taxocommerce_core_family_extensions'] as $filter ) { $catalog = $filter( $catalog ); }
+check_tciep( 3 === count( $catalog ) && isset( $catalog['import_export'], $catalog['other'] ), 'Core card preserves other extensions' );
+check_tciep( 'taxocommerce-import-export-pro/taxocommerce-import-export-pro.php' === $catalog['import_export_pro']['plugin_file'] && 'taxocommerce-import-export-pro' === $catalog['import_export_pro']['org_slug'] && false === $catalog['import_export_pro']['wordpress_org'], 'Pro card has exact plugin basename and independent identity' );
+$core = new class {
+    public $modules = array();
+    public function register_module( $id, $module ) { $this->modules[ $id ] = $module; }
+};
+foreach ( $GLOBALS['tciep_hooks']['taxocommerce_core_register_modules'] as $hook ) { $hook( $core ); }
+check_tciep( '0.1.2' === $core->modules['import_export_pro']['version'] && $catalog['import_export_pro']['admin_url'] === $core->modules['import_export_pro']['admin_url'] && false !== strpos( $core->modules['import_export_pro']['admin_url'], 'page=taxocommerce-ie-pro' ), 'Core module opens exact Pro route' );
+echo "Import-Export Pro: explicit multi-file controls, optional Core card and menu OK\n";
 unlink( $root . '/worker.lock' );
 rmdir( $root );
 echo "Import-Export Pro: native CSV, seven blocks, multi-file preflight/confirm, independent queues, pause/resume, lock, history, adaptive export and code check OK\n";
