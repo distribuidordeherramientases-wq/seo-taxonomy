@@ -3,8 +3,8 @@
  * Plugin Name: TaxoCommerce Ticketing
  * Plugin URI: https://asociacionfocazul.com/taxocommerce-ticketing/
  * Description: Independent customer and internal helpdesk: configurable public forms, private attachments, replies, notifications and ticket management.
- * Version: 0.1.4
- * Release Date: 2026-11-26
+ * Version: 0.1.5
+ * Release Date: 2026-11-27
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: David Perez
@@ -15,7 +15,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCTK_VERSION', '0.1.4' );
+define( 'TCTK_VERSION', '0.1.5' );
 define( 'TCTK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TCTK_URL', plugin_dir_url( __FILE__ ) );
 
