@@ -5,7 +5,7 @@ Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,20 +13,20 @@ Independent CSV batch import and export for WordPress and WooCommerce.
 
 == Description ==
 
-TaxoCommerce Import-Export Pro includes its own native CSV engine derived from Lite 0.1.5. Lite, Core and the original Import-Export plugin are not required. Each direction has separate blocks for pages, products, WordPress categories, posts, product categories, post tags and product tags.
+TaxoCommerce Import-Export Pro includes its own native CSV engine derived from Lite. Lite, Core and the original Import-Export plugin are not required. Each direction has separate blocks for pages, products, WordPress categories, posts, product categories, post tags and product tags.
 
 = Features =
 * One or multiple CSVs per fixed content block; up to 20 per submission in natural filename order.
-* Automatic header recognition, create/update by native identity, read-only preflight of the entire queue and explicit write confirmation.
+* Automatic field recognition within the chosen fixed content type, create/update by native identity, read-only preflight of the entire queue and explicit write confirmation.
 * Public scalar custom fields, compatible WooCommerce attributes, virtual/downloadable products, optional existing taxonomy and image relationships.
-* Resumable, bounded exports with optional field selection, private output and authorized download.
+* Resumable, bounded exports of the complete compatible schema of each content block, without field selection, with private output and authorized download.
 * Five adaptive workload profiles, local PHP CPU/memory/time measurements, one site-wide worker lock, pause/resume and explicit recovery after an interrupted chunk.
 * Browser-assisted execution and native WP-Cron continuation when the host supports it.
 * Last five archived job summaries per administrator, direction and content type; per-file status and row errors.
 * Own header, release history, functionality check, static code check with JSON report, user and technical manuals.
 
 = Limits =
-30 MB and 25,000 records per input file; 100 MB combined upload and export output. PHP and hosting limits may be lower. An owner-only private system temporary directory is required. Jobs are not transactional backups; changes already saved are not rolled back by archiving. Related terms and images must already exist in the destination. The first Pro edition does not migrate child variations, orders, customers, binary Media, protected/serialized metadata or legacy proprietary CSV schemas. The original plugin is preserved for its existing advanced workflows.
+30 MB and 25,000 records per input file; 100 MB combined upload and export output. PHP and hosting limits may be lower. An owner-only private temporary directory is required; PHP uploads are copied as private data without Media upload filters. Maximum 1024 columns and 128 KiB of CSV header. Jobs are not transactional backups; changes already saved are not rolled back by archiving. Related terms and images must already exist in the destination. The first Pro edition does not migrate child variations, orders, customers, binary Media, protected/serialized metadata or legacy proprietary CSV schemas. The original plugin is preserved for its existing advanced workflows.
 
 == Installation ==
 
@@ -50,6 +50,9 @@ No. It adapts row batches and pacing to the PHP worker's CPU, memory and time.
 No. It performs bounded local static checks and reports findings. Official Plugin Check and real functional testing remain necessary.
 
 == Changelog ==
+
+= 0.1.1 =
+* Export all compatible fields per block without selection; private multi-file CSV upload without Media filters and clearer per-file errors.
 
 = 0.1.0 =
 * Independent Pro edition with fixed content blocks, multi-file import, resumable export, workload control, history, code check and manuals.

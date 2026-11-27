@@ -132,7 +132,7 @@ final class Admin {
 	}
 
 	public static function blocks( $kind ) {
-		echo '<p>' . esc_html( 'import' === $kind ? __( 'Carga uno o varios CSV en el bloque correspondiente. Se comprueban todos antes de confirmar la importación. No hay selectores de tipo ni asignación manual de columnas.', 'taxocommerce-import-export-pro' ) : __( 'Genera un CSV por tipo de contenido en bloques reanudables. El archivo estará disponible al finalizar.', 'taxocommerce-import-export-pro' ) ) . '</p>';
+		echo '<p>' . esc_html( 'import' === $kind ? __( 'Carga uno o varios CSV en el bloque correspondiente. Se comprueban todos antes de confirmar la importación. No hay selectores de tipo ni asignación manual de columnas.', 'taxocommerce-import-export-pro' ) : __( 'Genera un CSV con todos los campos compatibles del bloque, sin seleccionar columnas. El archivo estará disponible al finalizar.', 'taxocommerce-import-export-pro' ) ) . '</p>';
 		echo '<p>' . esc_html__( 'La velocidad regula filas, pausas, tiempo y memoria del proceso PHP, no un porcentaje de la CPU global. Si cierras el navegador, WP-Cron puede continuar los trabajos; depende de la configuración del alojamiento.', 'taxocommerce-import-export-pro' ) . '</p>';
 		foreach ( CSV::types() as $type => $title ) {
 			if ( ! Batch::allowed( $kind, $type ) ) {
@@ -145,12 +145,6 @@ final class Admin {
 				wp_nonce_field( 'tciep_create_' . $kind . '_' . $type );
 				if ( 'import' === $kind ) {
 					echo '<label for="tciep-files-' . esc_attr( $type ) . '">' . esc_html__( 'Archivos CSV', 'taxocommerce-import-export-pro' ) . '</label> <input type="file" id="tciep-files-' . esc_attr( $type ) . '" name="csv_files[]" accept=".csv,text/csv" multiple required><p class="description">' . esc_html__( 'Hasta 20 archivos, 30 MB por archivo y 100 MB en conjunto, sujetos al límite del servidor. Orden natural por nombre.', 'taxocommerce-import-export-pro' ) . '</p>';
-				} else {
-					echo '<details><summary>' . esc_html__( 'Campos opcionales de exportación', 'taxocommerce-import-export-pro' ) . '</summary><fieldset class="tciep-field-group">';
-					foreach ( CSV::fields( $type ) as $field => $name ) {
-						echo '<label><input type="checkbox" name="fields[]" value="' . esc_attr( $field ) . '" checked> ' . esc_html( $name ) . '</label>';
-					}
-					echo '</fieldset></details>';
 				}
 				self::speeds( 'tciep-speed-' . $kind . '-' . $type );
 				submit_button( 'import' === $kind ? __( 'Cargar y comprobar CSV', 'taxocommerce-import-export-pro' ) : __( 'Generar CSV por lotes', 'taxocommerce-import-export-pro' ), 'primary', 'submit', false );
@@ -209,7 +203,7 @@ final class Admin {
 		}
 		check_admin_referer( 'tciep_create_import_' . $type );
 		$speed = isset( $_POST['speed'] ) && is_scalar( $_POST['speed'] ) ? absint( wp_unslash( $_POST['speed'] ) ) : 3;
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Batch validates each upload, size, error, extension and actual uploaded temp path before WordPress upload handling.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Batch validates each upload, size, error, extension and actual uploaded temp path before private CSV storage.
 		$files = isset( $_FILES['csv_files'] ) && is_array( $_FILES['csv_files'] ) ? $_FILES['csv_files'] : array();
 		self::redirect( 'import', $type, Batch::create_import( $type, $speed, $files ) );
 	}
@@ -223,10 +217,7 @@ final class Admin {
 		}
 		check_admin_referer( 'tciep_create_export_' . $type );
 		$speed = isset( $_POST['speed'] ) && is_scalar( $_POST['speed'] ) ? absint( wp_unslash( $_POST['speed'] ) ) : 3;
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each string is sanitized and validated against the native field allowlist by Batch.
-		$raw = isset( $_POST['fields'] ) && is_array( $_POST['fields'] ) ? wp_unslash( $_POST['fields'] ) : array();
-		$fields = array_map( 'sanitize_text_field', array_filter( $raw, 'is_string' ) );
-		self::redirect( 'export', $type, Batch::create_export( $type, $speed, $fields ) );
+		self::redirect( 'export', $type, Batch::create_export( $type, $speed ) );
 	}
 
 	public static function command() {
