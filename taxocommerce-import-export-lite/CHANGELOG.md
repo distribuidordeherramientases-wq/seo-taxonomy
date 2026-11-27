@@ -1,5 +1,9 @@
 # TaxoCommerce Import-Export Lite
 
+## [0.1.7] — 2026-11-27 — Administrative translations (#2997)
+
+- Add standalone gettext catalogs for five locales: 116 of 204 keys per locale (580 entries), including administrative controls, CSV field labels, upload errors and progress counters. Localize JavaScript progress and check results. Preserve canonical CSV keys, accepted values, data and import behavior. Remaining validation and manual strings will be translated separately.
+
 ## [0.1.6] — 2026-11-27 — Recepción privada de CSV (#2999)
 
 - Recibe CSV de páginas, productos y demás bloques mediante archivos temporales privados con nombre único, sin pasar por Media ni depender del MIME enviado por el navegador.

@@ -1,0 +1,853 @@
+# TaxoCommerce Import-Export Lite gettext catalog.
+msgid ""
+msgstr ""
+"Project-Id-Version: TaxoCommerce Import-Export Lite 0.1.7\n"
+"Report-Msgid-Bugs-To: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/issues\n"
+"POT-Creation-Date: 2026-11-27 00:00+0000\n"
+"PO-Revision-Date: 2026-11-27 00:00+0000\n"
+"Language: nl_NL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: includes/class-autocheck.php:17
+msgid "API de contenidos de WordPress"
+msgstr "WordPress-inhouds-API"
+
+#: includes/class-autocheck.php:18
+msgid "API estándar de WooCommerce"
+msgstr "Standaard WooCommerce-API"
+
+#: includes/class-admin.php:23
+msgid "Acceso no autorizado."
+msgstr "Ongeautoriseerde toegang."
+
+#: includes/class-manual.php:16
+msgid "Adjunta el CSV UTF-8 y pulsa Cargar CSV en ese bloque."
+msgstr ""
+
+#: includes/class-admin.php:178
+msgid "Adjunta un CSV válido de hasta 30 MB."
+msgstr "Voeg een geldig CSV-bestand van maximaal 30 MB toe."
+
+#: includes/class-csv.php:49
+msgid "Altura"
+msgstr "Hoogte"
+
+#: includes/class-csv.php:49
+msgid "Anchura"
+msgstr "Breedte"
+
+#: includes/class-admin.php:95
+msgid "Archivo CSV"
+msgstr "CSV-bestand"
+
+#: includes/class-admin.php:292
+msgid "Archivo caducado. Vuelve a cargar el CSV."
+msgstr "Bestand verlopen. Upload het CSV-bestand opnieuw."
+
+#: includes/class-manual.php:30
+msgid "Arquitectura y seguridad"
+msgstr ""
+
+#: includes/class-autocheck.php:27
+msgid "Arranque sin dependencia de Core"
+msgstr "Opstarten zonder afhankelijkheid van Core"
+
+#: includes/class-native-fields.php:136
+#, php-format
+msgid "Atributo de producto: %s"
+msgstr "Productattribuut: %s"
+
+#: includes/class-admin.php:320
+msgid "CSV temporal no disponible."
+msgstr "Tijdelijk CSV-bestand niet beschikbaar."
+
+#: includes/class-admin.php:267
+msgid "Cabecera o primera fila CSV incorrectas."
+msgstr "Ongeldige CSV-kopregel of eerste rij."
+
+#: includes/class-csv.php:40
+msgid "Caducidad de descarga (-1 sin límite)"
+msgstr "Downloadvervaltermijn (-1 onbeperkt)"
+
+#: includes/class-native-fields.php:132
+#, php-format
+msgid "Campo personalizado: %s"
+msgstr "Aangepast veld: %s"
+
+#: includes/class-csv.php:584
+msgid "Campo sí/no inválido."
+msgstr ""
+
+#: includes/class-manual.php:32
+msgid "Campos adaptados a cada instalación"
+msgstr ""
+
+#: includes/class-admin.php:116
+msgid "Campos opcionales de exportación"
+msgstr "Optionele exportvelden"
+
+#: includes/class-autocheck.php:21
+msgid "Campos personalizados nativos y atributos disponibles"
+msgstr "Native aangepaste velden en beschikbare attributen"
+
+#: includes/class-manual.php:21
+msgid "Campos personalizados y atributos de WooCommerce"
+msgstr ""
+
+#: includes/class-admin.php:99
+msgid "Campos reconocidos:"
+msgstr "Herkende velden:"
+
+#: includes/class-csv.php:593
+msgid "Cantidad o límite inválido."
+msgstr ""
+
+#: includes/class-csv.php:445
+msgid "Cantidad o límite no válido."
+msgstr ""
+
+#: includes/class-admin.php:90
+msgid "Carga el CSV en el bloque correspondiente. Las columnas se reconocen automáticamente: se crean los registros nuevos y se actualizan los existentes. Se comprueba todo el archivo antes de guardar."
+msgstr "Upload het CSV-bestand in het bijbehorende onderdeel. Kolommen worden automatisch herkend: nieuwe records worden aangemaakt en bestaande bijgewerkt. Het hele bestand wordt vóór het opslaan gecontroleerd."
+
+#: includes/class-admin.php:96
+msgid "Cargar CSV"
+msgstr "CSV uploaden"
+
+#: includes/class-csv.php:62
+msgid "Categoría padre existente (slug)"
+msgstr "Bestaande bovenliggende categorie (slug)"
+
+#: includes/class-csv.php:14
+msgid "Categorías de entradas"
+msgstr "Berichtcategorieën"
+
+#: includes/class-csv.php:16
+msgid "Categorías de producto"
+msgstr "Productcategorieën"
+
+#: includes/class-csv.php:45
+#: includes/class-csv.php:74
+msgid "Categorías existentes (opcional)"
+msgstr "Bestaande categorieën (optioneel)"
+
+#: includes/class-admin.php:67
+msgid "Chequeo"
+msgstr "Controle"
+
+#: includes/class-autocheck.php:54
+msgid "Chequeo de funcionalidades y componentes"
+msgstr "Functie- en componentcontrole"
+
+#: includes/class-csv.php:54
+msgid "Clase fiscal"
+msgstr "Belastingklasse"
+
+#: includes/class-admin.php:101
+msgid "Columnas omitidas (sin modificar datos):"
+msgstr "Overgeslagen kolommen (gegevens ongewijzigd):"
+
+#: includes/class-autocheck.php:25
+#, php-format
+msgid "Componente legible: %s"
+msgstr "Leesbaar onderdeel: %s"
+
+#: includes/class-autocheck.php:54
+msgid "Comprobaciones de solo lectura: WordPress, WooCommerce, CSV, permisos y archivos. No importa ni modifica registros. Para un análisis exhaustivo de estándares utiliza Plugin Check."
+msgstr "Alleen-lezen controles: WordPress, WooCommerce, CSV, machtigingen en bestanden. Er worden geen records geïmporteerd of gewijzigd. Gebruik Plugin Check voor een uitgebreide controle van de standaarden."
+
+#: includes/class-admin.php:46
+msgid "Comprobando todas las filas antes de guardar…"
+msgstr "Alle rijen worden vóór het opslaan gecontroleerd…"
+
+#: includes/class-admin.php:49
+#: includes/class-admin.php:104
+msgid "Comprobar CSV"
+msgstr "CSV controleren"
+
+#: includes/class-admin.php:50
+msgid "Confirmar e importar"
+msgstr "Bevestigen en importeren"
+
+#: includes/class-csv.php:68
+msgid "Contenido"
+msgstr "Inhoud"
+
+#: includes/class-csv.php:290
+msgid "Contenido no encontrado."
+msgstr ""
+
+#: includes/class-native-fields.php:190
+msgid "Demasiados valores en el atributo."
+msgstr ""
+
+#: includes/class-csv.php:36
+msgid "Descarga 1: URL"
+msgstr "Download 1: URL"
+
+#: includes/class-csv.php:35
+msgid "Descarga 1: nombre"
+msgstr "Download 1: naam"
+
+#: includes/class-csv.php:38
+msgid "Descarga 2: URL"
+msgstr "Download 2: URL"
+
+#: includes/class-csv.php:37
+msgid "Descarga 2: nombre"
+msgstr "Download 2: naam"
+
+#: includes/class-admin.php:112
+msgid "Descarga directamente el CSV del bloque que necesites. Por defecto incluye todos los campos compatibles."
+msgstr "Download het CSV-bestand rechtstreeks uit het gewenste onderdeel. Standaard zijn alle ondersteunde velden opgenomen."
+
+#: includes/class-csv.php:34
+msgid "Descargable (yes/no)"
+msgstr "Downloadbaar (yes/no)"
+
+#: includes/class-admin.php:121
+msgid "Descargar CSV"
+msgstr "CSV downloaden"
+
+#: includes/class-autocheck.php:66
+msgid "Descargar informe JSON"
+msgstr "JSON-rapport downloaden"
+
+#: includes/class-csv.php:29
+#: includes/class-csv.php:60
+msgid "Descripción"
+msgstr "Beschrijving"
+
+#: includes/class-csv.php:30
+msgid "Descripción corta"
+msgstr "Korte beschrijving"
+
+#: includes/class-csv.php:51
+msgid "Destacado (yes/no)"
+msgstr "Uitgelicht (yes/no)"
+
+#: includes/class-csv.php:134
+#, php-format
+msgid "Dos columnas corresponden al campo «%s». Corrige las cabeceras del CSV."
+msgstr ""
+
+#: includes/class-autocheck.php:44
+msgid "Ejecuta el chequeo primero."
+msgstr "Voer eerst de controle uit."
+
+#: includes/class-autocheck.php:57
+msgid "Ejecutar chequeo"
+msgstr "Controle uitvoeren"
+
+#: includes/class-csv.php:355
+#, php-format
+msgid "El %1$s apunta al registro %2$d, pero WooCommerce no puede cargar ese producto. Revisa el registro antes de importar."
+msgstr ""
+
+#: includes/class-csv.php:140
+#, php-format
+msgid "El CSV debe incluir una de estas cabeceras de identificación: %s."
+msgstr ""
+
+#: includes/class-admin.php:254
+msgid "El CSV no se puede abrir."
+msgstr "Het CSV-bestand kan niet worden geopend."
+
+#: includes/class-admin.php:222
+msgid "El CSV temporal no es legible o no coincide con el tamaño recibido. No se ha importado ningún dato."
+msgstr "Het tijdelijke CSV-bestand is niet leesbaar of de grootte komt niet overeen met de ontvangen grootte. Er zijn geen gegevens geïmporteerd."
+
+#: includes/class-csv.php:374
+msgid "El ID indicado no corresponde a un producto disponible de WooCommerce."
+msgstr ""
+
+#: includes/class-csv.php:383
+#, php-format
+msgid "El SKU «%s» está reservado por WooCommerce, pero no se encuentra un producto editable. Revisa la papelera o el índice de SKU antes de importar."
+msgstr ""
+
+#: includes/class-native-fields.php:207
+#, php-format
+msgid "El atributo %1$s no tiene el valor %2$s; créalo en WooCommerce o excluye la columna."
+msgstr ""
+
+#: includes/class-native-fields.php:185
+msgid "El atributo no existe en este WooCommerce."
+msgstr ""
+
+#: includes/class-native-fields.php:156
+msgid "El campo personalizado no está disponible o contiene datos complejos no compatibles con Lite."
+msgstr ""
+
+#: includes/class-native-fields.php:169
+msgid "El campo personalizado requiere sí/no."
+msgstr ""
+
+#: includes/class-native-fields.php:163
+msgid "El campo personalizado requiere un número entero."
+msgstr ""
+
+#: includes/class-native-fields.php:166
+msgid "El campo personalizado requiere un número."
+msgstr ""
+
+#: includes/class-csv.php:344
+#, php-format
+msgid "El producto %d está en la papelera. Restáuralo antes de actualizarlo."
+msgstr ""
+
+#: includes/class-csv.php:582
+msgid "El producto existente tiene otro tipo."
+msgstr ""
+
+#: includes/class-manual.php:21
+msgid "El reconocimiento automático admite los campos personalizados públicos y escalares guardados en las tablas estándar de WordPress, además de los atributos globales de WooCommerce y los locales detectados en productos existentes. Las cabeceras del CSV exportado tienen formato meta:clave o attr:pa_color. Los campos internos protegidos, los valores serializados y las tablas de otros plugins no se importan ni exportan. Los valores de atributos globales deben existir en WooCommerce antes de asignarlos."
+msgstr ""
+
+#: includes/class-admin.php:166
+msgid "El servidor ha rechazado el tamaño del CSV. Comprueba el límite de subida."
+msgstr "De server heeft de grootte van het CSV-bestand geweigerd. Controleer de uploadlimiet."
+
+#: includes/class-admin.php:233
+msgid "El servidor no pudo copiar el CSV recibido al archivo temporal privado. Comprueba las restricciones de PHP y los permisos."
+msgstr "De server kon het ontvangen CSV-bestand niet naar het tijdelijke privébestand kopiëren. Controleer de PHP-beperkingen en machtigingen."
+
+#: includes/class-csv.php:367
+msgid "El slug pertenece a otro SKU; no se modificará ese producto."
+msgstr ""
+
+#: includes/class-csv.php:407
+msgid "El tipo existente no coincide; no se transforma automáticamente."
+msgstr ""
+
+#: includes/class-manual.php:20
+msgid "En Exportar CSV pulsa Descargar CSV en el bloque correspondiente. Puedes elegir columnas en Campos opcionales de exportación. Si el CSV incluye relaciones de categorías o etiquetas, los términos deben existir previamente en el destino."
+msgstr ""
+
+#: includes/class-manual.php:15
+msgid "En Importar CSV, busca el bloque del contenido que necesitas: páginas, productos, categorías, entradas o etiquetas."
+msgstr ""
+
+#: includes/class-manual.php:34
+msgid "En la pestaña Chequeo se valida el arranque y las API disponibles; usa Plugin Check antes de distribuir. La exportación produce CSV estándar con cabeceras nativas. Se reconocen nombres canónicos y alias admitidos, sin asignación manual."
+msgstr ""
+
+#: includes/class-csv.php:15
+msgid "Entradas"
+msgstr "Berichten"
+
+#: includes/class-admin.php:55
+msgid "Error de conexión: puedes reintentar sin duplicar la importación."
+msgstr "Verbindingsfout: je kunt het opnieuw proberen zonder de import te dupliceren."
+
+#: includes/class-admin.php:54
+msgid "Errores:"
+msgstr "Fouten:"
+
+#: includes/class-admin.php:337
+msgid "Esta identidad se repite en el CSV."
+msgstr "Deze identificatie komt meerdere keren voor in het CSV-bestand."
+
+#: includes/class-csv.php:68
+msgid "Estado"
+msgstr "Status"
+
+#: includes/class-csv.php:28
+msgid "Estado (draft/publish)"
+msgstr "Status (draft/publish)"
+
+#: includes/class-csv.php:450
+msgid "Estado de existencias no válido."
+msgstr ""
+
+#: includes/class-csv.php:219
+msgid "Estado de publicación no válido."
+msgstr ""
+
+#: includes/class-csv.php:53
+msgid "Estado fiscal"
+msgstr "Belastingstatus"
+
+#: includes/class-csv.php:469
+msgid "Este tipo no admite archivos descargables."
+msgstr ""
+
+#: includes/class-csv.php:17
+msgid "Etiquetas de entradas"
+msgstr "Berichttags"
+
+#: includes/class-csv.php:18
+msgid "Etiquetas de producto"
+msgstr "Producttags"
+
+#: includes/class-csv.php:46
+#: includes/class-csv.php:75
+msgid "Etiquetas existentes (opcional)"
+msgstr "Bestaande tags (optioneel)"
+
+#: includes/class-csv.php:43
+msgid "Existencias (instock/outofstock/onbackorder)"
+msgstr "Voorraadstatus (instock/outofstock/onbackorder)"
+
+#: includes/class-manual.php:20
+msgid "Exportación"
+msgstr ""
+
+#: includes/class-admin.php:67
+msgid "Exportar CSV"
+msgstr "CSV exporteren"
+
+#: includes/class-csv.php:69
+msgid "Extracto"
+msgstr "Samenvatting"
+
+#: includes/class-autocheck.php:60
+#: includes/class-autocheck.php:62
+msgid "Fallido"
+msgstr "Mislukt"
+
+#: includes/class-csv.php:565
+msgid "Falta el nombre de la categoría o etiqueta."
+msgstr ""
+
+#: includes/class-csv.php:399
+#: includes/class-csv.php:579
+msgid "Falta el nombre del producto."
+msgstr ""
+
+#: includes/class-csv.php:254
+msgid "Falta el nombre del término."
+msgstr ""
+
+#: includes/class-csv.php:610
+msgid "Falta el título de la página o entrada."
+msgstr ""
+
+#: includes/class-csv.php:291
+msgid "Falta el título."
+msgstr ""
+
+#: includes/class-csv.php:69
+msgid "Fecha"
+msgstr "Datum"
+
+#: includes/class-admin.php:346
+#, php-format
+msgid "Fila %1$d: %2$s"
+msgstr "Rij %1$d: %2$s"
+
+#: includes/class-csv.php:224
+msgid "Fila vacía o tipo desconocido."
+msgstr ""
+
+#: includes/class-admin.php:52
+msgid "Filas:"
+msgstr "Rijen:"
+
+#: includes/class-csv.php:41
+msgid "Gestionar existencias (yes/no)"
+msgstr "Voorraad beheren (yes/no)"
+
+#: includes/class-admin.php:53
+msgid "Guardadas:"
+msgstr "Opgeslagen:"
+
+#: includes/class-manual.php:31
+msgid "Identidad y taxonomías"
+msgstr ""
+
+#: includes/class-csv.php:47
+#: includes/class-csv.php:70
+msgid "Imagen existente en Medios (URL o ID)"
+msgstr "Bestaande afbeelding in de mediabibliotheek (URL of ID)"
+
+#: includes/class-admin.php:32
+#: includes/class-admin.php:32
+msgid "Import-Export Lite"
+msgstr "Import-Export Lite"
+
+#: includes/class-admin.php:51
+msgid "Importación finalizada."
+msgstr "Import voltooid."
+
+#: includes/class-manual.php:12
+msgid "Importación por bloques"
+msgstr ""
+
+#: includes/class-admin.php:45
+msgid "Importando por bloques…"
+msgstr "Importeren in batches…"
+
+#: includes/class-admin.php:67
+msgid "Importar CSV"
+msgstr "CSV importeren"
+
+#: includes/class-csv.php:574
+msgid "Incluye SKU o slug para crear y actualizar sin duplicar productos."
+msgstr ""
+
+#: includes/class-manual.php:33
+msgid "Incluye los contenidos nativos y campos seleccionados. Permite exportar productos simples, variables, agrupados y externos; no migra variaciones hijo, pedidos, clientes, campos privados/serializados ni medios binarios. Estos flujos requieren herramientas específicas de WooCommerce y no se simula su compatibilidad."
+msgstr ""
+
+#: includes/class-csv.php:607
+msgid "Incluye slug para importar páginas o entradas sin duplicados."
+msgstr ""
+
+#: includes/class-csv.php:464
+msgid "La URL de descarga debe ser HTTP(S) válida."
+msgstr ""
+
+#: includes/class-csv.php:564
+msgid "La categoría o etiqueta todavía no existe."
+msgstr ""
+
+#: includes/class-csv.php:185
+#, php-format
+msgid "La categoría o etiqueta «%s» no existe; omite la columna o crea el término antes."
+msgstr ""
+
+#: includes/class-csv.php:566
+msgid "La categoría padre indicada no existe."
+msgstr ""
+
+#: includes/class-csv.php:210
+msgid "La imagen debe existir previamente en la biblioteca de medios."
+msgstr ""
+
+#: includes/class-manual.php:23
+msgid "Las altas se crean como borradores salvo que el CSV indique publish y tengas permiso. Una importación repetida se identifica por SKU o slug. No son obligatorias las categorías ni las imágenes."
+msgstr ""
+
+#: includes/class-manual.php:17
+msgid "Las columnas se reconocen automáticamente. Se muestran las cabeceras reconocidas y omitidas. Los IDs ajenos nunca se usan."
+msgstr ""
+
+#: includes/class-header.php:70
+msgid "Last updated"
+msgstr "Laatst bijgewerkt"
+
+#: includes/class-csv.php:48
+msgid "Longitud"
+msgstr "Lengte"
+
+#: includes/class-manual.php:32
+msgid "Los campos personalizados se descubren mediante el registro de metadatos y las tablas nativas postmeta y termmeta. Los atributos globales se leen de WooCommerce y los locales se detectan en productos existentes. Las columnas no reconocidas y las celdas vacías no modifican datos. Antes de importar, la vista previa recorre todas las filas en lotes de 25; solo la confirmación posterior permite guardarlas."
+msgstr ""
+
+#: includes/class-csv.php:39
+msgid "Límite de descargas (-1 sin límite)"
+msgstr "Downloadlimiet (-1 onbeperkt)"
+
+#: includes/class-manual.php:33
+msgid "Límites de la primera edición"
+msgstr ""
+
+#: includes/class-admin.php:67
+#: includes/class-manual.php:11
+msgid "Manual de usuario"
+msgstr "Gebruikershandleiding"
+
+#: includes/class-admin.php:67
+#: includes/class-manual.php:28
+msgid "Manual técnico"
+msgstr "Technische handleiding"
+
+#: includes/class-autocheck.php:20
+msgid "Mapeo nativo de páginas y productos descargables"
+msgstr "Native koppeling van pagina's en downloadbare producten"
+
+#: includes/class-csv.php:261
+msgid "No existe la categoría padre."
+msgstr ""
+
+#: includes/class-admin.php:228
+msgid "No hay un directorio temporal privado y escribible. Revisa WP_TEMP_DIR o el directorio temporal de PHP."
+msgstr "Er is geen tijdelijke privémap met schrijfrechten beschikbaar. Controleer WP_TEMP_DIR of de tijdelijke PHP-map."
+
+#: includes/class-csv.php:292
+msgid "No puedes editar este contenido."
+msgstr ""
+
+#: includes/class-csv.php:400
+msgid "No puedes editar este producto."
+msgstr ""
+
+#: includes/class-admin.php:242
+msgid "No se ha adjuntado ningún archivo."
+msgstr "Geen bestand bijgevoegd."
+
+#: includes/class-admin.php:171
+msgid "No se ha recibido un CSV completo. Vuelve a seleccionar el archivo."
+msgstr "Er is geen volledig CSV-bestand ontvangen. Selecteer het bestand opnieuw."
+
+#: includes/class-csv.php:405
+msgid "No se pudo cargar el producto."
+msgstr ""
+
+#: includes/class-admin.php:231
+msgid "No se pudo crear un archivo temporal privado. Comprueba los permisos y el espacio disponible."
+msgstr "Er kon geen tijdelijk privébestand worden aangemaakt. Controleer de machtigingen en beschikbare ruimte."
+
+#: includes/class-admin.php:279
+msgid "No se pudo guardar el estado temporal de la importación. Vuelve a cargar el CSV."
+msgstr "De tijdelijke importstatus kon niet worden opgeslagen. Upload het CSV-bestand opnieuw."
+
+#: includes/class-native-fields.php:237
+msgid "No tienes permiso para editar este campo personalizado."
+msgstr ""
+
+#: includes/class-csv.php:294
+msgid "No tienes permiso para publicar."
+msgstr ""
+
+#: includes/class-csv.php:278
+msgid "No tienes permisos para editar estos contenidos."
+msgstr ""
+
+#: includes/class-csv.php:244
+msgid "No tienes permisos para gestionar categorías."
+msgstr ""
+
+#: includes/class-csv.php:604
+msgid "No tienes permisos para importar este contenido."
+msgstr ""
+
+#: includes/class-csv.php:27
+#: includes/class-csv.php:60
+msgid "Nombre"
+msgstr "Naam"
+
+#: includes/class-csv.php:55
+msgid "Nota de compra"
+msgstr "Aankoopnotitie"
+
+#: includes/class-admin.php:328
+msgid "Número de columnas incorrecto."
+msgstr "Onjuist aantal kolommen."
+
+#: includes/class-header.php:72
+msgid "Official plugin page"
+msgstr "Officiële pluginpagina"
+
+#: includes/class-csv.php:71
+msgid "Orden del menú"
+msgstr "Menuvolgorde"
+
+#: includes/class-admin.php:169
+msgid "PHP no pudo recibir el CSV en su directorio temporal. Comprueba los permisos y el espacio disponible."
+msgstr "PHP kon het CSV-bestand niet ontvangen in de tijdelijke map. Controleer de machtigingen en beschikbare ruimte."
+
+#: includes/class-autocheck.php:19
+msgid "Permisos administrativos"
+msgstr "Beheerdersmachtigingen"
+
+#: includes/class-csv.php:48
+msgid "Peso"
+msgstr "Gewicht"
+
+#: includes/class-admin.php:48
+msgid "Prechequeo con errores. Corrige el CSV antes de importar."
+msgstr "Voorcontrole met fouten. Corrigeer het CSV-bestand vóór het importeren."
+
+#: includes/class-admin.php:47
+msgid "Prechequeo correcto. Confirma para importar."
+msgstr "Voorcontrole geslaagd. Bevestig om te importeren."
+
+#: includes/class-csv.php:31
+msgid "Precio normal"
+msgstr "Normale prijs"
+
+#: includes/class-csv.php:589
+msgid "Precio o dimensión inválidos."
+msgstr ""
+
+#: includes/class-csv.php:443
+msgid "Precio o dimensión no válidos."
+msgstr ""
+
+#: includes/class-csv.php:32
+msgid "Precio rebajado"
+msgstr "Actieprijs"
+
+#: includes/class-manual.php:14
+msgid "Prepara un CSV con cabeceras (por ejemplo sku,name,regular_price,virtual,downloadable,download_1_name,download_1_url)."
+msgstr ""
+
+#: includes/class-csv.php:378
+msgid "Producto no encontrado. Usa Crear y actualizar para darlo de alta."
+msgstr ""
+
+#: includes/class-csv.php:13
+msgid "Productos WooCommerce"
+msgstr "WooCommerce-producten"
+
+#: includes/class-manual.php:22
+msgid "Productos virtuales y descargables"
+msgstr ""
+
+#: includes/class-manual.php:31
+msgid "Productos: busca primero SKU, después slug, y solo permite ID si no hay SKU ni slug. Páginas/entradas: slug primero. Categorías: slug/nombre. Los IDs del CSV se ignoran. Las cabeceras exactas categories, tags, parent_slug y featured_image solicitan expresamente relaciones con términos o imágenes existentes. Evita incluirlas si no existen en el destino."
+msgstr ""
+
+#: includes/class-autocheck.php:60
+msgid "Prueba"
+msgstr "Test"
+
+#: includes/class-manual.php:34
+msgid "Pruebas y compatibilidad"
+msgstr ""
+
+#: includes/class-manual.php:18
+msgid "Pulsa Comprobar CSV. Si no hay errores, confirma la importación. Los registros nuevos se crean y los existentes se actualizan automáticamente."
+msgstr ""
+
+#: includes/class-csv.php:609
+msgid "Página o entrada no encontrada."
+msgstr ""
+
+#: includes/class-csv.php:12
+msgid "Páginas"
+msgstr "Pagina's"
+
+#: includes/class-csv.php:44
+msgid "Reservas (no/notify/yes)"
+msgstr "Nabestellingen (no/notify/yes)"
+
+#: includes/class-autocheck.php:60
+msgid "Resultado"
+msgstr "Resultaat"
+
+#: includes/class-csv.php:363
+msgid "SKU y slug apuntan a productos diferentes; no se modificará ninguno."
+msgstr ""
+
+#: includes/class-admin.php:68
+msgid "Secciones de Import-Export Lite"
+msgstr "Onderdelen van Import-Export Lite"
+
+#: includes/class-admin.php:386
+msgid "Selecciona al menos un campo."
+msgstr "Selecteer ten minste één veld."
+
+#: includes/class-csv.php:410
+#: includes/class-csv.php:573
+msgid "Sin permiso para publicar productos."
+msgstr ""
+
+#: includes/class-csv.php:605
+msgid "Sin permiso para publicar."
+msgstr ""
+
+#: includes/class-csv.php:561
+msgid "Sin permisos para gestionar términos."
+msgstr ""
+
+#: includes/class-autocheck.php:22
+msgid "Soporte nativo CSV"
+msgstr "Native CSV-ondersteuning"
+
+#: includes/class-autocheck.php:60
+#: includes/class-autocheck.php:62
+msgid "Superado"
+msgstr "Geslaagd"
+
+#: includes/class-csv.php:26
+msgid "Tipo (simple, variable, external, grouped)"
+msgstr "Type (simple, variable, external, grouped)"
+
+#: includes/class-csv.php:121
+msgid "Tipo de contenido no válido."
+msgstr ""
+
+#: includes/class-admin.php:239
+#: includes/class-admin.php:381
+msgid "Tipo de datos incorrecto."
+msgstr "Ongeldig gegevenstype."
+
+#: includes/class-csv.php:403
+msgid "Tipo de producto no compatible con esta importación Lite."
+msgstr ""
+
+#: includes/class-csv.php:581
+msgid "Tipo de producto no compatible."
+msgstr ""
+
+#: includes/class-csv.php:548
+msgid "Tipo o modo CSV no válido."
+msgstr ""
+
+#: includes/class-csv.php:251
+msgid "Término no encontrado."
+msgstr ""
+
+#: includes/class-csv.php:67
+msgid "Título"
+msgstr "Titel"
+
+#: includes/class-csv.php:598
+msgid "URL de descarga HTTP(S) inválida."
+msgstr ""
+
+#: includes/class-csv.php:42
+msgid "Unidades"
+msgstr "Aantal"
+
+#: includes/class-manual.php:30
+msgid "Usa las API estándar wp_insert_post, wp_insert_term y los objetos WC_Product. Permisos y nonces en cada acción. CSV temporal fuera de Media, token privado por usuario con expiración de 1 hora, lectura por lotes de 25 registros y límites de 30 MB. El tipo y las columnas reconocidas quedan vinculados al token privado en el servidor; no se pueden cambiar mediante la petición AJAX."
+msgstr ""
+
+#: includes/class-manual.php:22
+msgid "Usa virtual=yes, downloadable=yes, download_1_name y download_1_url. Los archivos han de estar accesibles por HTTP(S); el plugin no los copia ni los descarga. La protección de acceso a los archivos depende de la configuración de descargas de WooCommerce."
+msgstr ""
+
+#: includes/class-csv.php:173
+msgid "Usa yes/no, 1/0 o sí/no para campos booleanos."
+msgstr ""
+
+#: includes/class-csv.php:452
+msgid "Valor de reservas no válido."
+msgstr ""
+
+#: includes/class-csv.php:52
+msgid "Venta individual (yes/no)"
+msgstr "Individueel verkocht (yes/no)"
+
+#: includes/class-header.php:69
+msgid "Version"
+msgstr "Versie"
+
+#: includes/class-header.php:71
+msgid "Version history and improvements"
+msgstr "Versiegeschiedenis en verbeteringen"
+
+#: includes/class-manual.php:29
+msgid "Versión Lite independiente: WordPress 6.7+, PHP 7.4+, WooCommerce activo. Sin Core, bases de datos propias, taxonomías SEO ni proveedores. No lee ni modifica datos del Import-Export anterior."
+msgstr ""
+
+#: includes/class-csv.php:33
+msgid "Virtual (yes/no)"
+msgstr "Virtueel (yes/no)"
+
+#: includes/class-csv.php:50
+msgid "Visibilidad (visible/catalog/search/hidden)"
+msgstr "Zichtbaarheid (visible/catalog/search/hidden)"
+
+#: includes/class-csv.php:454
+msgid "Visibilidad no válida."
+msgstr ""
+
+#: includes/class-admin.php:298
+msgid "Vuelve a cargar el CSV en su bloque de contenido."
+msgstr "Upload het CSV-bestand opnieuw in het bijbehorende inhoudsonderdeel."
+
+#: includes/class-csv.php:392
+msgid "WooCommerce activo y permisos de productos requeridos."
+msgstr ""
+
+#: includes/class-csv.php:572
+msgid "WooCommerce no está disponible o faltan permisos."
+msgstr ""
