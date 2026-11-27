@@ -21,6 +21,96 @@ final class TCSUP_URL_Sync {
 		return admin_url( 'admin.php?page=taxocommerce-suppliers&tab=sync' );
 	}
 
+	private static function providers() {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Current supplier directory.
+		return (array) $wpdb->get_col( $wpdb->prepare( "SELECT proveedor FROM %i WHERE proveedor<>'' UNION SELECT proveedor FROM %i WHERE proveedor<>'' ORDER BY proveedor", TCSUP_Schema::catalog_table(), TCSUP_Schema::profiles_table() ) );
+	}
+
+	private static function provider_select( $id, $name = '', $required = false ) {
+		printf( '<select id="%s" name="%s" %s>', esc_attr( $id ), esc_attr( $name ), $required ? 'required' : '' );
+		printf( '<option value="">%s</option>', esc_html( $required ? __( 'Select supplier', 'taxocommerce-suppliers' ) : __( 'All suppliers', 'taxocommerce-suppliers' ) ) );
+		foreach ( self::providers() as $provider ) {
+			printf( '<option value="%s">%s</option>', esc_attr( $provider ), esc_html( $provider ) );
+		}
+		echo '</select>';
+	}
+
+	private static function relations() {
+		static $rows = null;
+		if ( null !== $rows ) {
+			return $rows;
+		}
+		global $wpdb;
+		$table = $wpdb->prefix . 'seo_relations';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Optional existing hierarchy, no installation dependency.
+		if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) {
+			return $rows = array();
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read canonical hierarchy edges only.
+		$rows = (array) $wpdb->get_results( $wpdb->prepare( 'SELECT source_id,target_id,relation_type FROM %i WHERE relation_type IN (%s,%s,%s,%s,%s) AND source_id>0 AND target_id>0', $table, 'cluster_to_primary', 'cluster_to_hub_primary', 'hub_primary_to_hub_secondary', 'hub_primary_to_secondary', 'hub_secondary_to_category' ), ARRAY_A );
+		return $rows;
+	}
+
+	public static function category_ids( $rows, $cluster, $primary, $secondary, $category ) {
+		$sets = array();
+		foreach ( array( 'cluster' => $cluster, 'primary' => $primary, 'secondary' => $secondary ) as $level => $id ) {
+			if ( ! $id ) {
+				continue;
+			}
+			$ids = array( (int) $id );
+			$steps = array(
+				'cluster' => array( 'cluster_to_primary', 'cluster_to_hub_primary' ),
+				'primary' => array( 'hub_primary_to_hub_secondary', 'hub_primary_to_secondary' ),
+				'secondary' => array( 'hub_secondary_to_category' ),
+			);
+			$started = false;
+			foreach ( $steps as $step => $types ) {
+				$started = $started || $step === $level;
+				if ( ! $started ) {
+					continue;
+				}
+				$next = array();
+				foreach ( $rows as $edge ) {
+					if ( in_array( $edge['relation_type'], $types, true ) && in_array( (int) $edge['source_id'], $ids, true ) ) {
+						$next[] = (int) $edge['target_id'];
+					}
+				}
+				$ids = array_values( array_unique( $next ) );
+			}
+			$sets[] = $ids;
+		}
+		if ( $category ) {
+			$sets[] = array( (int) $category );
+		}
+		if ( ! $sets ) {
+			return null;
+		}
+		$ids = array_shift( $sets );
+		foreach ( $sets as $set ) {
+			$ids = array_values( array_intersect( $ids, $set ) );
+		}
+		return $ids;
+	}
+
+	private static function hierarchy_select( $id, $label, $types ) {
+		$ids = array();
+		foreach ( self::relations() as $edge ) {
+			if ( in_array( $edge['relation_type'], $types, true ) ) {
+				$ids[] = (int) $edge['source_id'];
+			}
+		}
+		if ( ! $ids ) {
+			return;
+		}
+		$posts = get_posts( array( 'post_type' => 'page', 'post_status' => array( 'publish', 'draft', 'private' ), 'post__in' => array_unique( $ids ), 'numberposts' => -1, 'orderby' => 'title', 'order' => 'ASC' ) );
+		printf( '<p><label for="%s">%s</label> <select id="%s"><option value="0">%s</option>', esc_attr( $id ), esc_html( $label ), esc_attr( $id ), esc_html__( 'All', 'taxocommerce-suppliers' ) );
+		foreach ( $posts as $post ) {
+			printf( '<option value="%d">%s</option>', absint( $post->ID ), esc_html( $post->post_title ) );
+		}
+		echo '</select></p>';
+	}
+
 	/** Extract only unambiguous, structured product observations; never infer stock from an error. */
 	public static function observation( $html, $row ) {
 		$products = array();
@@ -87,13 +177,23 @@ final class TCSUP_URL_Sync {
 		$id = isset( $_POST['row_id'] ) ? absint( $_POST['row_id'] ) : 0;
 		$cursor = isset( $_POST['cursor'] ) ? absint( $_POST['cursor'] ) : 0;
 		$provider = isset( $_POST['provider'] ) ? sanitize_text_field( wp_unslash( $_POST['provider'] ) ) : '';
-		global $wpdb;
-		if ( $id ) {
-			$row = TCSUP_Products::row( $id );
-		} else {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Current inventory cursor.
-			$row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id>%d AND (%s=%s OR proveedor=%s) ORDER BY id ASC LIMIT 1', TCSUP_Schema::catalog_table(), $cursor, $provider, '', $provider ), ARRAY_A );
+		$object_id = isset( $_POST['object_id'] ) ? absint( $_POST['object_id'] ) : 0;
+		$sku = isset( $_POST['sku'] ) ? sanitize_text_field( wp_unslash( $_POST['sku'] ) ) : '';
+		$cluster = isset( $_POST['cluster'] ) ? absint( $_POST['cluster'] ) : 0;
+		$primary = isset( $_POST['primary'] ) ? absint( $_POST['primary'] ) : 0;
+		$secondary = isset( $_POST['secondary'] ) ? absint( $_POST['secondary'] ) : 0;
+		$category = isset( $_POST['category'] ) ? absint( $_POST['category'] ) : 0;
+		$categories = self::category_ids( ( $cluster || $primary || $secondary ) ? self::relations() : array(), $cluster, $primary, $secondary, $category );
+		if ( array() === $categories ) {
+			wp_send_json_success( array( 'done' => true ) );
 		}
+		$woo_id = '' !== $sku && function_exists( 'wc_get_product_id_by_sku' ) ? absint( wc_get_product_id_by_sku( $sku ) ) : 0;
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Current filtered inventory, one row per request.
+		$row = $wpdb->get_row( $wpdb->prepare(
+			'SELECT c.* FROM %i c WHERE c.id>%d AND (%d=0 OR c.id=%d) AND (%s=%s OR c.proveedor=%s) AND (%d=0 OR c.object_id=%d) AND (%s=%s OR c.sku=%s OR (%d>0 AND c.object_id=%d)) AND (%d=0 OR EXISTS (SELECT 1 FROM %i tr INNER JOIN %i tt ON tr.term_taxonomy_id=tt.term_taxonomy_id WHERE tr.object_id=c.object_id AND tt.taxonomy=%s AND FIND_IN_SET(tt.term_id,%s)>0)) ORDER BY c.id ASC LIMIT 1',
+			TCSUP_Schema::catalog_table(), $cursor, $id, $id, $provider, '', $provider, $object_id, $object_id, $sku, '', $sku, $woo_id, $woo_id, null === $categories ? 0 : 1, $wpdb->term_relationships, $wpdb->term_taxonomy, 'product_cat', implode( ',', $categories ?? array() )
+		), ARRAY_A );
 		if ( ! $row ) {
 			wp_send_json_success( array( 'done' => true ) );
 		}
@@ -182,8 +282,17 @@ final class TCSUP_URL_Sync {
 		<section class="tcsup-card">
 			<h2><?php esc_html_e( 'Sincronización', 'taxocommerce-suppliers' ); ?></h2>
 			<p><?php esc_html_e( 'Consulta de solo lectura: no modifica precios, stock ni contenidos.', 'taxocommerce-suppliers' ); ?></p>
-			<p><label for="tcsup-sync-provider"><?php esc_html_e( 'Supplier', 'taxocommerce-suppliers' ); ?></label> <input id="tcsup-sync-provider" type="text" /></p>
+			<p><label for="tcsup-sync-provider"><?php esc_html_e( 'Supplier', 'taxocommerce-suppliers' ); ?></label> <?php self::provider_select( 'tcsup-sync-provider' ); ?></p>
 			<p><label for="tcsup-sync-id"><?php esc_html_e( 'ID de inventario (opcional)', 'taxocommerce-suppliers' ); ?></label> <input id="tcsup-sync-id" type="number" min="1" /></p>
+			<p><label for="tcsup-sync-object"><?php esc_html_e( 'WooCommerce product ID', 'taxocommerce-suppliers' ); ?></label> <input id="tcsup-sync-object" type="number" min="1" /></p>
+			<p><label for="tcsup-sync-sku"><?php esc_html_e( 'SKU', 'taxocommerce-suppliers' ); ?></label> <input id="tcsup-sync-sku" type="text" /></p>
+			<?php
+			self::hierarchy_select( 'tcsup-sync-cluster', __( 'Clúster', 'taxocommerce-suppliers' ), array( 'cluster_to_primary', 'cluster_to_hub_primary' ) );
+			self::hierarchy_select( 'tcsup-sync-primary', __( 'Hub primario', 'taxocommerce-suppliers' ), array( 'hub_primary_to_hub_secondary', 'hub_primary_to_secondary' ) );
+			self::hierarchy_select( 'tcsup-sync-secondary', __( 'Hub secundario', 'taxocommerce-suppliers' ), array( 'hub_secondary_to_category' ) );
+			?>
+			<p><label for="tcsup-sync-category"><?php esc_html_e( 'Category', 'taxocommerce-suppliers' ); ?></label>
+			<?php wp_dropdown_categories( array( 'taxonomy' => 'product_cat', 'id' => 'tcsup-sync-category', 'name' => 'tcsup-sync-category', 'show_option_all' => __( 'All', 'taxocommerce-suppliers' ), 'hide_empty' => false, 'hierarchical' => true ) ); ?></p>
 			<button type="button" class="button button-primary" id="tcsup-sync-start" data-nonce="<?php echo esc_attr( wp_create_nonce( 'tcsup_url_sync' ) ); ?>"><?php esc_html_e( 'Comprobar enlaces', 'taxocommerce-suppliers' ); ?></button>
 			<button type="button" class="button" id="tcsup-sync-stop"><?php esc_html_e( 'Stop', 'taxocommerce-suppliers' ); ?></button>
 			<p id="tcsup-sync-progress" role="status"></p>
@@ -200,7 +309,7 @@ final class TCSUP_URL_Sync {
 				<input type="hidden" name="action" value="tcsup_url_link" />
 				<?php wp_nonce_field( 'tcsup_url_link' ); ?>
 				<p><label for="tcsup-link-product"><?php esc_html_e( 'WooCommerce product ID', 'taxocommerce-suppliers' ); ?></label> <input id="tcsup-link-product" name="product_id" type="number" min="1" required /></p>
-				<p><label for="tcsup-link-provider"><?php esc_html_e( 'Supplier', 'taxocommerce-suppliers' ); ?></label> <input id="tcsup-link-provider" name="provider" type="text" required maxlength="190" /></p>
+				<p><label for="tcsup-link-provider"><?php esc_html_e( 'Supplier', 'taxocommerce-suppliers' ); ?></label> <?php self::provider_select( 'tcsup-link-provider', 'provider', true ); ?></p>
 				<p><label for="tcsup-link-url"><?php esc_html_e( 'Supplier URL', 'taxocommerce-suppliers' ); ?></label> <input id="tcsup-link-url" name="supplier_url" type="url" required /></p>
 				<p><label for="tcsup-link-ref"><?php esc_html_e( 'Supplier SKU', 'taxocommerce-suppliers' ); ?></label> <input id="tcsup-link-ref" name="reference" type="text" maxlength="190" /></p>
 				<?php submit_button( __( 'Vincular producto manual', 'taxocommerce-suppliers' ) ); ?>

@@ -4,7 +4,7 @@ Tags: woocommerce, suppliers, csv, inventory, prices
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.30
+Stable tag: 0.2.31
 License: GPLv2 or later
 
 Supplier catalogue management and a private directory with manual supplier records, even without imported products.
@@ -50,6 +50,9 @@ Explicitly excluded:
 4. The plugin installs its own supplier price history table automatically; history starts at the first captured observation.
 
 == Changelog ==
+
+= 0.2.31 =
+* Add supplier dropdown and combined inventory, WooCommerce ID, SKU and optional hierarchy filters to URL observations.
 
 = 0.2.30 =
 * Add URL observation and explicit manual linking to the existing supplier catalogue. No automatic price or stock changes.

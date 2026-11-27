@@ -1,3 +1,7 @@
+## [0.2.31] — 2026-11-27 — Filtros de sincronización (#3007)
+
+- Selectores de proveedores del directorio, ID de WooCommerce y SKU de WooCommerce o proveedor, y filtros de clúster, hubs y categoría mediante relaciones opcionales. Los filtros se combinan en la consulta del inventario; no cambian los datos comerciales. Sin Core se mantienen categorías nativas.
+
 ## [0.2.30] — 2026-11-27 — Sincronización por URL, fase inicial (#3003)
 
 - Pestaña Sincronización: observaciones HTTP y JSON-LD por producto, proveedor o inventario completo, secuenciales, cancelables y sin cambios automáticos de precios ni existencias. Registro de las últimas 100 observaciones por usuario durante 24 horas.

@@ -23,3 +23,15 @@ $source = file_get_contents( dirname( __DIR__ ) . '/includes/class-tcsup-url-syn
 tcsup_url_assert( false !== strpos( $source, 'wp_safe_remote_get' ) && false !== strpos( $source, 'check_ajax_referer' ), 'safe transport and nonce' );
 tcsup_url_assert( false === strpos( $source, 'set_regular_price(' ) && false === strpos( $source, 'set_stock_status(' ) && false === strpos( $source, 'set_name(' ), 'observation does not modify WooCommerce commerce or SEO' );
 echo "Supplier URL observation smoke passed\n";
+
+$edges = array(
+ array('source_id'=>1,'target_id'=>2,'relation_type'=>'cluster_to_primary'),
+ array('source_id'=>2,'target_id'=>3,'relation_type'=>'hub_primary_to_hub_secondary'),
+ array('source_id'=>3,'target_id'=>4,'relation_type'=>'hub_secondary_to_category'),
+ array('source_id'=>3,'target_id'=>5,'relation_type'=>'hub_secondary_to_category'),
+);
+tcsup_url_assert( array(4,5) === TCSUP_URL_Sync::category_ids($edges,1,2,3,0), 'combined hierarchy');
+tcsup_url_assert( array(5) === TCSUP_URL_Sync::category_ids($edges,1,0,0,5), 'category intersection');
+tcsup_url_assert( array() === TCSUP_URL_Sync::category_ids($edges,1,0,0,9), 'incompatible category never broadens');
+tcsup_url_assert( array(5) === TCSUP_URL_Sync::category_ids(array(),0,0,0,5), 'standalone native category');
+tcsup_url_assert( null === TCSUP_URL_Sync::category_ids(array(),0,0,0,0), 'unfiltered inventory');
