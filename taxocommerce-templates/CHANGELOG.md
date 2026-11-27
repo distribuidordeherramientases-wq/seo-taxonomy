@@ -1,3 +1,7 @@
+## [0.4.34] — 2026-11-27 — Transparencia de ofertas (#2998)
+
+- Aviso legal informativo plegado en la franja pública de campañas, móvil y escritorio, para tiendas con país base España. Sin cambios en precios ni cálculos; no certifica la comprobación histórica.
+
 ## [0.4.33] — 2026-11-13 — Code Check equiparado a Core 0.4.82 (#2626)
 
 - Code Check equiparado a Core 0.4.82: reglas autónomas PHP/WordPress/seguridad, clasificación por gravedad, detalles de archivos y recomendaciones, resumen y JSON; sin modificar el Autotest funcional. Issue #2626.
