@@ -4,7 +4,7 @@ Tags: email, imap, smtp, webmail, multiple-accounts
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.5
+Stable tag: 0.1.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,7 +12,7 @@ TaxoCommerce Mail Lite: a free, standalone WordPress hosting mailbox reader and 
 
 == Description ==
 
-Lite is free and includes all existing mailbox configuration, inbox reading, reply, compose, documentation, and self-check features. It is not a full webmail suite. A separate optional Pro add-on is planned for advanced folder and message management, but is not included or required.
+Lite is free and includes all existing mailbox configuration, inbox reading, reply, compose, user manual, and functional self-check features. It is not a full webmail suite. A separate optional Pro add-on is planned for advanced folder and message management, but is not included or required.
 
 = Lite features =
 
@@ -59,6 +59,9 @@ No. SMTP configured for a mailbox in this plugin is used only by this plugin, no
 No. In this initial version, only administrators can access mail and manage accounts.
 
 == Changelog ==
+
+= 0.1.6 =
+* Align Lite with Tasks Lite: user manual and functionality check only. Technical manual and code-check interface and execution are not included. All mail functions remain unchanged.
 
 = 0.1.5 =
 * Rename the package and text domain to taxocommerce-mail-lite; preserve existing configuration and the administration route. Prevent simultaneous activation of the legacy installation.

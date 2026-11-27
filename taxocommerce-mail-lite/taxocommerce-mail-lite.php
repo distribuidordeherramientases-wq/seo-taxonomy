@@ -3,8 +3,8 @@
  * Plugin Name: TaxoCommerce Mail Lite
  * Plugin URI: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/staging/taxocommerce-mail-lite
  * Description: Free, independent Lite mail client for hosting accounts with secure IMAP inbox reading, replies and authenticated SMTP.
- * Version: 0.1.5
- * Release Date: 2026-11-26
+ * Version: 0.1.6
+ * Release Date: 2026-11-27
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: David Perez
@@ -22,7 +22,7 @@ if ( in_array( 'taxocommerce-mail/taxocommerce-mail.php', (array) get_option( 'a
     } );
     return;
 }
-define( 'TCMAIL_VERSION', '0.1.5' );
+define( 'TCMAIL_VERSION', '0.1.6' );
 define( 'TCMAIL_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TCMAIL_URL', plugin_dir_url( __FILE__ ) );
 require_once TCMAIL_PATH . 'includes/class-tcmail-accounts.php';
