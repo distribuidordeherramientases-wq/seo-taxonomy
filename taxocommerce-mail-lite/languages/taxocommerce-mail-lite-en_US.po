@@ -330,3 +330,72 @@ msgstr "Hosting provider settings"
 
 msgid "In your hosting control panel, find email client connection details. Use the exact SSL/TLS host and ports provided: IMAP 993, SMTP 465 or STARTTLS 587."
 msgstr "In your hosting control panel, find email client connection details. Use the exact SSL/TLS host and ports provided: IMAP 993, SMTP 465 or STARTTLS 587."
+
+msgid "Manage your professional email without leaving WordPress."
+msgstr "Manage your professional email without leaving WordPress."
+
+msgid "Find conversations, organize messages by project or customer, and keep track of sent email. Mail Pro adds advanced tools to the basic mail client."
+msgstr "Find conversations, organize messages by project or customer, and keep track of sent email. Mail Pro adds advanced tools to the basic mail client."
+
+msgid "Compare editions"
+msgstr "Compare editions"
+
+msgid "Feature"
+msgstr "Feature"
+
+msgid "Included"
+msgstr "Included"
+
+msgid "Not included"
+msgstr "Not included"
+
+msgid "Up to 20 mailboxes, secure reading, sending and replies"
+msgstr "Up to 20 mailboxes, secure reading, sending and replies"
+
+msgid "Inbox navigation"
+msgstr "Inbox navigation"
+
+msgid "12 newest messages"
+msgstr "12 newest messages"
+
+msgid "20 messages per page"
+msgstr "20 messages per page"
+
+msgid "Sent messages and server-side folders"
+msgstr "Sent messages and server-side folders"
+
+msgid "Search messages on the mail server"
+msgstr "Search messages on the mail server"
+
+msgid "Create and rename personal folders"
+msgstr "Create and rename personal folders"
+
+msgid "Move up to 20 selected messages, trash and restore"
+msgstr "Move up to 20 selected messages, trash and restore"
+
+msgid "User manual and functionality check with JSON report"
+msgstr "User manual and functionality check with JSON report"
+
+msgid "Technical manual and code check"
+msgstr "Technical manual and code check"
+
+msgid "Optional integration into the TaxoCommerce Core menu"
+msgstr "Optional integration into the TaxoCommerce Core menu"
+
+msgid "Installation and compatibility"
+msgstr "Installation and compatibility"
+
+msgid "Pro is a separate plugin and does not require Lite, Core or WooCommerce. Configure its mailboxes separately. WordPress 6.7 or later and PHP 7.4 or later are required."
+msgstr "Pro is a separate plugin and does not require Lite, Core or WooCommerce. Configure its mailboxes separately. WordPress 6.7 or later and PHP 7.4 or later are required."
+
+msgid "Messages remain on the mail server. Moving messages requires IMAP MOVE support; saving sent copies requires an available Sent folder. Validate your mailbox before regular use. No permanent deletion or background synchronization is provided."
+msgstr "Messages remain on the mail server. Moving messages requires IMAP MOVE support; saving sent copies requires an available Sent folder. Validate your mailbox before regular use. No permanent deletion or background synchronization is provided."
+
+msgid "Lite remains free and fully functional. No purchase or upgrade is required. Pro is currently a test release; live mailbox validation and commercial availability are not yet confirmed."
+msgstr "Lite remains free and fully functional. No purchase or upgrade is required. Pro is currently a test release; live mailbox validation and commercial availability are not yet confirmed."
+
+msgid "Explore Mail Pro documentation"
+msgstr "Explore Mail Pro documentation"
+
+msgid "Mail Lite is the free standalone edition. It can configure multiple accounts, read the 12 newest inbox messages, compose and reply. Mail Pro is a separate optional plugin with advanced mailbox tools; Lite does not require it."
+msgstr "Mail Lite is the free standalone edition. It can configure multiple accounts, read the 12 newest inbox messages, compose and reply. Mail Pro is a separate optional plugin with advanced mailbox tools; Lite does not require it."

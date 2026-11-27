@@ -276,8 +276,32 @@ final class TCMAIL_Admin {
      */
     private static function pro_information() {
         echo '<div style="max-width:920px"><h2>TaxoCommerce Mail Pro</h2>';
-        echo '<p>' . esc_html__( 'The Pro edition is planned as an optional separate add-on. Lite is free and fully functional as described in its manuals; no purchase or activation is required.', 'taxocommerce-mail-lite' ) . '</p>';
-        echo '<p>' . esc_html__( 'Pro roadmap: manage sent messages, create and organize folders, move messages, bulk selection and move-to-Trash/restore. These functions are not included in Lite.', 'taxocommerce-mail-lite' ) . '</p>';
+        echo '<p><strong>' . esc_html__( 'Manage your professional email without leaving WordPress.', 'taxocommerce-mail-lite' ) . '</strong></p>';
+        echo '<p>' . esc_html__( 'Find conversations, organize messages by project or customer, and keep track of sent email. Mail Pro adds advanced tools to the basic mail client.', 'taxocommerce-mail-lite' ) . '</p>';
+        echo '<h3 id="tcmail-edition-comparison">' . esc_html__( 'Compare editions', 'taxocommerce-mail-lite' ) . '</h3>';
+        echo '<table class="widefat striped" aria-labelledby="tcmail-edition-comparison"><thead><tr><th scope="col">' . esc_html__( 'Feature', 'taxocommerce-mail-lite' ) . '</th><th scope="col">Lite</th><th scope="col">Pro</th></tr></thead><tbody>';
+        $included = __( 'Included', 'taxocommerce-mail-lite' );
+        $not_included = __( 'Not included', 'taxocommerce-mail-lite' );
+        $rows = array(
+            array( __( 'Up to 20 mailboxes, secure reading, sending and replies', 'taxocommerce-mail-lite' ), $included, $included ),
+            array( __( 'Inbox navigation', 'taxocommerce-mail-lite' ), __( '12 newest messages', 'taxocommerce-mail-lite' ), __( '20 messages per page', 'taxocommerce-mail-lite' ) ),
+            array( __( 'Sent messages and server-side folders', 'taxocommerce-mail-lite' ), $not_included, $included ),
+            array( __( 'Search messages on the mail server', 'taxocommerce-mail-lite' ), $not_included, $included ),
+            array( __( 'Create and rename personal folders', 'taxocommerce-mail-lite' ), $not_included, $included ),
+            array( __( 'Move up to 20 selected messages, trash and restore', 'taxocommerce-mail-lite' ), $not_included, $included ),
+            array( __( 'User manual and functionality check with JSON report', 'taxocommerce-mail-lite' ), $included, $included ),
+            array( __( 'Technical manual and code check', 'taxocommerce-mail-lite' ), $not_included, $included ),
+            array( __( 'Optional integration into the TaxoCommerce Core menu', 'taxocommerce-mail-lite' ), $not_included, $included ),
+        );
+        foreach ( $rows as $row ) {
+            echo '<tr><th scope="row">' . esc_html( $row[0] ) . '</th><td>' . esc_html( $row[1] ) . '</td><td>' . esc_html( $row[2] ) . '</td></tr>';
+        }
+        echo '</tbody></table>';
+        echo '<h3>' . esc_html__( 'Installation and compatibility', 'taxocommerce-mail-lite' ) . '</h3>';
+        echo '<p>' . esc_html__( 'Pro is a separate plugin and does not require Lite, Core or WooCommerce. Configure its mailboxes separately. WordPress 6.7 or later and PHP 7.4 or later are required.', 'taxocommerce-mail-lite' ) . '</p>';
+        echo '<p>' . esc_html__( 'Messages remain on the mail server. Moving messages requires IMAP MOVE support; saving sent copies requires an available Sent folder. Validate your mailbox before regular use. No permanent deletion or background synchronization is provided.', 'taxocommerce-mail-lite' ) . '</p>';
+        echo '<p>' . esc_html__( 'Lite remains free and fully functional. No purchase or upgrade is required. Pro is currently a test release; live mailbox validation and commercial availability are not yet confirmed.', 'taxocommerce-mail-lite' ) . '</p>';
+        echo '<p><a href="' . esc_url( 'https://github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/staging/taxocommerce-mail-pro' ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Explore Mail Pro documentation', 'taxocommerce-mail-lite' ) . '</a></p>';
         echo '</div>';
     }
 

@@ -328,3 +328,72 @@ msgstr ""
 
 msgid "In your hosting control panel, find email client connection details. Use the exact SSL/TLS host and ports provided: IMAP 993, SMTP 465 or STARTTLS 587."
 msgstr ""
+
+msgid "Manage your professional email without leaving WordPress."
+msgstr ""
+
+msgid "Find conversations, organize messages by project or customer, and keep track of sent email. Mail Pro adds advanced tools to the basic mail client."
+msgstr ""
+
+msgid "Compare editions"
+msgstr ""
+
+msgid "Feature"
+msgstr ""
+
+msgid "Included"
+msgstr ""
+
+msgid "Not included"
+msgstr ""
+
+msgid "Up to 20 mailboxes, secure reading, sending and replies"
+msgstr ""
+
+msgid "Inbox navigation"
+msgstr ""
+
+msgid "12 newest messages"
+msgstr ""
+
+msgid "20 messages per page"
+msgstr ""
+
+msgid "Sent messages and server-side folders"
+msgstr ""
+
+msgid "Search messages on the mail server"
+msgstr ""
+
+msgid "Create and rename personal folders"
+msgstr ""
+
+msgid "Move up to 20 selected messages, trash and restore"
+msgstr ""
+
+msgid "User manual and functionality check with JSON report"
+msgstr ""
+
+msgid "Technical manual and code check"
+msgstr ""
+
+msgid "Optional integration into the TaxoCommerce Core menu"
+msgstr ""
+
+msgid "Installation and compatibility"
+msgstr ""
+
+msgid "Pro is a separate plugin and does not require Lite, Core or WooCommerce. Configure its mailboxes separately. WordPress 6.7 or later and PHP 7.4 or later are required."
+msgstr ""
+
+msgid "Messages remain on the mail server. Moving messages requires IMAP MOVE support; saving sent copies requires an available Sent folder. Validate your mailbox before regular use. No permanent deletion or background synchronization is provided."
+msgstr ""
+
+msgid "Lite remains free and fully functional. No purchase or upgrade is required. Pro is currently a test release; live mailbox validation and commercial availability are not yet confirmed."
+msgstr ""
+
+msgid "Explore Mail Pro documentation"
+msgstr ""
+
+msgid "Mail Lite is the free standalone edition. It can configure multiple accounts, read the 12 newest inbox messages, compose and reply. Mail Pro is a separate optional plugin with advanced mailbox tools; Lite does not require it."
+msgstr ""

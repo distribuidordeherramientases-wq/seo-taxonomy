@@ -330,3 +330,72 @@ msgstr "Instellingen van de hostingprovider"
 
 msgid "In your hosting control panel, find email client connection details. Use the exact SSL/TLS host and ports provided: IMAP 993, SMTP 465 or STARTTLS 587."
 msgstr "Zoek de verbindingsgegevens voor e-mailclients in het controlepaneel van je hostingprovider. Gebruik de exacte SSL/TLS-server en poorten: IMAP 993, SMTP 465 of STARTTLS 587."
+
+msgid "Manage your professional email without leaving WordPress."
+msgstr "Beheer uw zakelijke e-mail zonder WordPress te verlaten."
+
+msgid "Find conversations, organize messages by project or customer, and keep track of sent email. Mail Pro adds advanced tools to the basic mail client."
+msgstr "Vind gesprekken terug, orden berichten per project of klant en raadpleeg verzonden e-mail. Mail Pro voegt geavanceerde hulpmiddelen toe aan de eenvoudige mailclient."
+
+msgid "Compare editions"
+msgstr "Vergelijk de edities"
+
+msgid "Feature"
+msgstr "Functie"
+
+msgid "Included"
+msgstr "Inbegrepen"
+
+msgid "Not included"
+msgstr "Niet inbegrepen"
+
+msgid "Up to 20 mailboxes, secure reading, sending and replies"
+msgstr "Maximaal 20 mailboxen, veilig lezen, verzenden en beantwoorden"
+
+msgid "Inbox navigation"
+msgstr "Navigatie in het Postvak IN"
+
+msgid "12 newest messages"
+msgstr "12 nieuwste berichten"
+
+msgid "20 messages per page"
+msgstr "20 berichten per pagina"
+
+msgid "Sent messages and server-side folders"
+msgstr "Verzonden berichten en servermappen"
+
+msgid "Search messages on the mail server"
+msgstr "Berichten zoeken op de mailserver"
+
+msgid "Create and rename personal folders"
+msgstr "Persoonlijke mappen maken en hernoemen"
+
+msgid "Move up to 20 selected messages, trash and restore"
+msgstr "Maximaal 20 geselecteerde berichten verplaatsen, naar de prullenbak sturen en herstellen"
+
+msgid "User manual and functionality check with JSON report"
+msgstr "Gebruikershandleiding en functiecontrole met JSON-rapport"
+
+msgid "Technical manual and code check"
+msgstr "Technische handleiding en codecontrole"
+
+msgid "Optional integration into the TaxoCommerce Core menu"
+msgstr "Optionele integratie in het TaxoCommerce Core-menu"
+
+msgid "Installation and compatibility"
+msgstr "Installatie en compatibiliteit"
+
+msgid "Pro is a separate plugin and does not require Lite, Core or WooCommerce. Configure its mailboxes separately. WordPress 6.7 or later and PHP 7.4 or later are required."
+msgstr "Pro is een zelfstandige plugin en vereist geen Lite, Core of WooCommerce. Configureer de mailboxen afzonderlijk. WordPress 6.7 of hoger en PHP 7.4 of hoger zijn vereist."
+
+msgid "Messages remain on the mail server. Moving messages requires IMAP MOVE support; saving sent copies requires an available Sent folder. Validate your mailbox before regular use. No permanent deletion or background synchronization is provided."
+msgstr "Berichten blijven op de mailserver. Verplaatsen vereist IMAP MOVE; voor het opslaan van verzonden kopieën moet een map Verzonden beschikbaar zijn. Controleer uw mailbox voor regulier gebruik. Geen definitieve verwijdering of synchronisatie op de achtergrond."
+
+msgid "Lite remains free and fully functional. No purchase or upgrade is required. Pro is currently a test release; live mailbox validation and commercial availability are not yet confirmed."
+msgstr "Lite blijft gratis en volledig functioneel. Aankoop of upgrade is niet nodig. Pro is momenteel een testversie; validatie met echte mailboxen en commerciële beschikbaarheid zijn nog niet bevestigd."
+
+msgid "Explore Mail Pro documentation"
+msgstr "Bekijk de documentatie van Mail Pro"
+
+msgid "Mail Lite is the free standalone edition. It can configure multiple accounts, read the 12 newest inbox messages, compose and reply. Mail Pro is a separate optional plugin with advanced mailbox tools; Lite does not require it."
+msgstr "Mail Lite is de gratis zelfstandige editie. U kunt meerdere accounts instellen, de 12 nieuwste ontvangen berichten lezen, schrijven en antwoorden. Mail Pro is een afzonderlijke optionele plugin met geavanceerde mailfuncties; Lite heeft deze niet nodig."
