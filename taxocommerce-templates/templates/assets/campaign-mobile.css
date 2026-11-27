@@ -166,3 +166,21 @@
         font-size: 12px;
         font-weight: 800;
     }
+
+    .dht-campaign-transparency {
+        margin-top: 10px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--dht-campaign-muted);
+    }
+    .dht-campaign-transparency summary {
+        cursor: pointer;
+        width: fit-content;
+    }
+    .dht-campaign-transparency p {
+        margin: 6px 0 0;
+    }
+    .dht-campaign-transparency a {
+        color: var(--dht-campaign-accent-dark);
+        text-decoration: underline;
+    }
