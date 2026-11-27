@@ -136,6 +136,22 @@
             });
     }
 
+    // Native multi-file picker: show exactly what will be submitted, without
+    // modifying the FileList or inferring the content type from filenames.
+    document.querySelectorAll('input[name="csv_files[]"][multiple]').forEach(function (input) {
+        var form = input.form;
+        var summary = form && form.querySelector('.tciep-selection');
+        if (!summary) return;
+        function describeSelection() {
+            var files = Array.from(input.files || []);
+            summary.textContent = files.length
+                ? label('files_selected') + ' (' + files.length + '): ' + files.map(function (file) { return file.name; }).join(', ')
+                : label('no_files');
+        }
+        input.addEventListener('change', describeSelection);
+        describeSelection();
+    });
+
     document.querySelectorAll('.tciep-job[data-job]').forEach(function (box) {
         var state;
         try { state = JSON.parse(box.getAttribute('data-job')); } catch (error) { return; }
