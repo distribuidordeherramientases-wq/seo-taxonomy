@@ -117,4 +117,5 @@ require_once __DIR__ . '/providers-smoke.php';
 require_once __DIR__ . '/manual-provider-smoke.php';
 require_once __DIR__ . '/profiles-transfer-smoke.php';
 require_once __DIR__ . '/i18n-smoke.php';
+require_once __DIR__ . '/url-sync-smoke.php';
 echo "OK\n";
