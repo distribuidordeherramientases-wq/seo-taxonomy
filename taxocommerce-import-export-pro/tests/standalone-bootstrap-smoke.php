@@ -500,3 +500,6 @@ check_tciep( class_exists( 'TaxoCommerce_Import_Export_Pro_Autotest_Code' ) && 5
 unlink( $root . '/worker.lock' );
 rmdir( $root );
 echo "Import-Export Pro: native CSV, seven blocks, multi-file preflight/confirm, independent queues, pause/resume, lock, history, adaptive export and code check OK\n";
+
+// Run the actual multipart regression in the existing plugin CI entrypoint.
+require __DIR__ . '/upload-storage-smoke.php';
