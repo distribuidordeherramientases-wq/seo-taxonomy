@@ -14,7 +14,7 @@ $groups=TaxoCommerce_Google_Bing_Auto_Test::groups();
 $cases=TaxoCommerce_Google_Bing_Auto_Test::cases();
 assert_auto(count($groups)===10,'group count');
 assert_auto(count($cases)>=34,'case count');
-assert_auto(isset($cases['analyst_tests'],$cases['provider_gsc'],$cases['live_requests']),'critical cases');
+assert_auto(isset($cases['analyst_tests'],$cases['provider_gsc'],$cases['live_requests'],$cases['capture_ga4_analyst'],$cases['capture_chatgpt_sales'],$cases['capture_bing_analyst']),'critical cases');
 $test=array('test'=>array('startup','Injected deterministic test'));
 $report=TaxoCommerce_Google_Bing_Auto_Test::run_suite('uat',$test);
 assert_auto($report['totals']['not_run']===1 && $report['totals']['pass']===0,'not-run is grey');

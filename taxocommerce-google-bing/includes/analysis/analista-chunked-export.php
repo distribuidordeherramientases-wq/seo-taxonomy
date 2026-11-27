@@ -37,6 +37,7 @@ final class TaxoCommerce_Insights_Chunked_Export {
             array( 'hacia_donde_vamos', '' ),
             array( 'sources', '' ),
             array( 'operational_health', '' ),
+            array( 'calidad_datos', '' ),
             array( 'privacy', '' ),
         );
     }

@@ -5,6 +5,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
+require_once dirname( __DIR__ ) . '/class-taxocommerce-insights-data-quality.php';
 require_once __DIR__ . '/analista-mercado-ejecutivo.php';
 require_once __DIR__ . '/analista-direccion.php';
 if ( ! function_exists( 'taxocommerce_insights_indicators_build' ) ) {
@@ -23,6 +24,10 @@ function taxocommerce_google_bing_analysis_reports() {
     }
     $reports = (array) seo_analista_lazy_reports();
     unset( $reports['trabajo'] );
+    $reports['calidad_datos'] = array(
+        'label' => __( 'Calidad y coherencia de datos', 'taxocommerce-google-bing' ),
+        'description' => __( 'Comprueba fechas, cobertura y concordancia de métricas sin valorar los resultados comerciales.', 'taxocommerce-google-bing' ),
+    );
     if ( isset( $reports['directrices'] ) ) {
         $reports['directrices']['label'] = __( 'Indicadores para la acción', 'taxocommerce-google-bing' );
         $reports['directrices']['description'] = __( 'Semanas o meses completos, comparativas de GSC y GA4 y patrones medibles. No prescribe decisiones.', 'taxocommerce-google-bing' );
@@ -299,6 +304,7 @@ function taxocommerce_insights_analysis_ajax() {
         ? sanitize_key( wp_unslash( (string) $_POST['period_mode'] ) ) : 'week';
     $plan_export = null;
     $competitive_export = null;
+    $quality_export = null;
     ob_start();
     try {
         // Original commercial and specialist reports, without changing SEO.
@@ -311,6 +317,9 @@ function taxocommerce_insights_analysis_ajax() {
             $competitive_export = taxocommerce_insights_competitive_build_report( $days );
             taxocommerce_insights_competitive_save_report( $competitive_export );
             taxocommerce_insights_competitive_render_panel( $days );
+        } elseif ( 'calidad_datos' === $report ) {
+            $quality_export = TaxoCommerce_Insights_Data_Quality::build( $days );
+            TaxoCommerce_Insights_Data_Quality::render( $quality_export );
         } elseif ( 'directrices' === $report ) {
             // The evidence report has its own calendar and JSON contract.
             // Do not call the old editorial/market decision-plan engine.
@@ -349,6 +358,9 @@ function taxocommerce_insights_analysis_ajax() {
             // A single downloadable JSON now contains the actual structured
             // Merchant/Trends/GSC evidence, not just rendered admin HTML.
             $saved_report['competitive_data'] = $competitive_export;
+        }
+        if ( is_array( $quality_export ) ) {
+            $saved_report['data_quality'] = $quality_export;
         }
         update_option( 'taxocommerce_insights_report_' . $report . '_' . $days, $saved_report, false );
         if ( taxocommerce_insights_last_report_export( $report, $days ) === $saved_report ) {

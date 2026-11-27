@@ -201,9 +201,11 @@ final class TaxoCommerce_Google_Bing_Reports {
         delete_transient( $lock );
 
         if ( is_wp_error( $data ) ) {
+            TaxoCommerce_Insights_Data_Quality::record_manual( $source, $ranges['current'], false );
             self::finish_download( $source, $selection, $data->get_error_message(), true );
         }
         if ( ! is_array( $data ) ) {
+            TaxoCommerce_Insights_Data_Quality::record_manual( $source, $ranges['current'], false );
             self::finish_download( $source, $selection, 'The API did not return a valid report.', true );
         }
 
@@ -220,6 +222,12 @@ final class TaxoCommerce_Google_Bing_Reports {
             'data'          => $data,
         );
         update_option( self::STORE_PREFIX . $source, $entries, false );
+        $persisted = self::get_saved_snapshot( $source, $ranges['current']['start'], $ranges['current']['end'] ) === $entries[$key];
+        $partial = ! empty( $data['warnings'] ) || ( 'analytics' === $source && empty( $data['cart_products']['available'] ) );
+        TaxoCommerce_Insights_Data_Quality::record_manual( $source, $ranges['current'], true, $persisted, $partial );
+        if ( ! $persisted ) {
+            self::finish_download( $source, $selection, __( 'No se pudo recuperar el informe recién guardado.', 'taxocommerce-google-bing' ), true );
+        }
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
         do_action( 'tgb_manual_report_saved', $source, $ranges, $entries[ $key ] );
         self::finish_download( $source, $selection, 'Datos actualizados y guardados correctamente.', false );
