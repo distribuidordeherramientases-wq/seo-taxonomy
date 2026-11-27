@@ -1,5 +1,11 @@
 # TaxoCommerce Import-Export Lite
 
+## [0.1.6] — 2026-11-27 — Recepción privada de CSV (#2999)
+
+- Recibe CSV de páginas, productos y demás bloques mediante archivos temporales privados con nombre único, sin pasar por Media ni depender del MIME enviado por el navegador.
+- Comprueba la procedencia HTTP, extensión, tamaño real, permisos y ubicación; usa el directorio temporal de PHP si el de WordPress no es privado o falla. Diagnósticos diferenciados y limpieza de archivos rechazados.
+- Mantiene el prechequeo, identificación y confirmación antes de guardar; pruebas de subida HTTP multipart y regresiones de importación.
+
 ## [0.1.5] — 2026-11-25 — Importación y exportación por bloques (#2971)
 
 - Bloques independientes para páginas, productos, categorías de entradas, entradas, categorías de producto y ambos tipos de etiquetas. Sin selector de tipo, acción ni asignación manual.
