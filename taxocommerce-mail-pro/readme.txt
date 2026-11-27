@@ -4,7 +4,7 @@ Tags: imap, smtp, email, folders, webmail
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,7 +27,7 @@ TaxoCommerce Mail Pro is a separate standalone plugin. It does not require TaxoC
 * Functionality and code self-checks, JSON report export, user and technical manuals, localized admin shell.
 
 = Limitations =
-Pro 0.1.0 is a test release. The IMAP engine is the independently packaged protocol transport adapted from Mail Lite, not yet a vendored third-party library. Live SMTP and IMAP folder mutation must be tested against dedicated accounts before commercial distribution. Folder creation uses conservative ASCII names; existing server folders can contain encoded international names. Servers without RFC MOVE will reject moving or trashing without touching messages. No backups or permanent deletion are provided. All emails remain on the provider's server.
+Pro is a test release. The IMAP engine is the independently packaged protocol transport adapted from Mail Lite, not yet a vendored third-party library. Live SMTP and IMAP folder mutation must be tested against dedicated accounts before commercial distribution. Folder creation uses conservative ASCII names; existing server folders can contain encoded international names. Servers without RFC MOVE will reject moving or trashing without touching messages. No backups or permanent deletion are provided. All emails remain on the provider's server.
 
 == Installation ==
 
@@ -54,6 +54,9 @@ After a successful SMTP send, Pro attempts to append a copy to the IMAP Sent fol
 No. Only administrators with `manage_options` may use this first version.
 
 == Changelog ==
+
+= 0.1.1 =
+* Run per-account IMAP connection checks on explicit administrator request. Results distinguish local settings, DNS/TCP, TLS, authentication and INBOX access. No emails are fetched or sent. SMTP delivery is not tested.
 
 = 0.1.0 =
 * Initial standalone Pro version with encrypted accounts, multi-folder browser, server search, paginated listing, safe IMAP MOVE/Trash/restore and Sent archive.

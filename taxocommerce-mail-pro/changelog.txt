@@ -1,3 +1,6 @@
+= 0.1.1 =
+* Per-account functional IMAP diagnostics, including configuration, DNS, TCP, TLS, authentication and INBOX. No email retrieval or sending. Issue #2994.
+
 = 0.1.0 =
 * Standalone Pro account setup; Inbox, Sent, folders, search and pages.
 * Nonce-protected bulk move, Trash and restore (IMAP MOVE required); Sent archive via IMAP APPEND.
