@@ -120,44 +120,131 @@ final class Admin {
 		}
 	}
 
+	/**
+	 * Resolve a writable private directory. Never fall back to a directory
+	 * inside WordPress, wp-content or the web server's document root.
+	 *
+	 * @param string $candidate Directory supplied by PHP or WordPress.
+	 * @return string
+	 */
+	private static function private_temp_dir( $candidate ) {
+		$directory = realpath( $candidate );
+		if ( false === $directory || ! is_dir( $directory ) || ! wp_is_writable( $directory ) ) {
+			return '';
+		}
+		$roots = array( ABSPATH, WP_CONTENT_DIR );
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Server document root is canonicalized with realpath, never used as an upload destination.
+		if ( isset( $_SERVER['DOCUMENT_ROOT'] ) && is_string( $_SERVER['DOCUMENT_ROOT'] ) && '' !== $_SERVER['DOCUMENT_ROOT'] ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Preserve the actual filesystem path for the containment check.
+			$roots[] = wp_unslash( $_SERVER['DOCUMENT_ROOT'] );
+		}
+		$normalized = trailingslashit( strtolower( wp_normalize_path( $directory ) ) );
+		foreach ( $roots as $root ) {
+			$resolved = realpath( $root );
+			if ( false !== $resolved && 0 === strpos( $normalized, trailingslashit( strtolower( wp_normalize_path( $resolved ) ) ) ) ) {
+				return '';
+			}
+		}
+		return $directory;
+	}
+
+	/**
+	 * Receive an actual PHP HTTP upload as private, inert CSV data.
+	 * CSV is parsed by the existing schema/preflight before any content is
+	 * written. No Media upload hooks, public URLs or browser MIME are used.
+	 *
+	 * @param array $file PHP upload metadata.
+	 * @return array|\WP_Error
+	 */
+	public static function store_upload( $file ) {
+		$error = isset( $file['error'] ) && is_int( $file['error'] ) ? $file['error'] : UPLOAD_ERR_NO_FILE;
+		if ( UPLOAD_ERR_OK !== $error ) {
+			if ( in_array( $error, array( UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE ), true ) ) {
+				return new \WP_Error( 'upload_size', __( 'El servidor ha rechazado el tamaño del CSV. Comprueba el límite de subida.', 'taxocommerce-import-export-lite' ) );
+			}
+			if ( in_array( $error, array( UPLOAD_ERR_NO_TMP_DIR, UPLOAD_ERR_CANT_WRITE ), true ) ) {
+				return new \WP_Error( 'upload_php_storage', __( 'PHP no pudo recibir el CSV en su directorio temporal. Comprueba los permisos y el espacio disponible.', 'taxocommerce-import-export-lite' ) );
+			}
+			return new \WP_Error( 'upload_incomplete', __( 'No se ha recibido un CSV completo. Vuelve a seleccionar el archivo.', 'taxocommerce-import-export-lite' ) );
+		}
+
+		$name = isset( $file['name'] ) && is_string( $file['name'] ) ? sanitize_file_name( $file['name'] ) : '';
+		$size = isset( $file['size'] ) && is_int( $file['size'] ) ? $file['size'] : 0;
+		$tmp  = isset( $file['tmp_name'] ) && is_string( $file['tmp_name'] ) ? $file['tmp_name'] : '';
+		if ( $size < 1 || $size > self::MAX_CSV_BYTES || 'csv' !== strtolower( pathinfo( $name, PATHINFO_EXTENSION ) ) || ! is_uploaded_file( $tmp ) ) {
+			return new \WP_Error( 'upload_invalid', __( 'Adjunta un CSV válido de hasta 30 MB.', 'taxocommerce-import-export-lite' ) );
+		}
+		if ( ! function_exists( 'wp_tempnam' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
+		// The uploaded PHP temporary file is local to this worker, not an FTP
+		// installation path. Use WordPress' direct filesystem implementation.
+		if ( ! class_exists( '\WP_Filesystem_Direct', false ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-base.php';
+			require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-direct.php';
+		}
+		$filesystem = new \WP_Filesystem_Direct( null );
+
+		$directories = array_unique( array( get_temp_dir(), dirname( $tmp ) ) );
+		$has_private = false;
+		$has_reservation = false;
+		foreach ( $directories as $candidate ) {
+			$directory = self::private_temp_dir( $candidate );
+			if ( '' === $directory ) {
+				continue;
+			}
+			$has_private = true;
+			// Opaque, uniquely reserved filename, never the client-provided name.
+			$path = wp_tempnam( 'tciel-' . wp_generate_uuid4(), trailingslashit( $directory ) );
+			if ( ! is_string( $path ) || ! is_file( $path ) || is_link( $path ) || realpath( dirname( $path ) ) !== $directory ) {
+				continue;
+			}
+			$has_reservation = true;
+			if ( ! $filesystem->chmod( $path, 0600 ) ) {
+				wp_delete_file( $path );
+				continue;
+			}
+			// PHP has already verified this source with is_uploaded_file(). A
+			// local copy preserves the reservation; PHP cleans its upload at
+			// request shutdown. No arbitrary files or Media uploads are copied.
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Keep private server paths out of upload error responses.
+			if ( ! @$filesystem->copy( $tmp, $path, true, 0600 ) ) {
+				wp_delete_file( $path );
+				continue;
+			}
+			clearstatcache( true, $path );
+			if ( ! $filesystem->chmod( $path, 0600 ) || ! is_readable( $path ) || $size !== wp_filesize( $path ) ) {
+				wp_delete_file( $path );
+				return new \WP_Error( 'upload_integrity', __( 'El CSV temporal no es legible o no coincide con el tamaño recibido. No se ha importado ningún dato.', 'taxocommerce-import-export-lite' ) );
+			}
+			return array( 'path' => $path, 'name' => $name );
+		}
+
+		if ( ! $has_private ) {
+			return new \WP_Error( 'upload_private_dir', __( 'No hay un directorio temporal privado y escribible. Revisa WP_TEMP_DIR o el directorio temporal de PHP.', 'taxocommerce-import-export-lite' ) );
+		}
+		if ( ! $has_reservation ) {
+			return new \WP_Error( 'upload_reserve', __( 'No se pudo crear un archivo temporal privado. Comprueba los permisos y el espacio disponible.', 'taxocommerce-import-export-lite' ) );
+		}
+		return new \WP_Error( 'upload_move', __( 'El servidor no pudo copiar el CSV recibido al archivo temporal privado. Comprueba las restricciones de PHP y los permisos.', 'taxocommerce-import-export-lite' ) );
+	}
+
 	public static function upload() {
 		self::allowed();
 		$type = isset( $_POST['type'] ) && is_string( $_POST['type'] ) ? sanitize_key( wp_unslash( $_POST['type'] ) ) : '';
 		if ( ! isset( CSV::types()[ $type ] ) ) wp_die( esc_html__( 'Tipo de datos incorrecto.', 'taxocommerce-import-export-lite' ) );
 		check_admin_referer( 'tciel_upload_' . $type );
 		if ( ! isset( $_FILES['csv_file'] ) || ! is_array( $_FILES['csv_file'] ) ) {
-			wp_die( esc_html__( 'No se ha adjuntado ningún archivo.', 'taxocommerce-import-export-lite' ) );
+			wp_die( esc_html__( 'No se ha adjuntado ningún archivo.', 'taxocommerce-import-export-lite' ), '', array( 'back_link' => true ) );
 		}
-		$file = $_FILES['csv_file']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Uploaded file metadata is checked immediately below.
-		$name = isset( $file['name'] ) && is_string( $file['name'] ) ? sanitize_file_name( $file['name'] ) : '';
-		$size = isset( $file['size'] ) ? (int) $file['size'] : 0;
-		$tmp = isset( $file['tmp_name'] ) && is_string( $file['tmp_name'] ) ? $file['tmp_name'] : '';
-		if ( UPLOAD_ERR_OK !== (int) ( $file['error'] ?? -1 ) || $size < 1 || $size > self::MAX_CSV_BYTES || 'csv' !== strtolower( pathinfo( $name, PATHINFO_EXTENSION ) ) || ! is_uploaded_file( $tmp ) ) {
-			wp_die( esc_html__( 'Adjunta un CSV válido de hasta 30 MB.', 'taxocommerce-import-export-lite' ) );
+		$file = $_FILES['csv_file']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- store_upload validates extension, size, upload provenance and errors.
+		$stored = self::store_upload( $file );
+		if ( is_wp_error( $stored ) ) {
+			wp_die( esc_html( $stored->get_error_message() ), '', array( 'back_link' => true ) );
 		}
-		// Store the CSV outside the public uploads directory using WordPress upload handling.
-		// The filter is scoped to this single operation and always removed afterwards.
-		$temp_upload_dir = static function ( $uploads ) {
-			$uploads['path']    = trailingslashit( get_temp_dir() );
-			$uploads['basedir'] = trailingslashit( get_temp_dir() );
-			$uploads['subdir']  = '';
-			$uploads['url']     = '';
-			$uploads['baseurl'] = '';
-			return $uploads;
-		};
-		add_filter( 'upload_dir', $temp_upload_dir );
-		$uploaded = wp_handle_upload(
-			$file,
-			array(
-				'test_form' => false,
-				'mimes'     => array( 'csv' => 'text/csv' ),
-			)
-		);
-		remove_filter( 'upload_dir', $temp_upload_dir );
-		$path = ! empty( $uploaded['file'] ) ? $uploaded['file'] : '';
-		if ( ! $path || ! is_readable( $path ) ) {
-			wp_die( esc_html__( 'No se pudo almacenar temporalmente el CSV.', 'taxocommerce-import-export-lite' ) );
-		}
+		$path = $stored['path'];
+		$name = $stored['name'];
 		$handle = fopen( $path, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Temporary uploaded CSV, read-only.
 		if ( ! $handle ) {
 			wp_delete_file( $path );
@@ -172,7 +259,7 @@ final class Admin {
 		$headers = fgetcsv( $handle, 32768, $delimiter, '"', '' );
 		$sample = fgetcsv( $handle, 65536, $delimiter, '"', '' );
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- End uploaded CSV inspection.
-		if ( ! is_array( $headers ) || count( $headers ) < 1 || count( $headers ) > 200 || ! is_array( $sample ) || count( $sample ) !== count( $headers ) ) {
+		if ( ! is_array( $headers ) || count( $headers ) < 1 || count( $headers ) > 200 || ! is_array( $sample ) || count( $sample ) !== count( $headers ) || false !== strpos( implode( '', $headers ) . implode( '', $sample ), "\0" ) ) {
 			wp_delete_file( $path );
 			wp_die( esc_html__( 'Cabecera o primera fila CSV incorrectas.', 'taxocommerce-import-export-lite' ) );
 		}
@@ -184,7 +271,10 @@ final class Admin {
 		}
 		$token = str_replace( '-', '', wp_generate_uuid4() );
 		$state = array( 'type' => $type, 'map' => $mapping['map'], 'ignored' => $mapping['ignored'], 'path' => $path, 'filename' => $name, 'headers' => $headers, 'delimiter' => $delimiter, 'offset' => 0, 'processed' => 0, 'saved' => 0, 'errors' => 0, 'notices' => array(), 'done' => false, 'phase' => 'uploaded', 'checked' => 0, 'seen' => array() );
-		set_transient( self::transient_key( $token ), $state, HOUR_IN_SECONDS );
+		if ( ! set_transient( self::transient_key( $token ), $state, HOUR_IN_SECONDS ) ) {
+			wp_delete_file( $path );
+			wp_die( esc_html__( 'No se pudo guardar el estado temporal de la importación. Vuelve a cargar el CSV.', 'taxocommerce-import-export-lite' ), '', array( 'back_link' => true ) );
+		}
 		wp_safe_redirect( self::url( array( 'tab' => 'import', 'token' => $token ) ) . '#tciel-import-' . $type );
 		exit;
 	}

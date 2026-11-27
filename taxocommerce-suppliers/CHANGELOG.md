@@ -1,3 +1,9 @@
+## [0.2.30] — 2026-11-27 — Sincronización por URL, fase inicial (#3003)
+
+- Pestaña Sincronización: observaciones HTTP y JSON-LD por producto, proveedor o inventario completo, secuenciales, cancelables y sin cambios automáticos de precios ni existencias. Registro de las últimas 100 observaciones por usuario durante 24 horas.
+- Vinculación explícita de productos WooCommerce existentes con proveedores registrados y URL, sin CSV ni cambios editoriales; rechaza vínculos preexistentes y conflictos.
+- Sin nuevas tablas ni dependencias. La automatización comercial queda pendiente de validación por proveedor.
+
 ## [0.2.29] — 2026-11-22 — Protección de ventas cuando se descarta la última fuente de suministro (#2935)
 
 - La decisión «Descartar» ahora retira de publicación un producto WooCommerce solo cuando su vinculación al proveedor está verificada y no existen otras fuentes aceptadas para ese producto. Nunca elimina artículos, modifica stock, pedidos ni precios; la reaceptación no republica automáticamente.

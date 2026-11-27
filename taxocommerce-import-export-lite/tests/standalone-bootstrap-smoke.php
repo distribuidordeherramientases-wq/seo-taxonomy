@@ -387,11 +387,11 @@ ob_start();
 $header = ob_get_clean();
 check_tciel( 1 === substr_count( $header, '<h1>' ), 'One header title; no duplicate H1' );
 check_tciel( false !== strpos( $header, 'TaxoCommerce Import-Export Lite' ), 'Plugin metadata title in header' );
-check_tciel( false !== strpos( $header, 'Versión 0.1.5' ), 'Version follows main plugin header' );
-check_tciel( false !== strpos( $header, 'Última actualización: 2026-11-25' ), 'Valid release date displayed' );
+check_tciel( false !== strpos( $header, 'Versión 0.1.6' ), 'Version follows main plugin header' );
+check_tciel( false !== strpos( $header, 'Última actualización: 2026-11-27' ), 'Valid release date displayed' );
 check_tciel( false !== strpos( $header, 'Independent CSV import and export' ), 'Plugin metadata description displayed' );
 check_tciel( false !== strpos( $header, '<details class="tciel-hero__history">' ), 'Own changelog is collapsed by default' );
-check_tciel( false !== strpos( $header, '[0.1.5]' ), 'Latest changelog entry included' );
+check_tciel( false !== strpos( $header, '[0.1.6]' ), 'Latest changelog entry included' );
 check_tciel( false !== strpos( $header, 'Historial de versiones y mejoras' ), 'WordPress Spanish locale fallback' );
 check_tciel( false !== strpos( $header, 'github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/staging/taxocommerce-import-export-lite' ), 'Official source link from plugin URI' );
 echo "Import-Export Lite: autonomous admin header metadata, localized labels and bundled history OK\n";
@@ -418,3 +418,8 @@ foreach ( CSV::types() as $kind => $title ) {
 	check_tciel( false !== strpos( $export_html, 'name="type" value="' . $kind . '"' ), 'Fixed export block for ' . $kind );
 }
 echo "Import-Export Lite: fixed content blocks and server-bound automatic mapping OK\n";
+
+ // Use a separate process: the HTTP upload regression needs an actual document root.
+$upload_exit = 1;
+passthru( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/upload-storage-smoke.php' ), $upload_exit );
+check_tciel( 0 === $upload_exit, 'Private HTTP CSV storage regression' );

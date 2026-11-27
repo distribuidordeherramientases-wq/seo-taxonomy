@@ -5,7 +5,7 @@ Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.5
+Stable tag: 0.1.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,6 +51,9 @@ The default mode creates a draft product; it does not fail with Product not foun
 Yes. Include the headers virtual, downloadable, download_1_name and download_1_url (optionally a second download) to WooCommerce product fields. The URL must be a valid HTTP(S) address.
 
 == Changelog ==
+
+= 0.1.6 =
+* Receive CSV uploads into private temporary files independently of Media; validate upload origin, size and storage, with safe fallback and actionable errors.
 
 = 0.1.5 =
 * Separate import and export blocks for every supported content type; automatic create-or-update and server-side header recognition.
