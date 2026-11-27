@@ -291,7 +291,7 @@ final class TCMAIL_Admin {
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
         // The standalone three-zone family header already renders the full Lite name.
         echo '<div class="wrap">';
-        $tabs = array( 'inbox' => __( 'Inbox', 'taxocommerce-mail-lite' ), 'compose' => __( 'Compose', 'taxocommerce-mail-lite' ), 'accounts' => __( 'Accounts', 'taxocommerce-mail-lite' ), 'autocheck' => __( 'Autocheck', 'taxocommerce-mail-lite' ), 'manual' => __( 'User manual', 'taxocommerce-mail-lite' ), 'technical' => __( 'Technical manual', 'taxocommerce-mail-lite' ), 'pro' => 'Pro' );
+        $tabs = array( 'inbox' => __( 'Inbox', 'taxocommerce-mail-lite' ), 'compose' => __( 'Compose', 'taxocommerce-mail-lite' ), 'accounts' => __( 'Accounts', 'taxocommerce-mail-lite' ), 'autocheck' => __( 'Autocheck', 'taxocommerce-mail-lite' ), 'manual' => __( 'User manual', 'taxocommerce-mail-lite' ), 'pro' => 'Pro' );
         echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Mail sections', 'taxocommerce-mail-lite' ) . '">';
         foreach ( $tabs as $key => $label ) {
             echo '<a href="' . esc_url( add_query_arg( array( 'page' => 'taxocommerce-mail', 'tab' => $key ), admin_url( 'admin.php' ) ) ) . '" class="nav-tab' . ( $key === $tab ? ' nav-tab-active' : '' ) . '">' . esc_html( $label ) . '</a>';
@@ -316,7 +316,7 @@ final class TCMAIL_Admin {
         } elseif ( 'autocheck' === $tab ) {
             TCMAIL_Autocheck::render();
         } elseif ( 'manual' === $tab || 'technical' === $tab ) {
-            TCMAIL_Autocheck::manual( 'technical' === $tab );
+            TCMAIL_Autocheck::manual();
         } elseif ( 'pro' === $tab ) {
             self::pro_information();
         } else {

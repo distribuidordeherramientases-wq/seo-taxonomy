@@ -1,3 +1,6 @@
+= 0.1.6 (2026-11-27) =
+* User manual and functional check only; remove technical manual and runtime code check from Lite. Issue #3012.
+
 = 0.1.5 (2026-11-26) =
 * Canonical Lite directory, entrypoint, ZIP and translations. Preserve accounts and prevent simultaneous activation of the legacy edition. Issue #2984.
 
