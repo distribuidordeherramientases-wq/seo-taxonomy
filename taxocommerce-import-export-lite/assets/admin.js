@@ -21,7 +21,7 @@
                 var phase = data.phase || '';
                 var count = phase === 'checking' || phase === 'invalid' || phase === 'ready' ? data.checked : data.processed;
                 var label = phase === 'checking' ? tcielWizard.messages.checking : (phase === 'ready' ? tcielWizard.messages.ready : (phase === 'invalid' ? tcielWizard.messages.invalid : tcielWizard.messages.running));
-                progress.textContent = label + ' ' + count + ' filas · ' + data.saved + ' guardadas · ' + data.errors + ' errores' + (data.done ? ' · ' + tcielWizard.messages.done : '');
+                progress.textContent = label + ' ' + tcielWizard.messages.rows + ' ' + count + ' · ' + tcielWizard.messages.saved + ' ' + data.saved + ' · ' + tcielWizard.messages.errors + ' ' + data.errors + (data.done ? ' · ' + tcielWizard.messages.done : '');
                 errors.textContent = (data.notices || []).join('\n');
                 if (phase === 'checking' || phase === 'importing') {
                     var next = new FormData();

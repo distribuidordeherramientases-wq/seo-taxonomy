@@ -49,6 +49,9 @@ final class Admin {
 				'validate' => __( 'Comprobar CSV', 'taxocommerce-import-export-lite' ),
 				'confirm' => __( 'Confirmar e importar', 'taxocommerce-import-export-lite' ),
 				'done' => __( 'Importación finalizada.', 'taxocommerce-import-export-lite' ),
+				'rows' => __( 'Filas:', 'taxocommerce-import-export-lite' ),
+				'saved' => __( 'Guardadas:', 'taxocommerce-import-export-lite' ),
+				'errors' => __( 'Errores:', 'taxocommerce-import-export-lite' ),
 				'error' => __( 'Error de conexión: puedes reintentar sin duplicar la importación.', 'taxocommerce-import-export-lite' ),
 			),
 		) );

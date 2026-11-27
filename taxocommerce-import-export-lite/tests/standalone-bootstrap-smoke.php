@@ -423,3 +423,11 @@ echo "Import-Export Lite: fixed content blocks and server-bound automatic mappin
 $upload_exit = 1;
 passthru( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/upload-storage-smoke.php' ), $upload_exit );
 check_tciel( 0 === $upload_exit, 'Private HTTP CSV storage regression' );
+
+// Validate bundled MO catalog headers and entry count.
+foreach ( array( 'es_ES', 'en_US', 'fr_FR', 'de_DE', 'nl_NL' ) as $locale ) {
+    $mo = file_get_contents( dirname( __DIR__ ) . '/languages/taxocommerce-import-export-lite-' . $locale . '.mo' );
+    if ( ! $mo || strlen( $mo ) < 28 ) throw new RuntimeException( 'Missing catalog: ' . $locale );
+    $h = unpack( 'Vmagic/Vrevision/Vcount/Vorig/Vtrans', substr( $mo, 0, 20 ) );
+    if ( 0x950412de !== $h['magic'] || 117 !== $h['count'] ) throw new RuntimeException( 'Invalid catalog: ' . $locale );
+}
