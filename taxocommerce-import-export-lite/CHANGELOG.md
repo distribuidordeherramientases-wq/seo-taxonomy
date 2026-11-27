@@ -1,5 +1,11 @@
 # TaxoCommerce Import-Export Lite
 
+## [0.1.8] — 2026-11-27 — Manual de usuario en Lite (#3017)
+
+- Cuatro pestañas de administración: importar, exportar, chequeo funcional y manual de usuario. Retira el manual técnico de la interfaz y su ruta; conserva las notas de mantenimiento en la documentación del repositorio.
+- Sin cambios en los bloques CSV, almacenamiento, validación ni chequeo funcional. Pro conserva su manual técnico y chequeo profesional de código.
+- Conserva las traducciones y la localización de 0.1.7 (#2997).
+
 ## [0.1.7] — 2026-11-27 — Administrative translations (#2997)
 
 - Add standalone gettext catalogs for five locales: 116 of 204 keys per locale (580 entries), including administrative controls, CSV field labels, upload errors and progress counters. Localize JavaScript progress and check results. Preserve canonical CSV keys, accepted values, data and import behavior. Remaining validation and manual strings will be translated separately.
