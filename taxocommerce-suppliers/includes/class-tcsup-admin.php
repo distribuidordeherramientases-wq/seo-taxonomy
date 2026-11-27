@@ -32,6 +32,7 @@ final class TCSUP_Admin {
 		TCSUP_History_Transfer::boot();
 		TCSUP_Profiles::boot();
 		TCSUP_Profiles_Transfer::boot();
+		TCSUP_URL_Sync::boot();
 	}
 
 	public static function capability() {
@@ -65,6 +66,14 @@ final class TCSUP_Admin {
 	public static function assets( $hook ) {
 		if ( false === strpos( (string) $hook, self::PAGE ) ) {
 			return;
+		}
+		if ( 'sync' === self::active_tab() ) {
+			wp_enqueue_script( 'tcsup-url-sync', TAXOCOMMERCE_SUPPLIERS_URL . 'assets/url-sync.js', array(), TAXOCOMMERCE_SUPPLIERS_VERSION, true );
+			wp_localize_script( 'tcsup-url-sync', 'tcsupSyncStrings', array(
+				'stopped' => __( 'Stopped', 'taxocommerce-suppliers' ),
+				'done' => __( 'Completed', 'taxocommerce-suppliers' ),
+				'error' => __( 'Server request failed.', 'taxocommerce-suppliers' ),
+			) );
 		}
 		if ( 'history' === self::active_tab() ) {
 			wp_enqueue_script( 'taxocommerce-suppliers-history', TAXOCOMMERCE_SUPPLIERS_URL . 'assets/price-history.js', array(), TAXOCOMMERCE_SUPPLIERS_VERSION, true );
@@ -122,7 +131,7 @@ final class TCSUP_Admin {
 	private static function active_tab() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation.
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'import';
-		return in_array( $tab, array( 'import', 'templates', 'inventory', 'prices', 'history', 'images', 'purchasing', 'providers', 'manual', 'autotest' ), true ) ? $tab : 'import';
+		return in_array( $tab, array( 'import', 'templates', 'inventory', 'sync', 'prices', 'history', 'images', 'purchasing', 'providers', 'manual', 'autotest' ), true ) ? $tab : 'import';
 	}
 
 	public static function render() {
@@ -145,6 +154,7 @@ final class TCSUP_Admin {
 					'import'    => __( 'CSV Import', 'taxocommerce-suppliers' ),
 					'templates' => __( 'CSV Templates', 'taxocommerce-suppliers' ),
 					'inventory' => __( 'Inventory', 'taxocommerce-suppliers' ),
+					'sync' => __( 'Sincronización', 'taxocommerce-suppliers' ),
 					'prices'    => __( 'Prices', 'taxocommerce-suppliers' ),
 					'history'   => __( 'Price history', 'taxocommerce-suppliers' ),
 					'images'     => __( 'External Images', 'taxocommerce-suppliers' ),
@@ -171,6 +181,9 @@ final class TCSUP_Admin {
 					break;
 				case 'inventory':
 					self::render_inventory();
+					break;
+				case 'sync':
+					TCSUP_URL_Sync::render();
 					break;
 				case 'prices':
 					self::render_prices();
