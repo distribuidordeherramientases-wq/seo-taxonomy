@@ -1,10 +1,10 @@
 # TaxoCommerce Ticketing gettext catalog.
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Ticketing 0.1.4\n"
+"Project-Id-Version: TaxoCommerce Ticketing 0.1.5\n"
 "Report-Msgid-Bugs-To: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/issues\n"
-"POT-Creation-Date: 2026-11-26 00:00+0000\n"
-"PO-Revision-Date: 2026-11-26 00:00+0000\n"
+"POT-Creation-Date: 2026-11-27 00:00+0000\n"
+"PO-Revision-Date: 2026-11-27 00:00+0000\n"
 "Language: de_DE\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1072,3 +1072,223 @@ msgstr "Ihre Antwort wurde erfasst."
 #: includes/class-tctk-ticketing.php:198
 msgid "Your request has been registered. Check your email for a private follow-up link."
 msgstr "Ihre Anfrage wurde erfasst. Prüfen Sie Ihre E-Mails auf den privaten Link zur Nachverfolgung."
+
+#: includes/class-tctk-autocheck.php:238
+msgid "Could not insert a synthetic ticket."
+msgstr "Ein Testticket konnte nicht eingefügt werden."
+
+#: includes/class-tctk-autocheck.php:239
+msgid "Synthetic ticket not readable after insert."
+msgstr "Das Testticket kann nach dem Einfügen nicht gelesen werden."
+
+#: includes/class-tctk-autocheck.php:240
+msgid "A new synthetic ticket can be inserted and read."
+msgstr "Ein neues Testticket kann eingefügt und gelesen werden."
+
+#: includes/class-tctk-autocheck.php:241
+msgid "Could not insert a synthetic message."
+msgstr "Eine Testnachricht konnte nicht eingefügt werden."
+
+#: includes/class-tctk-autocheck.php:242
+msgid "Synthetic message not readable after insert."
+msgstr "Die Testnachricht kann nach dem Einfügen nicht gelesen werden."
+
+#: includes/class-tctk-autocheck.php:243
+msgid "A message can be inserted and read."
+msgstr "Eine Nachricht kann eingefügt und gelesen werden."
+
+#: includes/class-tctk-autocheck.php:244
+msgid "Could not insert a synthetic attachment."
+msgstr "Ein Testanhang konnte nicht eingefügt werden."
+
+#: includes/class-tctk-autocheck.php:245
+msgid "Synthetic attachment bytes not readable."
+msgstr "Die Bytes des Testanhangs können nicht gelesen werden."
+
+#: includes/class-tctk-autocheck.php:246
+msgid "A private attachment can be inserted and read."
+msgstr "Ein privater Anhang kann eingefügt und gelesen werden."
+
+#: includes/class-tctk-autocheck.php:247
+msgid "Temporary diagnostic data was deleted."
+msgstr "Die temporären Diagnosedaten wurden gelöscht."
+
+#: includes/class-tctk-autocheck.php:248
+msgid "Diagnostic cleanup failed; check plugin tables for a TCTK_CHECK_ record."
+msgstr "Die Diagnosebereinigung ist fehlgeschlagen. Prüfen Sie die Plugin-Tabellen auf einen TCTK_CHECK_-Datensatz."
+
+#: includes/class-tctk-autocheck.php:249
+msgid "Table available"
+msgstr "Tabelle verfügbar"
+
+#: includes/class-tctk-autocheck.php:250
+msgid "Table missing"
+msgstr "Tabelle fehlt"
+
+#: includes/class-tctk-autocheck.php:251
+msgid "Checks notification email syntax only; does not send mail."
+msgstr "Prüft nur die Syntax der Benachrichtigungsadresse; es werden keine E-Mails gesendet."
+
+#: includes/class-tctk-autocheck.php:252
+msgid "Public form URL configured."
+msgstr "URL des öffentlichen Formulars konfiguriert."
+
+#: includes/class-tctk-autocheck.php:253
+msgid "Set a form page URL before staff creates an external ticket."
+msgstr "Konfigurieren Sie die Formular-URL, bevor Mitarbeitende ein externes Ticket erstellen."
+
+#: includes/class-tctk-autocheck.php:254
+msgid "Verifies registration of the public shortcode, not a browser submission."
+msgstr "Prüft die Registrierung des öffentlichen Shortcodes, nicht eine Übermittlung im Browser."
+
+#: includes/class-tctk-autocheck.php:255
+msgid "Verifies WordPress guest submission handler registration."
+msgstr "Prüft die Registrierung des WordPress-Handlers für Gastübermittlungen."
+
+#: includes/class-tctk-autocheck.php:256
+msgid "Verifies WordPress guest reply handler registration."
+msgstr "Prüft die Registrierung des WordPress-Handlers für Gastantworten."
+
+#: includes/class-tctk-autocheck.php:257
+msgid "Not executed because one or more tables are missing."
+msgstr "Nicht ausgeführt, da mindestens eine Tabelle fehlt."
+
+#: includes/class-tctk-autocheck.php:212
+msgid "Tickets table"
+msgstr "Ticket-Tabelle"
+
+#: includes/class-tctk-autocheck.php:213
+msgid "Messages table"
+msgstr "Nachrichtentabelle"
+
+#: includes/class-tctk-autocheck.php:214
+msgid "Attachments table"
+msgstr "Anhangstabelle"
+
+#: includes/class-tctk-autocheck.php:215
+msgid "Staff notification address"
+msgstr "Benachrichtigungsadresse für Mitarbeitende"
+
+#: includes/class-tctk-autocheck.php:216
+msgid "Public form URL"
+msgstr "URL des öffentlichen Formulars"
+
+#: includes/class-tctk-autocheck.php:217
+msgid "Public shortcode registration"
+msgstr "Registrierung des öffentlichen Shortcodes"
+
+#: includes/class-tctk-autocheck.php:218
+msgid "Guest submission handler"
+msgstr "Handler für Gastübermittlungen"
+
+#: includes/class-tctk-autocheck.php:219
+msgid "Guest reply handler"
+msgstr "Handler für Gastantworten"
+
+#: includes/class-tctk-autocheck.php:220
+msgid "Existing ticket count"
+msgstr "Anzahl vorhandener Tickets"
+
+#: includes/class-tctk-autocheck.php:221
+msgid "Ticket persistence"
+msgstr "Ticketspeicherung"
+
+#: includes/class-tctk-autocheck.php:222
+msgid "Message persistence"
+msgstr "Nachrichtenspeicherung"
+
+#: includes/class-tctk-autocheck.php:223
+msgid "Attachment persistence"
+msgstr "Anhangsspeicherung"
+
+#: includes/class-tctk-autocheck.php:224
+msgid "Diagnostic cleanup"
+msgstr "Diagnosebereinigung"
+
+#: includes/class-tctk-autocheck.php:230
+msgid "Check passed"
+msgstr "Prüfung bestanden"
+
+#: includes/class-tctk-autocheck.php:231
+msgid "Check warning"
+msgstr "Prüfwarnung"
+
+#: includes/class-tctk-autocheck.php:232
+msgid "Check failed"
+msgstr "Prüfung fehlgeschlagen"
+
+#: includes/class-tctk-event-log.php:91
+msgid "Spam trap rejection"
+msgstr "Ablehnung durch Spam-Falle"
+
+#: includes/class-tctk-event-log.php:92
+msgid "Request limit reached"
+msgstr "Anfragelimit erreicht"
+
+#: includes/class-tctk-event-log.php:93
+msgid "Validation rejected"
+msgstr "Validierung abgelehnt"
+
+#: includes/class-tctk-event-log.php:94
+msgid "Ticket insertion failed"
+msgstr "Einfügen des Tickets fehlgeschlagen"
+
+#: includes/class-tctk-event-log.php:95
+msgid "Message insertion failed"
+msgstr "Einfügen der Nachricht fehlgeschlagen"
+
+#: includes/class-tctk-event-log.php:96
+msgid "Ticket created"
+msgstr "Ticket erstellt"
+
+#: includes/class-tctk-event-log.php:97
+msgid "Customer reply saved"
+msgstr "Kundenantwort gespeichert"
+
+#: includes/class-tctk-event-log.php:98
+msgid "Customer reply failed"
+msgstr "Kundenantwort fehlgeschlagen"
+
+#: includes/class-tctk-event-log.php:99
+msgid "Staff ticket created"
+msgstr "Ticket durch Mitarbeitende erstellt"
+
+#: includes/class-tctk-event-log.php:100
+msgid "Staff ticket creation failed"
+msgstr "Ticketerstellung durch Mitarbeitende fehlgeschlagen"
+
+#: includes/class-tctk-event-log.php:101
+msgid "Staff action saved"
+msgstr "Mitarbeiteraktion gespeichert"
+
+#: includes/class-tctk-event-log.php:102
+msgid "Staff message failed"
+msgstr "Mitarbeiternachricht fehlgeschlagen"
+
+#: includes/class-tctk-event-log.php:103
+msgid "Staff update failed"
+msgstr "Aktualisierung durch Mitarbeitende fehlgeschlagen"
+
+#: includes/class-tctk-event-log.php:104
+msgid "Ticket update failed"
+msgstr "Ticketaktualisierung fehlgeschlagen"
+
+#: includes/class-tctk-event-log.php:105
+msgid "Customer email failed"
+msgstr "Kunden-E-Mail fehlgeschlagen"
+
+#: includes/class-tctk-event-log.php:106
+msgid "Staff email failed"
+msgstr "Mitarbeiter-E-Mail fehlgeschlagen"
+
+#: includes/class-tctk-event-log.php:107
+msgid "Attachment rejected"
+msgstr "Anhang abgelehnt"
+
+#: includes/class-tctk-event-log.php:108
+msgid "Attachment save failed"
+msgstr "Speichern des Anhangs fehlgeschlagen"
+
+#: includes/class-tctk-event-log.php:109
+msgid "Functionality probe failed"
+msgstr "Funktionstest fehlgeschlagen"

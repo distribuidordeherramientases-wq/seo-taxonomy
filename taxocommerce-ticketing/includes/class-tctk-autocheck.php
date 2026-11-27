@@ -207,6 +207,57 @@ final class TCTK_Autocheck {
         exit;
     }
 
+    private static function check_labels() {
+        return array(
+            'table_tickets' => __( 'Tickets table', 'taxocommerce-ticketing' ),
+            'table_messages' => __( 'Messages table', 'taxocommerce-ticketing' ),
+            'table_files' => __( 'Attachments table', 'taxocommerce-ticketing' ),
+            'staff_email' => __( 'Staff notification address', 'taxocommerce-ticketing' ),
+            'form_link' => __( 'Public form URL', 'taxocommerce-ticketing' ),
+            'public_form' => __( 'Public shortcode registration', 'taxocommerce-ticketing' ),
+            'public_submission_route' => __( 'Guest submission handler', 'taxocommerce-ticketing' ),
+            'reply_route' => __( 'Guest reply handler', 'taxocommerce-ticketing' ),
+            'existing_ticket_count' => __( 'Existing ticket count', 'taxocommerce-ticketing' ),
+            'ticket_insert_read' => __( 'Ticket persistence', 'taxocommerce-ticketing' ),
+            'message_insert_read' => __( 'Message persistence', 'taxocommerce-ticketing' ),
+            'attachment_insert_read' => __( 'Attachment persistence', 'taxocommerce-ticketing' ),
+            'probe_cleanup' => __( 'Diagnostic cleanup', 'taxocommerce-ticketing' ),
+        );
+    }
+
+    private static function status_labels() {
+        return array(
+            'ok' => __( 'Check passed', 'taxocommerce-ticketing' ),
+            'warning' => __( 'Check warning', 'taxocommerce-ticketing' ),
+            'error' => __( 'Check failed', 'taxocommerce-ticketing' ),
+        );
+    }
+
+    private static function detail_labels() {
+        return array(
+            'Could not insert a synthetic ticket.' => __( 'Could not insert a synthetic ticket.', 'taxocommerce-ticketing' ),
+            'Synthetic ticket not readable after insert.' => __( 'Synthetic ticket not readable after insert.', 'taxocommerce-ticketing' ),
+            'A new synthetic ticket can be inserted and read.' => __( 'A new synthetic ticket can be inserted and read.', 'taxocommerce-ticketing' ),
+            'Could not insert a synthetic message.' => __( 'Could not insert a synthetic message.', 'taxocommerce-ticketing' ),
+            'Synthetic message not readable after insert.' => __( 'Synthetic message not readable after insert.', 'taxocommerce-ticketing' ),
+            'A message can be inserted and read.' => __( 'A message can be inserted and read.', 'taxocommerce-ticketing' ),
+            'Could not insert a synthetic attachment.' => __( 'Could not insert a synthetic attachment.', 'taxocommerce-ticketing' ),
+            'Synthetic attachment bytes not readable.' => __( 'Synthetic attachment bytes not readable.', 'taxocommerce-ticketing' ),
+            'A private attachment can be inserted and read.' => __( 'A private attachment can be inserted and read.', 'taxocommerce-ticketing' ),
+            'Temporary diagnostic data was deleted.' => __( 'Temporary diagnostic data was deleted.', 'taxocommerce-ticketing' ),
+            'Diagnostic cleanup failed; check plugin tables for a TCTK_CHECK_ record.' => __( 'Diagnostic cleanup failed; check plugin tables for a TCTK_CHECK_ record.', 'taxocommerce-ticketing' ),
+            'Table available' => __( 'Table available', 'taxocommerce-ticketing' ),
+            'Table missing' => __( 'Table missing', 'taxocommerce-ticketing' ),
+            'Checks notification email syntax only; does not send mail.' => __( 'Checks notification email syntax only; does not send mail.', 'taxocommerce-ticketing' ),
+            'Public form URL configured.' => __( 'Public form URL configured.', 'taxocommerce-ticketing' ),
+            'Set a form page URL before staff creates an external ticket.' => __( 'Set a form page URL before staff creates an external ticket.', 'taxocommerce-ticketing' ),
+            'Verifies registration of the public shortcode, not a browser submission.' => __( 'Verifies registration of the public shortcode, not a browser submission.', 'taxocommerce-ticketing' ),
+            'Verifies WordPress guest submission handler registration.' => __( 'Verifies WordPress guest submission handler registration.', 'taxocommerce-ticketing' ),
+            'Verifies WordPress guest reply handler registration.' => __( 'Verifies WordPress guest reply handler registration.', 'taxocommerce-ticketing' ),
+            'Not executed because one or more tables are missing.' => __( 'Not executed because one or more tables are missing.', 'taxocommerce-ticketing' ),
+        );
+    }
+
     public static function render() {
         if ( ! current_user_can( TCTK_Ticketing::CAP ) ) {
             return;
@@ -224,8 +275,12 @@ final class TCTK_Autocheck {
         echo '<p><strong>' . esc_html__( 'Date executed (UTC)', 'taxocommerce-ticketing' ) . ':</strong> ' . esc_html( $report['executed_at'] ) . '</p>';
         echo '<p>' . esc_html__( 'Passed:', 'taxocommerce-ticketing' ) . ' ' . esc_html( (string) $report['totals']['ok'] ) . ' · ' . esc_html__( 'Warnings:', 'taxocommerce-ticketing' ) . ' ' . esc_html( (string) $report['totals']['warning'] ) . ' · ' . esc_html__( 'Errors:', 'taxocommerce-ticketing' ) . ' ' . esc_html( (string) $report['totals']['error'] ) . '</p>';
         echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Check', 'taxocommerce-ticketing' ) . '</th><th>' . esc_html__( 'Status', 'taxocommerce-ticketing' ) . '</th><th>' . esc_html__( 'Details', 'taxocommerce-ticketing' ) . '</th></tr></thead><tbody>';
+        // Translate fixed diagnostic labels only at display time. Keep stored reports and JSON intact.
+        $checks = self::check_labels();
+        $statuses = self::status_labels();
+        $details = self::detail_labels();
         foreach ( $report['rows'] as $row ) {
-            echo '<tr><td>' . esc_html( $row['check'] ) . '</td><td>' . esc_html( $row['status'] ) . '</td><td>' . esc_html( $row['details'] ) . '</td></tr>';
+            echo '<tr><td>' . esc_html( $checks[ $row['check'] ] ?? $row['check'] ) . '</td><td>' . esc_html( $statuses[ $row['status'] ] ?? $row['status'] ) . '</td><td>' . esc_html( $details[ $row['details'] ] ?? $row['details'] ) . '</td></tr>';
         }
         echo '</tbody></table>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tctk_autocheck_export"/>';
