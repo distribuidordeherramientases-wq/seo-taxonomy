@@ -31,7 +31,7 @@ TaxoCommerce Import-Export Pro includes its own native CSV engine derived from L
 == Installation ==
 
 1. Install and activate WooCommerce.
-2. Upload and activate the independent Pro ZIP in an authorized test installation.
+2. Download the independent Pro ZIP from its Core extension card when available, then use the native WordPress ZIP upload and activate it. Core is not required for manual installation.
 3. Open Import-Export Pro under TaxoCommerce Core when Core is active, or from its own WordPress admin sidebar entry otherwise.
 4. Use a small CSV and review preflight before confirming a large import.
 
@@ -53,6 +53,7 @@ No. It performs bounded local static checks and reports findings. Official Plugi
 
 = 0.1.2 =
 * Explicit batch import controls and selected-file summary. Optional Core catalogue and submenu integration without a required dependency.
+* Distribution: verified local ZIP available through Core's package repository on authorized test sites.
 
 = 0.1.1 =
 * Export all compatible fields per block without selection; private multi-file CSV upload without Media filters and clearer per-file errors.

@@ -28,6 +28,7 @@ on:
       - '.github/scripts/deploy_staging_delta.py'
       - '.github/workflows/deploy-staging.yml'
       - '.github/scripts/publish_ticketing_package.py'
+      - '.github/scripts/publish_import_export_pro_package.py'
       - '.github/scripts/publish_focazul_ticketing_page.py'
       - 'docs/focazul-taxocommerce-ticketing.html'
   pull_request:
@@ -43,8 +44,11 @@ on:
       - '.github/workflows/deploy-staging.yml'
       - '.github/workflows/staging_check_subida_a_pro.yml'
       - '.github/scripts/publish_ticketing_package.py'
+      - '.github/scripts/publish_import_export_pro_package.py'
       - '.github/scripts/publish_focazul_ticketing_page.py'
       - '.github/tests/test_ticketing_delivery.py'
+      - '.github/tests/test_import_export_pro_package.py'
+      - '.github/tests/import-export-pro-core-discovery-smoke.php'
       - 'docs/focazul-taxocommerce-ticketing.html'
 
 permissions:
@@ -128,7 +132,8 @@ jobs:
           python3 -m py_compile .github/scripts/deploy_staging_delta.py
           python3 -m py_compile .github/scripts/publish_ticketing_package.py .github/scripts/publish_focazul_ticketing_page.py
           python3 -m py_compile .github/scripts/publish_mail_package.py
-          python3 -m py_compile .github/scripts/publish_mail_pro_package.py
+          python3 -m py_compile .github/scripts/publish_mail_pro_package.py .github/scripts/publish_import_export_pro_package.py
+          python3 -m unittest discover -s .github/tests -p test_import_export_pro_package.py -v
           python3 -m unittest discover -s .github/tests -p test_mail_pro_package.py -v
           python3 -m unittest discover -s .github/tests -p test_mail_package.py -v
           python3 -m unittest discover -s .github/tests -p test_ticketing_delivery.py -v
@@ -724,3 +729,34 @@ jobs:
           STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
           STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
         run: python3 -u .github/scripts/publish_mail_pro_package.py
+
+  import-export-pro-package:
+    name: Publish verified Import-Export Pro ZIP to STAGING and Focazul package repositories
+    # Serialize manifest writes with all existing package publishers.
+    needs: [plan, verify, mail-pro-package]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging' && needs.verify.result == 'success' && needs.mail-pro-package.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select pending Import-Export Pro package changes
+        id: iepro
+        shell: bash
+        env:
+          BASE: ${{ needs.plan.outputs.base }}
+        run: |
+          set -euo pipefail
+          git diff --name-only "$BASE" HEAD > "$RUNNER_TEMP/tciep-package-delta"
+          if grep -Eq '^(taxocommerce-import-export-pro/|\.github/scripts/publish_import_export_pro_package\.py$)' "$RUNNER_TEMP/tciep-package-delta"; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Verify and publish Import-Export Pro ZIP only (never production)
+        if: steps.iepro.outputs.changed == 'true'
+        env:
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: python3 -u .github/scripts/publish_import_export_pro_package.py
