@@ -1,3 +1,10 @@
+## [0.1.2] — 2026-11-27 — Carga por lotes visible y menú de Core (#3019)
+
+- Identifica la pestaña Importar por lotes y el botón de carga; cada uno de los siete bloques permite seleccionar varios CSV y muestra sus nombres y cantidad. Mantiene el motor, límites, prechequeo y confirmación existentes.
+- Registra ficha y módulo propios mediante hooks opcionales de Core. Con Core activo, Pro aparece como submenú de TaxoCommerce Core; sin Core, mantiene su menú autónomo. No cambia el slug de pantalla ni los trabajos guardados.
+- Lite y el importador original permanecen intactos.
+- Distribución (28/11, #3025): paquete ZIP instalable desde el catálogo de Core en STAGING y Focazul, con verificación SHA-256 y sin instalación automática. El código de la versión 0.1.2 no cambia.
+
 ## [0.1.1] — 2026-11-27 — Flujo limpio por contenido y recepción privada (#2989)
 
 - Cada bloque exporta automáticamente su esquema completo de campos compatibles, sin selección de columnas. El tipo de importación depende únicamente del bloque elegido; solo se reconocen las columnas del CSV dentro de ese esquema.

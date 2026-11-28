@@ -385,13 +385,15 @@ require dirname( __DIR__ ) . '/includes/class-header.php';
 ob_start();
 \TaxoCommerce\ImportExportLite\Header::render();
 $header = ob_get_clean();
+$release = get_file_data( dirname( __DIR__ ) . '/taxocommerce-import-export-lite.php', array( 'version' => 'Version', 'date' => 'Release Date' ) );
+check_tciel( '' !== $release['version'] && 1 === preg_match( '/^\d{4}-\d{2}-\d{2}$/', $release['date'] ), 'Valid plugin release metadata' );
 check_tciel( 1 === substr_count( $header, '<h1>' ), 'One header title; no duplicate H1' );
 check_tciel( false !== strpos( $header, 'TaxoCommerce Import-Export Lite' ), 'Plugin metadata title in header' );
-check_tciel( false !== strpos( $header, 'Versión 0.1.6' ), 'Version follows main plugin header' );
-check_tciel( false !== strpos( $header, 'Última actualización: 2026-11-27' ), 'Valid release date displayed' );
+check_tciel( false !== strpos( $header, 'Versión ' . $release['version'] ), 'Version follows main plugin header' );
+check_tciel( false !== strpos( $header, 'Última actualización: ' . $release['date'] ), 'Valid release date displayed' );
 check_tciel( false !== strpos( $header, 'Independent CSV import and export' ), 'Plugin metadata description displayed' );
 check_tciel( false !== strpos( $header, '<details class="tciel-hero__history">' ), 'Own changelog is collapsed by default' );
-check_tciel( false !== strpos( $header, '[0.1.6]' ), 'Latest changelog entry included' );
+check_tciel( false !== strpos( $header, '[' . $release['version'] . ']' ), 'Latest changelog entry included' );
 check_tciel( false !== strpos( $header, 'Historial de versiones y mejoras' ), 'WordPress Spanish locale fallback' );
 check_tciel( false !== strpos( $header, 'github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/staging/taxocommerce-import-export-lite' ), 'Official source link from plugin URI' );
 echo "Import-Export Lite: autonomous admin header metadata, localized labels and bundled history OK\n";
@@ -423,3 +425,66 @@ echo "Import-Export Lite: fixed content blocks and server-bound automatic mappin
 $upload_exit = 1;
 passthru( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/upload-storage-smoke.php' ), $upload_exit );
 check_tciel( 0 === $upload_exit, 'Private HTTP CSV storage regression' );
+
+// The Lite navigation exposes four sections only; old technical bookmarks fall back safely.
+define( 'TaxoCommerce\\ImportExportLite\\SLUG', 'taxocommerce-import-export-lite' );
+function esc_attr__( $value, $domain = '' ) { return esc_attr( $value ); }
+function add_query_arg( $args, $url ) { return $url . '?' . http_build_query( $args ); }
+function get_option( $key, $default = false ) { return $default; }
+require dirname( __DIR__ ) . '/includes/class-manual.php';
+require dirname( __DIR__ ) . '/includes/class-autocheck.php';
+foreach ( array( 'import', 'export', 'check', 'manual', 'technical', 'code' ) as $requested ) {
+    $_GET = array( 'tab' => $requested );
+    ob_start();
+    \TaxoCommerce\ImportExportLite\Admin::render();
+    $screen = ob_get_clean();
+    preg_match( '~<nav class="nav-tab-wrapper".*?</nav>~s', $screen, $nav );
+    check_tciel( isset( $nav[0] ) && 4 === substr_count( $nav[0], '<a class="nav-tab' ), 'Exactly four Lite tabs: ' . $requested );
+    foreach ( array( 'import', 'export', 'check', 'manual' ) as $visible ) {
+        check_tciel( false !== strpos( $nav[0], 'tab=' . $visible ), 'Retained Lite tab: ' . $visible );
+    }
+    check_tciel( false === strpos( $nav[0], 'tab=technical' ) && false === strpos( $nav[0], 'tab=code' ), 'No professional tabs in Lite' );
+    if ( in_array( $requested, array( 'technical', 'code' ), true ) ) {
+        check_tciel( false !== strpos( $screen, 'id="tciel-import-page"' ), 'Old professional route falls back to import' );
+    }
+}
+check_tciel( ! method_exists( \TaxoCommerce\ImportExportLite\Manual::class, 'technical' ), 'No unused technical manual renderer in Lite' );
+echo "Import-Export Lite: four tabs, user manual and functional check retained, professional routes excluded OK\n";
+
+// Validate every compiled locale against the active POT and the current Lite scope.
+$language_path = dirname( __DIR__ ) . '/languages/taxocommerce-import-export-lite';
+$pot = file_get_contents( $language_path . '.pot' );
+preg_match_all( '/^msgid (".*")$/m', $pot, $pot_matches );
+$required = array_map( static function ( $quoted ) { return json_decode( $quoted, true ); }, $pot_matches[1] );
+check_tciel( 193 === count( $required ) && 193 === count( array_unique( $required ) ), 'Current Lite gettext template' );
+check_tciel( ! in_array( 'Manual técnico', $required, true ), 'Professional manual key absent from Lite' );
+foreach ( array( 'es_ES', 'en_US', 'fr_FR', 'de_DE', 'nl_NL' ) as $locale ) {
+    $po = file_get_contents( $language_path . '-' . $locale . '.po' );
+    $mo = file_get_contents( $language_path . '-' . $locale . '.mo' );
+    check_tciel( $po && $mo && strlen( $mo ) >= 28, 'Bundled catalog files: ' . $locale );
+    $h = unpack( 'Vmagic/Vrevision/Vcount/Vorig/Vtrans', substr( $mo, 0, 20 ) );
+    check_tciel( 0x950412de === $h['magic'] && count( $required ) === $h['count'] && $h['orig'] + 8 * $h['count'] <= strlen( $mo ) && $h['trans'] + 8 * $h['count'] <= strlen( $mo ), 'MO header: ' . $locale );
+    $catalog = array();
+    $previous = null;
+    for ( $index = 0; $index < $h['count']; ++$index ) {
+        $original = unpack( 'Vlen/Voff', substr( $mo, $h['orig'] + 8 * $index, 8 ) );
+        $translated = unpack( 'Vlen/Voff', substr( $mo, $h['trans'] + 8 * $index, 8 ) );
+        check_tciel( $original['off'] + $original['len'] < strlen( $mo ) && $translated['off'] + $translated['len'] < strlen( $mo ) && "\0" === $mo[$original['off'] + $original['len']] && "\0" === $mo[$translated['off'] + $translated['len']], 'MO offsets: ' . $locale );
+        $key = substr( $mo, $original['off'], $original['len'] );
+        $value = substr( $mo, $translated['off'], $translated['len'] );
+        check_tciel( ( null === $previous || strcmp( $previous, $key ) < 0 ) && '' !== $value, 'MO order and nonempty translation: ' . $locale );
+        $catalog[$key] = $value;
+        $previous = $key;
+    }
+    check_tciel( ! array_diff( $required, array_keys( $catalog ) ), 'MO covers every active POT key: ' . $locale );
+    preg_match_all( '/^msgid (".+")\r?\nmsgstr (".+")$/m', $po, $pairs, PREG_SET_ORDER );
+    foreach ( $pairs as $pair ) {
+        $key = json_decode( $pair[1], true );
+        if ( '' !== $key ) {
+            check_tciel( isset( $catalog[$key] ) && json_decode( $pair[2], true ) === $catalog[$key], 'PO and MO match: ' . $locale );
+        }
+    }
+    check_tciel( count( $pairs ) === count( $required ) - 1, 'PO covers every active POT key (excluding metadata header): ' . $locale );
+    check_tciel( false !== strpos( $catalog['El atributo %1$s no tiene el valor %2$s; créalo en WooCommerce o excluye la columna.'], '%1$s' ) && false !== strpos( $catalog['El atributo %1$s no tiene el valor %2$s; créalo en WooCommerce o excluye la columna.'], '%2$s' ), 'Format placeholders retained: ' . $locale );
+}
+echo "Import-Export Lite: five complete current gettext catalogs OK\n";

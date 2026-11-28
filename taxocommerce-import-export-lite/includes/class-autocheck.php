@@ -57,9 +57,9 @@ final class AutoCheck {
 		submit_button( __( 'Ejecutar chequeo', 'taxocommerce-import-export-lite' ), 'primary', 'submit', false );
 		echo '</form>';
 		if ( is_array( $report ) ) {
-			echo '<p>' . esc_html( (string) $report['timestamp'] ) . ' · PASS ' . (int) $report['passed'] . ' / FAIL ' . (int) $report['failed'] . '</p><table class="widefat striped"><thead><tr><th>' . esc_html__( 'Prueba', 'taxocommerce-import-export-lite' ) . '</th><th>' . esc_html__( 'Resultado', 'taxocommerce-import-export-lite' ) . '</th></tr></thead><tbody>';
+			echo '<p>' . esc_html( (string) $report['timestamp'] ) . ' · ' . esc_html__( 'Superado', 'taxocommerce-import-export-lite' ) . ' ' . (int) $report['passed'] . ' / ' . esc_html__( 'Fallido', 'taxocommerce-import-export-lite' ) . ' ' . (int) $report['failed'] . '</p><table class="widefat striped"><thead><tr><th>' . esc_html__( 'Prueba', 'taxocommerce-import-export-lite' ) . '</th><th>' . esc_html__( 'Resultado', 'taxocommerce-import-export-lite' ) . '</th></tr></thead><tbody>';
 			foreach ( $report['checks'] as $row ) {
-				echo '<tr><td>' . esc_html( $row['description'] ) . '</td><td class="' . ( $row['ok'] ? 'tciel-check-pass' : 'tciel-check-fail' ) . '">' . esc_html( $row['ok'] ? 'PASS' : 'FAIL' ) . '</td></tr>';
+				echo '<tr><td>' . esc_html( $row['description'] ) . '</td><td class="' . ( $row['ok'] ? 'tciel-check-pass' : 'tciel-check-fail' ) . '">' . ( $row['ok'] ? esc_html__( 'Superado', 'taxocommerce-import-export-lite' ) : esc_html__( 'Fallido', 'taxocommerce-import-export-lite' ) ) . '</td></tr>';
 			}
 			echo '</tbody></table><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tciel_check_json">';
 			wp_nonce_field( 'tciel_check_json' );

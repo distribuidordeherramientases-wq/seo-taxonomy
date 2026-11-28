@@ -164,7 +164,7 @@ function taxocommerce_insights_indicators_render( array $report ) {
 require dirname( __DIR__ ) . '/includes/analysis/analista-geo-bridge.php';
 
 $reports = taxocommerce_google_bing_analysis_reports();
-insights_check( 3 === count( $reports ), 'existing unified report catalog retained' );
+insights_check( 4 === count( $reports ) && isset( $reports['calidad_datos'] ), 'existing reports plus data quality report' );
 insights_check( ! isset( $reports['trabajo'] ), 'duplicate work button remains absent' );
 insights_check( 'Indicadores para la acción' === $reports['directrices']['label'], 'evidence report label replaces action plan' );
 

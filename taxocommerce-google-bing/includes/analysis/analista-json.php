@@ -237,6 +237,8 @@ if (!function_exists('seo_analista_build_json_export')) {
                 'plan' => $plan,
             ),
             'sources' => $source_health,
+            'calidad_datos' => $wants('calidad_datos') && class_exists('TaxoCommerce_Insights_Data_Quality', false)
+                ? TaxoCommerce_Insights_Data_Quality::build($days) : array(),
             'operational_health' => array(
                 'action_scheduler' => $scheduler_health,
             ),

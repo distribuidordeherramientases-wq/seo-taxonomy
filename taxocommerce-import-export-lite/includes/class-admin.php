@@ -49,6 +49,9 @@ final class Admin {
 				'validate' => __( 'Comprobar CSV', 'taxocommerce-import-export-lite' ),
 				'confirm' => __( 'Confirmar e importar', 'taxocommerce-import-export-lite' ),
 				'done' => __( 'Importación finalizada.', 'taxocommerce-import-export-lite' ),
+				'rows' => __( 'Filas:', 'taxocommerce-import-export-lite' ),
+				'saved' => __( 'Guardadas:', 'taxocommerce-import-export-lite' ),
+				'errors' => __( 'Errores:', 'taxocommerce-import-export-lite' ),
 				'error' => __( 'Error de conexión: puedes reintentar sin duplicar la importación.', 'taxocommerce-import-export-lite' ),
 			),
 		) );
@@ -58,10 +61,10 @@ final class Admin {
 		self::allowed();
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selector.
 		$tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'import';
-		if ( ! in_array( $tab, array( 'import', 'export', 'check', 'manual', 'technical' ), true ) ) $tab = 'import';
+		if ( ! in_array( $tab, array( 'import', 'export', 'check', 'manual' ), true ) ) $tab = 'import';
 		echo '<div class="wrap tciel-admin">';
 		Header::render();
-		$tabs = array( 'import' => __( 'Importar CSV', 'taxocommerce-import-export-lite' ), 'export' => __( 'Exportar CSV', 'taxocommerce-import-export-lite' ), 'check' => __( 'Chequeo', 'taxocommerce-import-export-lite' ), 'manual' => __( 'Manual de usuario', 'taxocommerce-import-export-lite' ), 'technical' => __( 'Manual técnico', 'taxocommerce-import-export-lite' ) );
+		$tabs = array( 'import' => __( 'Importar CSV', 'taxocommerce-import-export-lite' ), 'export' => __( 'Exportar CSV', 'taxocommerce-import-export-lite' ), 'check' => __( 'Chequeo', 'taxocommerce-import-export-lite' ), 'manual' => __( 'Manual de usuario', 'taxocommerce-import-export-lite' ) );
 		echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Secciones de Import-Export Lite', 'taxocommerce-import-export-lite' ) . '">';
 		foreach ( $tabs as $key => $label ) {
 			echo '<a class="nav-tab' . ( $key === $tab ? ' nav-tab-active' : '' ) . '" href="' . esc_url( self::url( array( 'tab' => $key ) ) ) . '">' . esc_html( $label ) . '</a>';
@@ -71,7 +74,6 @@ final class Admin {
 		if ( 'export' === $tab ) self::render_export();
 		if ( 'check' === $tab ) AutoCheck::render();
 		if ( 'manual' === $tab ) Manual::user();
-		if ( 'technical' === $tab ) Manual::technical();
 		echo '</div>';
 	}
 

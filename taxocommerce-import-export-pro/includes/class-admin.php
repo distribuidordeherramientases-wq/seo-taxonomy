@@ -29,7 +29,12 @@ final class Admin {
 	}
 
 	public static function menu() {
-		add_menu_page( __( 'Import-Export Pro', 'taxocommerce-import-export-pro' ), __( 'Import-Export Pro', 'taxocommerce-import-export-pro' ), 'manage_woocommerce', ADMIN_SLUG, array( __CLASS__, 'render' ), 'dashicons-database-import', 58 );
+		$label = __( 'Import-Export Pro', 'taxocommerce-import-export-pro' );
+		if ( function_exists( 'taxocommerce_core' ) || defined( 'TAXOCOMMERCE_CORE_VERSION' ) ) {
+			add_submenu_page( 'taxocommerce-core', $label, $label, 'manage_woocommerce', ADMIN_SLUG, array( __CLASS__, 'render' ) );
+		} else {
+			add_menu_page( $label, $label, 'manage_woocommerce', ADMIN_SLUG, array( __CLASS__, 'render' ), 'dashicons-database-import', 58 );
+		}
 	}
 
 	public static function labels() {
@@ -49,6 +54,9 @@ final class Admin {
 			'pause' => __( 'Pausar', 'taxocommerce-import-export-pro' ),
 			'resume' => __( 'Reanudar', 'taxocommerce-import-export-pro' ),
 			'clear' => __( 'Archivar y limpiar', 'taxocommerce-import-export-pro' ),
+			'new_batch' => __( 'Archivar y preparar otro lote', 'taxocommerce-import-export-pro' ),
+			'files_selected' => __( 'Archivos seleccionados', 'taxocommerce-import-export-pro' ),
+			'no_files' => __( 'Ningún archivo seleccionado.', 'taxocommerce-import-export-pro' ),
 			'speed' => __( 'Aplicar velocidad', 'taxocommerce-import-export-pro' ),
 			'checked_rows' => __( 'Comprobadas', 'taxocommerce-import-export-pro' ),
 			'processed_rows' => __( 'Procesadas', 'taxocommerce-import-export-pro' ),
@@ -85,7 +93,7 @@ final class Admin {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation.
 		$tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'import';
 		$tabs = array(
-			'import' => __( 'Importar CSV', 'taxocommerce-import-export-pro' ),
+			'import' => __( 'Importar por lotes', 'taxocommerce-import-export-pro' ),
 			'export' => __( 'Exportar CSV', 'taxocommerce-import-export-pro' ),
 			'check' => __( 'Chequeo', 'taxocommerce-import-export-pro' ),
 			'manual' => __( 'Manual de usuario', 'taxocommerce-import-export-pro' ),
@@ -132,7 +140,7 @@ final class Admin {
 	}
 
 	public static function blocks( $kind ) {
-		echo '<p>' . esc_html( 'import' === $kind ? __( 'Carga uno o varios CSV en el bloque correspondiente. Se comprueban todos antes de confirmar la importación. No hay selectores de tipo ni asignación manual de columnas.', 'taxocommerce-import-export-pro' ) : __( 'Genera un CSV con todos los campos compatibles del bloque, sin seleccionar columnas. El archivo estará disponible al finalizar.', 'taxocommerce-import-export-pro' ) ) . '</p>';
+		echo '<p>' . esc_html( 'import' === $kind ? __( 'Selecciona un lote de uno o varios CSV del mismo tipo en su bloque. Se comprueban todos antes de confirmar la importación. No hay selectores de tipo ni asignación manual de columnas.', 'taxocommerce-import-export-pro' ) : __( 'Genera un CSV con todos los campos compatibles del bloque, sin seleccionar columnas. El archivo estará disponible al finalizar.', 'taxocommerce-import-export-pro' ) ) . '</p>';
 		echo '<p>' . esc_html__( 'La velocidad regula filas, pausas, tiempo y memoria del proceso PHP, no un porcentaje de la CPU global. Si cierras el navegador, WP-Cron puede continuar los trabajos; depende de la configuración del alojamiento.', 'taxocommerce-import-export-pro' ) . '</p>';
 		foreach ( CSV::types() as $type => $title ) {
 			if ( ! Batch::allowed( $kind, $type ) ) {
@@ -144,10 +152,12 @@ final class Admin {
 				echo '<form method="post" enctype="multipart/form-data" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tciep_create_' . esc_attr( $kind ) . '"><input type="hidden" name="type" value="' . esc_attr( $type ) . '">';
 				wp_nonce_field( 'tciep_create_' . $kind . '_' . $type );
 				if ( 'import' === $kind ) {
-					echo '<label for="tciep-files-' . esc_attr( $type ) . '">' . esc_html__( 'Archivos CSV', 'taxocommerce-import-export-pro' ) . '</label> <input type="file" id="tciep-files-' . esc_attr( $type ) . '" name="csv_files[]" accept=".csv,text/csv" multiple required><p class="description">' . esc_html__( 'Hasta 20 archivos, 30 MB por archivo y 100 MB en conjunto, sujetos al límite del servidor. Orden natural por nombre.', 'taxocommerce-import-export-pro' ) . '</p>';
+					echo '<label for="tciep-files-' . esc_attr( $type ) . '"><strong>' . esc_html__( 'Seleccionar archivos CSV del lote', 'taxocommerce-import-export-pro' ) . '</strong></label><p><input type="file" id="tciep-files-' . esc_attr( $type ) . '" name="csv_files[]" accept=".csv,text/csv" multiple required aria-describedby="tciep-help-' . esc_attr( $type ) . '"></p>';
+					echo '<p class="description" id="tciep-help-' . esc_attr( $type ) . '">' . esc_html__( 'Puedes elegir varios archivos en el mismo selector (Ctrl/Cmd o Mayús en ordenador, selección múltiple en móvil). Hasta 20 archivos, 30 MB por archivo y 100 MB en conjunto, sujetos al límite del servidor. Orden natural por nombre.', 'taxocommerce-import-export-pro' ) . '</p>';
+					echo '<p class="tciep-selection" role="status" aria-live="polite">' . esc_html__( 'Ningún archivo seleccionado.', 'taxocommerce-import-export-pro' ) . '</p>';
 				}
 				self::speeds( 'tciep-speed-' . $kind . '-' . $type );
-				submit_button( 'import' === $kind ? __( 'Cargar y comprobar CSV', 'taxocommerce-import-export-pro' ) : __( 'Generar CSV por lotes', 'taxocommerce-import-export-pro' ), 'primary', 'submit', false );
+				submit_button( 'import' === $kind ? __( 'Cargar lote y comprobar CSV', 'taxocommerce-import-export-pro' ) : __( 'Generar CSV por lotes', 'taxocommerce-import-export-pro' ), 'primary', 'submit', false );
 				echo '</form>';
 			} else {
 				$view = Batch::view( $state );
@@ -156,7 +166,7 @@ final class Admin {
 				self::speeds( 'tciep-job-speed-' . $kind . '-' . $type, $state['speed'] );
 				echo '<button type="button" class="button" data-op="speed">' . esc_html__( 'Aplicar velocidad', 'taxocommerce-import-export-pro' ) . '</button> ';
 				foreach ( array( 'confirm', 'pause', 'resume', 'clear' ) as $action ) {
-					echo '<button type="button" class="button ' . ( 'confirm' === $action ? 'button-primary' : 'button-secondary' ) . '" data-op="' . esc_attr( $action ) . '" hidden>' . esc_html( self::labels()[ $action ] ) . '</button> ';
+					echo '<button type="button" class="button ' . ( 'confirm' === $action ? 'button-primary' : 'button-secondary' ) . '" data-op="' . esc_attr( $action ) . '" hidden>' . esc_html( self::labels()[ 'import' === $kind && 'clear' === $action ? 'new_batch' : $action ] ) . '</button> ';
 				}
 				echo '</div>';
 				if ( 'export' === $kind ) {

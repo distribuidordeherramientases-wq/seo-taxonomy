@@ -51,3 +51,4 @@
 @media (max-width: 780px) { .tciep-panel { padding: 12px; } }
 
 .tciep-files{overflow-x:auto;margin:12px 0}.tciep-files table{min-width:560px}.tciep-notices p{white-space:pre-wrap;overflow-wrap:anywhere;color:#8a2424}.tciep-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}.tciep-telemetry{font-size:13px;color:#47576f}.tciep-history{margin-top:16px}.tciep-panel [hidden]{display:none!important}.tciep-panel input[type=file]{max-width:100%}
+.tciep-selection { overflow-wrap: anywhere; font-weight: 500; }

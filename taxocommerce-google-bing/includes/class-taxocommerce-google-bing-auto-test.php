@@ -73,11 +73,18 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
             'pinterest_helpers'=> array( 'connections', 'Pinterest Business y Merchant: contratos' ),
             'gsc_handler'       => array( 'search', 'Descarga manual Search Console' ),
             'gsc_snapshot'      => array( 'search', 'Último informe de Search Console' ),
+            'capture_gsc'       => array( 'search', 'Resultado de la última descarga de Search Console' ),
             'gsc_freshness'     => array( 'search', 'Vigencia y coherencia del histórico de Analista' ),
             'ga4_handler'       => array( 'analytics', 'Descarga manual GA4' ),
             'ga4_snapshot'      => array( 'analytics', 'Último informe de GA4' ),
+            'capture_ga4'       => array( 'analytics', 'Resultado de la última descarga de GA4' ),
+            'capture_ga4_analyst' => array( 'analytics', 'Recopilación de GA4 y embudo en Analista' ),
+            'capture_chatgpt'   => array( 'analytics', 'Descarga de tráfico atribuido a ChatGPT' ),
+            'capture_chatgpt_sales' => array( 'analytics', 'Disponibilidad de compras atribuidas a ChatGPT' ),
             'bing_handler'      => array( 'bing', 'Descarga manual y configuración Bing' ),
             'bing_snapshot'     => array( 'bing', 'Último informe de Bing' ),
+            'capture_bing'      => array( 'bing', 'Resultado de la última descarga de Bing' ),
+            'capture_bing_analyst' => array( 'bing', 'Recopilación de Bing en Analista' ),
             'trends_hooks'      => array( 'trends', 'Consulta y exportación de Trends' ),
             'trends_terms'      => array( 'trends', 'Normalización y límite de cinco términos' ),
             'trends_link'       => array( 'trends', 'Enlace Explore oficial, país ES' ),
@@ -561,6 +568,28 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
         );
     }
 
+    private static function check_capture_gsc() { return TaxoCommerce_Insights_Data_Quality::manual_check( 'search' ); }
+    private static function check_capture_ga4() { return TaxoCommerce_Insights_Data_Quality::manual_check( 'analytics' ); }
+    private static function check_capture_bing() { return TaxoCommerce_Insights_Data_Quality::manual_check( 'bing' ); }
+    private static function check_capture_chatgpt() { return TaxoCommerce_Insights_Data_Quality::manual_check( 'chatgpt' ); }
+    private static function check_capture_ga4_analyst() { return TaxoCommerce_Insights_Data_Quality::assessment( TaxoCommerce_Insights_Data_Quality::evidence( 'ga4_28' ) ); }
+    private static function check_capture_bing_analyst() {
+        if ( ! function_exists( 'seo_analista_bing_api_key' ) || '' === seo_analista_bing_api_key() ) {
+            return self::skip( 'Analista no dispone de una clave Bing utilizable; comprobar la configuración de Connections.' );
+        }
+        return TaxoCommerce_Insights_Data_Quality::assessment( TaxoCommerce_Insights_Data_Quality::evidence( 'bing_analyst' ) );
+    }
+    private static function check_capture_chatgpt_sales() {
+        $capture = TaxoCommerce_Insights_Data_Quality::evidence( 'ga4_28' );
+        $assessment = TaxoCommerce_Insights_Data_Quality::assessment( $capture );
+        if ( 'pass' !== $assessment['status'] ) {
+            return $assessment;
+        }
+        return isset( $capture['chatgpt']['sessions'], $capture['chatgpt']['purchases'] )
+            ? self::pass( 'Sesiones y compras atribuidas a ChatGPT recibidas de GA4. No certifica cobros.' )
+            : self::skip( 'No se han recibido métricas de compras por origen ChatGPT.' );
+    }
+
     private static function check_ga4_snapshot() { return self::snapshot( 'analytics' ); }
     private static function check_bing_snapshot() { return self::snapshot( 'bing' ); }
 
@@ -694,7 +723,13 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
             return self::fail( 'Analista devolvió resultados de pruebas incorrectos.' );
         }
         if ( (int) $tests['failed'] > 0 ) {
-            return self::fail( (int) $tests['failed'] . ' de ' . absint( $tests['total'] ) . ' regresiones de Analista fallidas. Consultar diagnóstico Analista.' );
+            $failed = array();
+            foreach ( (array) ( $tests['tests'] ?? array() ) as $test ) {
+                if ( empty( $test['passed'] ) && preg_match( '/^ANA[0-9A-Z-]+$/D', (string) ( $test['code'] ?? '' ) ) ) {
+                    $failed[] = $test['code'];
+                }
+            }
+            return self::fail( (int) $tests['failed'] . ' de ' . absint( $tests['total'] ) . ' regresiones de Analista fallidas: ' . implode( ', ', $failed ) . '. Consultar diagnóstico Analista.' );
         }
         return self::pass( absint( $tests['total'] ) . ' casos deterministas de Analista superados.' );
     }

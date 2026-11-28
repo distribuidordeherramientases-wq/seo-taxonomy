@@ -134,6 +134,7 @@ final class TaxoCommerce_Insights_ChatGPT_Search {
         check_admin_referer( 'tgb_chatgpt_refresh' );
         $report = self::fetch();
         if ( is_wp_error( $report ) ) {
+            TaxoCommerce_Insights_Data_Quality::record_manual( 'chatgpt', self::periods(), false );
             set_transient(
                 'tgb_chatgpt_notice_' . get_current_user_id(),
                 array( 'error' => true, 'message' => $report->get_error_message() ),
@@ -145,9 +146,11 @@ final class TaxoCommerce_Insights_ChatGPT_Search {
             unset( $stored[ $key ] );
             $stored[ $key ] = $report;
             update_option( self::STORE, array_slice( $stored, -10, null, true ), false );
+            $persisted = self::latest() === $report;
+            TaxoCommerce_Insights_Data_Quality::record_manual( 'chatgpt', $report['period'], true, $persisted );
             set_transient(
                 'tgb_chatgpt_notice_' . get_current_user_id(),
-                array( 'error' => false, 'message' => __( 'Datos de GA4 actualizados y guardados.', 'taxocommerce-google-bing' ) ),
+                array( 'error' => ! $persisted, 'message' => $persisted ? __( 'Datos de GA4 actualizados y guardados.', 'taxocommerce-google-bing' ) : __( 'No se pudo recuperar el informe recién guardado.', 'taxocommerce-google-bing' ) ),
                 MINUTE_IN_SECONDS
             );
         }
