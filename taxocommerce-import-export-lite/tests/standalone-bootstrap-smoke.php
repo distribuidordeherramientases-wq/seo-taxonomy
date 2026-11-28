@@ -484,7 +484,7 @@ foreach ( array( 'es_ES', 'en_US', 'fr_FR', 'de_DE', 'nl_NL' ) as $locale ) {
             check_tciel( isset( $catalog[$key] ) && json_decode( $pair[2], true ) === $catalog[$key], 'PO and MO match: ' . $locale );
         }
     }
-    check_tciel( count( $pairs ) === count( $required ), 'PO covers every active POT key: ' . $locale );
+    check_tciel( count( $pairs ) === count( $required ) - 1, 'PO covers every active POT key (excluding metadata header): ' . $locale );
     check_tciel( false !== strpos( $catalog['El atributo %1$s no tiene el valor %2$s; créalo en WooCommerce o excluye la columna.'], '%1$s' ) && false !== strpos( $catalog['El atributo %1$s no tiene el valor %2$s; créalo en WooCommerce o excluye la columna.'], '%2$s' ), 'Format placeholders retained: ' . $locale );
 }
 echo "Import-Export Lite: five complete current gettext catalogs OK\n";
