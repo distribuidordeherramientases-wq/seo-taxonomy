@@ -5,7 +5,7 @@ Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.8
+Stable tag: 0.1.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,6 +51,9 @@ The default mode creates a draft product; it does not fail with Product not foun
 Yes. Include the headers virtual, downloadable, download_1_name and download_1_url (optionally a second download) to WooCommerce product fields. The URL must be a valid HTTP(S) address.
 
 == Changelog ==
+
+= 0.1.9 =
+* Complete 77 untranslated active gettext keys per locale (385 entries), including import validation messages and the user manual. Refresh the POT/PO references for the current four-tab Lite edition, removing 12 obsolete technical-manual keys; all 192 active keys are translated in each of the five locales. Rebuild five MO catalogs and verify format placeholders and canonical CSV examples. Make the header regression read the current version and release date from plugin metadata instead of pinning old release numbers. Preserve CSV processing, data, permissions, existing active translations and the Lite/Pro feature separation.
 
 = 0.1.8 =
 * Simplify Lite administration to import, export, functional check and user manual; remove the technical manual screen. Retain all five bundled language catalogs and CSV operations.
