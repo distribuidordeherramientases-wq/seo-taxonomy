@@ -1,5 +1,6 @@
 = 0.1.2 (2026-11-27) =
 * Explicit batch upload controls, selected-file summary and optional Core family catalogue/menu integration. Issue #3019.
+* Distribution: publish the installable ZIP in Core's local package repositories on authorized test sites (#3025). No runtime changes.
 
 = 0.1.1 (2026-11-27) =
 * Fixed full-field exports without selectors, private HTTP multi-file uploads and diagnostics. Retain independent content queues and workload control. Issue #2989.
