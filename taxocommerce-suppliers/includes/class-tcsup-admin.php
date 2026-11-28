@@ -33,6 +33,46 @@ final class TCSUP_Admin {
 		TCSUP_Profiles::boot();
 		TCSUP_Profiles_Transfer::boot();
 		TCSUP_URL_Sync::boot();
+		add_action( 'wp_ajax_tcsup_inventory_export', array( __CLASS__, 'inventory_export_batch' ) );
+	}
+
+	/** Read-only export with stable ID cursor, independent of screen pagination. */
+	public static function inventory_export_batch() {
+		if ( ! current_user_can( self::capability() ) ) {
+			wp_send_json_error( array(), 403 );
+		}
+		check_ajax_referer( 'tcsup_inventory_export' );
+		global $wpdb;
+		$filters = array();
+		foreach ( array( 'supplier', 'selection', 'country', 's' ) as $key ) {
+			$filters[ $key ] = isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : '';
+		}
+		$country = strtoupper( $filters['country'] );
+		$search = $filters['s'];
+		$like = '%' . $wpdb->esc_like( $search ) . '%';
+		$cursor = isset( $_POST['cursor'] ) ? absint( $_POST['cursor'] ) : 0;
+		$linked = isset( $_POST['linked'] ) ? absint( $_POST['linked'] ) : 0;
+		$limit = isset( $_POST['batch_size'] ) ? absint( $_POST['batch_size'] ) : 100;
+		$limit = max( 1, min( 200, $limit ) );
+		$headers = array( 'id', 'object_id', 'proveedor', 'proveedor_id_externo', 'source_row_key', 'sku', 'mpn', 'pais_origen', 'idioma_origen', 'nombre', 'descripcion', 'marca', 'categoria_proveedor', 'url_origen', 'url_canonica', 'precio_sin_iva', 'precio_con_iva', 'iva_porcentaje', 'moneda', 'stock_estado', 'stock_cantidad', 'stock_texto', 'imagenes', 'estado_seleccion', 'estado_sincronizacion', 'primera_importacion', 'ultima_importacion', 'ultima_sincronizacion', 'actualizado' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Current inventory, explicit columns, bounded read-only export.
+		$rows = $wpdb->get_results( $wpdb->prepare(
+			"SELECT id,object_id,proveedor,proveedor_id_externo,source_row_key,sku,mpn,pais_origen,idioma_origen,nombre,descripcion,marca,categoria_proveedor,url_origen,url_canonica,precio_sin_iva,precio_con_iva,iva_porcentaje,moneda,stock_estado,stock_cantidad,stock_texto,imagenes,estado_seleccion,estado_sincronizacion,primera_importacion,ultima_importacion,ultima_sincronizacion,actualizado FROM %i WHERE id>%d AND (%s='' OR proveedor=%s) AND (%s='' OR estado_seleccion=%s) AND (%s='' OR pais_origen=%s) AND (%s='' OR nombre LIKE %s OR sku LIKE %s OR proveedor_id_externo LIKE %s) AND (%d=0 OR object_id>0) ORDER BY id ASC LIMIT %d",
+			TCSUP_Schema::catalog_table(), $cursor, $filters['supplier'], $filters['supplier'], $filters['selection'], $filters['selection'], $country, $country, $search, $like, $like, $like, $linked, $limit
+		), ARRAY_A );
+		if ( ! is_array( $rows ) || $wpdb->last_error ) {
+			wp_send_json_error( array(), 500 );
+		}
+		$payload = array();
+		foreach ( $rows as $row ) {
+			$cursor = (int) $row['id'];
+			$line = array();
+			foreach ( $headers as $key ) {
+				$line[] = (string) ( $row[ $key ] ?? '' );
+			}
+			$payload[] = $line;
+		}
+		wp_send_json_success( array( 'headers' => $headers, 'rows' => $payload, 'cursor' => $cursor, 'done' => count( $rows ) < $limit ) );
 	}
 
 	public static function capability() {
@@ -66,6 +106,14 @@ final class TCSUP_Admin {
 	public static function assets( $hook ) {
 		if ( false === strpos( (string) $hook, self::PAGE ) ) {
 			return;
+		}
+		if ( 'inventory' === self::active_tab() ) {
+			wp_enqueue_script( 'tcsup-inventory-export', TAXOCOMMERCE_SUPPLIERS_URL . 'assets/inventory-export.js', array(), TAXOCOMMERCE_SUPPLIERS_VERSION, true );
+			wp_localize_script( 'tcsup-inventory-export', 'tcsupInventoryExport', array(
+				'done' => __( 'CSV exported. Rows: ', 'taxocommerce-suppliers' ),
+				'error' => __( 'Server request failed.', 'taxocommerce-suppliers' ),
+				'stop' => __( 'Stop', 'taxocommerce-suppliers' ),
+			) );
 		}
 		if ( 'sync' === self::active_tab() ) {
 			wp_enqueue_script( 'tcsup-url-sync', TAXOCOMMERCE_SUPPLIERS_URL . 'assets/url-sync.js', array(), TAXOCOMMERCE_SUPPLIERS_VERSION, true );
@@ -697,6 +745,18 @@ final class TCSUP_Admin {
 		<section class="tcsup-card">
 			<div class="tcsup-card-head"><div><h2><?php esc_html_e( 'Intermediate supplier inventory', 'taxocommerce-suppliers' ); ?></h2><p><?php esc_html_e( 'CSV rows stay here until they are accepted, sent to review, or discarded.', 'taxocommerce-suppliers' ); ?></p></div></div>
 			<?php self::filter_bar( 'inventory', true ); ?>
+			<div id="tcsup-inventory-export" data-nonce="<?php echo esc_attr( wp_create_nonce( 'tcsup_inventory_export' ) ); ?>" data-ajax="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>">
+				<?php foreach ( array( 'supplier', 'selection', 'country', 's' ) as $key ) : ?>
+					<input type="hidden" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( self::request_filter( $key ) ); ?>">
+				<?php endforeach; ?>
+				<p><button type="button" class="button button-primary" id="tcsup-export-start"><?php esc_html_e( 'Export inventory CSV', 'taxocommerce-suppliers' ); ?></button>
+				<label><input type="checkbox" id="tcsup-export-linked"> <?php esc_html_e( 'Only linked products', 'taxocommerce-suppliers' ); ?></label>
+				<label><?php esc_html_e( 'Processing speed', 'taxocommerce-suppliers' ); ?> <select id="tcsup-export-speed">
+					<?php foreach ( array( 25 => '1', 50 => '2', 100 => '3', 150 => '4', 200 => '5' ) as $size => $label ) : ?><option value="<?php echo esc_attr( $size ); ?>" <?php selected( $size, 100 ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?>
+				</select></label>
+				<button type="button" class="button" id="tcsup-export-stop" disabled><?php esc_html_e( 'Stop', 'taxocommerce-suppliers' ); ?></button>
+				<span id="tcsup-export-status" role="status" aria-live="polite"></span></p>
+			</div>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="tcsup_bulk_action">
 				<?php wp_nonce_field( 'tcsup_bulk_action' ); ?>
