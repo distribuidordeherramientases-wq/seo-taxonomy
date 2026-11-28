@@ -1,0 +1,1298 @@
+# TaxoCommerce Import-Export Pro gettext catalog.
+msgid ""
+msgstr ""
+"Project-Id-Version: TaxoCommerce Import-Export Pro 0.1.3\n"
+"Report-Msgid-Bugs-To: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/issues\n"
+"POT-Creation-Date: 2026-11-28 00:00+0000\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: includes/class-batch.php:288
+#, php-format
+msgid "%1$s: el CSV debe ser válido y tener hasta 30 MB. Código de recepción PHP: %2$d."
+msgstr ""
+
+#: includes/class-batch.php:316
+#, php-format
+msgid "%s: el CSV temporal no es legible o no coincide con el tamaño recibido."
+msgstr ""
+
+#: includes/class-batch.php:311
+#, php-format
+msgid "%s: no se pudo copiar el CSV al directorio privado. Comprueba los permisos y el espacio disponible."
+msgstr ""
+
+#: includes/class-admin.php:129
+msgid "1 · Suave"
+msgstr ""
+
+#: includes/class-admin.php:130
+msgid "2 · Baja"
+msgstr ""
+
+#: includes/class-admin.php:131
+msgid "3 · Normal"
+msgstr ""
+
+#: includes/class-admin.php:132
+msgid "4 · Alta"
+msgstr ""
+
+#: includes/class-admin.php:133
+msgid "5 · Máxima"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:562
+msgid "AJAX handler may be missing nonce verification."
+msgstr ""
+
+#: includes/class-autocheck.php:17
+msgid "API de contenidos de WordPress"
+msgstr ""
+
+#: includes/class-autocheck.php:18
+msgid "API estándar de WooCommerce"
+msgstr ""
+
+#: includes/class-admin.php:23
+#: includes/class-batch.php:206
+#: includes/class-batch.php:566
+msgid "Acceso no autorizado."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:646
+#: includes/class-taxocommerce-autotest-code.php:692
+msgid "Access denied."
+msgstr ""
+
+#: includes/class-batch.php:612
+msgid "Acción no válida."
+msgstr ""
+
+#: includes/class-manual.php:28
+msgid "Admin registra una ruta propia y formularios por tipo. Si Core está activo, Pro registra una ficha y un submenú mediante sus hooks opcionales; sin Core conserva su menú propio. Batch vincula el trabajo al usuario, tipo, dirección y token; guarda un estado independiente no autoload en wp_options. Los identificadores y las cabeceras se validan en servidor. Las acciones de escritura y descarga exigen permisos y nonces. El cron vuelve a verificar las capacidades actuales del propietario."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:610
+msgid "All inventoried files have been checked."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:761
+msgid "All rules with findings"
+msgstr ""
+
+#: includes/class-csv.php:49
+msgid "Altura"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:559
+msgid "An early exit may bypass output buffer closure."
+msgstr ""
+
+#: includes/class-csv.php:49
+msgid "Anchura"
+msgstr ""
+
+#: includes/class-admin.php:60
+#: includes/class-admin.php:167
+msgid "Aplicar velocidad"
+msgstr ""
+
+#: includes/class-batch.php:210
+msgid "Archiva y limpia el trabajo anterior de este bloque."
+msgstr ""
+
+#: includes/class-admin.php:56
+msgid "Archivar y limpiar"
+msgstr ""
+
+#: includes/class-admin.php:57
+msgid "Archivar y preparar otro lote"
+msgstr ""
+
+#: includes/class-admin.php:66
+msgid "Archivo"
+msgstr ""
+
+#: includes/class-admin.php:58
+msgid "Archivos seleccionados"
+msgstr ""
+
+#: includes/class-manual.php:27
+msgid "Arquitectura: TaxoCommerce Import-Export Pro 0.1.2 es un plugin autónomo con el motor CSV de Lite incorporado en su propio namespace. WordPress 6.7+, PHP 7.4+ y WooCommerce; no requiere Lite, Core ni el Import-Export original."
+msgstr ""
+
+#: includes/class-native-fields.php:136
+#, php-format
+msgid "Atributo de producto: %s"
+msgstr ""
+
+#: includes/class-batch.php:530
+msgid "Bloque interrumpido. Comprueba los datos guardados antes de reanudar."
+msgstr ""
+
+#: includes/class-admin.php:69
+msgid "CPU del proceso PHP"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:732
+msgid "CPU usage"
+msgstr ""
+
+#: taxocommerce-import-export-pro.php:63
+#: taxocommerce-import-export-pro.php:74
+msgid "CSV import and export by content type, multi-file batches and workload regulation."
+msgstr ""
+
+#: includes/class-batch.php:249
+msgid "Cabecera o primera fila incorrecta."
+msgstr ""
+
+#: includes/class-csv.php:40
+msgid "Caducidad de descarga (-1 sin límite)"
+msgstr ""
+
+#: includes/class-native-fields.php:132
+#, php-format
+msgid "Campo personalizado: %s"
+msgstr ""
+
+#: includes/class-csv.php:584
+msgid "Campo sí/no inválido."
+msgstr ""
+
+#: includes/class-autocheck.php:21
+msgid "Campos personalizados nativos y atributos disponibles"
+msgstr ""
+
+#: includes/class-manual.php:20
+msgid "Campos y relaciones"
+msgstr ""
+
+#: includes/class-csv.php:593
+msgid "Cantidad o límite inválido."
+msgstr ""
+
+#: includes/class-csv.php:445
+msgid "Cantidad o límite no válido."
+msgstr ""
+
+#: includes/class-admin.php:160
+msgid "Cargar lote y comprobar CSV"
+msgstr ""
+
+#: includes/class-csv.php:62
+msgid "Categoría padre existente (slug)"
+msgstr ""
+
+#: includes/class-csv.php:14
+msgid "Categorías de entradas"
+msgstr ""
+
+#: includes/class-csv.php:16
+msgid "Categorías de producto"
+msgstr ""
+
+#: includes/class-csv.php:45
+#: includes/class-csv.php:74
+msgid "Categorías existentes (opcional)"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:581
+msgid "Check SQL parameters and use $wpdb->prepare() for untrusted values."
+msgstr ""
+
+#: includes/class-admin.php:98
+msgid "Chequeo"
+msgstr ""
+
+#: includes/class-admin.php:103
+msgid "Chequeo de código"
+msgstr ""
+
+#: includes/class-autocheck.php:56
+msgid "Chequeo de funcionalidades y componentes"
+msgstr ""
+
+#: includes/class-csv.php:54
+msgid "Clase fiscal"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:727
+msgid "Code Check"
+msgstr ""
+
+#: includes/class-autocheck.php:22
+msgid "Colas por tipo y cinco perfiles de carga"
+msgstr ""
+
+#: includes/class-admin.php:68
+msgid "Columnas omitidas"
+msgstr ""
+
+#: includes/class-autocheck.php:26
+#, php-format
+msgid "Componente legible: %s"
+msgstr ""
+
+#: includes/class-autocheck.php:56
+msgid "Comprobaciones de solo lectura: WordPress, WooCommerce, CSV, permisos y archivos. No importa ni modifica registros. Para un análisis exhaustivo de estándares utiliza Plugin Check."
+msgstr ""
+
+#: includes/class-admin.php:61
+msgid "Comprobadas"
+msgstr ""
+
+#: includes/class-admin.php:49
+msgid "Comprobado"
+msgstr ""
+
+#: includes/class-admin.php:43
+msgid "Comprobado. Confirma para importar."
+msgstr ""
+
+#: includes/class-admin.php:42
+msgid "Comprobando CSV"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:572
+msgid "Confirm an explicit administrator action and WordPress permissions; otherwise use native WordPress plugin management."
+msgstr ""
+
+#: includes/class-admin.php:53
+msgid "Confirmar e importar"
+msgstr ""
+
+#: includes/class-csv.php:68
+msgid "Contenido"
+msgstr ""
+
+#: includes/class-csv.php:290
+msgid "Contenido no encontrado."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:779
+msgid "Continue batch"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:593
+msgid "Correct the PHP syntax and rerun the check."
+msgstr ""
+
+#: includes/class-manual.php:14
+msgid "Cuando todos los archivos estén comprobados, pulsa Confirmar e importar. Los registros se identifican por SKU o slug; las altas son borradores salvo indicación explícita y permisos de publicación."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:557
+msgid "Custom WordPress hook is missing the plugin-specific prefix."
+msgstr ""
+
+#: includes/class-native-fields.php:190
+msgid "Demasiados valores en el atributo."
+msgstr ""
+
+#: includes/class-csv.php:36
+msgid "Descarga 1: URL"
+msgstr ""
+
+#: includes/class-csv.php:35
+msgid "Descarga 1: nombre"
+msgstr ""
+
+#: includes/class-csv.php:38
+msgid "Descarga 2: URL"
+msgstr ""
+
+#: includes/class-csv.php:37
+msgid "Descarga 2: nombre"
+msgstr ""
+
+#: includes/class-csv.php:34
+msgid "Descargable (yes/no)"
+msgstr ""
+
+#: includes/class-admin.php:175
+msgid "Descargar CSV"
+msgstr ""
+
+#: includes/class-autocheck.php:68
+msgid "Descargar informe JSON"
+msgstr ""
+
+#: includes/class-csv.php:29
+#: includes/class-csv.php:60
+msgid "Descripción"
+msgstr ""
+
+#: includes/class-csv.php:30
+msgid "Descripción corta"
+msgstr ""
+
+#: includes/class-csv.php:51
+msgid "Destacado (yes/no)"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:785
+msgid "Detailed results by file (technical view)"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:563
+msgid "Direct-file access protection needs review."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:756
+msgid "Distinct rules:"
+msgstr ""
+
+#: includes/class-batch.php:400
+msgid "Divide el archivo: máximo 25.000 registros por CSV."
+msgstr ""
+
+#: includes/class-csv.php:134
+#, php-format
+msgid "Dos columnas corresponden al campo «%s». Corrige las cabeceras del CSV."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:789
+msgid "Download JSON"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:555
+msgid "Dynamic CSS needs context-specific validation."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:560
+msgid "Dynamic SQL query requires validation of identifiers and parameters."
+msgstr ""
+
+#: includes/class-autocheck.php:46
+msgid "Ejecuta el chequeo primero."
+msgstr ""
+
+#: includes/class-autocheck.php:59
+msgid "Ejecutar chequeo"
+msgstr ""
+
+#: includes/class-csv.php:355
+#, php-format
+msgid "El %1$s apunta al registro %2$d, pero WooCommerce no puede cargar ese producto. Revisa el registro antes de importar."
+msgstr ""
+
+#: includes/class-csv.php:140
+#, php-format
+msgid "El CSV debe incluir una de estas cabeceras de identificación: %s."
+msgstr ""
+
+#: includes/class-admin.php:263
+msgid "El CSV finalizado no está disponible."
+msgstr ""
+
+#: includes/class-csv.php:374
+msgid "El ID indicado no corresponde a un producto disponible de WooCommerce."
+msgstr ""
+
+#: includes/class-csv.php:383
+#, php-format
+msgid "El SKU «%s» está reservado por WooCommerce, pero no se encuentra un producto editable. Revisa la papelera o el índice de SKU antes de importar."
+msgstr ""
+
+#: includes/class-native-fields.php:207
+#, php-format
+msgid "El atributo %1$s no tiene el valor %2$s; créalo en WooCommerce o excluye la columna."
+msgstr ""
+
+#: includes/class-native-fields.php:185
+msgid "El atributo no existe en este WooCommerce."
+msgstr ""
+
+#: includes/class-manual.php:30
+msgid "El bloqueo de archivo del sitio serializa trabajadores y cambios de estado. Cada bloque guarda un marcador en curso y un cursor de bytes. Un fallo no se reenvía automáticamente: queda pausado para inspección y confirmación de reanudación. El importador utiliza altas/actualizaciones idempotentes por identidad; no promete una transacción global ni deshacer efectos de otros plugins."
+msgstr ""
+
+#: includes/class-native-fields.php:156
+msgid "El campo personalizado no está disponible o contiene datos complejos no compatibles con Pro."
+msgstr ""
+
+#: includes/class-native-fields.php:169
+msgid "El campo personalizado requiere sí/no."
+msgstr ""
+
+#: includes/class-native-fields.php:163
+msgid "El campo personalizado requiere un número entero."
+msgstr ""
+
+#: includes/class-native-fields.php:166
+msgid "El campo personalizado requiere un número."
+msgstr ""
+
+#: includes/class-manual.php:33
+msgid "El chequeo funcional es de solo lectura. Chequeo de código analiza únicamente los PHP del propio plugin, con inventario, hallazgos, gravedad, pausa y JSON; no sustituye Plugin Check oficial ni una auditoría de seguridad. El informe no certifica WordPress.org."
+msgstr ""
+
+#: includes/class-batch.php:343
+msgid "El esquema de exportación supera el límite de columnas."
+msgstr ""
+
+#: includes/class-batch.php:577
+msgid "El prechequeo debe terminar sin errores."
+msgstr ""
+
+#: includes/class-batch.php:152
+msgid "El proceso no pudo guardar su punto de control. Revisa el estado antes de reanudar."
+msgstr ""
+
+#: includes/class-csv.php:344
+#, php-format
+msgid "El producto %d está en la papelera. Restáuralo antes de actualizarlo."
+msgstr ""
+
+#: includes/class-csv.php:582
+msgid "El producto existente tiene otro tipo."
+msgstr ""
+
+#: includes/class-manual.php:32
+msgid "El regulador de carga utiliza tiempo real, consumo de memoria y CPU local cuando getrusage está disponible. WP-Cron y el navegador comparten la misma cola y el mismo bloqueo. Si se desactiva el plugin se cancelan sus eventos cron; no se borran contenidos ni trabajos."
+msgstr ""
+
+#: includes/class-manual.php:21
+msgid "El regulador mide CPU del proceso PHP, memoria y duración, no la carga global del servidor. Los cinco perfiles cambian tamaño, duración objetivo y espera entre bloques. La interfaz asiste el procesamiento; WP-Cron puede continuar cuando está cerrada si el alojamiento lo ejecuta y mantiene los temporales privados. No se garantiza ejecución desatendida en un servidor con cron deshabilitado."
+msgstr ""
+
+#: includes/class-csv.php:367
+msgid "El slug pertenece a otro SKU; no se modificará ese producto."
+msgstr ""
+
+#: includes/class-csv.php:407
+msgid "El tipo existente no coincide; no se transforma automáticamente."
+msgstr ""
+
+#: includes/class-batch.php:570
+msgid "El trabajo ha cambiado. Recarga la página."
+msgstr ""
+
+#: includes/class-batch.php:596
+msgid "El trabajo no está pausado."
+msgstr ""
+
+#: includes/class-batch.php:590
+msgid "El trabajo ya ha terminado."
+msgstr ""
+
+#: includes/class-manual.php:16
+msgid "En Exportar CSV genera un archivo por tipo mediante bloques. Se incluyen automáticamente todos los campos compatibles del bloque; descarga el CSV cuando termine. Archivar y limpiar conserva los últimos cinco informes por bloque y elimina únicamente sus archivos temporales."
+msgstr ""
+
+#: includes/class-manual.php:11
+msgid "En Importar por lotes elige el bloque de páginas, productos, categorías, entradas o etiquetas. No tienes que seleccionar un tipo ni asignar columnas."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:590
+msgid "Ensure every ob_start() closes in the same logical flow, including error paths."
+msgstr ""
+
+#: includes/class-csv.php:15
+msgid "Entradas"
+msgstr ""
+
+#: includes/class-admin.php:51
+msgid "Error de importación. Revisa los registros ya guardados."
+msgstr ""
+
+#: includes/class-batch.php:544
+msgid "Error de lectura, escritura o límite de recursos. Revisa el archivo y el punto de control antes de reanudar."
+msgstr ""
+
+#: includes/class-admin.php:64
+msgid "Errores"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:745
+msgid "Errors detected"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:607
+msgid "Errors to fix"
+msgstr ""
+
+#: includes/class-batch.php:410
+msgid "Esta identidad se repite en el archivo."
+msgstr ""
+
+#: includes/class-admin.php:67
+#: includes/class-csv.php:68
+msgid "Estado"
+msgstr ""
+
+#: includes/class-csv.php:28
+msgid "Estado (draft/publish)"
+msgstr ""
+
+#: includes/class-csv.php:450
+msgid "Estado de existencias no válido."
+msgstr ""
+
+#: includes/class-csv.php:219
+msgid "Estado de publicación no válido."
+msgstr ""
+
+#: includes/class-csv.php:53
+msgid "Estado fiscal"
+msgstr ""
+
+#: includes/class-csv.php:469
+msgid "Este tipo no admite archivos descargables."
+msgstr ""
+
+#: includes/class-csv.php:17
+msgid "Etiquetas de entradas"
+msgstr ""
+
+#: includes/class-csv.php:18
+msgid "Etiquetas de producto"
+msgstr ""
+
+#: includes/class-csv.php:46
+#: includes/class-csv.php:75
+msgid "Etiquetas existentes (opcional)"
+msgstr ""
+
+#: includes/class-csv.php:43
+msgid "Existencias (instock/outofstock/onbackorder)"
+msgstr ""
+
+#: includes/class-admin.php:46
+msgid "Exportando"
+msgstr ""
+
+#: includes/class-admin.php:97
+msgid "Exportar CSV"
+msgstr ""
+
+#: includes/class-csv.php:69
+msgid "Extracto"
+msgstr ""
+
+#: includes/class-autocheck.php:62
+#: includes/class-autocheck.php:64
+msgid "Fallido"
+msgstr ""
+
+#: includes/class-csv.php:565
+msgid "Falta el nombre de la categoría o etiqueta."
+msgstr ""
+
+#: includes/class-csv.php:399
+#: includes/class-csv.php:579
+msgid "Falta el nombre del producto."
+msgstr ""
+
+#: includes/class-csv.php:254
+msgid "Falta el nombre del término."
+msgstr ""
+
+#: includes/class-csv.php:610
+msgid "Falta el título de la página o entrada."
+msgstr ""
+
+#: includes/class-csv.php:291
+msgid "Falta el título."
+msgstr ""
+
+#: includes/class-csv.php:69
+msgid "Fecha"
+msgstr ""
+
+#: includes/class-batch.php:423
+#, php-format
+msgid "Fila %1$d: %2$s"
+msgstr ""
+
+#: includes/class-csv.php:224
+msgid "Fila vacía o tipo desconocido."
+msgstr ""
+
+#: includes/class-admin.php:65
+msgid "Filas"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:791
+msgid "File"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:553
+msgid "File upload requires validation and safe handling."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:753
+msgid "Files analysed:"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:609
+msgid "Files without findings"
+msgstr ""
+
+#: includes/class-admin.php:47
+msgid "Finalizado"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:755
+msgid "Findings:"
+msgstr ""
+
+#: includes/class-admin.php:143
+msgid "Genera un CSV con todos los campos compatibles del bloque, sin seleccionar columnas. El archivo estará disponible al finalizar."
+msgstr ""
+
+#: includes/class-admin.php:160
+msgid "Generar CSV por lotes"
+msgstr ""
+
+#: includes/class-csv.php:41
+msgid "Gestionar existencias (yes/no)"
+msgstr ""
+
+#: includes/class-admin.php:63
+msgid "Guardadas"
+msgstr ""
+
+#: includes/class-admin.php:182
+msgid "Historial de trabajos de este bloque (últimos 5)"
+msgstr ""
+
+#: includes/class-csv.php:47
+#: includes/class-csv.php:70
+msgid "Imagen existente en Medios (URL o ID)"
+msgstr ""
+
+#: includes/class-admin.php:32
+msgid "Import-Export Pro"
+msgstr ""
+
+#: includes/class-admin.php:50
+msgid "Importado"
+msgstr ""
+
+#: includes/class-admin.php:45
+msgid "Importando"
+msgstr ""
+
+#: includes/class-admin.php:96
+msgid "Importar por lotes"
+msgstr ""
+
+#: includes/class-csv.php:574
+msgid "Incluye SKU o slug para crear y actualizar sin duplicar productos."
+msgstr ""
+
+#: includes/class-csv.php:607
+msgid "Incluye slug para importar páginas o entradas sin duplicados."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:750
+msgid "Incomplete: not all files were checked"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:584
+msgid "Inspect the execution context and escape output at the point of rendering."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:595
+msgid "Inspect the source line and validate whether this warning requires a code change."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:514
+msgid "Inspect this check and rerun the analysis."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:624
+msgid "Inventory"
+msgstr ""
+
+#: includes/class-csv.php:464
+msgid "La URL de descarga debe ser HTTP(S) válida."
+msgstr ""
+
+#: includes/class-batch.php:295
+msgid "La carga conjunta no puede superar 100 MB."
+msgstr ""
+
+#: includes/class-csv.php:564
+msgid "La categoría o etiqueta todavía no existe."
+msgstr ""
+
+#: includes/class-csv.php:185
+#, php-format
+msgid "La categoría o etiqueta «%s» no existe; omite la columna o crea el término antes."
+msgstr ""
+
+#: includes/class-csv.php:566
+msgid "La categoría padre indicada no existe."
+msgstr ""
+
+#: includes/class-manual.php:31
+msgid "La exportación guarda un offset de salida confirmado y trunca bytes no confirmados antes de reanudar. Consulta identificadores en páginas fijas y escribe CSV por ventanas adaptativas, sin cargar todo el catálogo. Hasta 100 MB por exportación, 1024 columnas y 128 KiB de cabecera. No es una instantánea transaccional: evita editar el catálogo durante la generación."
+msgstr ""
+
+#: includes/class-csv.php:210
+msgid "La imagen debe existir previamente en la biblioteca de medios."
+msgstr ""
+
+#: includes/class-admin.php:144
+msgid "La velocidad regula filas, pausas, tiempo y memoria del proceso PHP, no un porcentaje de la CPU global. Si cierras el navegador, WP-Cron puede continuar los trabajos; depende de la configuración del alojamiento."
+msgstr ""
+
+#: includes/class-header.php:70
+msgid "Last updated"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:626
+msgid "Line"
+msgstr ""
+
+#: includes/class-csv.php:48
+msgid "Longitud"
+msgstr ""
+
+#: includes/class-manual.php:29
+msgid "Los CSV se guardan en un directorio privado fuera del árbol de WordPress y del document root, en un directorio temporal privado del sistema, WordPress o PHP. La recepción verifica el origen HTTP, copia local, tamaño y permisos; no usa Media. Si no está disponible se rechaza el trabajo. Los archivos no se publican en Media. Se requiere un almacenamiento compartido entre procesos PHP si hay varios servidores web."
+msgstr ""
+
+#: includes/class-csv.php:39
+msgid "Límite de descargas (-1 sin límite)"
+msgstr ""
+
+#: includes/class-manual.php:34
+msgid "Límites de esta edición: no migra variaciones hijo, pedidos, clientes, archivos binarios Media ni formatos del importador legado. Las URLs de descarga no se copian. Los metadatos protegidos o serializados no se exportan ni importan. El producto original conserva sus propios procesos avanzados y sus datos."
+msgstr ""
+
+#: includes/class-admin.php:99
+#: includes/class-manual.php:9
+msgid "Manual de usuario"
+msgstr ""
+
+#: includes/class-admin.php:100
+#: includes/class-manual.php:25
+msgid "Manual técnico"
+msgstr ""
+
+#: includes/class-autocheck.php:20
+msgid "Mapeo nativo de páginas y productos descargables"
+msgstr ""
+
+#: includes/class-admin.php:70
+msgid "Memoria PHP"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:767
+msgid "Native static indicators only. Official Plugin Check, live security and older PHP versions have not been executed here."
+msgstr ""
+
+#: includes/class-admin.php:59
+#: includes/class-admin.php:157
+msgid "Ningún archivo seleccionado."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:607
+msgid "No confirmed errors in the implemented checks."
+msgstr ""
+
+#: includes/class-csv.php:261
+msgid "No existe la categoría padre."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:749
+msgid "No findings in implemented checks (not a WordPress.org certification)"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:523
+msgid "No findings in the checks implemented for this file."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:609
+msgid "No fully checked clean files yet."
+msgstr ""
+
+#: includes/class-batch.php:139
+msgid "No hay almacenamiento temporal privado disponible."
+msgstr ""
+
+#: includes/class-csv.php:292
+msgid "No puedes editar este contenido."
+msgstr ""
+
+#: includes/class-csv.php:400
+msgid "No puedes editar este producto."
+msgstr ""
+
+#: includes/class-csv.php:405
+msgid "No se pudo cargar el producto."
+msgstr ""
+
+#: includes/class-admin.php:76
+msgid "No se pudo consultar el proceso. Recarga la página para comprobar su estado."
+msgstr ""
+
+#: includes/class-batch.php:355
+msgid "No se pudo escribir la cabecera."
+msgstr ""
+
+#: includes/class-batch.php:234
+msgid "No se puede abrir el CSV."
+msgstr ""
+
+#: includes/class-batch.php:143
+msgid "No se puede abrir el bloqueo del proceso."
+msgstr ""
+
+#: includes/class-batch.php:348
+msgid "No se puede crear el CSV de exportación."
+msgstr ""
+
+#: includes/class-batch.php:214
+msgid "No se puede crear el directorio privado."
+msgstr ""
+
+#: includes/class-native-fields.php:237
+msgid "No tienes permiso para editar este campo personalizado."
+msgstr ""
+
+#: includes/class-csv.php:294
+msgid "No tienes permiso para publicar."
+msgstr ""
+
+#: includes/class-csv.php:278
+msgid "No tienes permisos para editar estos contenidos."
+msgstr ""
+
+#: includes/class-csv.php:244
+msgid "No tienes permisos para gestionar categorías."
+msgstr ""
+
+#: includes/class-csv.php:604
+msgid "No tienes permisos para importar este contenido."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:608
+msgid "No warnings detected."
+msgstr ""
+
+#: includes/class-csv.php:27
+#: includes/class-csv.php:60
+msgid "Nombre"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:631
+msgid "Not checked."
+msgstr ""
+
+#: includes/class-csv.php:55
+msgid "Nota de compra"
+msgstr ""
+
+#: includes/class-batch.php:402
+msgid "Número de columnas incorrecto."
+msgstr ""
+
+#: includes/class-header.php:72
+msgid "Official plugin page"
+msgstr ""
+
+#: includes/class-csv.php:71
+msgid "Orden del menú"
+msgstr ""
+
+#: includes/class-batch.php:147
+msgid "Otro bloque está trabajando. Vuelve a intentarlo."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:558
+msgid "Output buffer may not be closed in the same execution flow."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:556
+msgid "Output variable needs context-appropriate escaping."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:564
+msgid "PHP syntax error."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:728
+msgid "PHP syntax, WordPress structure and security indicators for this plugin only. No other checker is required. Findings do not replace official Plugin Check or a security audit."
+msgstr ""
+
+#: includes/class-batch.php:606
+msgid "Pausa el trabajo antes de descartarlo."
+msgstr ""
+
+#: includes/class-manual.php:15
+msgid "Pausa, cambia la velocidad o reanuda desde el punto de control. Si hay una interrupción, revisa los registros guardados antes de reanudar. Los errores de escritura detienen el lote: los cambios ya realizados no se deshacen automáticamente."
+msgstr ""
+
+#: includes/class-admin.php:52
+msgid "Pausado"
+msgstr ""
+
+#: includes/class-batch.php:552
+msgid "Pausado por memoria PHP elevada."
+msgstr ""
+
+#: includes/class-admin.php:54
+msgid "Pausar"
+msgstr ""
+
+#: includes/class-admin.php:48
+msgid "Pendiente"
+msgstr ""
+
+#: includes/class-autocheck.php:19
+msgid "Permisos administrativos"
+msgstr ""
+
+#: includes/class-csv.php:48
+msgid "Peso"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:548
+msgid "Plugin activation must require an explicit user action."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:549
+msgid "Plugin deactivation must require an explicit user action."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:547
+msgid "Plugin installation or upgrade operation needs review."
+msgstr ""
+
+#: includes/class-admin.php:44
+msgid "Prechequeo con errores. No se ha importado el lote."
+msgstr ""
+
+#: includes/class-csv.php:31
+msgid "Precio normal"
+msgstr ""
+
+#: includes/class-csv.php:589
+msgid "Precio o dimensión inválidos."
+msgstr ""
+
+#: includes/class-csv.php:443
+msgid "Precio o dimensión no válidos."
+msgstr ""
+
+#: includes/class-csv.php:32
+msgid "Precio rebajado"
+msgstr ""
+
+#: includes/class-admin.php:62
+msgid "Procesadas"
+msgstr ""
+
+#: includes/class-csv.php:378
+msgid "Producto no encontrado. Usa Crear y actualizar para darlo de alta."
+msgstr ""
+
+#: includes/class-csv.php:13
+msgid "Productos WooCommerce"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:768
+msgid "Progress"
+msgstr ""
+
+#: includes/class-autocheck.php:62
+msgid "Prueba"
+msgstr ""
+
+#: includes/class-admin.php:156
+msgid "Puedes elegir varios archivos en el mismo selector (Ctrl/Cmd o Mayús en ordenador, selección múltiple en móvil). Hasta 20 archivos, 30 MB por archivo y 100 MB en conjunto, sujetos al límite del servidor. Orden natural por nombre."
+msgstr ""
+
+#: includes/class-csv.php:609
+msgid "Página o entrada no encontrada."
+msgstr ""
+
+#: includes/class-csv.php:12
+msgid "Páginas"
+msgstr ""
+
+#: includes/class-admin.php:55
+msgid "Reanudar"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:633
+msgid "Recommended action:"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:551
+msgid "Request handler needs an appropriate user permission check."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:550
+msgid "Request input needs a verified nonce in its execution path."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:552
+msgid "Request input needs contextual sanitization and validation."
+msgstr ""
+
+#: includes/class-csv.php:44
+msgid "Reservas (no/notify/yes)"
+msgstr ""
+
+#: includes/class-autocheck.php:62
+msgid "Resultado"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:781
+msgid "Resume"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:747
+msgid "Review required: warnings found"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:566
+msgid "Review the flagged code for compliance with WordPress requirements."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:740
+msgid "Run Code Check"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:697
+msgid "Run Code Check first."
+msgstr ""
+
+#: includes/class-csv.php:363
+msgid "SKU y slug apuntan a productos diferentes; no se modificará ninguno."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:561
+msgid "SQL construction and prepared statements need review."
+msgstr ""
+
+#: includes/class-admin.php:108
+msgid "Secciones de Import-Export Pro"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:792
+msgid "Security"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:759
+msgid "Security:"
+msgstr ""
+
+#: includes/class-admin.php:72
+msgid "Segundos"
+msgstr ""
+
+#: includes/class-batch.php:279
+msgid "Selecciona entre 1 y 20 archivos CSV."
+msgstr ""
+
+#: includes/class-manual.php:13
+msgid "Selecciona la velocidad de 1 a 5. El prechequeo lee todos los archivos sin guardar. Consulta los errores por fila y las columnas omitidas. Si hay errores, archiva el lote, corrige el CSV y cárgalo de nuevo."
+msgstr ""
+
+#: includes/class-admin.php:143
+msgid "Selecciona un lote de uno o varios CSV del mismo tipo en su bloque. Se comprueban todos antes de confirmar la importación. No hay selectores de tipo ni asignación manual de columnas."
+msgstr ""
+
+#: includes/class-manual.php:12
+msgid "Selecciona uno o varios CSV UTF-8 en el mismo selector. Comprueba el número y los nombres seleccionados y pulsa Cargar lote y comprobar CSV. Hasta 20 archivos por carga, 30 MB y 25.000 registros por archivo, 100 MB en conjunto, sujetos a los límites del servidor. Usa nombres 001, 002… para ordenar el lote."
+msgstr ""
+
+#: includes/class-admin.php:155
+msgid "Seleccionar archivos CSV del lote"
+msgstr ""
+
+#: includes/class-admin.php:71
+msgid "Siguiente bloque"
+msgstr ""
+
+#: includes/class-csv.php:410
+#: includes/class-csv.php:573
+msgid "Sin permiso para publicar productos."
+msgstr ""
+
+#: includes/class-csv.php:605
+msgid "Sin permiso para publicar."
+msgstr ""
+
+#: includes/class-csv.php:561
+msgid "Sin permisos para gestionar términos."
+msgstr ""
+
+#: includes/class-autocheck.php:23
+msgid "Soporte nativo CSV"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:772
+msgid "Stop"
+msgstr ""
+
+#: includes/class-autocheck.php:62
+#: includes/class-autocheck.php:64
+msgid "Superado"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:513
+msgid "The check failed but returned no source location."
+msgstr ""
+
+#: includes/class-csv.php:26
+msgid "Tipo (simple, variable, external, grouped)"
+msgstr ""
+
+#: includes/class-csv.php:121
+msgid "Tipo de contenido no válido."
+msgstr ""
+
+#: includes/class-csv.php:403
+msgid "Tipo de producto no compatible con esta importación Pro."
+msgstr ""
+
+#: includes/class-csv.php:581
+msgid "Tipo de producto no compatible."
+msgstr ""
+
+#: includes/class-csv.php:548
+msgid "Tipo o modo CSV no válido."
+msgstr ""
+
+#: includes/class-admin.php:212
+#: includes/class-admin.php:226
+#: includes/class-admin.php:253
+msgid "Tipo o permiso no válido."
+msgstr ""
+
+#: includes/class-csv.php:251
+msgid "Término no encontrado."
+msgstr ""
+
+#: includes/class-csv.php:67
+msgid "Título"
+msgstr ""
+
+#: includes/class-csv.php:598
+msgid "URL de descarga HTTP(S) inválida."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:703
+msgid "Unable to create JSON."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:610
+msgid "Unchecked or incomplete"
+msgstr ""
+
+#: includes/class-csv.php:42
+msgid "Unidades"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:554
+msgid "Uploaded temporary file path needs secure validation."
+msgstr ""
+
+#: includes/class-manual.php:20
+msgid "Usa el CSV exportado como modelo. Se admiten cabeceras nativas y alias reconocidos, metadatos públicos escalares (meta:clave), atributos globales y locales compatibles (attr:pa_color), productos virtuales y descargables. Los IDs externos y las celdas vacías no actualizan datos. Las categorías, etiquetas, padres e imágenes referenciadas deben existir previamente; importa los términos padre antes de sus hijos."
+msgstr ""
+
+#: includes/class-csv.php:173
+msgid "Usa yes/no, 1/0 o sí/no para campos booleanos."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:587
+msgid "Use a unique plugin-specific prefix; preserve compatibility through reviewed migration."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:578
+msgid "Validate the input type, sanitize values and check uploads with WordPress APIs."
+msgstr ""
+
+#: includes/class-csv.php:452
+msgid "Valor de reservas no válido."
+msgstr ""
+
+#: includes/class-admin.php:135
+msgid "Velocidad"
+msgstr ""
+
+#: includes/class-manual.php:21
+msgid "Velocidad y continuidad"
+msgstr ""
+
+#: includes/class-csv.php:52
+msgid "Venta individual (yes/no)"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:575
+msgid "Verify the nonce and capability along the actual input-handling path."
+msgstr ""
+
+#: includes/class-header.php:69
+msgid "Version"
+msgstr ""
+
+#: includes/class-header.php:71
+msgid "Version history and improvements"
+msgstr ""
+
+#: includes/class-csv.php:33
+msgid "Virtual (yes/no)"
+msgstr ""
+
+#: includes/class-csv.php:50
+msgid "Visibilidad (visible/catalog/search/hidden)"
+msgstr ""
+
+#: includes/class-csv.php:454
+msgid "Visibilidad no válida."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php:608
+msgid "Warnings to review"
+msgstr ""
+
+#: includes/class-csv.php:392
+msgid "WooCommerce activo y permisos de productos requeridos."
+msgstr ""
+
+#: includes/class-autocheck.php:29
+msgid "WooCommerce como única dependencia de plugin; integración opcional de Core"
+msgstr ""
+
+#: includes/class-csv.php:572
+msgid "WooCommerce no está disponible o faltan permisos."
+msgstr ""
+
+#: includes/class-admin.php:186
+msgid "errores"
+msgstr ""
+
+#: includes/class-admin.php:184
+msgid "filas exportadas"
+msgstr ""
+
+#: includes/class-admin.php:186
+msgid "guardadas"
+msgstr ""
+
+#: includes/class-admin.php:74
+msgid "¿Archivar y eliminar los archivos temporales? Los cambios ya guardados no se deshacen."
+msgstr ""
+
+#: includes/class-admin.php:73
+msgid "¿Confirmas la escritura de todos los CSV comprobados de este bloque?"
+msgstr ""
+
+#: includes/class-admin.php:75
+msgid "¿Reanudar desde el último punto de control? Si hubo una interrupción, revisa antes los registros guardados."
+msgstr ""

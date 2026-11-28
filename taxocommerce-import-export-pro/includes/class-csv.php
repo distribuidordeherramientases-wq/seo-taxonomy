@@ -400,7 +400,7 @@ final class CSV {
 		if ( $id && ! current_user_can( 'edit_post', $id ) ) return new \WP_Error( 'forbidden', __( 'No puedes editar este producto.', 'taxocommerce-import-export-pro' ) );
 		$type = isset( $data['type'] ) ? strtolower( sanitize_key( $data['type'] ) ) : 'simple';
 		$classes = array( 'simple' => '\\WC_Product_Simple', 'variable' => '\\WC_Product_Variable', 'external' => '\\WC_Product_External', 'grouped' => '\\WC_Product_Grouped' );
-		if ( ! isset( $classes[ $type ] ) ) return new \WP_Error( 'product_type', __( 'Tipo de producto no compatible con esta importación Lite.', 'taxocommerce-import-export-pro' ) );
+		if ( ! isset( $classes[ $type ] ) ) return new \WP_Error( 'product_type', __( 'Tipo de producto no compatible con esta importación Pro.', 'taxocommerce-import-export-pro' ) );
 		$product = $id ? $lookup['product'] : new $classes[ $type ]();
 		if ( ! $product ) return new \WP_Error( 'bad_product', __( 'No se pudo cargar el producto.', 'taxocommerce-import-export-pro' ) );
 		if ( $id && isset( $data['type'] ) && $product->get_type() !== $type ) {

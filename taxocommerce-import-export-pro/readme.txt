@@ -5,7 +5,7 @@ Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.2
+Stable tag: 0.1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,9 @@ No. It adapts row batches and pacing to the PHP worker's CPU, memory and time.
 No. It performs bounded local static checks and reports findings. Official Plugin Check and real functional testing remain necessary.
 
 == Changelog ==
+
+= 0.1.3 =
+* Add independent POT and five PO/MO catalogs (es_ES, en_US, fr_FR, de_DE, nl_NL), 295 of 313 extracted gettext keys per locale (1,475 entries). Reuse equivalent Lite and Ticketing translations at build time only; translate Pro batch controls, workload profiles, validation and errors, native field labels and code-check messages. Localize functionality check result labels and correct one misleading Lite reference in a Pro error. Preserve CSV keys, job states, limits, permissions and all six Pro tabs. Leave 18 manual strings for the next translation review. Test compiled catalog integrity and use dynamic release metadata in existing tests.
 
 = 0.1.2 =
 * Explicit batch import controls and selected-file summary. Optional Core catalogue and submenu integration without a required dependency.

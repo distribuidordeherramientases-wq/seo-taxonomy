@@ -488,7 +488,9 @@ check_tciep( ! isset( $GLOBALS['tciep_events'][ serialize( array( 1, 'export', '
 ob_start();
 \TaxoCommerce\ImportExportPro\Header::render();
 $header = ob_get_clean();
-check_tciep( 1 === substr_count( $header, '<header class="tciep-hero">' ) && false !== strpos( $header, '<h1>TaxoCommerce Import-Export Pro</h1>' ) && false !== strpos( $header, '0.1.2' ), 'One independent Pro header' );
+$release = get_file_data( dirname( __DIR__ ) . '/taxocommerce-import-export-pro.php', array( 'version' => 'Version', 'date' => 'Release Date' ) );
+check_tciep( '' !== $release['version'] && \TaxoCommerce\ImportExportPro\VERSION === $release['version'] && 1 === preg_match( '/^\d{4}-\d{2}-\d{2}$/', $release['date'] ), 'Release metadata agrees with runtime version' );
+check_tciep( 1 === substr_count( $header, '<header class="tciep-hero">' ) && false !== strpos( $header, '<h1>TaxoCommerce Import-Export Pro</h1>' ) && false !== strpos( $header, 'Versión ' . $release['version'] ), 'One independent Pro header' );
 ob_start();
 Admin::blocks( 'import' );
 $import = ob_get_clean();
@@ -519,11 +521,60 @@ $core = new class {
     public function register_module( $id, $module ) { $this->modules[ $id ] = $module; }
 };
 foreach ( $GLOBALS['tciep_hooks']['taxocommerce_core_register_modules'] as $hook ) { $hook( $core ); }
-check_tciep( '0.1.2' === $core->modules['import_export_pro']['version'] && $catalog['import_export_pro']['admin_url'] === $core->modules['import_export_pro']['admin_url'] && false !== strpos( $core->modules['import_export_pro']['admin_url'], 'page=taxocommerce-ie-pro' ), 'Core module opens exact Pro route' );
+check_tciep( $release['version'] === $core->modules['import_export_pro']['version'] && $catalog['import_export_pro']['admin_url'] === $core->modules['import_export_pro']['admin_url'] && false !== strpos( $core->modules['import_export_pro']['admin_url'], 'page=taxocommerce-ie-pro' ), 'Core module opens exact Pro route' );
 echo "Import-Export Pro: explicit multi-file controls, optional Core card and menu OK\n";
 unlink( $root . '/worker.lock' );
 rmdir( $root );
 echo "Import-Export Pro: native CSV, seven blocks, multi-file preflight/confirm, independent queues, pause/resume, lock, history, adaptive export and code check OK\n";
+
+// Verify the Pro catalogs independently of the Lite and Ticketing plugins.
+$language_path = dirname( __DIR__ ) . '/languages/taxocommerce-import-export-pro';
+$pot = file_get_contents( $language_path . '.pot' );
+preg_match_all( '/^msgid (".*")$/m', $pot, $pot_matches );
+$required = array_map( static function ( $quoted ) { return json_decode( $quoted, true ); }, $pot_matches[1] );
+check_tciep( 314 === count( $required ) && count( $required ) === count( array_unique( $required ) ), 'Pro gettext template' );
+$expected = array(
+    'es_ES' => 'Cargar lote y comprobar CSV',
+    'en_US' => 'Upload batch and check CSV files',
+    'fr_FR' => 'Charger le lot et vérifier les CSV',
+    'de_DE' => 'Stapel hochladen und CSV-Dateien prüfen',
+    'nl_NL' => 'Batch uploaden en CSV-bestanden controleren',
+);
+foreach ( $expected as $locale => $label ) {
+    $po = file_get_contents( $language_path . '-' . $locale . '.po' );
+    $mo = file_get_contents( $language_path . '-' . $locale . '.mo' );
+    check_tciep( $po && $mo && strlen( $mo ) >= 28, 'Bundled Pro catalogs: ' . $locale );
+    $h = unpack( 'Vmagic/Vrevision/Vcount/Vorig/Vtrans', substr( $mo, 0, 20 ) );
+    check_tciep( 0x950412de === $h['magic'] && 296 === $h['count'] && $h['orig'] + 8 * $h['count'] <= strlen( $mo ) && $h['trans'] + 8 * $h['count'] <= strlen( $mo ), 'MO header: ' . $locale );
+    $translations = array();
+    $previous = null;
+    for ( $index = 0; $index < $h['count']; ++$index ) {
+        $original = unpack( 'Vlen/Voff', substr( $mo, $h['orig'] + 8 * $index, 8 ) );
+        $translated = unpack( 'Vlen/Voff', substr( $mo, $h['trans'] + 8 * $index, 8 ) );
+        check_tciep( $original['off'] + $original['len'] < strlen( $mo ) && $translated['off'] + $translated['len'] < strlen( $mo ) && "\0" === $mo[$original['off'] + $original['len']] && "\0" === $mo[$translated['off'] + $translated['len']], 'MO offsets: ' . $locale );
+        $key = substr( $mo, $original['off'], $original['len'] );
+        $value = substr( $mo, $translated['off'], $translated['len'] );
+        check_tciep( ( null === $previous || strcmp( $previous, $key ) < 0 ) && '' !== $value, 'MO order and nonempty translation: ' . $locale );
+        $translations[$key] = $value;
+        $previous = $key;
+    }
+    check_tciep( ! array_diff( array_keys( $translations ), $required ), 'MO keys belong to Pro POT: ' . $locale );
+    preg_match_all( '/^msgid (".*")\r?\nmsgstr (".*")$/m', $po, $pairs, PREG_SET_ORDER );
+    $count = 0;
+    foreach ( $pairs as $pair ) {
+        $key = json_decode( $pair[1], true );
+        $value = json_decode( $pair[2], true );
+        if ( '' !== $key && '' !== $value ) {
+            check_tciep( isset( $translations[$key] ) && $value === $translations[$key], 'PO and MO match: ' . $locale );
+            ++$count;
+        }
+    }
+    check_tciep( 295 === $count, 'Translated Pro entries: ' . $locale );
+    check_tciep( $label === ( $translations['Cargar lote y comprobar CSV'] ?? '' ) && ! empty( $translations['Manual técnico'] ) && ! empty( $translations['Run Code Check'] ), 'Pro-specific controls and professional tabs: ' . $locale );
+    $format = $translations['%1$s: el CSV debe ser válido y tener hasta 30 MB. Código de recepción PHP: %2$d.'] ?? '';
+    check_tciep( false !== strpos( $format, '%1$s' ) && false !== strpos( $format, '%2$d' ), 'Upload error placeholders: ' . $locale );
+}
+echo "Import-Export Pro: five independent gettext catalogs OK\n";
 
 // Run the actual multipart regression in the existing plugin CI entrypoint.
 require __DIR__ . '/upload-storage-smoke.php';

@@ -3,8 +3,8 @@
  * Plugin Name: TaxoCommerce Import-Export Pro
  * Plugin URI: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/staging/taxocommerce-import-export-pro
  * Description: Independent multi-file CSV imports and resumable exports for WordPress and WooCommerce, with workload regulation, history and code checks.
- * Version: 0.1.2
- * Release Date: 2026-11-27
+ * Version: 0.1.3
+ * Release Date: 2026-11-28
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -21,12 +21,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-const VERSION = '0.1.2';
+const VERSION = '0.1.3';
 const SLUG = 'taxocommerce-import-export-pro';
 // Distinct admin route also avoids prefix matching by older Import-Export releases.
 const ADMIN_SLUG = 'taxocommerce-ie-pro';
 const DOMAIN = 'taxocommerce-import-export-pro';
-const RELEASE_DATE = '2026-11-27';
+const RELEASE_DATE = '2026-11-28';
 
 require_once __DIR__ . '/includes/class-header.php';
 require_once __DIR__ . '/includes/class-native-fields.php';
@@ -44,6 +44,24 @@ add_action( 'plugins_loaded', static function () {
 	Batch::register();
 	\TaxoCommerce_Import_Export_Pro_Autotest_Code::boot();
 }, 30 );
+
+// Prefer official language packs; use bundled catalogs in standalone installations.
+add_action( 'init', static function () {
+	if ( is_textdomain_loaded( 'taxocommerce-import-export-pro' ) ) {
+		return;
+	}
+	$locale = sanitize_file_name( determine_locale() );
+	$official = WP_LANG_DIR . '/plugins/taxocommerce-import-export-pro-' . $locale;
+	if ( is_readable( $official . '.mo' ) || is_readable( $official . '.l10n.php' ) ) {
+		return;
+	}
+	$fallbacks = array( 'es' => 'es_ES', 'en' => 'en_US', 'fr' => 'fr_FR', 'de' => 'de_DE', 'nl' => 'nl_NL' );
+	$language = substr( strtolower( $locale ), 0, 2 );
+	$catalog = __DIR__ . '/languages/taxocommerce-import-export-pro-' . ( $fallbacks[ $language ] ?? $locale ) . '.mo';
+	if ( is_readable( $catalog ) ) {
+		load_textdomain( 'taxocommerce-import-export-pro', $catalog, $locale );
+	}
+}, 0 );
 
 register_deactivation_hook( __FILE__, static function () {
 	wp_unschedule_hook( Batch::HOOK );
