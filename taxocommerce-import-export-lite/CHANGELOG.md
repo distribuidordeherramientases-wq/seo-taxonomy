@@ -1,5 +1,9 @@
 # TaxoCommerce Import-Export Lite
 
+## [0.1.9] — 2026-11-28 — Complete active Lite translations (#2997)
+
+- Complete 77 untranslated active gettext keys per locale (385 entries), including import validation messages and the user manual. Refresh the POT/PO references for the current four-tab Lite edition, removing 12 obsolete technical-manual keys; all 192 active keys are translated in each of the five locales. Rebuild five MO catalogs and verify format placeholders and canonical CSV examples. Make the header regression read the current version and release date from plugin metadata instead of pinning old release numbers. Preserve CSV processing, data, permissions, existing active translations and the Lite/Pro feature separation.
+
 ## [0.1.8] — 2026-11-27 — Manual de usuario en Lite (#3017)
 
 - Cuatro pestañas de administración: importar, exportar, chequeo funcional y manual de usuario. Retira el manual técnico de la interfaz y su ruta; conserva las notas de mantenimiento en la documentación del repositorio.

@@ -3,8 +3,8 @@
  * Plugin Name: TaxoCommerce Import-Export Lite
  * Plugin URI: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/staging/taxocommerce-import-export-lite
  * Description: Independent CSV import and export for native WordPress content and WooCommerce catalog data. No other TaxoCommerce plugins required.
- * Version: 0.1.8
- * Release Date: 2026-11-27
+ * Version: 0.1.9
+ * Release Date: 2026-11-28
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -21,10 +21,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-const VERSION = '0.1.8';
+const VERSION = '0.1.9';
 const SLUG = 'taxocommerce-import-export-lite';
 const DOMAIN = 'taxocommerce-import-export-lite';
-const RELEASE_DATE = '2026-11-27';
+const RELEASE_DATE = '2026-11-28';
 
 require_once __DIR__ . '/includes/class-header.php';
 require_once __DIR__ . '/includes/class-native-fields.php';
